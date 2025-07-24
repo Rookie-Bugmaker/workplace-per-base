@@ -39,11 +39,6 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>com.crrc</groupId>
-            <artifactId>workplace-main-data</artifactId>
-            <version>v0.0.1</version>
-        </dependency>
     </dependencies>
 
     <dependencyManagement>

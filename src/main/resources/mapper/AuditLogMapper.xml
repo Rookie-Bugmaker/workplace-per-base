@@ -1,4 +1,0 @@
-<mapper namespace="com.crrc.mapper.AuditLogMapper">
-    <!--  通用查询结果列  -->
-        <sql id="Base_Column_List">id, user_name, func_name, remote_ip, sys_name, log_type, operation_type, run_time, result, create_date</sql>
-</mapper>
