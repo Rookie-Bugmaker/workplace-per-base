@@ -2,4 +2,4 @@ server:
   port: 8864
 spring:
   application:
-    name: human-resource
+    name: workplace-human-resource
