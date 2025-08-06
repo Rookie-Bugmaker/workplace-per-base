@@ -4,12 +4,11 @@ import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
 import com.baomidou.mybatisplus.annotation.*;
 import java.io.Serializable;
-import java.time.LocalDateTime;
-import java.util.Date;
+
 import com.crrc.annotation.QueryMethod;
-import com.crrc.converter.DictConverter;
 import com.crrc.enums.QueryType;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
 import lombok.experimental.Accessors;
 
 /**
@@ -24,6 +23,7 @@ import lombok.experimental.Accessors;
 @Accessors(chain = false)
 @TableName("hr_emp_communication")
 @Schema(description = "员工通讯信息表")
+@Data
 public class HrEmpCommunication extends BaseEntity implements Serializable {
 
     private static final long serialVersionUID = 1949021422644555776L;
@@ -63,7 +63,7 @@ public class HrEmpCommunication extends BaseEntity implements Serializable {
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"个人邮箱"}, index = 4)
     @Schema(description = "个人邮箱", example = "")
-    private String pensonalEmail;
+    private String personalEmail;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"家庭住址"}, index = 5)
@@ -73,53 +73,6 @@ public class HrEmpCommunication extends BaseEntity implements Serializable {
     public HrEmpCommunication() {
     }
 
-	public void setId(String id) {
-		this.id = id;
-	}
-	
-	public String getId() {
-		return this.id;
-	}
-    
-	public void setUserCode(String userCode) {
-		this.userCode = userCode;
-	}
-	
-	public String getUserCode() {
-		return this.userCode;
-	}
-    
-	public void setMobilePhone(String mobilePhone) {
-		this.mobilePhone = mobilePhone;
-	}
-	
-	public String getMobilePhone() {
-		return this.mobilePhone;
-	}
-    
-	public void setWorkEmail(String workEmail) {
-		this.workEmail = workEmail;
-	}
-	
-	public String getWorkEmail() {
-		return this.workEmail;
-	}
-    
-	public void setPensonalEmail(String pensonalEmail) {
-		this.pensonalEmail = pensonalEmail;
-	}
-	
-	public String getPensonalEmail() {
-		return this.pensonalEmail;
-	}
-    
-	public void setAddress(String address) {
-		this.address = address;
-	}
-	
-	public String getAddress() {
-		return this.address;
-	}
     
 
     @Override
@@ -129,7 +82,7 @@ public class HrEmpCommunication extends BaseEntity implements Serializable {
 		",userCode='" + userCode + "'" + 
 		",mobilePhone='" + mobilePhone + "'" + 
 		",workEmail='" + workEmail + "'" + 
-		",pensonalEmail='" + pensonalEmail + "'" + 
+		",pensonalEmail='" + personalEmail + "'" +
 		",address='" + address + "'" + 
         '}';
     }

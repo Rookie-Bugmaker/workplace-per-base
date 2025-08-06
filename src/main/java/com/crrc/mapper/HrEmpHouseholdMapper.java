@@ -1,6 +1,6 @@
 package com.crrc.mapper;
 
-import com.crrc.entity.HrEmpHousehold;
+import com.crrc.entity.HrEmpHouseHold;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -13,6 +13,6 @@ import org.apache.ibatis.annotations.Mapper;
  * @since 2025-07-26 16:18:11
  */
 @Mapper
-public interface HrEmpHouseholdMapper extends BaseMapper<HrEmpHousehold> {
+public interface HrEmpHouseholdMapper extends BaseMapper<HrEmpHouseHold> {
 
 }

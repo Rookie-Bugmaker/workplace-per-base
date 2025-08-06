@@ -1,7 +1,7 @@
 package com.crrc.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.crrc.entity.HrEmpHousehold;
+import com.crrc.entity.HrEmpHouseHold;
 
  /**
  * <p>
@@ -11,6 +11,6 @@ import com.crrc.entity.HrEmpHousehold;
  * @author why
  * @since 2025-07-26 16:18:11
  */
-public interface HrEmpHouseholdService extends IService<HrEmpHousehold> {
+public interface HrEmpHouseholdService extends IService<HrEmpHouseHold> {
 
 }
