@@ -2,8 +2,11 @@ package com.crrc.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.crrc.entity.HrEmpBasic;
+import com.crrc.pojo.dto.HrEmpBasicDTO;
 
- /**
+import java.util.List;
+
+/**
  * <p>
  * 员工基本信息表 服务类
  * </p>
@@ -12,5 +15,7 @@ import com.crrc.entity.HrEmpBasic;
  * @since 2025-07-26 16:18:11
  */
 public interface HrEmpBasicService extends IService<HrEmpBasic> {
+
+    List<HrEmpBasicDTO> selectMsg(String userCode);
 
 }
