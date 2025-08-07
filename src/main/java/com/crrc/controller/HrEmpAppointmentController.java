@@ -1,6 +1,7 @@
 package com.crrc.controller;
 
 
+import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
@@ -96,6 +97,10 @@ public class HrEmpAppointmentController {
     @AuditLog(value = "更新任职信息实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
     public ResponseResult<Boolean> updateHrEmpAppointment(@Valid @RequestBody HrEmpAppointment updateReqVO) {
+        if(updateReqVO.getId() == null){
+            updateReqVO.setId(IdUtil.simpleUUID());
+            return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功", hrEmpAppointmentService.save(updateReqVO));
+        }
         return new ResponseResult<>(HttpStatus.OK.value(), "更新任职信息实体成功", hrEmpAppointmentService.saveOrUpdate(updateReqVO));
     }
 
