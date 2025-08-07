@@ -2,6 +2,8 @@ package com.crrc.service.impl;
 
 import com.crrc.entity.*;
 import com.crrc.mapper.HrEmpBasicMapper;
+import com.crrc.mapper.HrEmpHealthMapper;
+import com.crrc.mapper.HrEmpHouseholdMapper;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.service.HrEmpBasicService;
 import com.crrc.utils.SystemConstants;
@@ -26,7 +28,16 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     @Autowired
     private HrEmpBasicMapper hrEmpBasicMapper;
 
+    @Autowired
+    private HrEmpHouseholdMapper hrEmpHouseholdMapper;
 
+    @Autowired
+    private HrEmpHealthMapper hrEmpHealthMapper;
+
+    public void savePlus(HrEmpBasicDTO hrEmpBasicDTO) {
+        //基本信息中，健康状况，户口相关需要跨表保存
+
+    }
 
     public HrEmpBasic selectByUserCode(String userCode) {
         MPJLambdaWrapper<HrEmpBasic> queryWrapper = new MPJLambdaWrapper<>(HrEmpBasic.class)
