@@ -154,4 +154,9 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     @ExcelProperty(value = {"籍贯编码"}, index = 21)
     @Schema(description = "籍贯编码")
     private String nativePlaceCode;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"部门"}, index = 21)
+    @Schema(description = "部门")
+    private String dept;
 }
