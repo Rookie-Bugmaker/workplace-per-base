@@ -55,8 +55,8 @@ public class HrEmpEducationController {
     private HrEmpEducationServiceImpl hrEmpEducationService;
 
     @GetMapping("/getDetails")
-    @Operation(summary = "获得员工基本信息表实体")
-    @AuditLog(value = "获得员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Operation(summary = "获得员工教育信息表实体")
+    @AuditLog(value = "获得员工教育信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<List<HrEmpEducation>> getMsg(@RequestParam String userCode ) {
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工教育信息表实体成功", hrEmpEducationService.selectMsg(userCode));

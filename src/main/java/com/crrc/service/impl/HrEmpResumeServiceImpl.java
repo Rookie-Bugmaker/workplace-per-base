@@ -3,7 +3,11 @@ package com.crrc.service.impl;
 import com.crrc.entity.HrEmpResume;
 import com.crrc.mapper.HrEmpResumeMapper;
 import com.crrc.service.HrEmpResumeService;
+import com.github.yulichang.wrapper.MPJLambdaWrapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * <p>
@@ -15,5 +19,15 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class HrEmpResumeServiceImpl extends WorkServiceImpl<HrEmpResumeMapper, HrEmpResume> implements HrEmpResumeService {
+
+    @Autowired
+    private HrEmpResumeMapper hrEmpResumeMapper;
+
+    public List<HrEmpResume> selectMsg(String userCode){
+        MPJLambdaWrapper<HrEmpResume> wrapper = new MPJLambdaWrapper<HrEmpResume>()
+                .selectAll(HrEmpResume.class)
+                .eq(HrEmpResume::getUserCode, userCode);
+        return hrEmpResumeMapper.selectList(wrapper);
+    }
 
 }
