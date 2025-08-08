@@ -8,6 +8,7 @@ import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.entity.HrEmpEducation;
 import com.crrc.entity.HrEmpSkillLevel;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
@@ -48,6 +49,15 @@ public class HrEmpSkillLevelController {
 
     @Autowired
     private HrEmpSkillLevelServiceImpl hrEmpSkillLevelService;
+
+
+    @GetMapping("/getDetails")
+    @Operation(summary = "获得职业技能等级实体")
+    @AuditLog(value = "获得职业技能等级实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "id", description = "主键编号", required = true, example = "1")
+    public ResponseResult<List<HrEmpSkillLevel>> getMsg(@RequestParam String userCode ) {
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取职业技能等级成功", hrEmpSkillLevelService.selectMsg(userCode));
+    }
 
     @PostMapping("/page")
     @Operation(summary = "获取职业技能等级列表 page")
