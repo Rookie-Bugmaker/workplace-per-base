@@ -4,12 +4,13 @@ import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
 import com.baomidou.mybatisplus.annotation.*;
 import java.io.Serializable;
-import java.time.LocalDateTime;
-import java.util.Date;
+import java.time.LocalDate;
+
 import com.crrc.annotation.QueryMethod;
-import com.crrc.converter.DictConverter;
 import com.crrc.enums.QueryType;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 /**
@@ -24,6 +25,8 @@ import lombok.experimental.Accessors;
 @Accessors(chain = false)
 @TableName("hr_emp_fam_member")
 @Schema(description = "员工主要家庭成员社会关系表")
+@Data
+@NoArgsConstructor
 public class HrEmpFamMember extends BaseEntity implements Serializable {
 
     private static final long serialVersionUID = 1949021418840322048L;
@@ -52,18 +55,11 @@ public class HrEmpFamMember extends BaseEntity implements Serializable {
     @Schema(description = "称谓", example = "")
     private String relation;
     
-    @QueryMethod(method = QueryType.BETWEEN, start = "famBirthDateStartTime", end = "famBirthDateEndTime")
+    @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"出生日期"}, index = 4)
     @Schema(description = "出生日期", example = "")
-    private LocalDateTime famBirthDate;
-    
-  	@TableField(exist = false)
-    @Schema(description = "出生日期-开始时间", example = "2024-01-01 00:00:00")
-	private LocalDateTime famBirthDateStartTime;
-    
-    @TableField(exist = false)
-    @Schema(description = "出生日期-结束时间", example = "2024-01-01 00:00:00")
-    private LocalDateTime famBirthDateEndTime;
+    private LocalDate famBirthDate;
+
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"是否紧急联系人"}, index = 5)
@@ -89,120 +85,4 @@ public class HrEmpFamMember extends BaseEntity implements Serializable {
     @ExcelProperty(value = {"联系电话"}, index = 9)
     @Schema(description = "联系电话", example = "")
     private String famPhone;
-    
-    public HrEmpFamMember() {
-    }
-
-	public void setId(String id) {
-		this.id = id;
-	}
-	
-	public String getId() {
-		return this.id;
-	}
-    
-	public void setUserCode(String userCode) {
-		this.userCode = userCode;
-	}
-	
-	public String getUserCode() {
-		return this.userCode;
-	}
-    
-	public void setFamName(String famName) {
-		this.famName = famName;
-	}
-	
-	public String getFamName() {
-		return this.famName;
-	}
-    
-	public void setRelation(String relation) {
-		this.relation = relation;
-	}
-	
-	public String getRelation() {
-		return this.relation;
-	}
-    
-	public void setFamBirthDate(LocalDateTime famBirthDate) {
-		this.famBirthDate = famBirthDate;
-	}
-	
-	public LocalDateTime getFamBirthDate() {
-		return this.famBirthDate;
-	}
-    
-	public void setFamBirthDateStartTime(LocalDateTime famBirthDateStartTime) {
-		this.famBirthDateStartTime = famBirthDateStartTime;
-	}
-	
-	public LocalDateTime getFamBirthDateStartTime() {
-		return this.famBirthDateStartTime;
-	}
-    
-    public void setFamBirthDateEndTime(LocalDateTime famBirthDateEndTime) {
-		this.famBirthDateEndTime = famBirthDateEndTime;
-	}
-	
-	public LocalDateTime getFamBirthDateEndTime() {
-		return this.famBirthDateEndTime;
-	}
-
-	public void setIsEmergencyContact(String isEmergencyContact) {
-		this.isEmergencyContact = isEmergencyContact;
-	}
-	
-	public String getIsEmergencyContact() {
-		return this.isEmergencyContact;
-	}
-    
-	public void setFamUnit(String famUnit) {
-		this.famUnit = famUnit;
-	}
-	
-	public String getFamUnit() {
-		return this.famUnit;
-	}
-    
-	public void setFamPosition(String famPosition) {
-		this.famPosition = famPosition;
-	}
-	
-	public String getFamPosition() {
-		return this.famPosition;
-	}
-    
-	public void setFamPoliticalStatus(String famPoliticalStatus) {
-		this.famPoliticalStatus = famPoliticalStatus;
-	}
-	
-	public String getFamPoliticalStatus() {
-		return this.famPoliticalStatus;
-	}
-    
-	public void setFamPhone(String famPhone) {
-		this.famPhone = famPhone;
-	}
-	
-	public String getFamPhone() {
-		return this.famPhone;
-	}
-    
-
-    @Override
-    public String toString() {
-        return "HrEmpFamMember{" +
-		"id=" + id +
-		",userCode='" + userCode + "'" + 
-		",famName='" + famName + "'" + 
-		",relation='" + relation + "'" + 
-		",famBirthDate='" + famBirthDate + "'" + 
-		",isEmergencyContact='" + isEmergencyContact + "'" + 
-		",famUnit='" + famUnit + "'" + 
-		",famPosition='" + famPosition + "'" + 
-		",famPoliticalStatus='" + famPoliticalStatus + "'" + 
-		",famPhone='" + famPhone + "'" + 
-        '}';
-    }
 }

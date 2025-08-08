@@ -13,10 +13,13 @@ import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.dto.HrEmpFamMemberDTO;
 import com.crrc.service.impl.HrEmpFamMemberServiceImpl;
+import com.crrc.utils.SystemConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
@@ -30,7 +33,10 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -44,10 +50,20 @@ import java.util.List;
 @RequestMapping("/hrEmpFamMember")
 @RefreshScope
 @Tag(name = "员工主要家庭成员社会关系表", description = "员工主要家庭成员社会关系表")
+@Slf4j
 public class HrEmpFamMemberController {
 
     @Autowired
     private HrEmpFamMemberServiceImpl hrEmpFamMemberService;
+
+
+    @GetMapping("/getDetails")
+    @Operation(summary = "获得员工主要家庭成员社会关系表实体")
+    @AuditLog(value = "获得员工主要家庭成员社会关系表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "id", description = "主键编号", required = true, example = "1")
+    public ResponseResult<List<HrEmpFamMember>> getMsg(@RequestParam String userCode ) {
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工主要家庭成员社会关系表实体成功", hrEmpFamMemberService.selectMsg(userCode));
+    }
 
     @PostMapping("/page")
     @Operation(summary = "获取员工主要家庭成员社会关系表列表 page")
@@ -95,12 +111,54 @@ public class HrEmpFamMemberController {
     @Operation(summary = "更新员工主要家庭成员社会关系表实体")
     @AuditLog(value = "更新员工主要家庭成员社会关系表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
-    public ResponseResult<Boolean> updateHrEmpFamMember(@Valid @RequestBody HrEmpFamMember updateReqVO) {
-        if(updateReqVO.getId() == null){
-            updateReqVO.setId(IdUtil.simpleUUID());
-            return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功", hrEmpFamMemberService.save(updateReqVO));
+    public ResponseResult<Boolean> updateHrEmpFamMember(@Valid @RequestBody HrEmpFamMemberDTO updateReqVO) {
+        try {
+            // 查询现有数据
+            List<HrEmpFamMember> existList = hrEmpFamMemberService.selectMsg(updateReqVO.getUserCode());
+            Set<String> existIds = existList.stream()
+                    .map(HrEmpFamMember::getId)
+                    .collect(Collectors.toSet());
+
+            // 准备新增、更新和删除的数据
+            List<HrEmpFamMember> toSaveOrUpdate = new ArrayList<>();
+
+            // 判断传入数据里面有无紧急联系人
+            boolean isEmergency = true;
+            int emergencyNum = 0;
+            for (HrEmpFamMember hrEmpFamMember : updateReqVO.getList()) {
+                if (hrEmpFamMember.getId() == null) {
+                    hrEmpFamMember.setId(IdUtil.simpleUUID()); // 生成新ID
+                }
+                // 判断紧急联系人
+                if(SystemConstants.TRUE_FLAG.equals(hrEmpFamMember.getIsEmergencyContact())) {
+                    emergencyNum++;
+                    isEmergency = false;
+                }
+                // 当紧急联系人数量多余1时
+                if(emergencyNum > 1) {
+                    return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "紧急联系人数量不唯一！");
+                }
+                hrEmpFamMember.setUserCode(updateReqVO.getUserCode());
+                toSaveOrUpdate.add(hrEmpFamMember);
+                existIds.remove(hrEmpFamMember.getId()); // 移除不需要删除的ID
+            }
+            // 没有紧急联系人,且家庭成员列表不为空时
+            if(isEmergency && !updateReqVO.getList().isEmpty()) {
+                return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "录入员工主要家庭成员中未设置紧急联系人！");
+            }
+            // 批量保存或更新
+            if (!toSaveOrUpdate.isEmpty()) {
+                hrEmpFamMemberService.saveOrUpdateBatch(toSaveOrUpdate);
+            }
+            // 批量删除
+            if (!existIds.isEmpty()) {
+                hrEmpFamMemberService.removeByIds(existIds);
+            }
+        } catch (Exception e) {
+            log.error("更新或保存时出错：\n入参：{}\n错误日志：{}", updateReqVO, e.getMessage(), e);
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "更新员工主要家庭成员社会关系表实体失败");
         }
-        return new ResponseResult<>(HttpStatus.OK.value(), "更新员工主要家庭成员社会关系表实体成功", hrEmpFamMemberService.saveOrUpdate(updateReqVO));
+        return new ResponseResult<>(HttpStatus.OK.value(), "更新员工主要家庭成员社会关系表实体成功");
     }
 
     @Transactional(rollbackFor = Exception.class)

@@ -119,7 +119,7 @@ public class HrEmpEducationController {
             // 准备新增、更新和删除的数据
             List<HrEmpEducation> toSaveOrUpdate = new ArrayList<>();
 
-            // 判断传入数据里面有无最高学历和学位
+            // 判断传入数据里面有无最高学历
             boolean isHighestEdu = true;
             int isHighestNum = 0;
             for (HrEmpEducation hrEmpEducation : updateReqVO.getList()) {
