@@ -8,6 +8,7 @@ import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.entity.HrEmpEducation;
 import com.crrc.entity.HrEmpSalaryStandard;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
@@ -48,6 +49,14 @@ public class HrEmpSalaryStandardController {
 
     @Autowired
     private HrEmpSalaryStandardServiceImpl hrEmpSalaryStandardService;
+
+    @GetMapping("/getDetails")
+    @Operation(summary = "获得薪资标准实体")
+    @AuditLog(value = "获得薪资标准实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "id", description = "主键编号", required = true, example = "1")
+    public ResponseResult<List<HrEmpSalaryStandard>> getMsg(@RequestParam String userCode ) {
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取薪资标准列表成功", hrEmpSalaryStandardService.selectMsg(userCode));
+    }
 
     @PostMapping("/page")
     @Operation(summary = "获取薪资标准列表 page")
