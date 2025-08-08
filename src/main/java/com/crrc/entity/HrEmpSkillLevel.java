@@ -5,7 +5,6 @@ import com.alibaba.excel.annotation.ExcelProperty;
 import com.baomidou.mybatisplus.annotation.*;
 import java.io.Serializable;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
@@ -42,57 +41,57 @@ public class HrEmpSkillLevel extends BaseEntity implements Serializable {
 
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"工种"}, index = 0)
-    @Schema(description = "工种", example = "")
+    @Schema(description = "工种")
     private String jobId;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"技能等级"}, index = 1)
-    @Schema(description = "技能等级", example = "")
+    @Schema(description = "技能等级")
     private String skillLevel;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"取得方式"}, index = 2)
-    @Schema(description = "取得方式", example = "")
+    @Schema(description = "取得方式")
     private String getMethod;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"取得时间"}, index = 3)
-    @Schema(description = "取得时间", example = "")
+    @Schema(description = "取得时间")
     private LocalDate getDate;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"是否最高"}, index = 4)
-    @Schema(description = "是否最高", example = "")
+    @Schema(description = "是否最高")
     private String isHighest;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"是否聘任"}, index = 5)
-    @Schema(description = "是否聘任", example = "")
+    @Schema(description = "是否聘任")
     private String isAppointed;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"聘任起始时间"}, index = 6)
-    @Schema(description = "聘任起始时间", example = "")
+    @Schema(description = "聘任起始时间")
     private LocalDate appointedStartDate;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"聘任结束时间"}, index = 7)
-    @Schema(description = "聘任结束时间", example = "")
+    @Schema(description = "聘任结束时间")
     private LocalDate appointedEndDate;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"发证机构"}, index = 8)
-    @Schema(description = "发证机构", example = "")
+    @Schema(description = "发证机构")
     private String grantUnit;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"证书编号"}, index = 9)
-    @Schema(description = "证书编号", example = "")
+    @Schema(description = "证书编号")
     private String certiId;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"工号"}, index = 11)
-    @Schema(description = "工号", example = "")
+    @Schema(description = "工号")
     private String userCode;
 
 }

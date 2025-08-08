@@ -42,47 +42,47 @@ public class HrEmpFamMember extends BaseEntity implements Serializable {
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"工号"}, index = 1)
-    @Schema(description = "工号", example = "")
+    @Schema(description = "工号")
     private String userCode;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"姓名"}, index = 2)
-    @Schema(description = "姓名", example = "")
+    @Schema(description = "姓名")
     private String famName;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"称谓"}, index = 3)
-    @Schema(description = "称谓", example = "")
+    @Schema(description = "称谓")
     private String relation;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"出生日期"}, index = 4)
-    @Schema(description = "出生日期", example = "")
+    @Schema(description = "出生日期")
     private LocalDate famBirthDate;
 
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"是否紧急联系人"}, index = 5)
-    @Schema(description = "是否紧急联系人", example = "")
+    @Schema(description = "是否紧急联系人")
     private String isEmergencyContact;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"工作单位"}, index = 6)
-    @Schema(description = "工作单位", example = "")
+    @Schema(description = "工作单位")
     private String famUnit;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"职务"}, index = 7)
-    @Schema(description = "职务", example = "")
+    @Schema(description = "职务")
     private String famPosition;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"政治面貌"}, index = 8)
-    @Schema(description = "政治面貌", example = "")
+    @Schema(description = "政治面貌")
     private String famPoliticalStatus;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"联系电话"}, index = 9)
-    @Schema(description = "联系电话", example = "")
+    @Schema(description = "联系电话")
     private String famPhone;
 }
