@@ -1,9 +1,15 @@
 package com.crrc.service.impl;
 
 import com.crrc.entity.HrEmpAppointment;
+import com.crrc.entity.HrEmpEducation;
 import com.crrc.mapper.HrEmpAppointmentMapper;
+import com.crrc.mapper.HrEmpEducationMapper;
 import com.crrc.service.HrEmpAppointmentService;
+import com.github.yulichang.wrapper.MPJLambdaWrapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * <p>
@@ -15,5 +21,15 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class HrEmpAppointmentServiceImpl extends WorkServiceImpl<HrEmpAppointmentMapper, HrEmpAppointment> implements HrEmpAppointmentService {
+
+    @Autowired
+    private HrEmpAppointmentMapper hrEmpAppointmentMapper;
+
+    public List<HrEmpAppointment> selectMsg(String userCode){
+        MPJLambdaWrapper<HrEmpAppointment> wrapper = new MPJLambdaWrapper<HrEmpAppointment>()
+                .selectAll(HrEmpAppointment.class)
+                .eq(HrEmpAppointment::getUserCode, userCode);
+        return hrEmpAppointmentMapper.selectList(wrapper);
+    }
 
 }
