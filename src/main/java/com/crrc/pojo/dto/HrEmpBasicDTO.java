@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-public class HrEmpBasicDTO extends HrEmpBasic {
+public class HrEmpBasicDTO extends HrEmpBasic{
 
     @Schema(description = "最高学历")
     public String education;
@@ -40,7 +40,7 @@ public class HrEmpBasicDTO extends HrEmpBasic {
     public String houseHoldLocation;
 
     @Schema(description = "户口详细地址")
-    public String houseHoldDetail;
+    public String houseHoldLocationDetail;
 
     @Schema(description = "移动电话")
     public String mobilePhone;

@@ -1,12 +1,14 @@
 package com.crrc.controller;
 
 
+import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.entity.HrEmpEducation;
 import com.crrc.entity.HrEmpSkillLevel;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
@@ -47,6 +49,15 @@ public class HrEmpSkillLevelController {
 
     @Autowired
     private HrEmpSkillLevelServiceImpl hrEmpSkillLevelService;
+
+
+    @GetMapping("/getDetails")
+    @Operation(summary = "获得职业技能等级实体")
+    @AuditLog(value = "获得职业技能等级实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "id", description = "主键编号", required = true, example = "1")
+    public ResponseResult<List<HrEmpSkillLevel>> getMsg(@RequestParam String userCode ) {
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取职业技能等级成功", hrEmpSkillLevelService.selectMsg(userCode));
+    }
 
     @PostMapping("/page")
     @Operation(summary = "获取职业技能等级列表 page")
@@ -95,6 +106,10 @@ public class HrEmpSkillLevelController {
     @AuditLog(value = "更新职业技能等级实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
     public ResponseResult<Boolean> updateHrEmpSkillLevel(@Valid @RequestBody HrEmpSkillLevel updateReqVO) {
+        if(updateReqVO.getId() == null){
+            updateReqVO.setId(IdUtil.simpleUUID());
+            return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功", hrEmpSkillLevelService.save(updateReqVO));
+        }
         return new ResponseResult<>(HttpStatus.OK.value(), "更新职业技能等级实体成功", hrEmpSkillLevelService.saveOrUpdate(updateReqVO));
     }
 

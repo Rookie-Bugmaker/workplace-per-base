@@ -1,12 +1,14 @@
 package com.crrc.controller;
 
 
+import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.entity.HrEmpEducation;
 import com.crrc.entity.HrEmpPenalties;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
@@ -47,6 +49,15 @@ public class HrEmpPenaltiesController {
 
     @Autowired
     private HrEmpPenaltiesServiceImpl hrEmpPenaltiesService;
+
+    @GetMapping("/getDetails")
+    @Operation(summary = "获得员工惩处信息实体")
+    @AuditLog(value = "获得员工惩处信息实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "id", description = "主键编号", required = true, example = "1")
+    public ResponseResult<List<HrEmpPenalties>> getMsg(@RequestParam String userCode ) {
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工惩处信息实体成功", hrEmpPenaltiesService.selectMsg(userCode));
+    }
+
 
     @PostMapping("/page")
     @Operation(summary = "获取员工惩处信息表列表 page")
@@ -95,6 +106,10 @@ public class HrEmpPenaltiesController {
     @AuditLog(value = "更新员工惩处信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
     public ResponseResult<Boolean> updateHrEmpPenalties(@Valid @RequestBody HrEmpPenalties updateReqVO) {
+        if(updateReqVO.getId() == null){
+            updateReqVO.setId(IdUtil.simpleUUID());
+            return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功", hrEmpPenaltiesService.save(updateReqVO));
+        }
         return new ResponseResult<>(HttpStatus.OK.value(), "更新员工惩处信息表实体成功", hrEmpPenaltiesService.saveOrUpdate(updateReqVO));
     }
 

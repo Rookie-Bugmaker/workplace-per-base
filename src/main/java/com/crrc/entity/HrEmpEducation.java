@@ -4,7 +4,7 @@ import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
 import com.baomidou.mybatisplus.annotation.*;
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
@@ -35,14 +35,6 @@ public class HrEmpEducation extends BaseEntity implements Serializable {
     @TableId(value = "id", type = IdType.AUTO)
     private String id;
 
-    @Schema(description = "备注", example = "demo")
-    @QueryMethod(method = QueryType.LIKE)
-    private String remark;
-
-    @TableField(fill = FieldFill.INSERT)
-    @Schema(description = "所属部门id", example = "1")
-    private Long orgId;
-
     @TableLogic(value = "0")
     @Schema(description = "删除", example = "false")
     private Integer deleted;
@@ -51,32 +43,14 @@ public class HrEmpEducation extends BaseEntity implements Serializable {
     @ExcelProperty(value = {"工号"}, index = 1)
     @Schema(description = "工号")
     private String userCode;
-    
-    @QueryMethod(method = QueryType.BETWEEN, start = "schoolEntryDateStartTime", end = "schoolEntryDateEndTime")
+
     @ExcelProperty(value = {"入学时间"}, index = 2)
     @Schema(description = "入学时间")
-    private LocalDateTime schoolEntryDate;
-    
-  	@TableField(exist = false)
-    @Schema(description = "入学时间-开始时间", example = "2024-01-01 00:00:00")
-	private LocalDateTime schoolEntryDateStartTime;
-    
-    @TableField(exist = false)
-    @Schema(description = "入学时间-结束时间", example = "2024-01-01 00:00:00")
-    private LocalDateTime schoolEntryDateEndTime;
-    
-    @QueryMethod(method = QueryType.BETWEEN, start = "graduationDateStartTime", end = "graduationDateEndTime")
+    private LocalDate schoolEntryDate;
+
     @ExcelProperty(value = {"毕业时间"}, index = 3)
     @Schema(description = "毕业时间")
-    private LocalDateTime graduationDate;
-    
-  	@TableField(exist = false)
-    @Schema(description = "毕业时间-开始时间", example = "2024-01-01 00:00:00")
-	private LocalDateTime graduationDateStartTime;
-    
-    @TableField(exist = false)
-    @Schema(description = "毕业时间-结束时间", example = "2024-01-01 00:00:00")
-    private LocalDateTime graduationDateEndTime;
+    private LocalDate graduationDate;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"学校名称"}, index = 4)
@@ -128,25 +102,9 @@ public class HrEmpEducation extends BaseEntity implements Serializable {
     @Schema(description = "学业完成情况")
     private String completionStatus;
 
-    
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"学位专业"}, index = 14)
+    @Schema(description = "学位专业")
+    private String degreeMajor;
 
-    @Override
-    public String toString() {
-        return "HrEmpEducation{" +
-		"id=" + id +
-		",userCode='" + userCode + "'" + 
-		",schoolEntryDate='" + schoolEntryDate + "'" + 
-		",graduationDate='" + graduationDate + "'" + 
-		",schoolName='" + schoolName + "'" + 
-		",major='" + major + "'" + 
-		",college='" + college + "'" + 
-		",isMajor='" + isMajor + "'" + 
-		",isFullTime='" + isFullTime + "'" + 
-		",education='" + education + "'" + 
-		",degree='" + degree + "'" + 
-		",isHighestDegree='" + isHighestDegree + "'" + 
-		",isHighestEducation='" + isHighestEducation + "'" + 
-		",completionStatus='" + completionStatus + "'" + 
-        '}';
-    }
 }

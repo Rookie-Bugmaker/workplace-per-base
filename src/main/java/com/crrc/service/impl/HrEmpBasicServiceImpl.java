@@ -2,6 +2,9 @@ package com.crrc.service.impl;
 
 import com.crrc.entity.*;
 import com.crrc.mapper.HrEmpBasicMapper;
+import com.crrc.mapper.HrEmpEducationMapper;
+import com.crrc.mapper.HrEmpHealthMapper;
+import com.crrc.mapper.HrEmpHouseholdMapper;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.service.HrEmpBasicService;
 import com.crrc.utils.SystemConstants;
@@ -26,7 +29,14 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     @Autowired
     private HrEmpBasicMapper hrEmpBasicMapper;
 
+    @Autowired
+    private HrEmpEducationMapper hrEmpEducationMapper;
 
+
+    public void savePlus(HrEmpBasicDTO hrEmpBasicDTO) {
+        //基本信息中，健康状况，户口相关需要跨表保存
+
+    }
 
     public HrEmpBasic selectByUserCode(String userCode) {
         MPJLambdaWrapper<HrEmpBasic> queryWrapper = new MPJLambdaWrapper<>(HrEmpBasic.class)
@@ -48,12 +58,23 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 .leftJoin(HrEmpHealth.class, HrEmpHealth::getUserCode, HrEmpBasic::getUserCode)
                 .select(HrEmpProfessionalSkill::getSkillLevel, HrEmpProfessionalSkill::getSkillName)
                 .leftJoin(HrEmpProfessionalSkill.class, HrEmpProfessionalSkill::getUserCode, HrEmpBasic::getUserCode)
-                .select(HrEmpEducation::getSchoolName, HrEmpEducation::getEducation, HrEmpEducation::getDegree, HrEmpEducation::getSchoolName, HrEmpEducation::getSchoolName)
+                .eq(HrEmpBasic::getUserCode, userCode);
+
+        MPJLambdaWrapper<HrEmpEducation> queryWrapper2 = JoinWrappers.lambda(HrEmpEducation.class)
+                .select(HrEmpEducation::getSchoolName, HrEmpEducation::getEducation, HrEmpEducation::getDegree)
                 .leftJoin(HrEmpEducation.class, HrEmpEducation::getUserCode, HrEmpBasic::getUserCode)
                 .eq(HrEmpEducation::getIsHighestEducation, SystemConstants.TRUE_FLAG)
                 .eq(HrEmpEducation::getIsHighestDegree, SystemConstants.TRUE_FLAG)
                 .eq(HrEmpBasic::getUserCode, userCode);
 
-        return hrEmpBasicMapper.selectJoinList(HrEmpBasicDTO.class, queryWrapper);
+        List<HrEmpBasicDTO> result = hrEmpBasicMapper.selectJoinList(HrEmpBasicDTO.class, queryWrapper);
+        HrEmpEducation hrEmpEducation = hrEmpEducationMapper.selectOne(queryWrapper2);
+        if(hrEmpEducation != null){
+            HrEmpBasicDTO hrEmpBasicDTO = result.get(0);
+            hrEmpBasicDTO.setSchoolName(hrEmpEducation.getSchoolName());
+            hrEmpBasicDTO.setEducation(hrEmpEducation.getEducation());
+            hrEmpBasicDTO.setDegree(hrEmpEducation.getDegree());
+        }
+        return result;
     }
 }

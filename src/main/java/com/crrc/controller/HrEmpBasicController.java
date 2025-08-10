@@ -9,12 +9,17 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
 import com.crrc.entity.HrEmpBasic;
+import com.crrc.entity.HrEmpHealth;
+import com.crrc.entity.HrEmpHouseHold;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.service.impl.HrEmpBasicServiceImpl;
+import com.crrc.service.impl.HrEmpHealthServiceImpl;
+import com.crrc.service.impl.HrEmpHouseholdServiceImpl;
+import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -41,6 +46,7 @@ import java.util.List;
  * @author why
  * @since 2025-07-26 16:18:11
  */
+@Slf4j
 @RestController
 @RequestMapping("/hrEmpBasic")
 @RefreshScope
@@ -49,6 +55,10 @@ public class HrEmpBasicController {
 
     @Autowired
     private HrEmpBasicServiceImpl hrEmpBasicService;
+    @Autowired
+    private HrEmpHouseholdServiceImpl hrEmpHouseholdService;
+    @Autowired
+    private HrEmpHealthServiceImpl hrEmpHealthService;
 
     @GetMapping("/getDetails")
     @Operation(summary = "获得员工基本信息表实体")
@@ -104,12 +114,49 @@ public class HrEmpBasicController {
     @Operation(summary = "更新员工基本信息表实体")
     @AuditLog(value = "更新员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
-    public ResponseResult<Boolean> updateHrEmpBasic(@Valid @RequestBody HrEmpBasic updateReqVO) {
-        if(updateReqVO.getId() == null){
-            updateReqVO.setId(IdUtil.simpleUUID());
-            return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功", hrEmpBasicService.save(updateReqVO));
+    public ResponseResult<Boolean> updateHrEmpBasic(@Valid @RequestBody HrEmpBasicDTO updateReqVO) {
+        //基本信息中，健康状况，户口相关需要跨表保存
+        try{
+            //健康信息部分
+            String userCode = updateReqVO.getUserCode();
+            HrEmpHealth hrEmpHealth = hrEmpHealthService.selectByUserCode(userCode);
+            if(hrEmpHealth == null) {
+                HrEmpHealth saveEntity = new HrEmpHealth();
+                saveEntity.setUserCode(userCode);
+                saveEntity.setHealthStatus(updateReqVO.getHealthStatus());
+                saveEntity.setId(IdUtil.simpleUUID());
+                hrEmpHealthService.save(saveEntity);
+            } else {
+                hrEmpHealth.setHealthStatus(updateReqVO.getHealthStatus());
+                hrEmpHealthService.saveOrUpdate(hrEmpHealth);
+            }
+
+            //户口信息部分
+            HrEmpHouseHold hrEmpHousehold = hrEmpHouseholdService.selectByUserCode(userCode);
+            if (hrEmpHousehold == null) {
+                HrEmpHouseHold saveEntity = new HrEmpHouseHold();
+                saveEntity.setUserCode(userCode);
+                saveEntity.setId(IdUtil.simpleUUID());
+                saveEntity.setHouseHoldLocation(updateReqVO.getHouseHoldLocation());
+                saveEntity.setHouseHoldLocationDetail(updateReqVO.getHouseHoldLocationDetail());
+                saveEntity.setHouseHoldType(updateReqVO.getHouseHoldType());
+                hrEmpHouseholdService.save(saveEntity);
+            } else {
+                hrEmpHousehold.setHouseHoldLocation(updateReqVO.getHouseHoldLocation());
+                hrEmpHousehold.setHouseHoldLocationDetail(updateReqVO.getHouseHoldLocationDetail());
+                hrEmpHousehold.setHouseHoldType(updateReqVO.getHouseHoldType());
+                hrEmpHouseholdService.saveOrUpdate(hrEmpHousehold);
+            }
+            if(updateReqVO.getId() == null){
+                updateReqVO.setId(IdUtil.simpleUUID());
+                hrEmpBasicService.save(updateReqVO);
+            }
+            hrEmpBasicService.saveOrUpdate(updateReqVO);
+        } catch (Exception e) {
+            log.error("更新或保存时出错：\n" +"入参： "+ updateReqVO + "\n" + "错误日志： " + e.getMessage() + "\n");
+            return new ResponseResult<>(HttpStatus.EXPECTATION_FAILED.value(), "更新员工教育信息表实体失败");
         }
-        return new ResponseResult<>(HttpStatus.OK.value(), "更新员工基本信息表实体成功", hrEmpBasicService.saveOrUpdate(updateReqVO));
+        return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功");
     }
 
     @Transactional(rollbackFor = Exception.class)

@@ -1,6 +1,7 @@
 package com.crrc.controller;
 
 
+import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
@@ -48,12 +49,20 @@ public class HrEmpOtherAppointmentController {
     @Autowired
     private HrEmpOtherAppointmentServiceImpl hrEmpOtherAppointmentService;
 
+    @GetMapping("/getDetails")
+    @Operation(summary = "获得其他任职信息实体")
+    @AuditLog(value = "获得其他任职信息实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "id", description = "主键编号", required = true, example = "1")
+    public ResponseResult<List<HrEmpOtherAppointment>> getMsg(@RequestParam String userCode ) {
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取其他任职信息成功", hrEmpOtherAppointmentService.selectMsg(userCode));
+    }
+
     @PostMapping("/page")
     @Operation(summary = "获取其他任职信息列表 page")
     @AuditLog(value = "获取其他任职信息列表 page", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    @Parameter(name = "pageReqVO",description = "包含查询条件的实体对象", required = false)
-    @Parameter(name = "pageNo", description = "页码", required = false, example = "1")
-    @Parameter(name = "pageSize", description = "条数", required = false, example = "10")
+    @Parameter(name = "pageReqVO",description = "包含查询条件的实体对象")
+    @Parameter(name = "pageNo", description = "页码", example = "1")
+    @Parameter(name = "pageSize", description = "条数", example = "10")
     public ResponseResult<IPage> pageHrEmpOtherAppointment(@Validated @RequestBody(required = false) HrEmpOtherAppointment pageReqVO,
                                              @RequestParam(required = false, defaultValue = "1") int pageNo,
                                              @RequestParam(required = false, defaultValue = "10")int pageSize) {
@@ -66,7 +75,7 @@ public class HrEmpOtherAppointmentController {
     @PostMapping("/query")
     @Operation(summary = "获取其他任职信息列表")
     @AuditLog(value = "获取其他任职信息列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象", required = false)
+    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
     public ResponseResult<List<HrEmpOtherAppointment>> queryHrEmpOtherAppointment(@Validated @RequestBody(required = false) HrEmpOtherAppointment queryReqVO) {
         queryReqVO = (queryReqVO == null) ? new HrEmpOtherAppointment() : queryReqVO;
         return new ResponseResult<>(HttpStatus.OK.value(), "获取其他任职信息列表成功", hrEmpOtherAppointmentService.query(queryReqVO));
@@ -95,6 +104,10 @@ public class HrEmpOtherAppointmentController {
     @AuditLog(value = "更新其他任职信息实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
     public ResponseResult<Boolean> updateHrEmpOtherAppointment(@Valid @RequestBody HrEmpOtherAppointment updateReqVO) {
+        if(updateReqVO.getId() == null){
+            updateReqVO.setId(IdUtil.simpleUUID());
+            return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功", hrEmpOtherAppointmentService.save(updateReqVO));
+        }
         return new ResponseResult<>(HttpStatus.OK.value(), "更新其他任职信息实体成功", hrEmpOtherAppointmentService.saveOrUpdate(updateReqVO));
     }
 

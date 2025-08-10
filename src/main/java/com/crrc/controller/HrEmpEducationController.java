@@ -1,6 +1,7 @@
 package com.crrc.controller;
 
 
+import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
@@ -12,10 +13,13 @@ import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.dto.HrEmpEducationDTO;
 import com.crrc.service.impl.HrEmpEducationServiceImpl;
+import com.crrc.utils.SystemConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
@@ -29,7 +33,8 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -39,6 +44,7 @@ import java.util.List;
  * @author why
  * @since 2025-07-26 16:18:11
  */
+@Slf4j
 @RestController
 @RequestMapping("/hrEmpEducation")
 @RefreshScope
@@ -48,12 +54,20 @@ public class HrEmpEducationController {
     @Autowired
     private HrEmpEducationServiceImpl hrEmpEducationService;
 
+    @GetMapping("/getDetails")
+    @Operation(summary = "获得员工教育信息表实体")
+    @AuditLog(value = "获得员工教育信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "id", description = "主键编号", required = true, example = "1")
+    public ResponseResult<List<HrEmpEducation>> getMsg(@RequestParam String userCode ) {
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工教育信息表实体成功", hrEmpEducationService.selectMsg(userCode));
+    }
+
     @PostMapping("/page")
     @Operation(summary = "获取员工教育信息表列表 page")
     @AuditLog(value = "获取员工教育信息表列表 page", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    @Parameter(name = "pageReqVO",description = "包含查询条件的实体对象", required = false)
-    @Parameter(name = "pageNo", description = "页码", required = false, example = "1")
-    @Parameter(name = "pageSize", description = "条数", required = false, example = "10")
+    @Parameter(name = "pageReqVO",description = "包含查询条件的实体对象")
+    @Parameter(name = "pageNo", description = "页码", example = "1")
+    @Parameter(name = "pageSize", description = "条数", example = "10")
     public ResponseResult<IPage> pageHrEmpEducation(@Validated @RequestBody(required = false) HrEmpEducation pageReqVO,
                                              @RequestParam(required = false, defaultValue = "1") int pageNo,
                                              @RequestParam(required = false, defaultValue = "10")int pageSize) {
@@ -66,7 +80,7 @@ public class HrEmpEducationController {
     @PostMapping("/query")
     @Operation(summary = "获取员工教育信息表列表")
     @AuditLog(value = "获取员工教育信息表列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象", required = false)
+    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
     public ResponseResult<List<HrEmpEducation>> queryHrEmpEducation(@Validated @RequestBody(required = false) HrEmpEducation queryReqVO) {
         queryReqVO = (queryReqVO == null) ? new HrEmpEducation() : queryReqVO;
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工教育信息表列表成功", hrEmpEducationService.query(queryReqVO));
@@ -94,8 +108,54 @@ public class HrEmpEducationController {
     @Operation(summary = "更新员工教育信息表实体")
     @AuditLog(value = "更新员工教育信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
-    public ResponseResult<Boolean> updateHrEmpEducation(@Valid @RequestBody HrEmpEducation updateReqVO) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "更新员工教育信息表实体成功", hrEmpEducationService.saveOrUpdate(updateReqVO));
+    public ResponseResult<Boolean> updateHrEmpEducation(@Valid @RequestBody HrEmpEducationDTO updateReqVO) {
+        try {
+            // 查询现有数据
+            List<HrEmpEducation> existList = hrEmpEducationService.selectMsg(updateReqVO.getUserCode());
+            Set<String> existIds = existList.stream()
+                    .map(HrEmpEducation::getId)
+                    .collect(Collectors.toSet());
+
+            // 准备新增、更新和删除的数据
+            List<HrEmpEducation> toSaveOrUpdate = new ArrayList<>();
+
+            // 判断传入数据里面有无最高学历
+            boolean isHighestEdu = true;
+            int isHighestNum = 0;
+            for (HrEmpEducation hrEmpEducation : updateReqVO.getList()) {
+                if (hrEmpEducation.getId() == null) {
+                    hrEmpEducation.setId(IdUtil.simpleUUID()); // 生成新ID
+                }
+                // 判断最高学历
+                if(SystemConstants.TRUE_FLAG.equals(hrEmpEducation.getIsHighestEducation())) {
+                    isHighestNum++;
+                    isHighestEdu = false;
+                }
+                // 当最高学历数量多余1时
+                if(isHighestNum > 1) {
+                    return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "最高学历数量不唯一！");
+                }
+                hrEmpEducation.setUserCode(updateReqVO.getUserCode());
+                toSaveOrUpdate.add(hrEmpEducation);
+                existIds.remove(hrEmpEducation.getId()); // 移除不需要删除的ID
+            }
+            // 没有最高学历,且教育信息列表不为空时
+            if(isHighestEdu && !updateReqVO.getList().isEmpty()) {
+                return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "录入教育经历中未设置最高学历！");
+            }
+            // 批量保存或更新
+            if (!toSaveOrUpdate.isEmpty()) {
+                hrEmpEducationService.saveOrUpdateBatch(toSaveOrUpdate);
+            }
+            // 批量删除
+            if (!existIds.isEmpty()) {
+                hrEmpEducationService.removeByIds(existIds);
+            }
+        } catch (Exception e) {
+            log.error("更新或保存时出错：\n入参：{}\n错误日志：{}", updateReqVO, e.getMessage(), e);
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "更新员工教育信息表实体失败");
+        }
+        return new ResponseResult<>(HttpStatus.OK.value(), "更新员工教育信息表实体成功");
     }
 
     @Transactional(rollbackFor = Exception.class)
