@@ -30,4 +30,5 @@ public class HrEmpEducationServiceImpl extends WorkServiceImpl<HrEmpEducationMap
         return hrEmpEducationMapper.selectList(wrapper);
     }
 
+
 }

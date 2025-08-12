@@ -2,6 +2,9 @@ package com.crrc.controller;
 
 
 import cn.hutool.core.util.IdUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.crrc.entity.HrEmpMajorInfo;
+import com.crrc.entity.HrEmpSchoolInfo;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
@@ -15,11 +18,14 @@ import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpEducationDTO;
 import com.crrc.service.impl.HrEmpEducationServiceImpl;
+import com.crrc.service.impl.HrEmpMajorInfoServiceImpl;
+import com.crrc.service.impl.HrEmpSchoolInfoServiceImpl;
 import com.crrc.utils.SystemConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
@@ -53,13 +59,77 @@ public class HrEmpEducationController {
 
     @Autowired
     private HrEmpEducationServiceImpl hrEmpEducationService;
+    @Autowired
+    private HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService;
+    @Autowired
+    private HrEmpMajorInfoServiceImpl hrEmpMajorInfoService;
+
+
+    @GetMapping("/getSchoolInfo")
+    @Operation(summary = "获取学校字典值")
+    @AuditLog(value = "获取学校字典值", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResult<IPage<HrEmpSchoolInfo>> getSchoolInfo(
+            @RequestParam(required = false) String schoolName,
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        // 1. 构造分页对象
+        Page<HrEmpSchoolInfo> page = new Page<>(pageNum, pageSize);
+
+        // 2. 构造模糊搜索条件（schoolName 为空时忽略）
+        LambdaQueryWrapper<HrEmpSchoolInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.like(StringUtils.isNotBlank(schoolName),
+                HrEmpSchoolInfo::getSchoolName, schoolName);
+
+        // 3. 直接分页查询
+        IPage<HrEmpSchoolInfo> iPage = hrEmpSchoolInfoService.page(page, wrapper);
+
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取学校字典值成功", iPage);
+    }
+
+
+    @GetMapping("/getMajorInfo")
+    @Operation(summary = "获取专业字典值")
+    @AuditLog(value = "获取专业字典值", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResult<IPage<HrEmpMajorInfo>> getMajorInfo(
+            @RequestParam(required = false) String major,
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        // 1. 构造分页对象
+        Page<HrEmpMajorInfo> page = new Page<>(pageNum, pageSize);
+
+        // 2. 构造模糊搜索条件（major 为空时忽略）
+        LambdaQueryWrapper<HrEmpMajorInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.like(StringUtils.isNotBlank(major),
+                HrEmpMajorInfo::getMajor, major);
+
+        // 3. 直接分页查询
+        IPage<HrEmpMajorInfo> iPage = hrEmpMajorInfoService.page(page, wrapper);
+
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取专业字典值成功", iPage);
+    }
+
 
     @GetMapping("/getDetails")
     @Operation(summary = "获得员工教育信息表实体")
     @AuditLog(value = "获得员工教育信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<List<HrEmpEducation>> getMsg(@RequestParam String userCode ) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工教育信息表实体成功", hrEmpEducationService.selectMsg(userCode));
+        List<HrEmpEducation> result = hrEmpEducationService.selectMsg(userCode);
+        for (HrEmpEducation hrEmpEducation : result) {
+            HrEmpSchoolInfo hrEmpSchoolInfo = hrEmpSchoolInfoService.selectByCode(hrEmpEducation.getSchoolCode());
+            if(hrEmpSchoolInfo != null) {
+                hrEmpEducation.setSchoolName(hrEmpSchoolInfo.getSchoolName());
+            }else {
+                hrEmpEducation.setSchoolName("未知院校");
+            }
+
+            HrEmpMajorInfo hrEmpMajorInfo = hrEmpMajorInfoService.selectByCode(hrEmpEducation.getMajorCode());
+            if(hrEmpMajorInfo != null) {
+                hrEmpEducation.setMajor(hrEmpMajorInfo.getMajor());
+            } else {
+                hrEmpEducation.setMajor("未知专业");
+            }
+        }
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工教育信息表实体成功", result);
     }
 
     @PostMapping("/page")
@@ -68,7 +138,7 @@ public class HrEmpEducationController {
     @Parameter(name = "pageReqVO",description = "包含查询条件的实体对象")
     @Parameter(name = "pageNo", description = "页码", example = "1")
     @Parameter(name = "pageSize", description = "条数", example = "10")
-    public ResponseResult<IPage> pageHrEmpEducation(@Validated @RequestBody(required = false) HrEmpEducation pageReqVO,
+    public ResponseResult<IPage<HrEmpEducation>> pageHrEmpEducation(@Validated @RequestBody(required = false) HrEmpEducation pageReqVO,
                                              @RequestParam(required = false, defaultValue = "1") int pageNo,
                                              @RequestParam(required = false, defaultValue = "10")int pageSize) {
         pageReqVO = (pageReqVO == null) ? new HrEmpEducation() : pageReqVO;
@@ -205,5 +275,4 @@ public class HrEmpEducationController {
                 .doRead();
         return new ResponseResult<>(HttpStatus.OK.value(), "导入员工教育信息表报表成功");
     }
-
 }
