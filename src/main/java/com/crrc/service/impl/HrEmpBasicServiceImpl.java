@@ -3,8 +3,6 @@ package com.crrc.service.impl;
 import com.crrc.entity.*;
 import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mapper.HrEmpEducationMapper;
-import com.crrc.mapper.HrEmpHealthMapper;
-import com.crrc.mapper.HrEmpHouseholdMapper;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.service.HrEmpBasicService;
 import com.crrc.utils.SystemConstants;
@@ -32,18 +30,18 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     @Autowired
     private HrEmpEducationMapper hrEmpEducationMapper;
 
+    @Autowired
+    private HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService;
 
-    public void savePlus(HrEmpBasicDTO hrEmpBasicDTO) {
-        //基本信息中，健康状况，户口相关需要跨表保存
+    @Autowired
+    private HrEmpMajorInfoServiceImpl hrEmpMajorInfoService;
 
-    }
-
-    public HrEmpBasic selectByUserCode(String userCode) {
-        MPJLambdaWrapper<HrEmpBasic> queryWrapper = new MPJLambdaWrapper<>(HrEmpBasic.class)
-                .selectAll(HrEmpBasic.class)
-                .eq(HrEmpBasic::getUserCode, userCode);
-        return hrEmpBasicMapper.selectOne(queryWrapper);
-    }
+//    public HrEmpBasic selectByUserCode(String userCode) {
+//        MPJLambdaWrapper<HrEmpBasic> queryWrapper = new MPJLambdaWrapper<>(HrEmpBasic.class)
+//                .selectAll(HrEmpBasic.class)
+//                .eq(HrEmpBasic::getUserCode, userCode);
+//        return hrEmpBasicMapper.selectOne(queryWrapper);
+//    }
     public List<HrEmpBasicDTO> selectMsg(String userCode){
 
         MPJLambdaWrapper<HrEmpBasic> queryWrapper = JoinWrappers.lambda(HrEmpBasic.class)
@@ -61,19 +59,34 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 .eq(HrEmpBasic::getUserCode, userCode);
 
         MPJLambdaWrapper<HrEmpEducation> queryWrapper2 = JoinWrappers.lambda(HrEmpEducation.class)
-                .select(HrEmpEducation::getSchoolName, HrEmpEducation::getEducation, HrEmpEducation::getDegree)
-                .leftJoin(HrEmpEducation.class, HrEmpEducation::getUserCode, HrEmpBasic::getUserCode)
+                .select(HrEmpEducation::getSchoolCode, HrEmpEducation::getEducation, HrEmpEducation::getDegree, HrEmpEducation::getIsHighestEducation, HrEmpEducation::getMajorCode)
                 .eq(HrEmpEducation::getIsHighestEducation, SystemConstants.TRUE_FLAG)
-                .eq(HrEmpEducation::getIsHighestDegree, SystemConstants.TRUE_FLAG)
                 .eq(HrEmpBasic::getUserCode, userCode);
 
         List<HrEmpBasicDTO> result = hrEmpBasicMapper.selectJoinList(HrEmpBasicDTO.class, queryWrapper);
-        HrEmpEducation hrEmpEducation = hrEmpEducationMapper.selectOne(queryWrapper2);
-        if(hrEmpEducation != null){
+        List<HrEmpEducation> hrEmpEducationList = hrEmpEducationMapper.selectList(queryWrapper2);
+        if(hrEmpEducationList.size() > 1) {
+            return result;
+        }
+        if(hrEmpEducationList.get(0) != null){
+            HrEmpEducation hrEmpEducation = new HrEmpEducation();
             HrEmpBasicDTO hrEmpBasicDTO = result.get(0);
+            HrEmpSchoolInfo hrEmpSchoolInfo = hrEmpSchoolInfoService.selectByCode(hrEmpEducation.getSchoolCode());
+            if(hrEmpSchoolInfo != null) {
+                hrEmpEducation.setSchoolName(hrEmpSchoolInfo.getSchoolName());
+            }else {
+                hrEmpEducation.setSchoolName("未知院校");
+            }
+            HrEmpMajorInfo hrEmpMajorInfo = hrEmpMajorInfoService.selectByCode(hrEmpEducation.getMajorCode());
+            if(hrEmpMajorInfo != null) {
+                hrEmpEducation.setMajor(hrEmpMajorInfo.getMajor());
+            } else {
+                hrEmpEducation.setMajor("未知专业");
+            }
             hrEmpBasicDTO.setSchoolName(hrEmpEducation.getSchoolName());
             hrEmpBasicDTO.setEducation(hrEmpEducation.getEducation());
             hrEmpBasicDTO.setDegree(hrEmpEducation.getDegree());
+            hrEmpBasicDTO.setMajor(hrEmpEducation.getMajor());
         }
         return result;
     }

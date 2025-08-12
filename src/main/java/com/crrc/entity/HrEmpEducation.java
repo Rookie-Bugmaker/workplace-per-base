@@ -55,11 +55,13 @@ public class HrEmpEducation extends BaseEntity implements Serializable {
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"学校名称"}, index = 4)
     @Schema(description = "学校名称")
+    @TableField(exist = false)
     private String schoolName;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"专业名称"}, index = 5)
     @Schema(description = "专业名称")
+    @TableField(exist = false)
     private String major;
     
     @QueryMethod(method = QueryType.EQ)
@@ -107,4 +109,13 @@ public class HrEmpEducation extends BaseEntity implements Serializable {
     @Schema(description = "学位专业")
     private String degreeMajor;
 
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"学校编码"}, index = 15)
+    @Schema(description = "学校编码")
+    private String schoolCode;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"专业编码"}, index = 16)
+    @Schema(description = "专业编码")
+    private String majorCode;
 }
