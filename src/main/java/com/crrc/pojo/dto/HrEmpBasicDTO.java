@@ -5,6 +5,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * 用于返回个人信息里面的基本信息
+ */
 @Data
 @NoArgsConstructor
 public class HrEmpBasicDTO extends HrEmpBasic{
