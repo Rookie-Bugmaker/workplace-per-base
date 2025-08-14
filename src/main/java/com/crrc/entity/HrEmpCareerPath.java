@@ -29,8 +29,6 @@ import lombok.experimental.Accessors;
 @NoArgsConstructor
 public class HrEmpCareerPath extends BaseEntity implements Serializable {
 
-    private static final long serialVersionUID = 1949021418202787840L;
-
     @Schema(description = "主键")
     @TableId(value = "id", type = IdType.AUTO)
     private String id;

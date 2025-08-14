@@ -29,8 +29,6 @@ import lombok.experimental.Accessors;
 @NoArgsConstructor
 public class HrEmpOtherAppointment extends BaseEntity implements Serializable {
 
-    private static final long serialVersionUID = 1949021420736147456L;
-
     @Schema(description = "主键")
     @TableId(value = "id", type = IdType.AUTO)
     private String id;

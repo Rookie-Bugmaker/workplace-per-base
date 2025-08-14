@@ -26,8 +26,6 @@ import lombok.experimental.Accessors;
 @Data
 public class HrEmpHouseHold extends BaseEntity implements Serializable {
 
-    private static final long serialVersionUID = 1949021419486244864L;
-
     @Schema(description = "主键")
     @TableId(value = "id", type = IdType.AUTO)
     private String id;
