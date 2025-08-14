@@ -29,8 +29,6 @@ import lombok.experimental.Accessors;
 @NoArgsConstructor
 public class HrEmpBasic extends BaseEntity implements Serializable {
 
-    private static final long serialVersionUID = 1949021422334177280L;
-
     @Schema(description = "主键")
     @TableId(value = "id", type = IdType.AUTO)
     private String id;
@@ -48,7 +46,6 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     @Schema(description = "删除", example = "false")
     private Integer deleted;
 
-    
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"工号"}, index = 1)
     @Schema(description = "工号")

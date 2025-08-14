@@ -29,7 +29,6 @@ import lombok.experimental.Accessors;
 @NoArgsConstructor
 public class HrEmpSkillLevel extends BaseEntity implements Serializable {
 
-    private static final long serialVersionUID = 1949021419805011968L;
 
     @Schema(description = "主键")
     @TableId(value = "id", type = IdType.AUTO)

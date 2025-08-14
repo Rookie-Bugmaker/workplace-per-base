@@ -28,8 +28,6 @@ import lombok.experimental.Accessors;
 @NoArgsConstructor
 public class HrEmpCommunication extends BaseEntity implements Serializable {
 
-    private static final long serialVersionUID = 1949021422644555776L;
-
     @Schema(description = "主键")
     @TableId(value = "id", type = IdType.AUTO)
     private String id;
