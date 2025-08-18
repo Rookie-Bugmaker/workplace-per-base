@@ -6,6 +6,8 @@ import com.crrc.enums.QueryType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 用于接收金蝶回传的人事令变更信息
  */
@@ -14,7 +16,7 @@ public class KingDiePersonalOrderDTO {
 
     @QueryMethod(method = QueryType.EQ)
     @Schema(description = "任职信息")
-    private HrEmpAppointment hrEmpAppointment;
+    private List<HrEmpAppointment> hrEmpAppointments;
 
     @QueryMethod(method = QueryType.EQ)
     @Schema(description = "员工基本信息表")
@@ -26,7 +28,7 @@ public class KingDiePersonalOrderDTO {
 
     @QueryMethod(method = QueryType.EQ)
     @Schema(description = "其他任职信息")
-    private HrEmpOtherAppointment hrEmpOtherAppointment;
+    private List<HrEmpOtherAppointment> hrEmpOtherAppointments;
 
     @QueryMethod(method = QueryType.EQ)
     @Schema(description = "员工惩处信息表")
@@ -38,7 +40,7 @@ public class KingDiePersonalOrderDTO {
 
     @QueryMethod(method = QueryType.EQ)
     @Schema(description = "员工履历信息表")
-    private HrEmpResume hrEmpResume;
+    private List<HrEmpResume> hrEmpResumes;
 
     @QueryMethod(method = QueryType.EQ)
     @Schema(description = "员工奖励情况表")

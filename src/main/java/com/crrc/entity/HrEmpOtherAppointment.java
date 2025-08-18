@@ -90,7 +90,7 @@ public class HrEmpOtherAppointment extends BaseEntity implements Serializable {
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"集团外任职信息"}, index = 10)
     @Schema(description = "集团外任职信息")
-    private String groupExternalAppointmentInfo;
+    private String externalApp;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"职务类别"}, index = 11)

@@ -32,4 +32,20 @@ public class HrEmpAppointmentServiceImpl extends WorkServiceImpl<HrEmpAppointmen
         return hrEmpAppointmentMapper.selectList(wrapper);
     }
 
+    /**
+     * 查询个人未结束的任职信息
+     * @param userCode 员工档案号
+     * @return
+     */
+    public List<HrEmpAppointment> selectUndoneApp(String userCode) {
+        MPJLambdaWrapper<HrEmpAppointment> wrapper = new MPJLambdaWrapper<HrEmpAppointment>()
+                .eq(HrEmpAppointment::getUserCode, userCode)
+                .isNull(HrEmpAppointment::getEndDate);
+        List<HrEmpAppointment> result = hrEmpAppointmentMapper.selectList(wrapper);
+        if (result == null || result.size() == 0) {
+            return null;
+        } else {
+            return result;
+        }
+    }
 }

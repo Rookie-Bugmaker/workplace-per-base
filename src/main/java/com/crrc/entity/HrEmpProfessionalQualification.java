@@ -23,7 +23,7 @@ import lombok.experimental.Accessors;
  */
 @ExcelIgnoreUnannotated
 @Accessors(chain = false)
-@TableName("hr_emp_professional_qualification")
+@TableName("hr_emp_pro_qualification")
 @Schema(description = "员工专业职务任职资格表")
 @Data
 @NoArgsConstructor

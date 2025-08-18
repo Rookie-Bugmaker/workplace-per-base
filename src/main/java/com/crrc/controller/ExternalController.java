@@ -4,7 +4,10 @@ package com.crrc.controller;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.crrc.annotation.AuditLog;
+import com.crrc.entity.HrEmpAppointment;
 import com.crrc.entity.HrEmpBasic;
+import com.crrc.entity.HrEmpOtherAppointment;
+import com.crrc.entity.HrEmpResume;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.handler.MultiTenantHandler;
@@ -64,13 +67,23 @@ public class ExternalController {
         for (KingDiePersonalOrderDTO dto : dtoList) {
             try {
                 //任职信息
-                if (dto.getHrEmpAppointment() != null && dto.getHrEmpAppointment().getUserCode() != null) {
-                    dto.getHrEmpAppointment().setId(IdUtil.simpleUUID());
-                    boolean saveResult = hrEmpAppointmentService.save(dto.getHrEmpAppointment());
-                    if (!saveResult) {
-                        log.error("保存任职信息失败，工号：{}", dto.getHrEmpBasic().getUserCode());
-                        return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "保存任职信息失败!");
+                if (dto.getHrEmpAppointments() != null && dto.getHrEmpAppointments().size() != 0){
+                    for (HrEmpAppointment appointment : dto.getHrEmpAppointments()){
+                        if (appointment.getUserCode() != null) {
+                            appointment.setId(IdUtil.simpleUUID());
+                            boolean saveResult = hrEmpAppointmentService.save(appointment);
+                            if (!saveResult) {
+                                log.error("保存任职信息失败，工号：{}", dto.getHrEmpBasic().getUserCode());
+                                return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "保存任职信息失败!");
+                            }
+                        }
                     }
+                    //更新之前任职信息的结束时间
+                    List<HrEmpAppointment> undoneList = hrEmpAppointmentService.selectUndoneApp(dto.getHrEmpAppointments().get(0).getUserCode());
+                    for (HrEmpAppointment temp : undoneList){
+                        temp.setEndDate(dto.getHrEmpAppointments().get(0).getStartDate());
+                    }
+                    hrEmpAppointmentService.updateBatchById(undoneList);
                 }
 
                 // 员工基本信息表 - 按工号更新
@@ -102,14 +115,25 @@ public class ExternalController {
                 }
 
                 //其他任职信息
-                if (dto.getHrEmpOtherAppointment() != null && dto.getHrEmpOtherAppointment().getUserCode() != null) {
-                    dto.getHrEmpOtherAppointment().setId(IdUtil.simpleUUID());
-                    boolean saveResult = hrEmpOtherAppointmentService.save(dto.getHrEmpOtherAppointment());
-                    if (!saveResult) {
-                        log.error("保存其他任职信息失败，工号：{}", dto.getHrEmpBasic().getUserCode());
-                        return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "保存其他任职信息失败!");
+                if (dto.getHrEmpOtherAppointments() != null && dto.getHrEmpOtherAppointments().size() != 0){
+                    for (HrEmpOtherAppointment otherApp : dto.getHrEmpOtherAppointments()){
+                        if (otherApp.getUserCode() != null) {
+                            otherApp.setId(IdUtil.simpleUUID());
+                            boolean saveResult = hrEmpOtherAppointmentService.save(otherApp);
+                            if (!saveResult) {
+                                log.error("保存其他任职信息失败，工号：{}", dto.getHrEmpBasic().getUserCode());
+                                return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "保存其他任职信息失败!");
+                            }
+                        }
                     }
+                    //更新之前任职信息的结束时间
+                    List<HrEmpOtherAppointment> undoneList = hrEmpOtherAppointmentService.selectUndoneApp(dto.getHrEmpOtherAppointments().get(0).getUserCode());
+                    for (HrEmpOtherAppointment temp : undoneList){
+                        temp.setEndDate(dto.getHrEmpOtherAppointments().get(0).getStartDate());
+                    }
+                    hrEmpOtherAppointmentService.updateBatchById(undoneList);
                 }
+
 
                 //员工惩处信息表
                 if (dto.getHrEmpPenalties() != null && dto.getHrEmpPenalties().getUserCode() != null) {
@@ -132,12 +156,16 @@ public class ExternalController {
                 }
 
                 //员工履历信息表
-                if (dto.getHrEmpResume() != null && dto.getHrEmpResume().getUserCode() != null) {
-                    dto.getHrEmpResume().setId(IdUtil.simpleUUID());
-                    boolean saveResult = hrEmpResumeService.save(dto.getHrEmpResume());
-                    if (!saveResult) {
-                        log.error("保存履历信息失败，工号：{}", dto.getHrEmpBasic().getUserCode());
-                        return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "保存履历信息失败!");
+                if (dto.getHrEmpResumes() != null && dto.getHrEmpResumes().size() != 0){
+                    for (HrEmpResume resume : dto.getHrEmpResumes()){
+                        if (resume.getUserCode() != null) {
+                            resume.setId(IdUtil.simpleUUID());
+                            boolean saveResult = hrEmpResumeService.save(resume);
+                            if (!saveResult) {
+                                log.error("保存履历信息失败，工号：{}", dto.getHrEmpBasic().getUserCode());
+                                return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "保存履历信息失败!");
+                            }
+                        }
                     }
                 }
 
