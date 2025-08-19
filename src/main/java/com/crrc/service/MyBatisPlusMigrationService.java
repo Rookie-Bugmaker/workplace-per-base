@@ -84,7 +84,7 @@ public class MyBatisPlusMigrationService {
                                     "    SELECT *, " +
                                     "           ROW_NUMBER() OVER (PARTITION BY user_code ORDER BY create_time DESC) AS group_rank " +
                                     "    FROM %s " +
-                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL" +  // 新增条件
+                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL" +
                                     ") " +
                                     "SELECT * FROM ranked_data " +
                                     "WHERE group_rank = 1 " +
@@ -99,7 +99,7 @@ public class MyBatisPlusMigrationService {
                                     "    SELECT *, " +
                                     "           ROW_NUMBER() OVER (PARTITION BY user_code ORDER BY create_time DESC) AS group_rank " +
                                     "    FROM %s " +
-                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL AND user_code > ?" +  // 新增条件
+                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL AND user_code > ?" +
                                     ") " +
                                     "SELECT * FROM ranked_data " +
                                     "WHERE group_rank = 1 " +
@@ -207,21 +207,21 @@ public class MyBatisPlusMigrationService {
 
 
     /**
-     * 生成精确的MERGE SQL（自动计算参数位置）
+     * 生成MERGE SQL
      */
     private String buildMergeSql(String tableName, String[] columns, String primaryKey) {
-        // 1. USING子句（用于匹配）
+        // 1. USING子句
         String usingParams = Arrays.stream(columns)
                 .map(col -> "? as " + col)
                 .collect(Collectors.joining(", "));
 
-        // 2. UPDATE子句（需要更新的列）
+        // 2. UPDATE子句
         String updateSet = Arrays.stream(columns)
                 .filter(col -> !col.equals(primaryKey))
                 .map(col -> col + "=?")
                 .collect(Collectors.joining(", "));
 
-        // 3. INSERT子句（所有列）
+        // 3. INSERT子句
         String insertValues = Collections.nCopies(columns.length, "?")
                 .stream().collect(Collectors.joining(", "));
 
@@ -236,7 +236,7 @@ public class MyBatisPlusMigrationService {
     }
 
     /**
-     * 精确参数绑定
+     * 参数绑定
      */
     private void bindParameters(PreparedStatement pstmt,
                                 String[] columns,
@@ -267,7 +267,7 @@ public class MyBatisPlusMigrationService {
     }
 
     /**
-     * 安全设置参数（处理NULL值）
+     * 安全设置参数
      */
     private void setParameter(PreparedStatement pstmt, int index, Object value)
             throws SQLException {
