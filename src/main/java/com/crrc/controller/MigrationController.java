@@ -30,7 +30,6 @@ public class MigrationController {
         myBatisPlusMigrationService.migrateEntity(HrEmpCareerPath.class);
         myBatisPlusMigrationService.migrateEntity(HrEmpCertificate.class);
         myBatisPlusMigrationService.migrateEntity(HrEmpCommunication.class);
-        myBatisPlusMigrationService.migrateEntity(HrEmpEducation.class);
         myBatisPlusMigrationService.migrateEntity(HrEmpFamMember.class);
         myBatisPlusMigrationService.migrateEntity(HrEmpHealth.class);
         myBatisPlusMigrationService.migrateEntity(HrEmpHouseHold.class);
@@ -42,6 +41,9 @@ public class MigrationController {
         myBatisPlusMigrationService.migrateEntity(HrEmpRewards.class);
         myBatisPlusMigrationService.migrateEntity(HrEmpSalaryStandard.class);
         myBatisPlusMigrationService.migrateEntity(HrEmpSkillLevel.class);
+
+        //教育经历特殊处理
+        myBatisPlusMigrationService.migrateEduTable();
         return "员工数据迁移任务已启动";
     }
 
@@ -61,6 +63,11 @@ public class MigrationController {
 //        );
 
 //        log.info("数据推送完成 - 已验证更新{}条，重新处理{}条", validatedCount, processedCount);
+    }
+
+    @PostMapping("/edu")
+    public void migrateEdu(){
+        myBatisPlusMigrationService.migrateEduTable();
     }
 
 }
