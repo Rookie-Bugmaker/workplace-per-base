@@ -80,10 +80,12 @@ public class ExternalController {
                     }
                     //更新之前任职信息的结束时间
                     List<HrEmpAppointment> undoneList = hrEmpAppointmentService.selectUndoneApp(dto.getHrEmpAppointments().get(0).getUserCode());
-                    for (HrEmpAppointment temp : undoneList){
-                        temp.setEndDate(dto.getHrEmpAppointments().get(0).getStartDate());
+                    if (undoneList != null) {
+                        for (HrEmpAppointment temp : undoneList) {
+                            temp.setEndDate(dto.getHrEmpAppointments().get(0).getStartDate());
+                        }
+                        hrEmpAppointmentService.updateBatchById(undoneList);
                     }
-                    hrEmpAppointmentService.updateBatchById(undoneList);
                 }
 
                 // 员工基本信息表 - 按工号更新
@@ -128,10 +130,13 @@ public class ExternalController {
                     }
                     //更新之前任职信息的结束时间
                     List<HrEmpOtherAppointment> undoneList = hrEmpOtherAppointmentService.selectUndoneApp(dto.getHrEmpOtherAppointments().get(0).getUserCode());
-                    for (HrEmpOtherAppointment temp : undoneList){
-                        temp.setEndDate(dto.getHrEmpOtherAppointments().get(0).getStartDate());
+                    if (undoneList != null) {
+                        for (HrEmpOtherAppointment temp : undoneList) {
+                            temp.setEndDate(dto.getHrEmpOtherAppointments().get(0).getStartDate());
+                        }
+                        hrEmpOtherAppointmentService.updateBatchById(undoneList);
                     }
-                    hrEmpOtherAppointmentService.updateBatchById(undoneList);
+
                 }
 
 
