@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
  * validate -- 处理密钥 null代表数据新增 NEW代表数据需要更新
  * processCollection -- 更新密钥，将所有数据的密钥更新为最新版
  *
- * 该类暂时启用，用sql实现增量同步，如果效率低在考虑这套
+ * 该类暂时弃用，用sql实现增量同步，如果效率低在考虑这套
  */
 public class ValidateKeyService {
 

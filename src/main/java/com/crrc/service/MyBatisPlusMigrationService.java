@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
+
 import java.sql.*;
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,12 +40,116 @@ public class MyBatisPlusMigrationService {
     }
 
     /**
-     * 智能迁移表数据
-     * @param tableName 表名
-     * @param columns 列数组
-     * @param primaryKey 主键列名
+     * 迁移指定表数据,全量同步
      */
     public void migrateTable(String tableName, String[] columns, String primaryKey) {
+        log.info("开始迁移表: " + tableName);
+        log.info("主键列: " + primaryKey);
+        log.info("迁移列: " + String.join(", ", columns));
+
+        long startTime = System.currentTimeMillis();
+
+        String columnStr = String.join(", ", columns);
+        String placeholders = String.join(", ",
+                java.util.Collections.nCopies(columns.length, "?"));
+
+        // 查询总数
+        long totalCount = openGaussJdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM " + tableName, Long.class);
+
+        // Oracle连接
+        try (Connection oracleConn = OracleJdbcUtil.getConnection()) {
+            // 清空目标表
+            try (Statement stmt = oracleConn.createStatement()) {
+                stmt.execute("TRUNCATE TABLE " + tableName);
+            }
+
+            // 准备插入语句
+            String insertSql = String.format(
+                    "INSERT INTO %s (%s) VALUES (%s)",
+                    tableName, columnStr, placeholders);
+
+            Object lastUserCode = null; // 初始为null
+            AtomicLong migratedCount = new AtomicLong(0);
+
+            while (true) {
+                // 分页查询源数据
+                String querySql;
+                List<Map<String, Object>> batchData;
+
+                if (lastUserCode == null) {
+                    // 第一次查询
+                    querySql = String.format(
+                            "WITH ranked_data AS (" +
+                                    "    SELECT *, " +
+                                    "           ROW_NUMBER() OVER (PARTITION BY user_code ORDER BY create_time DESC) AS group_rank " +
+                                    "    FROM %s " +
+                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL" +  // 新增条件
+                                    ") " +
+                                    "SELECT * FROM ranked_data " +
+                                    "WHERE group_rank = 1 " +
+                                    "ORDER BY user_code " +
+                                    "LIMIT ?",
+                            tableName);
+                    batchData = openGaussJdbcTemplate.queryForList(querySql, batchSize);
+                } else {
+                    // 后续查询
+                    querySql = String.format(
+                            "WITH ranked_data AS (" +
+                                    "    SELECT *, " +
+                                    "           ROW_NUMBER() OVER (PARTITION BY user_code ORDER BY create_time DESC) AS group_rank " +
+                                    "    FROM %s " +
+                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL AND user_code > ?" +  // 新增条件
+                                    ") " +
+                                    "SELECT * FROM ranked_data " +
+                                    "WHERE group_rank = 1 " +
+                                    "ORDER BY user_code " +
+                                    "LIMIT ?",
+                            tableName);
+                    batchData = openGaussJdbcTemplate.queryForList(querySql, lastUserCode, batchSize);
+                }
+
+                if (batchData.isEmpty()) break;
+
+                // 批量插入目标表
+                try (PreparedStatement pstmt = oracleConn.prepareStatement(insertSql)) {
+                    for (Map<String, Object> row : batchData) {
+                        for (int i = 0; i < columns.length; i++) {
+                            pstmt.setObject(i + 1, row.get(columns[i]));
+                        }
+                        pstmt.addBatch();
+
+                        // 更新最后ID
+                        lastUserCode = row.get("user_code");
+                    }
+                    pstmt.executeBatch();
+                }
+
+                long currentCount = migratedCount.addAndGet(batchData.size());
+                log.info("表 {} 迁移进度: {}/{} ({}%)",
+                        tableName, currentCount, totalCount,
+                        String.format("%.2f", currentCount * 100.0 / totalCount));
+
+
+            }
+
+            long endTime = System.currentTimeMillis();
+            log.info("表 {} 迁移完成, 共 {} 条记录, 耗时 {} 毫秒",
+                    tableName, migratedCount.get(), (endTime - startTime));
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Oracle数据库操作失败", e);
+        }
+    }
+
+    /**
+     * 智能迁移表数据，增量同步
+     *
+     * @param tableName  表名
+     * @param columns    列数组
+     * @param primaryKey 主键列名
+     */
+    public void smartMigrateTable(String tableName, String[] columns, String primaryKey) {
         Assert.hasText(tableName, "表名不能为空");
         Assert.notEmpty(columns, "列不能为空");
         Assert.hasText(primaryKey, "主键不能为空");
@@ -134,9 +239,9 @@ public class MyBatisPlusMigrationService {
      * 精确参数绑定
      */
     private void bindParameters(PreparedStatement pstmt,
-                                     String[] columns,
-                                     String primaryKey,
-                                     Map<String, Object> row) throws SQLException {
+                                String[] columns,
+                                String primaryKey,
+                                Map<String, Object> row) throws SQLException {
         // 参数索引计数器（从1开始）
         int paramIndex = 1;
 

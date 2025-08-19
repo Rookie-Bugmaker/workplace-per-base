@@ -2,6 +2,10 @@ package com.crrc.entity;
 
 import lombok.Data;
 
+/**
+ * @author why
+ * 暂时弃用
+ */
 @Data
 public class ValidateKeyEntity extends BaseEntity {
     private String validateKey;
