@@ -23,6 +23,7 @@ public class MigrationController {
     }
 
     @PostMapping("/all")
+    @XxlJob("migrateAll")
     public String migrateAll() {
         myBatisPlusMigrationService.migrateEntity(HrEmpAppointment.class);
         myBatisPlusMigrationService.migrateEntity(HrEmpBank.class);
