@@ -2,6 +2,7 @@ package com.crrc.controller;
 
 import com.crrc.entity.*;
 import com.crrc.service.MyBatisPlusMigrationService;
+import com.xxl.job.core.handler.annotation.XxlJob;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
