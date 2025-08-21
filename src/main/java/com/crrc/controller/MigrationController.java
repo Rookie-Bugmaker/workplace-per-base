@@ -66,9 +66,15 @@ public class MigrationController {
     }
 
     @PostMapping("/edu")
-    public void migrateEdu(){
+    public void migrateEdu() {
         myBatisPlusMigrationService.migrateEduTable();
     }
+
+    @PostMapping("/basic")
+    public void migrateBasic() {
+        myBatisPlusMigrationService.migrateEntity(HrEmpBasic.class);
+    }
+
 
 }
 
