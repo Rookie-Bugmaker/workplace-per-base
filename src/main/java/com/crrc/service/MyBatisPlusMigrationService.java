@@ -1,5 +1,6 @@
 package com.crrc.service;
 
+import com.crrc.entity.HrEmpEducation;
 import com.crrc.utils.MyBatisPlusTableUtil;
 import com.crrc.utils.OracleJdbcUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -55,7 +56,7 @@ public class MyBatisPlusMigrationService {
 
         // 查询总数
         long totalCount = openGaussJdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM " + tableName, Long.class);
+                "SELECT COUNT(*) FROM " + "v_"+tableName, Long.class);
 
         // Oracle连接
         try (Connection oracleConn = OracleJdbcUtil.getConnection()) {
@@ -84,13 +85,13 @@ public class MyBatisPlusMigrationService {
                                     "    SELECT *, " +
                                     "           ROW_NUMBER() OVER (PARTITION BY user_code ORDER BY create_time DESC) AS group_rank " +
                                     "    FROM %s " +
-                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL" +  // 新增条件
+                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL" +
                                     ") " +
                                     "SELECT * FROM ranked_data " +
                                     "WHERE group_rank = 1 " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
-                            tableName);
+                            "v_"+tableName);
                     batchData = openGaussJdbcTemplate.queryForList(querySql, batchSize);
                 } else {
                     // 后续查询
@@ -99,13 +100,13 @@ public class MyBatisPlusMigrationService {
                                     "    SELECT *, " +
                                     "           ROW_NUMBER() OVER (PARTITION BY user_code ORDER BY create_time DESC) AS group_rank " +
                                     "    FROM %s " +
-                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL AND user_code > ?" +  // 新增条件
+                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL AND user_code > ?" +
                                     ") " +
                                     "SELECT * FROM ranked_data " +
                                     "WHERE group_rank = 1 " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
-                            tableName);
+                            "v_"+tableName);
                     batchData = openGaussJdbcTemplate.queryForList(querySql, lastUserCode, batchSize);
                 }
 
@@ -141,7 +142,114 @@ public class MyBatisPlusMigrationService {
             throw new RuntimeException("Oracle数据库操作失败", e);
         }
     }
+    /**
+     * 教育经历只取前两条
+     */
+    public void migrateEduTable() {
+        String tableName = tableUtil.getTableName(HrEmpEducation.class);
+        List<String> columnList = tableUtil.getTableColumns(HrEmpEducation.class);
+        String primaryKey = tableUtil.getPrimaryKey(HrEmpEducation.class);
+        columnList.add(primaryKey);
+        String[] columns = columnList.toArray(new String[0]);
 
+        log.info("开始迁移表: " + tableName);
+        log.info("主键列: " + primaryKey);
+        log.info("迁移列: " + String.join(", ", columns));
+
+        long startTime = System.currentTimeMillis();
+
+        String columnStr = String.join(", ", columns);
+        String placeholders = String.join(", ",
+                java.util.Collections.nCopies(columns.length, "?"));
+
+        // 查询总数
+        long totalCount = openGaussJdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM " + "v_"+tableName, Long.class);
+
+        // Oracle连接
+        try (Connection oracleConn = OracleJdbcUtil.getConnection()) {
+            // 清空目标表
+            try (Statement stmt = oracleConn.createStatement()) {
+                stmt.execute("TRUNCATE TABLE " + tableName);
+            }
+
+            // 准备插入语句
+            String insertSql = String.format(
+                    "INSERT INTO %s (%s) VALUES (%s)",
+                    tableName, columnStr, placeholders);
+
+            Object lastUserCode = null; // 初始为null
+            AtomicLong migratedCount = new AtomicLong(0);
+
+            while (true) {
+                // 分页查询源数据
+                String querySql;
+                List<Map<String, Object>> batchData;
+
+                if (lastUserCode == null) {
+                    // 第一次查询
+                    querySql = String.format(
+                            "WITH ranked_data AS (" +
+                                    "    SELECT *, " +
+                                    "           ROW_NUMBER() OVER (PARTITION BY user_code ORDER BY education DESC) AS group_rank " +  // 改为按education排序
+                                    "    FROM %s " +
+                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL AND education IS NOT NULL" +  // 增加education不为空条件
+                                    ") " +
+                                    "SELECT * FROM ranked_data " +
+                                    "WHERE group_rank <= 2 " +  // 取每组前两条
+                                    "ORDER BY user_code " +  // 外层仍按user_code排序保证分页连续性
+                                    "LIMIT ?",
+                            "v_"+tableName);
+                    batchData = openGaussJdbcTemplate.queryForList(querySql, batchSize);
+                } else {
+                    // 后续查询
+                    querySql = String.format(
+                            "WITH ranked_data AS (" +
+                                    "    SELECT *, " +
+                                    "           ROW_NUMBER() OVER (PARTITION BY user_code ORDER BY education DESC) AS group_rank " +  // 改为按education排序
+                                    "    FROM %s " +
+                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL AND user_code > ? AND education IS NOT NULL" +  // 增加education不为空条件
+                                    ") " +
+                                    "SELECT * FROM ranked_data " +
+                                    "WHERE group_rank <= 2 " +  // 取每组前两条
+                                    "ORDER BY user_code " +  // 外层仍按user_code排序保证分页连续性
+                                    "LIMIT ?",
+                            "v_"+tableName);
+                    batchData = openGaussJdbcTemplate.queryForList(querySql, lastUserCode, batchSize);
+                }
+
+                if (batchData.isEmpty()) break;
+
+                // 批量插入目标表
+                try (PreparedStatement pstmt = oracleConn.prepareStatement(insertSql)) {
+                    for (Map<String, Object> row : batchData) {
+                        for (int i = 0; i < columns.length; i++) {
+                            pstmt.setObject(i + 1, row.get(columns[i]));
+                        }
+                        pstmt.addBatch();
+
+                        // 更新最后ID
+                        lastUserCode = row.get("user_code");
+                    }
+                    pstmt.executeBatch();
+                }
+
+                long currentCount = migratedCount.addAndGet(batchData.size());
+                log.info("表 {} 迁移进度: {}/{} ({}%)",
+                        tableName, currentCount, totalCount,
+                        String.format("%.2f", currentCount * 100.0 / totalCount));
+
+
+            }
+
+            long endTime = System.currentTimeMillis();
+            log.info("表 {} 迁移完成, 共 {} 条记录, 耗时 {} 毫秒",
+                    tableName, migratedCount.get(), (endTime - startTime));
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Oracle数据库操作失败", e);
+        }
+    }
     /**
      * 智能迁移表数据，增量同步
      *
@@ -207,21 +315,21 @@ public class MyBatisPlusMigrationService {
 
 
     /**
-     * 生成精确的MERGE SQL（自动计算参数位置）
+     * 生成MERGE SQL
      */
     private String buildMergeSql(String tableName, String[] columns, String primaryKey) {
-        // 1. USING子句（用于匹配）
+        // 1. USING子句
         String usingParams = Arrays.stream(columns)
                 .map(col -> "? as " + col)
                 .collect(Collectors.joining(", "));
 
-        // 2. UPDATE子句（需要更新的列）
+        // 2. UPDATE子句
         String updateSet = Arrays.stream(columns)
                 .filter(col -> !col.equals(primaryKey))
                 .map(col -> col + "=?")
                 .collect(Collectors.joining(", "));
 
-        // 3. INSERT子句（所有列）
+        // 3. INSERT子句
         String insertValues = Collections.nCopies(columns.length, "?")
                 .stream().collect(Collectors.joining(", "));
 
@@ -236,7 +344,7 @@ public class MyBatisPlusMigrationService {
     }
 
     /**
-     * 精确参数绑定
+     * 参数绑定
      */
     private void bindParameters(PreparedStatement pstmt,
                                 String[] columns,
@@ -267,7 +375,7 @@ public class MyBatisPlusMigrationService {
     }
 
     /**
-     * 安全设置参数（处理NULL值）
+     * 安全设置参数
      */
     private void setParameter(PreparedStatement pstmt, int index, Object value)
             throws SQLException {
