@@ -53,4 +53,8 @@ public class KingDiePersonalOrderDTO {
     @QueryMethod(method = QueryType.EQ)
     @Schema(description = "职业技能等级")
     private HrEmpSkillLevel hrEmpSkillLevel;
+
+    @QueryMethod(method = QueryType.EQ)
+    @Schema(description = "员工薪资信息表")
+    private HrEmpSalaryInfo hrEmpSalaryInfo;
 }
