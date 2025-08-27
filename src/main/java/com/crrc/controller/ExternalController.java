@@ -4,10 +4,7 @@ package com.crrc.controller;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.crrc.annotation.AuditLog;
-import com.crrc.entity.HrEmpAppointment;
-import com.crrc.entity.HrEmpBasic;
-import com.crrc.entity.HrEmpOtherAppointment;
-import com.crrc.entity.HrEmpResume;
+import com.crrc.entity.*;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.handler.MultiTenantHandler;
@@ -55,6 +52,8 @@ public class ExternalController {
     private HrEmpSalaryStandardServiceImpl hrEmpSalaryStandardService;
     @Autowired
     private HrEmpSkillLevelServiceImpl hrEmpSkillLevelService;
+    @Autowired
+    private HrEmpSalaryInfoServiceImpl hrEmpSalaryInfoService;
 
     @PostMapping("/receiveKingDieMsg")
     @Operation(summary = "接收金蝶传递人事令信息")
@@ -67,7 +66,7 @@ public class ExternalController {
         for (KingDiePersonalOrderDTO dto : dtoList) {
             try {
                 //任职信息
-                if (dto.getHrEmpAppointments() != null && dto.getHrEmpAppointments().size() != 0){
+                if (dto.getHrEmpAppointments() != null && !dto.getHrEmpAppointments().isEmpty()){
                     for (HrEmpAppointment appointment : dto.getHrEmpAppointments()){
                         if (appointment.getUserCode() != null) {
                             appointment.setId(IdUtil.simpleUUID());
@@ -117,7 +116,7 @@ public class ExternalController {
                 }
 
                 //其他任职信息
-                if (dto.getHrEmpOtherAppointments() != null && dto.getHrEmpOtherAppointments().size() != 0){
+                if (dto.getHrEmpOtherAppointments() != null && !dto.getHrEmpOtherAppointments().isEmpty()){
                     for (HrEmpOtherAppointment otherApp : dto.getHrEmpOtherAppointments()){
                         if (otherApp.getUserCode() != null) {
                             otherApp.setId(IdUtil.simpleUUID());
@@ -161,7 +160,7 @@ public class ExternalController {
                 }
 
                 //员工履历信息表
-                if (dto.getHrEmpResumes() != null && dto.getHrEmpResumes().size() != 0){
+                if (dto.getHrEmpResumes() != null && !dto.getHrEmpResumes().isEmpty()){
                     for (HrEmpResume resume : dto.getHrEmpResumes()){
                         if (resume.getUserCode() != null) {
                             resume.setId(IdUtil.simpleUUID());
@@ -201,6 +200,24 @@ public class ExternalController {
                     if (!saveResult) {
                         log.error("保存职业技能等级失败，工号：{}", dto.getHrEmpBasic().getUserCode());
                         return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "保存职业技能等级失败!");
+                    }
+                }
+
+                // 员工薪资信息表 - 按工号更新
+                if (dto.getHrEmpSalaryInfo() != null) {
+                    HrEmpSalaryInfo salaryInfo = dto.getHrEmpSalaryInfo();
+                    if (salaryInfo.getUserCode() == null) {
+                        return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "工号不能为空!");
+                    }
+
+                    UpdateWrapper<HrEmpSalaryInfo> updateWrapper = UpdateWrapperUtils
+                            .buildNonNullUpdateWrapper(salaryInfo, "id", "userCode")
+                            .eq("user_code", salaryInfo.getUserCode());
+
+                    boolean updateResult = hrEmpSalaryInfoService.update(updateWrapper);
+                    if (!updateResult) {
+                        log.error("更新员工薪资信息失败，工号：{}", salaryInfo.getUserCode());
+                        return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "更新员工薪资信息失败!");
                     }
                 }
                 updateFlag++;
