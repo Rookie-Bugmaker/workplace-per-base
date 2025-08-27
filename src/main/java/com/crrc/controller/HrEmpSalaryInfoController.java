@@ -155,4 +155,12 @@ public class HrEmpSalaryInfoController {
         return new ResponseResult<>(HttpStatus.OK.value(), "导入员工薪资信息表报表成功");
     }
 
+    @GetMapping("/getDetails")
+    @Operation(summary = "获得员工薪资信息表实体")
+    @AuditLog(value = "获得员工薪资信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResult<List<HrEmpSalaryInfo>> getMsg(@RequestParam String userCode ) {
+        List<HrEmpSalaryInfo> result = hrEmpSalaryInfoService.selectMsg(userCode);
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工教育信息表实体成功", result);
+    }
+
 }

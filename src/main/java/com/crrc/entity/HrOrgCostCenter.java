@@ -32,14 +32,6 @@ public class HrOrgCostCenter extends BaseEntity implements Serializable {
     @TableId(value = "id", type = IdType.AUTO)
     private String id;
 
-    @Schema(description = "备注", example = "demo")
-    @QueryMethod(method = QueryType.LIKE)
-    private String remark;
-
-    @TableField(fill = FieldFill.INSERT)
-    @Schema(description = "所属部门id", example = "1")
-    private Long orgId;
-
     @TableField(fill = FieldFill.INSERT)
     @Schema(description = "租户id", example = "1")
     private Long tenantId;

@@ -26,6 +26,10 @@ import lombok.Data;
 @Data
 public class HrEmpSalaryInfo extends BaseEntity {
 
+    @Schema(description = "主键")
+    @TableId(value = "id", type = IdType.AUTO)
+    private String id;
+
     @TableLogic(value = "0")
     @Schema(description = "删除", example = "false")
     private Integer deleted;
@@ -108,5 +112,5 @@ public class HrEmpSalaryInfo extends BaseEntity {
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"月度绩效系数"}, index = 15)
     @Schema(description = "月度绩效系数", example = "")
-    private String monthlyPerformanceCoefficient;
+    private String monthlyCoefficient;
 }

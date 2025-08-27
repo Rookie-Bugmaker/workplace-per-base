@@ -250,6 +250,69 @@ public class MyBatisPlusMigrationService {
             throw new RuntimeException("Oracle数据库操作失败", e);
         }
     }
+
+    /**
+     * 基础数据表同步
+     * @param entityClass
+     */
+    public void migrateInfoTable(Class<?> entityClass) {
+        String tableName = tableUtil.getTableName(entityClass);
+        List<String> columnList = tableUtil.getTableColumns(entityClass);
+        String primaryKey = tableUtil.getPrimaryKey(entityClass);
+        columnList.add(primaryKey);
+        String[] columns = columnList.toArray(new String[0]);
+
+        log.info("开始迁移表: " + tableName);
+        log.info("主键列: " + primaryKey);
+        log.info("迁移列: " + String.join(", ", columns));
+
+        long startTime = System.currentTimeMillis();
+
+        String columnStr = String.join(", ", columns);
+        String placeholders = String.join(", ",
+                java.util.Collections.nCopies(columns.length, "?"));
+
+        // 查询总数
+        long totalCount = openGaussJdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM " + "v_"+tableName + " WHERE DELETED = '0'", Long.class);
+
+        // Oracle连接
+        try (Connection oracleConn = OracleJdbcUtil.getConnection()) {
+            // 清空目标表
+            try (Statement stmt = oracleConn.createStatement()) {
+                stmt.execute("TRUNCATE TABLE " + tableName);
+            }
+
+            // 准备插入语句
+            String insertSql = String.format(
+                    "INSERT INTO %s (%s) VALUES (%s)",
+                    tableName, columnStr, placeholders);
+
+            // 查询所有源数据
+            String querySql = "SELECT * FROM " + "v_"+tableName + " WHERE DELETED = '0'";
+            List<Map<String, Object>> allData = openGaussJdbcTemplate.queryForList(querySql);
+
+            // 批量插入目标表
+            try (PreparedStatement pstmt = oracleConn.prepareStatement(insertSql)) {
+                for (Map<String, Object> row : allData) {
+                    for (int i = 0; i < columns.length; i++) {
+                        pstmt.setObject(i + 1, row.get(columns[i]));
+                    }
+                    pstmt.addBatch();
+                }
+                pstmt.executeBatch();
+            }
+
+            long endTime = System.currentTimeMillis();
+            log.info("表 {} 迁移完成, 共 {} 条记录, 耗时 {} 毫秒",
+                    tableName, allData.size(), (endTime - startTime));
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Oracle数据库操作失败", e);
+        }
+    }
+
+
     /**
      * 智能迁移表数据，增量同步
      *

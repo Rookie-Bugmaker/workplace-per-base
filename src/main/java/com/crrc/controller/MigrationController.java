@@ -43,6 +43,13 @@ public class MigrationController {
         myBatisPlusMigrationService.migrateEntity(HrEmpRewards.class);
         myBatisPlusMigrationService.migrateEntity(HrEmpSalaryStandard.class);
         myBatisPlusMigrationService.migrateEntity(HrEmpSkillLevel.class);
+        myBatisPlusMigrationService.migrateEntity(HrEmpSalaryInfo.class);
+
+
+
+        //基础数据表全量同步 无逻辑
+        myBatisPlusMigrationService.migrateInfoTable(HrOrgCostCenter.class);
+
 
         //教育经历特殊处理
         myBatisPlusMigrationService.migrateEduTable();
