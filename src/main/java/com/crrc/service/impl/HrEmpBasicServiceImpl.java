@@ -50,6 +50,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
      * */
     public IPage<HrEmpBasicDTO> listData(IPage<HrEmpBasicDTO> page, HrEmpBasicSearchDTO dto) {
         MPJLambdaWrapper<HrEmpBasic> queryWrapper = JoinWrappers.lambda(HrEmpBasic.class)
+                .distinct()
                 .selectAll(HrEmpBasic.class)
                 .select(HrEmpCertificate::getCertiId, HrEmpCertificate::getCertiType)
                 .leftJoin(HrEmpCertificate.class, HrEmpCertificate::getUserCode, HrEmpBasic::getUserCode)
@@ -62,13 +63,14 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 .select(HrEmpProfessionalSkill::getSkillLevel, HrEmpProfessionalSkill::getSkillName)
                 .leftJoin(HrEmpProfessionalSkill.class, HrEmpProfessionalSkill::getUserCode, HrEmpBasic::getUserCode)
                 .select(HrEmpEducation::getSchoolCode, HrEmpEducation::getEducation, HrEmpEducation::getDegree, HrEmpEducation::getIsHighestEducation, HrEmpEducation::getMajorCode)
-                .leftJoin(HrEmpEducation.class, HrEmpEducation::getUserCode, HrEmpBasic::getUserCode)
-                .eq(HrEmpEducation::getIsHighestEducation, SystemConstants.TRUE_FLAG)  // 将条件移到join之后
+                .leftJoin(HrEmpEducation.class,
+                        on -> on.eq(HrEmpEducation::getUserCode, HrEmpBasic::getUserCode)
+                                .eq(HrEmpEducation::getIsHighestEducation, SystemConstants.TRUE_FLAG)
+                )
                 .leftJoin(HrEmpAppointment.class, HrEmpAppointment::getUserCode, HrEmpBasic::getUserCode);
 
         buildFuzzyConditions(queryWrapper, dto);
         queryWrapper.orderByAsc(HrEmpBasic::getUserCode);
-
         return hrEmpBasicMapper.selectJoinPage(page, HrEmpBasicDTO.class, queryWrapper);
     }
 
