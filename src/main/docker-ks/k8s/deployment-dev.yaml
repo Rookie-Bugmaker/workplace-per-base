@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: @project.artifactId@
+  namespace: @k8s.namespace@
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: @project.artifactId@
+  template:
+    metadata:
+      labels:
+        app: @project.artifactId@
+    spec:
+      containers:
+        - name: @project.artifactId@
+          image: $REGISTRY/$DOCKERHUB_NAMESPACE/$APP_NAME:$APP_VERSION-$PROFILE-$BUILD_NUMBER
+          resources:
+            limits:
+              memory: "2Gi"
+          imagePullPolicy: Always
+      imagePullSecrets:
+        - name: harbor-login-registry
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: @project.artifactId@
+  namespace: @k8s.namespace@
+spec:
+  type: NodePort
+  selector:
+    app: @project.artifactId@
+  ports:
+    - name: http
+      port: 8864
+      targetPort: 8864
+      nodePort: 8864
+      protocol: TCP

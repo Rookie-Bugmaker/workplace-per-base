@@ -1,0 +1,72 @@
+pipeline {
+  agent {
+    node {
+      label 'maven'
+    }
+  }
+  stages {
+    stage('代码克隆') {
+      agent none
+      steps {
+        container('maven') {
+          git(url: 'http://172.22.212.45/srm/srm-cloud.git', credentialsId: 'gitlab', branch: 'testNew', changelog: true, poll: false)
+        }
+      }
+    }
+
+    stage('项目编译') {
+      agent none
+      steps {
+        container('maven') {
+          sh 'mvn clean package -P $PROFILE'
+        }
+
+      }
+    }
+
+    stage('构建镜像') {
+      agent none
+      steps {
+        container('maven') {
+          sh 'cd target/ && mv docker-ks/Dockerfile-$PROFILE ./ && docker build -f Dockerfile-$PROFILE -t $REGISTRY/$DOCKERHUB_NAMESPACE/$APP_NAME:$APP_VERSION-$PROFILE-$BUILD_NUMBER . '
+        }
+      }
+    }
+
+    stage('推送镜像') {
+      agent none
+      steps {
+        container('maven') {
+          withCredentials([usernamePassword(credentialsId : 'harbor-login-registry' ,passwordVariable : 'DOCKER_PASSWORD' ,usernameVariable : 'DOCKER_USERNAME' ,)]) {
+            sh 'echo "$DOCKER_PASSWORD" | docker login $REGISTRY -u "$DOCKER_USERNAME" --password-stdin'
+            sh 'docker push $REGISTRY/$DOCKERHUB_NAMESPACE/$APP_NAME:$APP_VERSION-$PROFILE-$BUILD_NUMBER'
+            // 删除当前镜像(可选)
+            sh 'docker rmi $REGISTRY/$DOCKERHUB_NAMESPACE/$APP_NAME:$APP_VERSION-$PROFILE-$BUILD_NUMBER'
+          }
+        }
+      }
+    }
+
+    stage('部署') {
+      agent none
+      steps {
+        container('maven') {
+          withCredentials([kubeconfigContent(credentialsId : 'demo-kubeconfig' ,variable : 'KUBECONFIG_CONFIG')]) {
+            sh 'mkdir -p ~/.kube'
+            sh 'echo "$KUBECONFIG_CONFIG" > ~/.kube/config'
+            sh 'envsubst < target/docker-ks/k8s/deployment-$PROFILE.yaml | kubectl apply -f -'
+          }
+        }
+      }
+    }
+
+  }
+  environment {
+    KUBECONFIG_CREDENTIAL_ID = 'demo-kubeconfig'
+    REGISTRY = '10.151.129.200:180'
+    DOCKERHUB_NAMESPACE = 'dev'
+    APP_NAME = 'workplace-hrc'
+    APP_VERSION = '1.0.0'
+    PROFILE = 'dev'
+  }
+}

@@ -1,18 +1,25 @@
 spring:
   profiles:
-    active: dev
+    active: @env@
+  main:
+    allow-bean-definition-overriding: true
+  mvc:
+    format:
+      date: yyyy-MM-dd
+  jackson:
+    time-zone: GMT+8
+    date-format: yyyy-MM-dd HH:mm:ss
   cloud:
     nacos:
-      discovery:
-        server-addr: http://10.151.255.167:8848  #nacos服务地址
-        namespace: 5b2a2ade-406f-4848-a554-cba0dbec437b
-        group: DEFAULT_GROUP
-        username: nacos
-        password: QiangK0uLing
       config:
-        server-addr: http://10.151.255.167:8848 # nacos的服务端地址
-        file-extension: yaml # 配置文件格式
-        namespace: 5b2a2ade-406f-4848-a554-cba0dbec437b
-        group: DEFAULT_GROUP
-        username: nacos
-        password: QiangK0uLing
+        server-addr: @nacos.config.serverAddr@
+        file-extension: @nacos.config.fileExtension@
+        namespace: @nacos.config.namespace@
+        username: @nacos.username@
+        password: @nacos.password@
+      discovery:
+        server-addr: @nacos.discovery.server@
+        namespace: @nacos.discovery.namespace@
+        username: @nacos.username@
+        password: @nacos.password@
+        ip: @nacos.discovery.ip@

@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: @project.artifactId@
+  namespace: @k8s.namespace@
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: @project.artifactId@
+  template:
+    metadata:
+      labels:
+        app: @project.artifactId@
+    spec:
+      containers:
+        - name: @project.artifactId@
+          image: $REGISTRY/$DOCKERHUB_NAMESPACE/$APP_NAME:$APP_VERSION-$PROFILE-$MY_BUILD_NUMBER
+          resources:
+            limits:
+              memory: "4Gi"
+          imagePullPolicy: Always
+      imagePullSecrets:
+        - name: harbor-login-registry

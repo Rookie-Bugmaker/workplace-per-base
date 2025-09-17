@@ -1,0 +1,12 @@
+# 基于哪个镜像部署,镜像名称:版本
+FROM 10.151.129.200:180/public/openjdk:8u275
+# 镜像创建者
+MAINTAINER 谭永强
+# 拷贝文件夹下的文件到镜像中的app.jar
+ADD @project.artifactId@-@project.version@-@env@.jar app.jar
+# 设置时区
+RUN /bin/cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo 'Asia/Shanghai' >/etc/timezone
+# jvm参数设置
+ENV JAVA_OPTS="-Xmx1748m -Xms1748m -Duser.timezone=GMT+8"
+# 配置容器启动后执行的命令
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app.jar"]

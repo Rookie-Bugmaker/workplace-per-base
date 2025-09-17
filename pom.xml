@@ -58,8 +58,54 @@
         </dependencies>
     </dependencyManagement>
 
+    <!-- 环境部署配置 -->
+    <profiles>
+        <!-- 开发环境 -->
+        <profile>
+            <id>dev</id>
+            <properties>
+                <env>dev</env>
+            </properties>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+        </profile>
+        <!--测试环境-->
+        <profile>
+            <id>test</id>
+            <properties>
+                <env>test</env>
+            </properties>
+        </profile>
+        <!-- 产品环境 -->
+        <profile>
+            <id>product</id>
+            <properties>
+                <env>product</env>
+            </properties>
+        </profile>
+    </profiles>
+
     <build>
-        <finalName>${project.artifactId}</finalName>
+        <finalName>${project.artifactId}-${project.version}-${env}</finalName>
+        <filters>
+            <filter>src/main/resources/filters/${env}.properties</filter>
+        </filters>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+            <resource>
+                <directory>src/main/docker</directory>
+                <targetPath>${project.build.directory}</targetPath>
+            </resource>
+            <resource>
+                <directory>src/main/docker-ks</directory>
+                <filtering>true</filtering>
+                <targetPath>${project.build.directory}/docker-ks</targetPath>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -89,14 +135,5 @@
                 </executions>
             </plugin>
         </plugins>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-            </resource>
-            <resource>
-                <directory>src/main/docker</directory>
-                <targetPath>${project.build.directory}</targetPath>
-            </resource>
-        </resources>
     </build>
 </project>

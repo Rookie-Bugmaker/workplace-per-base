@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: @project.artifactId@
+  namespace: @k8s.namespace@
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: @project.artifactId@
+  template:
+    metadata:
+      labels:
+        app: @project.artifactId@
+    spec:
+      containers:
+        - name: @project.artifactId@
+          image: $REGISTRY/$DOCKERHUB_NAMESPACE/$APP_NAME:$APP_VERSION-$PROFILE-$MY_BUILD_NUMBER
+          resources:
+            limits:
+              memory: "6Gi"
+          imagePullPolicy: Always
+      imagePullSecrets:
+        - name: harbor-login-registry
+---
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: @project.artifactId@
+  namespace: @k8s.namespace@
+spec:
+  maxReplicas: 5
+  minReplicas: 2
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: @project.artifactId@
+  metrics:
+    - type: Resource
+      resource:
+        name: memory
+        targetAverageUtilization: 80
