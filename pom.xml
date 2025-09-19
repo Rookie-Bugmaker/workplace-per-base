@@ -99,6 +99,7 @@
             <resource>
                 <directory>src/main/docker</directory>
                 <targetPath>${project.build.directory}</targetPath>
+                <filtering>true</filtering>
             </resource>
             <resource>
                 <directory>src/main/docker-ks</directory>

@@ -1,53 +1,30 @@
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: human-resource
-  namespace: human-resource
-  labels:
-    appgroup: ''
-    version: v1
-  annotations:
-    deployment.kubernetes.io/revision: '1'
-    description: ''
+  name: workplace-human-resource
+  namespace: test
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: human-resource
+      app: workplace-human-resource
       version: v1
   template:
     metadata:
       labels:
-        app: human-resource
+        app: workplace-human-resource
         version: v1
     spec:
-      volumes:
-        - name: vol-175332551364412246
-          configMap:
-            name: bootstrap.yml
-            defaultMode: 420
       containers:
-        - name: workplace-humanresource-dev
-          image: swr.ckgf-global-1.cccar.com.cn/work_place/workplace-humanresource-dev:dev0.0.1
-          env:
-            - name: PAAS_APP_NAME
-              value: human-resource
-            - name: PAAS_NAMESPACE
-              value: human-resource
-            - name: PAAS_PROJECT_ID
-              value: 64fbe59f7df1471c99256db5f7956104
+        - name: container-workplace-human-resource
+          image: swr.ckgf-global-1.cccar.com.cn/work_place/workplace-human-resource-test:0.0.1
           resources:
             limits:
               cpu: '4'
-              memory: 2Gi
+              memory: 4Gi
             requests:
               cpu: '2'
-              memory: 1Gi
-          volumeMounts:
-            - name: vol-175332551364412246
-              readOnly: true
-              mountPath: /home/workplace/bootstrap.yml
-              subPath: bootstrap.yml
+              memory: 2Gi
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
           imagePullPolicy: Always
