@@ -124,7 +124,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         if(hrEmpEducationList.size() > 1) {
             return result;
         }
-        if(hrEmpEducationList.get(0) != null){
+        if(!hrEmpEducationList.isEmpty()){
             HrEmpEducation hrEmpEducation = new HrEmpEducation();
             HrEmpBasicDTO hrEmpBasicDTO = result.get(0);
             HrEmpSchoolInfo hrEmpSchoolInfo = hrEmpSchoolInfoService.selectByCode(hrEmpEducation.getSchoolCode());
