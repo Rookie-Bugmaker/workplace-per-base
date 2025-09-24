@@ -120,7 +120,7 @@ public class HrEmpRewardsController {
     @PostMapping("/update")
     @Operation(summary = "更新员工奖励情况表实体")
     @AuditLog(value = "更新员工奖励情况表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
-    @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
+    @Parameter(name = "updateReqVO", description = "需要更新的实体对象", required = true)
     public ResponseResult<Boolean> updateHrEmpRewards(@Valid @RequestBody UpdateListDTO<HrEmpRewards> updateReqVO) {
         return updateUtil.update(updateReqVO);
     }

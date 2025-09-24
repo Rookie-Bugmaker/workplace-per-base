@@ -9,12 +9,16 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
 import com.crrc.entity.HrEmpEducation;
+import com.crrc.entity.HrEmpProfessionalQualification;
 import com.crrc.entity.HrEmpSkillLevel;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.dto.UpdateListDTO;
+import com.crrc.service.impl.HrEmpProfessionalQualificationServiceImpl;
 import com.crrc.service.impl.HrEmpSkillLevelServiceImpl;
+import com.crrc.utils.UpdateListUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -49,6 +53,19 @@ public class HrEmpSkillLevelController {
 
     @Autowired
     private HrEmpSkillLevelServiceImpl hrEmpSkillLevelService;
+
+    private final UpdateListUtil<HrEmpSkillLevel, String> updateUtil;
+
+    public HrEmpSkillLevelController(HrEmpSkillLevelServiceImpl service) {
+        this.updateUtil = new UpdateListUtil<>(
+                service::selectMsg,          // 查询方法
+                HrEmpSkillLevel::getId,      // ID获取方法
+                HrEmpSkillLevel::setUserCode,// userCode设置方法
+                HrEmpSkillLevel::setId,      // ID设置方法
+                service::saveOrUpdateBatch,  // 保存/更新方法
+                service::removeByIds         // 删除方法
+        );
+    }
 
 
     @GetMapping("/getDetails")
@@ -104,13 +121,9 @@ public class HrEmpSkillLevelController {
     @PostMapping("/update")
     @Operation(summary = "更新职业技能等级实体")
     @AuditLog(value = "更新职业技能等级实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
-    @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
-    public ResponseResult<Boolean> updateHrEmpSkillLevel(@Valid @RequestBody HrEmpSkillLevel updateReqVO) {
-        if(updateReqVO.getId() == null){
-            updateReqVO.setId(IdUtil.simpleUUID());
-            return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功", hrEmpSkillLevelService.save(updateReqVO));
-        }
-        return new ResponseResult<>(HttpStatus.OK.value(), "更新职业技能等级实体成功", hrEmpSkillLevelService.saveOrUpdate(updateReqVO));
+    @Parameter(name = "updateReqVO", description = "需要更新的实体对象", required = true)
+    public ResponseResult<Boolean> updateHrEmpSkillLevel(@Valid @RequestBody UpdateListDTO<HrEmpSkillLevel> updateReqVO) {
+        return updateUtil.update(updateReqVO);
     }
 
     @Transactional(rollbackFor = Exception.class)
