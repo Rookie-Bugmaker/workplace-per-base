@@ -166,13 +166,15 @@ public class HrEmpBasicController {
             Map<String, Object> formData = new HashMap<>();
             formData.put("Basic",convertToMapList(changeReqVO));
             instanceDTO.setFormData(formData);
+            log.info("流程测试instanceDTO" + instanceDTO);
             // 返回流程实例id
             String processInstanceId = wkWorkflowApi.startProcessInstanceNew(instanceDTO).getProcessInstanceId();
+            log.info("流程测试processInstanceId" + processInstanceId);
 
             // 5. 更新流程实例ID
             changeRequest.setProcessInstanceId(processInstanceId);
             mongoTemplate.save(changeRequest);
-
+            log.info("流程测试success");
             return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交", changeRequest.getId());
         } catch (Exception e) {
             log.error("提交变更申请失败: {}", e.getMessage());
