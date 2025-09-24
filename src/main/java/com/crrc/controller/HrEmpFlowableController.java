@@ -78,6 +78,9 @@ public class HrEmpFlowableController {
 
     @GetMapping("/findUserByDeptIdAndRoleCode")
     public ResponseResult<WorkflowUserPageDTO> findUserByDeptId(Integer page, Integer pageSize, Long deptId,String roleCode) {
+//        LoginUser curUser = SecurityFrameworkUtils.getLoginUser();
+        page = 1;
+        pageSize = 50000;
         log.info("获取人员审批信息：");
         LoginUser curUser = SecurityFrameworkUtils.getLoginUser();
         log.info("获取人员审批信息11：" + curUser);
@@ -91,7 +94,7 @@ public class HrEmpFlowableController {
         if (ObjectUtils.isEmpty(page) || ObjectUtils.isEmpty(pageSize)) {
             //不需要分页查询
             page = 1;
-            pageSize = 10000;
+            pageSize = 50000;
         }
         //根据部门ID查询部门人员列表
         ResultData<PaginationGrid<SysDeptPersonDTO>> resultData = sysServerClient.findPageByDeptId(deptId, page, pageSize);
