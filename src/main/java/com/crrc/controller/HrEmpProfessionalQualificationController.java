@@ -10,11 +10,15 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
 import com.crrc.entity.HrEmpEducation;
 import com.crrc.entity.HrEmpProfessionalQualification;
+import com.crrc.entity.HrEmpRewards;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.dto.UpdateListDTO;
 import com.crrc.service.impl.HrEmpProfessionalQualificationServiceImpl;
+import com.crrc.service.impl.HrEmpRewardsServiceImpl;
+import com.crrc.utils.UpdateListUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -49,6 +53,19 @@ public class HrEmpProfessionalQualificationController {
 
     @Autowired
     private HrEmpProfessionalQualificationServiceImpl hrEmpProfessionalQualificationService;
+
+    private final UpdateListUtil<HrEmpProfessionalQualification, String> updateUtil;
+
+    public HrEmpProfessionalQualificationController(HrEmpProfessionalQualificationServiceImpl service) {
+        this.updateUtil = new UpdateListUtil<>(
+                service::selectMsg,          // 查询方法
+                HrEmpProfessionalQualification::getId,      // ID获取方法
+                HrEmpProfessionalQualification::setUserCode,// userCode设置方法
+                HrEmpProfessionalQualification::setId,      // ID设置方法
+                service::saveOrUpdateBatch,  // 保存/更新方法
+                service::removeByIds         // 删除方法
+        );
+    }
 
     @GetMapping("/getDetails")
     @Operation(summary = "获得员工专业职务任职资格实体")
@@ -104,12 +121,8 @@ public class HrEmpProfessionalQualificationController {
     @Operation(summary = "更新员工专业职务任职资格表实体")
     @AuditLog(value = "更新员工专业职务任职资格表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
-    public ResponseResult<Boolean> updateHrEmpProfessionalQualification(@Valid @RequestBody HrEmpProfessionalQualification updateReqVO) {
-        if(updateReqVO.getId() == null){
-            updateReqVO.setId(IdUtil.simpleUUID());
-            return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功", hrEmpProfessionalQualificationService.save(updateReqVO));
-        }
-        return new ResponseResult<>(HttpStatus.OK.value(), "更新员工专业职务任职资格表实体成功", hrEmpProfessionalQualificationService.saveOrUpdate(updateReqVO));
+    public ResponseResult<Boolean> updateHrEmpProfessionalQualification(@Valid @RequestBody UpdateListDTO<HrEmpProfessionalQualification> updateReqVO) {
+        return updateUtil.update(updateReqVO);
     }
 
     @Transactional(rollbackFor = Exception.class)
