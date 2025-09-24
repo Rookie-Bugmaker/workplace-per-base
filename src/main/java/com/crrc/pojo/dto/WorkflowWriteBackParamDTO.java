@@ -24,7 +24,7 @@ public class WorkflowWriteBackParamDTO {
     /**
      * 流程模板id
      */
-    private Long wfId;
+    private String wfId;
 
     /**
      * 流程实例id
