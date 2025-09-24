@@ -8,34 +8,43 @@ import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.api.WkWorkflowApi;
 import com.crrc.entity.HrEmpBasic;
 import com.crrc.entity.HrEmpHealth;
 import com.crrc.entity.HrEmpHouseHold;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
+import com.crrc.mongoDB.HrEmpChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
+import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.service.impl.*;
 import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.data.mongodb.core.query.Query;
+import java.beans.PropertyDescriptor;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -58,6 +67,10 @@ public class HrEmpBasicController {
     private HrEmpHouseholdServiceImpl hrEmpHouseholdService;
     @Autowired
     private HrEmpHealthServiceImpl hrEmpHealthService;
+    @Autowired
+    private MongoTemplate mongoTemplate;
+    @Autowired
+    private WkWorkflowApi wkWorkflowApi;
 
 
     @GetMapping("/getDetails")
@@ -113,55 +126,242 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功", hrEmpBasicService.save(createReqVO));
     }
 
-    @Transactional(rollbackFor = Exception.class)
-    @PostMapping("/update")
-    @Operation(summary = "更新员工基本信息表实体")
-    @AuditLog(value = "更新员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
-    @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
-    public ResponseResult<Boolean> updateHrEmpBasic(@Valid @RequestBody HrEmpBasicDTO updateReqVO) {
-        //基本信息中，健康状况，户口相关需要跨表保存
+
+    @PostMapping("/submit-change")
+    @Operation(summary = "提交员工信息变更申请")
+    public ResponseResult<String> submitChange(@Valid @RequestBody HrEmpBasicDTO changeReqVO) {
         try {
-            //健康信息部分
-            String userCode = updateReqVO.getUserCode();
-            HrEmpHealth hrEmpHealth = hrEmpHealthService.selectByUserCode(userCode);
-            if (hrEmpHealth == null) {
-                HrEmpHealth saveEntity = new HrEmpHealth();
-                saveEntity.setUserCode(userCode);
-                saveEntity.setHealthStatus(updateReqVO.getHealthStatus());
-                saveEntity.setId(IdUtil.simpleUUID());
-                hrEmpHealthService.save(saveEntity);
-            } else {
-                hrEmpHealth.setHealthStatus(updateReqVO.getHealthStatus());
-                hrEmpHealthService.saveOrUpdate(hrEmpHealth);
+            // 1. 获取当前数据快照
+            HrEmpBasicDTO originalData = hrEmpBasicService.selectMsg(changeReqVO.getUserCode()).get(0);
+            if (originalData == null) {
+                return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "员工信息不存在");
             }
 
-            //户口信息部分
-            HrEmpHouseHold hrEmpHousehold = hrEmpHouseholdService.selectByUserCode(userCode);
-            if (hrEmpHousehold == null) {
-                HrEmpHouseHold saveEntity = new HrEmpHouseHold();
-                saveEntity.setUserCode(userCode);
-                saveEntity.setId(IdUtil.simpleUUID());
-                saveEntity.setHouseHoldLocation(updateReqVO.getHouseHoldLocation());
-                saveEntity.setHouseHoldLocationDetail(updateReqVO.getHouseHoldLocationDetail());
-                saveEntity.setHouseHoldType(updateReqVO.getHouseHoldType());
-                hrEmpHouseholdService.save(saveEntity);
-            } else {
-                hrEmpHousehold.setHouseHoldLocation(updateReqVO.getHouseHoldLocation());
-                hrEmpHousehold.setHouseHoldLocationDetail(updateReqVO.getHouseHoldLocationDetail());
-                hrEmpHousehold.setHouseHoldType(updateReqVO.getHouseHoldType());
-                hrEmpHouseholdService.saveOrUpdate(hrEmpHousehold);
-            }
-            if (updateReqVO.getId() == null) {
-                updateReqVO.setId(IdUtil.simpleUUID());
-                hrEmpBasicService.save(updateReqVO);
-            }
-            hrEmpBasicService.saveOrUpdate(updateReqVO);
+            // 2. 创建变更申请文档
+            HrEmpChangeRequest changeRequest = new HrEmpChangeRequest();
+            changeRequest.setId(IdUtil.simpleUUID());
+            changeRequest.setUserCode(changeReqVO.getUserCode());
+            changeRequest.setOriginalData(originalData);
+            changeRequest.setChangedData(changeReqVO);
+            changeRequest.setWfId(changeReqVO.getWfId());
+
+            // 3. 保存到MongoDB
+            mongoTemplate.save(changeRequest);
+
+            // 4. 启动审批流程（替换为您的实际审批服务）
+            // String processInstanceId = yourWorkflowService.startProcess(...);
+//            wkWorkflowApi.startProcessInstanceNew();
+
+            String processInstanceId = "mock-process-id-" + System.currentTimeMillis();
+
+            // 5. 更新流程实例ID
+            changeRequest.setProcessInstanceId(processInstanceId);
+            mongoTemplate.save(changeRequest);
+
+            return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交", changeRequest.getId());
         } catch (Exception e) {
-            log.error("更新或保存时出错：\n" + "入参： " + updateReqVO + "\n" + "错误日志： " + e.getMessage() + "\n");
-            return new ResponseResult<>(HttpStatus.EXPECTATION_FAILED.value(), "更新员工教育信息表实体失败");
+            log.error("提交变更申请失败: {}", e.getMessage());
+            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "提交失败");
         }
-        return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功");
     }
+
+    @GetMapping("/change-detail")
+    public ResponseResult<Map<String, Object>> getChangeDetail(@RequestParam String requestId) {
+        // 1. 从MongoDB获取变更请求
+        HrEmpChangeRequest request = mongoTemplate.findById(requestId, HrEmpChangeRequest.class);
+        if (request == null) {
+            return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "变更申请不存在");
+        }
+
+        // 2. 构建返回结果（直接返回两个列表）
+        Map<String, Object> result = new HashMap<>();
+
+        // 原始数据列表（转换为Map列表或直接使用对象）
+        result.put("originalData", convertToMapList(request.getOriginalData()));
+
+        // 审批流中的数据列表
+        result.put("changedData", convertToMapList(request.getChangedData()));
+
+        // 基础信息
+        result.put("requestId", requestId);
+        result.put("createTime", request.getCreateTime());
+
+        return new ResponseResult<>(HttpStatus.OK.value(), "成功", result);
+    }
+
+    // 辅助方法：将数据对象转换为Map（可根据实际需求调整）
+    private List<Map<String, Object>> convertToMapList(Object data) {
+        // 方案1：如果数据本身就是集合
+        if (data instanceof Collection) {
+            return ((Collection<?>) data).stream()
+                    .map(this::convertSingleObjectToMap)
+                    .collect(Collectors.toList());
+        }
+
+        // 方案2：如果是单个对象
+        return Collections.singletonList(convertSingleObjectToMap(data));
+    }
+
+    // 将单个对象转为Map
+    private Map<String, Object> convertSingleObjectToMap(Object obj) {
+        if (obj == null) {
+            return new HashMap<>();
+        }
+
+        try {
+            return Arrays.stream(BeanUtils.getPropertyDescriptors(obj.getClass()))
+                    .filter(pd -> pd.getReadMethod() != null && !"class".equals(pd.getName()))
+                    .collect(HashMap::new,
+                            (map, pd) -> {
+                                try {
+                                    Object value = pd.getReadMethod().invoke(obj);
+                                    if (value != null) {  // 显式过滤null值
+                                        map.put(pd.getName(), value);
+                                    }
+                                } catch (Exception ignored) {}
+                            },
+                            HashMap::putAll);
+        } catch (Exception e) {
+            throw new RuntimeException("对象转换Map失败", e);
+        }
+    }
+
+    /**
+     * 回调接口
+     * @param param
+     * @return
+     */
+    @PutMapping("/approval-callback")
+    public ResponseResult<Boolean> approvalCallback(@RequestBody WorkflowWriteBackParamDTO param) {
+        try {
+            // 1. 获取变更请求
+            Query query = new Query(Criteria.where("_id").is(param.getBizId()));
+            HrEmpChangeRequest request = mongoTemplate.findOne(query, HrEmpChangeRequest.class);
+
+            if (request == null) {
+                return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "变更申请不存在", false);
+            }
+
+            // 2. 处理不同审批状态
+            if (param.getProcessInstanceStatus() == 2) { // 审批通过
+                if ("APPROVED".equals(request.getStatus())) {
+                    return new ResponseResult<>(HttpStatus.OK.value(), "已处理过该申请", true);
+                }
+
+                // 执行实际更新
+                updateHrEmpBasic(request.getChangedData());
+
+                // 更新状态
+                request.setStatus("APPROVED");
+                mongoTemplate.save(request);
+
+            } else if (param.getProcessInstanceStatus() == 3) { // 审批拒绝
+                request.setStatus("REJECTED");
+                mongoTemplate.save(request);
+            }
+
+            return new ResponseResult<>(HttpStatus.OK.value(), "处理成功", true);
+        } catch (Exception e) {
+            log.error("审批回调处理失败: {}", e.getMessage());
+            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "处理失败", false);
+        }
+    }
+
+
+    // 实际更新方法（复用原逻辑）
+    private void updateHrEmpBasic(HrEmpBasicDTO updateReqVO) {
+        String userCode = updateReqVO.getUserCode();
+
+        // 健康信息部分
+        HrEmpHealth hrEmpHealth = hrEmpHealthService.selectByUserCode(userCode);
+        if (hrEmpHealth == null) {
+            HrEmpHealth saveEntity = new HrEmpHealth();
+            saveEntity.setUserCode(userCode);
+            saveEntity.setHealthStatus(updateReqVO.getHealthStatus());
+            saveEntity.setId(IdUtil.simpleUUID());
+            hrEmpHealthService.save(saveEntity);
+        } else {
+            hrEmpHealth.setHealthStatus(updateReqVO.getHealthStatus());
+            hrEmpHealthService.saveOrUpdate(hrEmpHealth);
+        }
+
+        // 户口信息部分
+        HrEmpHouseHold hrEmpHousehold = hrEmpHouseholdService.selectByUserCode(userCode);
+        if (hrEmpHousehold == null) {
+            HrEmpHouseHold saveEntity = new HrEmpHouseHold();
+            saveEntity.setUserCode(userCode);
+            saveEntity.setId(IdUtil.simpleUUID());
+            saveEntity.setHouseHoldLocation(updateReqVO.getHouseHoldLocation());
+            saveEntity.setHouseHoldLocationDetail(updateReqVO.getHouseHoldLocationDetail());
+            saveEntity.setHouseHoldType(updateReqVO.getHouseHoldType());
+            hrEmpHouseholdService.save(saveEntity);
+        } else {
+            hrEmpHousehold.setHouseHoldLocation(updateReqVO.getHouseHoldLocation());
+            hrEmpHousehold.setHouseHoldLocationDetail(updateReqVO.getHouseHoldLocationDetail());
+            hrEmpHousehold.setHouseHoldType(updateReqVO.getHouseHoldType());
+            hrEmpHouseholdService.saveOrUpdate(hrEmpHousehold);
+        }
+
+        // 基本信息
+        if (updateReqVO.getId() == null) {
+            updateReqVO.setId(IdUtil.simpleUUID());
+            hrEmpBasicService.save(updateReqVO);
+        }
+        hrEmpBasicService.saveOrUpdate(updateReqVO);
+    }
+
+
+
+
+//    @Transactional(rollbackFor = Exception.class)
+//    @PostMapping("/update")
+//    @Operation(summary = "更新员工基本信息表实体")
+//    @AuditLog(value = "更新员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
+//    @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
+//    public ResponseResult<Boolean> updateHrEmpBasic(@Valid @RequestBody HrEmpBasicDTO updateReqVO) {
+//        //基本信息中，健康状况，户口相关需要跨表保存
+//        try {
+//            //健康信息部分
+//            String userCode = updateReqVO.getUserCode();
+//            HrEmpHealth hrEmpHealth = hrEmpHealthService.selectByUserCode(userCode);
+//            if (hrEmpHealth == null) {
+//                HrEmpHealth saveEntity = new HrEmpHealth();
+//                saveEntity.setUserCode(userCode);
+//                saveEntity.setHealthStatus(updateReqVO.getHealthStatus());
+//                saveEntity.setId(IdUtil.simpleUUID());
+//                hrEmpHealthService.save(saveEntity);
+//            } else {
+//                hrEmpHealth.setHealthStatus(updateReqVO.getHealthStatus());
+//                hrEmpHealthService.saveOrUpdate(hrEmpHealth);
+//            }
+//
+//            //户口信息部分
+//            HrEmpHouseHold hrEmpHousehold = hrEmpHouseholdService.selectByUserCode(userCode);
+//            if (hrEmpHousehold == null) {
+//                HrEmpHouseHold saveEntity = new HrEmpHouseHold();
+//                saveEntity.setUserCode(userCode);
+//                saveEntity.setId(IdUtil.simpleUUID());
+//                saveEntity.setHouseHoldLocation(updateReqVO.getHouseHoldLocation());
+//                saveEntity.setHouseHoldLocationDetail(updateReqVO.getHouseHoldLocationDetail());
+//                saveEntity.setHouseHoldType(updateReqVO.getHouseHoldType());
+//                hrEmpHouseholdService.save(saveEntity);
+//            } else {
+//                hrEmpHousehold.setHouseHoldLocation(updateReqVO.getHouseHoldLocation());
+//                hrEmpHousehold.setHouseHoldLocationDetail(updateReqVO.getHouseHoldLocationDetail());
+//                hrEmpHousehold.setHouseHoldType(updateReqVO.getHouseHoldType());
+//                hrEmpHouseholdService.saveOrUpdate(hrEmpHousehold);
+//            }
+//            if (updateReqVO.getId() == null) {
+//                updateReqVO.setId(IdUtil.simpleUUID());
+//                hrEmpBasicService.save(updateReqVO);
+//            }
+//            hrEmpBasicService.saveOrUpdate(updateReqVO);
+//        } catch (Exception e) {
+//            log.error("更新或保存时出错：\n" + "入参： " + updateReqVO + "\n" + "错误日志： " + e.getMessage() + "\n");
+//            return new ResponseResult<>(HttpStatus.EXPECTATION_FAILED.value(), "更新员工教育信息表实体失败");
+//        }
+//        return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功");
+//    }
 
     @Transactional(rollbackFor = Exception.class)
     @GetMapping("/delete")

@@ -17,13 +17,13 @@
     <parent>
         <groupId>com.crrc</groupId>
         <artifactId>workplace-parent</artifactId>
-        <version>v1.0.4</version>
+        <version>v1.1.4</version>
     </parent>
     <dependencies>
         <dependency>
             <groupId>com.crrc</groupId>
             <artifactId>workplace-core-infra</artifactId>
-            <version>v1.0.4</version>
+            <version>v1.1.5</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
@@ -43,6 +43,11 @@
             <groupId>com.oracle.database.jdbc</groupId>
             <artifactId>ojdbc8</artifactId>
             <version>21.9.0.0</version>
+        </dependency>
+        <!-- MongoDB 核心依赖 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
     </dependencies>
 

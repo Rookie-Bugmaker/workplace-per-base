@@ -60,4 +60,14 @@ public class HrEmpBasicDTO extends HrEmpBasic{
     @Schema(description = "健康状况")
     public String healthStatus;
 
+    /**
+     * 流程模板id
+     */
+    private Long wfId;
+
+    /**
+     * 流程实例id
+     */
+    private String processInstanceId;
+
 }
