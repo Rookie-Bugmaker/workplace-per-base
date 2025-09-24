@@ -13,6 +13,7 @@ import com.crrc.api.WkWorkflowApi;
 import com.crrc.entity.HrEmpBasic;
 import com.crrc.entity.HrEmpHealth;
 import com.crrc.entity.HrEmpHouseHold;
+import com.crrc.entity.dto.ProcessInstanceVo;
 import com.crrc.entity.dto.StartProcessInstanceDTO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
@@ -151,15 +152,16 @@ public class HrEmpBasicController {
 
             // 3. 保存到MongoDB
             mongoTemplate.save(changeRequest);
+            log.info("流程测试changeRequest" + changeRequest);
+
 
             // 4. 启动审批流程
             // 封装数据，提交审批流
             StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
-            // 封装数据主键，存在MongoDB里面的生成的simpleUUID
             instanceDTO.setBizCode(changeReqVO.getId());
-            // 封装业务流水号
-            String bizId = "BASIC-" + System.currentTimeMillis();
-            instanceDTO.setBizId(bizId);
+            // 封装数据主键，存在MongoDB里面的生成的simpleUUID
+//            String bizId = "BASIC-" + System.currentTimeMillis();
+            instanceDTO.setBizId(changeRequest.getId());
             // 封装业务模板编码
             instanceDTO.setTemplateAlias(process_templateAlias);
             // 封装业务表单数据，20250924上线暂时没用，如果之后需要修改审批流分支，需使用该数据
@@ -168,11 +170,11 @@ public class HrEmpBasicController {
             instanceDTO.setFormData(formData);
             log.info("流程测试instanceDTO" + instanceDTO);
             // 返回流程实例id
-            String processInstanceId = wkWorkflowApi.startProcessInstanceNew(instanceDTO).getProcessInstanceId();
-            log.info("流程测试processInstanceId" + processInstanceId);
+            ProcessInstanceVo processInstanceVo = wkWorkflowApi.startProcessInstanceNew(instanceDTO);
+            log.info("流程测试processInstanceVo" + processInstanceVo);
 
             // 5. 更新流程实例ID
-            changeRequest.setProcessInstanceId(processInstanceId);
+            changeRequest.setProcessInstanceId(processInstanceVo.getProcessInstanceId());
             mongoTemplate.save(changeRequest);
             log.info("流程测试success");
             return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交", changeRequest.getId());
