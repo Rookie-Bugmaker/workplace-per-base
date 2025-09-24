@@ -8,13 +8,17 @@ import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.entity.HrEmpCareerPath;
 import com.crrc.entity.HrEmpEducation;
 import com.crrc.entity.HrEmpRewards;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.dto.UpdateListDTO;
+import com.crrc.service.impl.HrEmpCareerPathServiceImpl;
 import com.crrc.service.impl.HrEmpRewardsServiceImpl;
+import com.crrc.utils.UpdateListUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -49,6 +53,19 @@ public class HrEmpRewardsController {
 
     @Autowired
     private HrEmpRewardsServiceImpl hrEmpRewardsService;
+
+    private final UpdateListUtil<HrEmpRewards, String> updateUtil;
+
+    public HrEmpRewardsController(HrEmpRewardsServiceImpl service) {
+        this.updateUtil = new UpdateListUtil<>(
+                service::selectMsg,          // 查询方法
+                HrEmpRewards::getId,      // ID获取方法
+                HrEmpRewards::setUserCode,// userCode设置方法
+                HrEmpRewards::setId,      // ID设置方法
+                service::saveOrUpdateBatch,  // 保存/更新方法
+                service::removeByIds         // 删除方法
+        );
+    }
 
     @GetMapping("/getDetails")
     @Operation(summary = "获得员工奖励情况实体")
@@ -104,12 +121,8 @@ public class HrEmpRewardsController {
     @Operation(summary = "更新员工奖励情况表实体")
     @AuditLog(value = "更新员工奖励情况表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
-    public ResponseResult<Boolean> updateHrEmpRewards(@Valid @RequestBody HrEmpRewards updateReqVO) {
-        if(updateReqVO.getId() == null){
-            updateReqVO.setId(IdUtil.simpleUUID());
-            return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功", hrEmpRewardsService.save(updateReqVO));
-        }
-        return new ResponseResult<>(HttpStatus.OK.value(), "更新员工奖励情况表实体成功", hrEmpRewardsService.saveOrUpdate(updateReqVO));
+    public ResponseResult<Boolean> updateHrEmpRewards(@Valid @RequestBody UpdateListDTO<HrEmpRewards> updateReqVO) {
+        return updateUtil.update(updateReqVO);
     }
 
     @Transactional(rollbackFor = Exception.class)
