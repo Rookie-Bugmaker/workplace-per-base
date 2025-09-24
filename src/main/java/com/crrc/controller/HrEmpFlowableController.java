@@ -78,7 +78,9 @@ public class HrEmpFlowableController {
 
     @GetMapping("/findUserByDeptIdAndRoleCode")
     public ResponseResult<WorkflowUserPageDTO> findUserByDeptId(Integer page, Integer pageSize, Long deptId,String roleCode) {
-//        LoginUser curUser = SecurityFrameworkUtils.getLoginUser();
+        log.info("获取人员审批信息：");
+        LoginUser curUser = SecurityFrameworkUtils.getLoginUser();
+        log.info("获取人员审批信息11：" + curUser);
         if (ObjectUtils.isEmpty(deptId)) {
             return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "部门ID不能为空");
         }
@@ -121,6 +123,7 @@ public class HrEmpFlowableController {
                 sysUser.setFullName(sysDeptPerson.getPersonName());
             }
         }
+        log.info("获取人员审批信息1：" + userList);
         // 获取角色下的用户
         SysUserRequestDTO sysUserRequestDTO = new SysUserRequestDTO();
         sysUserRequestDTO.setRoleCodes(Collections.singletonList(roleCode));
@@ -129,6 +132,7 @@ public class HrEmpFlowableController {
         if (ObjectUtils.isEmpty(userByRoleCodes)) {
             return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "获取角色下的用户为空！");
         }
+        log.info("获取人员审批信息2：" + result);
         // 获取当前部门用户和当前角色用户交集，返回审批人
         Set<Long> userIds = userByRoleCodes.stream()
                 .map(SysUserDTO::getUserId)
@@ -136,7 +140,7 @@ public class HrEmpFlowableController {
         List<SysUserDTO> finalUserList = userList.stream()
                 .filter(user -> userIds.contains(user.getUserId()))
                 .collect(Collectors.toList());
-
+        log.info("获取人员审批信息3：" + finalUserList);
         if (ObjectUtils.isEmpty(finalUserList)) {
             return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "查询的审批人为空，请配置审批人");
         }
