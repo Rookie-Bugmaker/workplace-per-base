@@ -12,6 +12,7 @@ import com.crrc.api.WkWorkflowApi;
 import com.crrc.entity.HrEmpBasic;
 import com.crrc.entity.HrEmpHealth;
 import com.crrc.entity.HrEmpHouseHold;
+import com.crrc.entity.dto.StartProcessInstanceDTO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
@@ -36,7 +37,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.data.mongodb.core.query.Query;
-import java.beans.PropertyDescriptor;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
@@ -60,6 +60,9 @@ import java.util.stream.Collectors;
 @RefreshScope
 @Tag(name = "员工基本信息表", description = "员工基本信息表")
 public class HrEmpBasicController {
+
+    // 流程模板编码，在框架界面中规定
+    private static final String process_templateAlias = "userinfo";
 
     @Autowired
     private HrEmpBasicServiceImpl hrEmpBasicService;
@@ -148,11 +151,22 @@ public class HrEmpBasicController {
             // 3. 保存到MongoDB
             mongoTemplate.save(changeRequest);
 
-            // 4. 启动审批流程（替换为您的实际审批服务）
-            // String processInstanceId = yourWorkflowService.startProcess(...);
-//            wkWorkflowApi.startProcessInstanceNew();
-
-            String processInstanceId = "mock-process-id-" + System.currentTimeMillis();
+            // 4. 启动审批流程
+            // 封装数据，提交审批流
+            StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
+            // 封装数据主键，存在MongoDB里面的生成的simpleUUID
+            instanceDTO.setBizCode(changeReqVO.getId());
+            // 封装业务流水号
+            String bizId = "BASIC-" + System.currentTimeMillis();
+            instanceDTO.setBizId(bizId);
+            // 封装业务模板编码
+            instanceDTO.setTemplateAlias(process_templateAlias);
+            // 封装业务表单数据，20250924上线暂时没用，如果之后需要修改审批流分支，需使用该数据
+            Map<String, Object> formData = new HashMap<>();
+            formData.put("Basic",convertToMapList(changeReqVO));
+            instanceDTO.setFormData(formData);
+            // 返回流程实例id
+            String processInstanceId = wkWorkflowApi.startProcessInstanceNew(instanceDTO).getProcessInstanceId();
 
             // 5. 更新流程实例ID
             changeRequest.setProcessInstanceId(processInstanceId);
@@ -268,7 +282,7 @@ public class HrEmpBasicController {
     }
 
 
-    // 实际更新方法（复用原逻辑）
+    // 实际更新方法
     private void updateHrEmpBasic(HrEmpBasicDTO updateReqVO) {
         String userCode = updateReqVO.getUserCode();
 
@@ -307,7 +321,7 @@ public class HrEmpBasicController {
             updateReqVO.setId(IdUtil.simpleUUID());
             hrEmpBasicService.save(updateReqVO);
         }
-        hrEmpBasicService.saveOrUpdate(updateReqVO);
+        hrEmpBasicService.updateById(updateReqVO);
     }
 
 
