@@ -98,6 +98,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
      * @param userCode 档案号
      * @return 查询结果List
      */
+    @Override
     public List<HrEmpBasicDTO> selectMsg(String userCode){
 
         MPJLambdaWrapper<HrEmpBasic> queryWrapper = JoinWrappers.lambda(HrEmpBasic.class)

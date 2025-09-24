@@ -161,4 +161,9 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     @ExcelProperty(value = {"成本中心"}, index = 23)
     @Schema(description = "成本中心")
     private String costCenter;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"是否存在正在被修改的状态"}, index = 24)
+    @Schema(description = "是否存在正在被修改的状态，0为否，1为是")
+    private String isUpdating;
 }

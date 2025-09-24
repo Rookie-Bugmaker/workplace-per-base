@@ -8,6 +8,7 @@ import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.annotation.IgnoreTenant;
 import com.crrc.api.WkWorkflowApi;
 import com.crrc.entity.HrEmpBasic;
 import com.crrc.entity.HrEmpHealth;
@@ -246,6 +247,7 @@ public class HrEmpBasicController {
      * @return
      */
     @PutMapping("/approval-callback")
+    @IgnoreTenant
     public ResponseResult<Boolean> approvalCallback(@RequestBody WorkflowWriteBackParamDTO param) {
         try {
             // 1. 获取变更请求
@@ -255,6 +257,9 @@ public class HrEmpBasicController {
             if (request == null) {
                 return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "变更申请不存在", false);
             }
+
+            String userCode = request.getChangedData().getUserCode();
+            String isUpdatingValue = "1"; // 默认值
 
             // 2. 处理不同审批状态
             if (param.getProcessInstanceStatus() == 2) { // 审批通过
@@ -267,18 +272,31 @@ public class HrEmpBasicController {
 
                 // 更新状态
                 request.setStatus("APPROVED");
-                mongoTemplate.save(request);
+                isUpdatingValue = "0"; // 审批通过时设为0
 
             } else if (param.getProcessInstanceStatus() == 3) { // 审批拒绝
                 request.setStatus("REJECTED");
-                mongoTemplate.save(request);
+                isUpdatingValue = "0"; // 审批拒绝时也设为0
             }
+
+            mongoTemplate.save(request);
+            updateIsUpdating(isUpdatingValue, userCode);
 
             return new ResponseResult<>(HttpStatus.OK.value(), "处理成功", true);
         } catch (Exception e) {
             log.error("审批回调处理失败: {}", e.getMessage());
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "处理失败", false);
         }
+    }
+
+    // 变更是否被更新的状态
+    private void updateIsUpdating(String isUpdating, String userCode) {
+        HrEmpBasic temp = hrEmpBasicService.selectMsg(userCode).get(0);
+        if(temp == null) {
+            return;
+        }
+        temp.setIsUpdating(isUpdating);
+        hrEmpBasicService.updateById(temp);
     }
 
 
