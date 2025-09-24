@@ -9,8 +9,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDateTime;
 
 @Data
-@Document(collection = "hr_emp_change_requests")
-public class HrEmpChangeRequest {
+@Document(collection = "hr_emp_basic_change_requests")
+public class HrEmpBasicChangeRequest {
     @Id
     private String id; // MongoDB ObjectId
     private String userCode;

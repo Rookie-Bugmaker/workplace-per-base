@@ -116,4 +116,9 @@ public class HrEmpEducation extends BaseEntity implements Serializable {
     @ExcelProperty(value = {"专业编码"}, index = 16)
     @Schema(description = "专业编码")
     private String majorCode;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"是否存在正在被修改的状态"}, index = 17)
+    @Schema(description = "是否存在正在被修改的状态，0为否，1为是")
+    private String isUpdating;
 }

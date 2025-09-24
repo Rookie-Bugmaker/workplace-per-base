@@ -18,7 +18,7 @@ import com.crrc.entity.dto.StartProcessInstanceDTO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
-import com.crrc.mongoDB.HrEmpChangeRequest;
+import com.crrc.mongoDB.HrEmpBasicChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
@@ -64,7 +64,7 @@ import java.util.stream.Collectors;
 public class HrEmpBasicController {
 
     // 流程模板编码，在框架界面中规定
-    private static final String process_templateAlias = "userinfo";
+    private static final String PROCESS_TEMPLATE_ALIAS = "userinfo";
 
     @Autowired
     private HrEmpBasicServiceImpl hrEmpBasicService;
@@ -143,7 +143,7 @@ public class HrEmpBasicController {
             }
 
             // 2. 创建变更申请文档
-            HrEmpChangeRequest changeRequest = new HrEmpChangeRequest();
+            HrEmpBasicChangeRequest changeRequest = new HrEmpBasicChangeRequest();
             changeRequest.setId(IdUtil.simpleUUID());
             changeRequest.setUserCode(changeReqVO.getUserCode());
             changeRequest.setOriginalData(originalData);
@@ -158,14 +158,15 @@ public class HrEmpBasicController {
             // 4. 启动审批流程
             // 封装数据，提交审批流
             StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
-            instanceDTO.setBizCode(changeReqVO.getId());
+            String bizCode = "EDU-" + System.currentTimeMillis();
+            instanceDTO.setBizCode(bizCode);
             // 封装数据主键，存在MongoDB里面的生成的simpleUUID
-//            String bizId = "BASIC-" + System.currentTimeMillis();
             instanceDTO.setBizId(changeRequest.getId());
             // 封装业务模板编码
-            instanceDTO.setTemplateAlias(process_templateAlias);
+            instanceDTO.setTemplateAlias(PROCESS_TEMPLATE_ALIAS);
             // 封装业务表单数据，20250924上线暂时没用，如果之后需要修改审批流分支，需使用该数据
             Map<String, Object> formData = new HashMap<>();
+            formData.put("type","basic");
             formData.put("Basic",convertToMapList(changeReqVO));
             instanceDTO.setFormData(formData);
             log.info("流程测试instanceDTO" + instanceDTO);
@@ -187,7 +188,7 @@ public class HrEmpBasicController {
     @GetMapping("/change-detail")
     public ResponseResult<Map<String, Object>> getChangeDetail(@RequestParam String requestId) {
         // 1. 从MongoDB获取变更请求
-        HrEmpChangeRequest request = mongoTemplate.findById(requestId, HrEmpChangeRequest.class);
+        HrEmpBasicChangeRequest request = mongoTemplate.findById(requestId, HrEmpBasicChangeRequest.class);
         if (request == null) {
             return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "变更申请不存在");
         }
@@ -256,7 +257,7 @@ public class HrEmpBasicController {
         try {
             // 1. 获取变更请求
             Query query = new Query(Criteria.where("_id").is(param.getBizId()));
-            HrEmpChangeRequest request = mongoTemplate.findOne(query, HrEmpChangeRequest.class);
+            HrEmpBasicChangeRequest request = mongoTemplate.findOne(query, HrEmpBasicChangeRequest.class);
 
 
             if (request == null) {
@@ -273,7 +274,7 @@ public class HrEmpBasicController {
                 }
 
                 // 执行实际更新
-                updateHrEmpBasic(request.getChangedData());
+                updateHrEmpBasicNew(request.getChangedData());
 
                 // 更新状态
                 request.setStatus("APPROVED");
@@ -306,7 +307,7 @@ public class HrEmpBasicController {
 
 
     // 实际更新方法
-    private void updateHrEmpBasic(HrEmpBasicDTO updateReqVO) {
+    private void updateHrEmpBasicNew(HrEmpBasicDTO updateReqVO) {
         String userCode = updateReqVO.getUserCode();
 
         // 健康信息部分
@@ -350,55 +351,55 @@ public class HrEmpBasicController {
 
 
 
-//    @Transactional(rollbackFor = Exception.class)
-//    @PostMapping("/update")
-//    @Operation(summary = "更新员工基本信息表实体")
-//    @AuditLog(value = "更新员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
-//    @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
-//    public ResponseResult<Boolean> updateHrEmpBasic(@Valid @RequestBody HrEmpBasicDTO updateReqVO) {
-//        //基本信息中，健康状况，户口相关需要跨表保存
-//        try {
-//            //健康信息部分
-//            String userCode = updateReqVO.getUserCode();
-//            HrEmpHealth hrEmpHealth = hrEmpHealthService.selectByUserCode(userCode);
-//            if (hrEmpHealth == null) {
-//                HrEmpHealth saveEntity = new HrEmpHealth();
-//                saveEntity.setUserCode(userCode);
-//                saveEntity.setHealthStatus(updateReqVO.getHealthStatus());
-//                saveEntity.setId(IdUtil.simpleUUID());
-//                hrEmpHealthService.save(saveEntity);
-//            } else {
-//                hrEmpHealth.setHealthStatus(updateReqVO.getHealthStatus());
-//                hrEmpHealthService.saveOrUpdate(hrEmpHealth);
-//            }
-//
-//            //户口信息部分
-//            HrEmpHouseHold hrEmpHousehold = hrEmpHouseholdService.selectByUserCode(userCode);
-//            if (hrEmpHousehold == null) {
-//                HrEmpHouseHold saveEntity = new HrEmpHouseHold();
-//                saveEntity.setUserCode(userCode);
-//                saveEntity.setId(IdUtil.simpleUUID());
-//                saveEntity.setHouseHoldLocation(updateReqVO.getHouseHoldLocation());
-//                saveEntity.setHouseHoldLocationDetail(updateReqVO.getHouseHoldLocationDetail());
-//                saveEntity.setHouseHoldType(updateReqVO.getHouseHoldType());
-//                hrEmpHouseholdService.save(saveEntity);
-//            } else {
-//                hrEmpHousehold.setHouseHoldLocation(updateReqVO.getHouseHoldLocation());
-//                hrEmpHousehold.setHouseHoldLocationDetail(updateReqVO.getHouseHoldLocationDetail());
-//                hrEmpHousehold.setHouseHoldType(updateReqVO.getHouseHoldType());
-//                hrEmpHouseholdService.saveOrUpdate(hrEmpHousehold);
-//            }
-//            if (updateReqVO.getId() == null) {
-//                updateReqVO.setId(IdUtil.simpleUUID());
-//                hrEmpBasicService.save(updateReqVO);
-//            }
-//            hrEmpBasicService.saveOrUpdate(updateReqVO);
-//        } catch (Exception e) {
-//            log.error("更新或保存时出错：\n" + "入参： " + updateReqVO + "\n" + "错误日志： " + e.getMessage() + "\n");
-//            return new ResponseResult<>(HttpStatus.EXPECTATION_FAILED.value(), "更新员工教育信息表实体失败");
-//        }
-//        return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功");
-//    }
+    @Transactional(rollbackFor = Exception.class)
+    @PostMapping("/update")
+    @Operation(summary = "更新员工基本信息表实体")
+    @AuditLog(value = "更新员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
+    @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
+    public ResponseResult<Boolean> updateHrEmpBasic(@Valid @RequestBody HrEmpBasicDTO updateReqVO) {
+        //基本信息中，健康状况，户口相关需要跨表保存
+        try {
+            //健康信息部分
+            String userCode = updateReqVO.getUserCode();
+            HrEmpHealth hrEmpHealth = hrEmpHealthService.selectByUserCode(userCode);
+            if (hrEmpHealth == null) {
+                HrEmpHealth saveEntity = new HrEmpHealth();
+                saveEntity.setUserCode(userCode);
+                saveEntity.setHealthStatus(updateReqVO.getHealthStatus());
+                saveEntity.setId(IdUtil.simpleUUID());
+                hrEmpHealthService.save(saveEntity);
+            } else {
+                hrEmpHealth.setHealthStatus(updateReqVO.getHealthStatus());
+                hrEmpHealthService.saveOrUpdate(hrEmpHealth);
+            }
+
+            //户口信息部分
+            HrEmpHouseHold hrEmpHousehold = hrEmpHouseholdService.selectByUserCode(userCode);
+            if (hrEmpHousehold == null) {
+                HrEmpHouseHold saveEntity = new HrEmpHouseHold();
+                saveEntity.setUserCode(userCode);
+                saveEntity.setId(IdUtil.simpleUUID());
+                saveEntity.setHouseHoldLocation(updateReqVO.getHouseHoldLocation());
+                saveEntity.setHouseHoldLocationDetail(updateReqVO.getHouseHoldLocationDetail());
+                saveEntity.setHouseHoldType(updateReqVO.getHouseHoldType());
+                hrEmpHouseholdService.save(saveEntity);
+            } else {
+                hrEmpHousehold.setHouseHoldLocation(updateReqVO.getHouseHoldLocation());
+                hrEmpHousehold.setHouseHoldLocationDetail(updateReqVO.getHouseHoldLocationDetail());
+                hrEmpHousehold.setHouseHoldType(updateReqVO.getHouseHoldType());
+                hrEmpHouseholdService.saveOrUpdate(hrEmpHousehold);
+            }
+            if (updateReqVO.getId() == null) {
+                updateReqVO.setId(IdUtil.simpleUUID());
+                hrEmpBasicService.save(updateReqVO);
+            }
+            hrEmpBasicService.saveOrUpdate(updateReqVO);
+        } catch (Exception e) {
+            log.error("更新或保存时出错：\n" + "入参： " + updateReqVO + "\n" + "错误日志： " + e.getMessage() + "\n");
+            return new ResponseResult<>(HttpStatus.EXPECTATION_FAILED.value(), "更新员工教育信息表实体失败");
+        }
+        return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功");
+    }
 
     @Transactional(rollbackFor = Exception.class)
     @GetMapping("/delete")

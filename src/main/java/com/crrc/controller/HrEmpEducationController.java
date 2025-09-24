@@ -3,20 +3,26 @@ package com.crrc.controller;
 
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.crrc.entity.HrEmpMajorInfo;
-import com.crrc.entity.HrEmpSchoolInfo;
+import com.crrc.annotation.IgnoreTenant;
+import com.crrc.api.WkWorkflowApi;
+import com.crrc.entity.*;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
-import com.crrc.entity.HrEmpEducation;
+import com.crrc.entity.dto.ProcessInstanceVo;
+import com.crrc.entity.dto.StartProcessInstanceDTO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
+import com.crrc.mongoDB.HrEmpBasicChangeRequest;
+import com.crrc.mongoDB.HrEmpEduChangeRequest;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpEducationDTO;
+import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.service.impl.HrEmpEducationServiceImpl;
 import com.crrc.service.impl.HrEmpMajorInfoServiceImpl;
 import com.crrc.service.impl.HrEmpSchoolInfoServiceImpl;
@@ -26,8 +32,12 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -63,6 +73,13 @@ public class HrEmpEducationController {
     private HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService;
     @Autowired
     private HrEmpMajorInfoServiceImpl hrEmpMajorInfoService;
+    @Autowired
+    private MongoTemplate mongoTemplate;
+    @Autowired
+    private WkWorkflowApi wkWorkflowApi;
+
+    // 流程模板编码，在框架界面中规定
+    private static final String PROCESS_TEMPLATE_ALIAS = "education";
 
 
     @GetMapping("/getSchoolInfo")
@@ -274,5 +291,234 @@ public class HrEmpEducationController {
                 .sheet()
                 .doRead();
         return new ResponseResult<>(HttpStatus.OK.value(), "导入员工教育信息表报表成功");
+    }
+
+
+    @PostMapping("/submit-change")
+    @Operation(summary = "提交员工教育经历变更申请")
+    public ResponseResult<String> submitChange(@Valid @RequestBody  HrEmpEducationDTO changeReqVO) {
+        try {
+            // 1. 获取当前数据快照
+            List<HrEmpEducation> originalData = hrEmpEducationService.selectMsg(changeReqVO.getUserCode());
+//            if (originalData.isEmpty()) {
+//                return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "员工教育经历不存在");
+//            }
+
+            // 2. 创建变更申请文档
+            HrEmpEduChangeRequest changeRequest = new HrEmpEduChangeRequest();
+            changeRequest.setId(IdUtil.simpleUUID());
+            changeRequest.setUserCode(changeReqVO.getUserCode());
+            changeRequest.setOriginalData(originalData);
+            changeRequest.setChangedData(changeReqVO.getList());
+//            changeRequest.setWfId(changeReqVO.getWfId());
+
+            // 3. 保存到MongoDB
+            mongoTemplate.save(changeRequest);
+            log.info("流程测试changeRequest" + changeRequest);
+
+
+            // 4. 启动审批流程
+            // 封装数据，提交审批流
+            StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
+            String bizCode = "BASIC-" + System.currentTimeMillis();
+            instanceDTO.setBizCode(bizCode);
+            // 封装数据主键，存在MongoDB里面的生成的simpleUUID
+            instanceDTO.setBizId(changeRequest.getId());
+            // 封装业务模板编码
+            instanceDTO.setTemplateAlias(PROCESS_TEMPLATE_ALIAS);
+            // 封装业务表单数据，20250924上线暂时没用，如果之后需要修改审批流分支，需使用该数据
+            Map<String, Object> formData = new HashMap<>();
+            formData.put("type","edu");
+            formData.put("Edu",convertToMapList(changeReqVO));
+            instanceDTO.setFormData(formData);
+            log.info("流程测试instanceDTO" + instanceDTO);
+            // 返回流程实例id
+            ProcessInstanceVo processInstanceVo = wkWorkflowApi.startProcessInstanceNew(instanceDTO);
+            log.info("流程测试processInstanceVo" + processInstanceVo);
+
+            // 5. 更新流程实例ID
+            changeRequest.setProcessInstanceId(processInstanceVo.getProcessInstanceId());
+            mongoTemplate.save(changeRequest);
+            log.info("流程测试success");
+            return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交", changeRequest.getId());
+        } catch (Exception e) {
+            log.error("提交变更申请失败: {}", e.getMessage());
+            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "提交失败");
+        }
+    }
+
+    @GetMapping("/change-detail")
+    public ResponseResult<Map<String, Object>> getChangeDetail(@RequestParam String requestId) {
+        // 1. 从MongoDB获取变更请求
+        HrEmpBasicChangeRequest request = mongoTemplate.findById(requestId, HrEmpBasicChangeRequest.class);
+        if (request == null) {
+            return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "变更申请不存在");
+        }
+
+        // 2. 构建返回结果（直接返回两个列表）
+        Map<String, Object> result = new HashMap<>();
+
+        // 原始数据列表（转换为Map列表或直接使用对象）
+        result.put("originalData", convertToMapList(request.getOriginalData()));
+
+        // 审批流中的数据列表
+        result.put("changedData", convertToMapList(request.getChangedData()));
+
+        // 基础信息
+        result.put("requestId", requestId);
+        result.put("createTime", request.getCreateTime());
+
+        return new ResponseResult<>(HttpStatus.OK.value(), "成功", result);
+    }
+
+    // 辅助方法：将数据对象转换为Map（可根据实际需求调整）
+    private List<Map<String, Object>> convertToMapList(Object data) {
+        // 方案1：如果数据本身就是集合
+        if (data instanceof Collection) {
+            return ((Collection<?>) data).stream()
+                    .map(this::convertSingleObjectToMap)
+                    .collect(Collectors.toList());
+        }
+
+        // 方案2：如果是单个对象
+        return Collections.singletonList(convertSingleObjectToMap(data));
+    }
+
+    // 将单个对象转为Map
+    private Map<String, Object> convertSingleObjectToMap(Object obj) {
+        if (obj == null) {
+            return new HashMap<>();
+        }
+
+        try {
+            return Arrays.stream(BeanUtils.getPropertyDescriptors(obj.getClass()))
+                    .filter(pd -> pd.getReadMethod() != null && !"class".equals(pd.getName()))
+                    .collect(HashMap::new,
+                            (map, pd) -> {
+                                try {
+                                    Object value = pd.getReadMethod().invoke(obj);
+                                    if (value != null) {  // 显式过滤null值
+                                        map.put(pd.getName(), value);
+                                    }
+                                } catch (Exception ignored) {}
+                            },
+                            HashMap::putAll);
+        } catch (Exception e) {
+            throw new RuntimeException("对象转换Map失败", e);
+        }
+    }
+
+    /**
+     * 回调接口
+     * @param param
+     * @return
+     */
+    @PutMapping("/approval-callback")
+    @IgnoreTenant
+    public ResponseResult<Boolean> approvalCallback(@RequestBody WorkflowWriteBackParamDTO param) {
+        try {
+            // 1. 获取变更请求
+            Query query = new Query(Criteria.where("_id").is(param.getBizId()));
+            HrEmpEduChangeRequest request = mongoTemplate.findOne(query, HrEmpEduChangeRequest.class);
+
+
+            if (request == null) {
+                return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "变更申请不存在", false);
+            }
+
+            // 执行实际更新
+            HrEmpEducation hrEmpEducation = request.getChangedData().get(0);
+            if(hrEmpEducation == null) {
+                throw new RuntimeException("传入的新的教育经历中没有档案号信息！");
+            }
+            String userCode = hrEmpEducation.getUserCode();
+            String isUpdatingValue = "1"; // 默认值
+
+            // 2. 处理不同审批状态
+            if (param.getProcessInstanceStatus() == 2) { // 审批通过
+                if ("APPROVED".equals(request.getStatus())) {
+                    return new ResponseResult<>(HttpStatus.OK.value(), "已处理过该申请", true);
+                }
+
+                HrEmpEducationDTO hrEmpEducationDTO = new HrEmpEducationDTO();
+                hrEmpEducationDTO.setUserCode(userCode);
+                hrEmpEducationDTO.setList(request.getChangedData());
+                updateHrEmpEducationNew(hrEmpEducationDTO);
+
+                // 更新状态
+                request.setStatus("APPROVED");
+                isUpdatingValue = "0"; // 审批通过时设为0
+
+            } else if (param.getProcessInstanceStatus() == 3) { // 审批拒绝
+                request.setStatus("REJECTED");
+                isUpdatingValue = "0"; // 审批拒绝时也设为0
+            }
+
+            mongoTemplate.save(request);
+            updateIsUpdating(isUpdatingValue, userCode);
+
+            return new ResponseResult<>(HttpStatus.OK.value(), "处理成功", true);
+        } catch (Exception e) {
+            log.error("审批回调处理失败: {}", e.getMessage());
+            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "处理失败", false);
+        }
+    }
+
+    // 变更是否被更新的状态
+    private void updateIsUpdating(String isUpdating, String userCode) {
+        HrEmpEducation temp = hrEmpEducationService.selectMsg(userCode).get(0);
+        if(temp == null) {
+            return;
+        }
+        temp.setIsUpdating(isUpdating);
+        hrEmpEducationService.updateById(temp);
+    }
+
+
+    // 实际更新方法
+// 实际更新方法
+    private void updateHrEmpEducationNew(HrEmpEducationDTO updateReqVO) {
+        // 查询现有数据
+        List<HrEmpEducation> existList = hrEmpEducationService.selectMsg(updateReqVO.getUserCode());
+        Set<String> existIds = existList.stream()
+                .map(HrEmpEducation::getId)
+                .collect(Collectors.toSet());
+
+        // 准备新增、更新和删除的数据
+        List<HrEmpEducation> toSaveOrUpdate = new ArrayList<>();
+
+        // 判断传入数据里面有无最高学历
+        boolean isHighestEdu = true;
+        int isHighestNum = 0;
+        for (HrEmpEducation hrEmpEducation : updateReqVO.getList()) {
+            if (hrEmpEducation.getId() == null) {
+                hrEmpEducation.setId(IdUtil.simpleUUID()); // 生成新ID
+            }
+            // 判断最高学历
+            if(SystemConstants.TRUE_FLAG.equals(hrEmpEducation.getIsHighestEducation())) {
+                isHighestNum++;
+                isHighestEdu = false;
+            }
+            // 当最高学历数量多余1时
+            if(isHighestNum > 1) {
+                throw new RuntimeException("最高学历数量不唯一！");
+            }
+            hrEmpEducation.setUserCode(updateReqVO.getUserCode());
+            toSaveOrUpdate.add(hrEmpEducation);
+            existIds.remove(hrEmpEducation.getId()); // 移除不需要删除的ID
+        }
+        // 没有最高学历,且教育信息列表不为空时
+        if(isHighestEdu && !updateReqVO.getList().isEmpty()) {
+            throw new RuntimeException("录入教育经历中未设置最高学历！");
+        }
+
+        // 批量保存或更新
+        if (!toSaveOrUpdate.isEmpty()) {
+            hrEmpEducationService.saveOrUpdateBatch(toSaveOrUpdate);
+        }
+        // 批量删除
+        if (!existIds.isEmpty()) {
+            hrEmpEducationService.removeByIds(existIds);
+        }
     }
 }
