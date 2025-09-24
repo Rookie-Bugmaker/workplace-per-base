@@ -254,6 +254,7 @@ public class HrEmpBasicController {
             Query query = new Query(Criteria.where("_id").is(param.getBizId()));
             HrEmpChangeRequest request = mongoTemplate.findOne(query, HrEmpChangeRequest.class);
 
+
             if (request == null) {
                 return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "变更申请不存在", false);
             }
