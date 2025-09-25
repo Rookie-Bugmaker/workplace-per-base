@@ -10,9 +10,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
 import com.crrc.annotation.IgnoreTenant;
 import com.crrc.api.WkWorkflowApi;
-import com.crrc.entity.HrEmpBasic;
-import com.crrc.entity.HrEmpHealth;
-import com.crrc.entity.HrEmpHouseHold;
+import com.crrc.entity.*;
 import com.crrc.entity.dto.ProcessInstanceVo;
 import com.crrc.entity.dto.StartProcessInstanceDTO;
 import com.crrc.enums.LogType;
@@ -63,8 +61,14 @@ import java.util.stream.Collectors;
 @Tag(name = "员工基本信息表", description = "员工基本信息表")
 public class HrEmpBasicController {
 
-    // 流程模板编码，在框架界面中规定
+    /**
+     * 流程模板编码，在框架界面中规定
+      */
     private static final String PROCESS_TEMPLATE_ALIAS = "userinfo";
+
+    private static final String APPROVED = "APPROVED";
+
+    private static final String REJECTED = "REJECTED";
 
     @Autowired
     private HrEmpBasicServiceImpl hrEmpBasicService;
@@ -72,6 +76,10 @@ public class HrEmpBasicController {
     private HrEmpHouseholdServiceImpl hrEmpHouseholdService;
     @Autowired
     private HrEmpHealthServiceImpl hrEmpHealthService;
+    @Autowired
+    private HrEmpCertificateServiceImpl hrEmpCertificateService;
+    @Autowired
+    private HrEmpCommunicationServiceImpl hrEmpCommunicationService;
     @Autowired
     private MongoTemplate mongoTemplate;
     @Autowired
@@ -158,7 +166,7 @@ public class HrEmpBasicController {
             // 4. 启动审批流程
             // 封装数据，提交审批流
             StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
-            String bizCode = "EDU-" + System.currentTimeMillis();
+            String bizCode = "BASIC-" + System.currentTimeMillis();
             instanceDTO.setBizCode(bizCode);
             // 封装数据主键，存在MongoDB里面的生成的simpleUUID
             instanceDTO.setBizId(changeRequest.getId());
@@ -209,7 +217,12 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), "成功", result);
     }
 
-    // 辅助方法：将数据对象转换为Map（可根据实际需求调整）
+
+    /**
+     * 辅助方法：将数据对象转换为Map（可根据实际需求调整）
+     * @param data 等待转换的数据
+     * @return 转换为map的数据
+     */
     private List<Map<String, Object>> convertToMapList(Object data) {
         // 方案1：如果数据本身就是集合
         if (data instanceof Collection) {
@@ -222,7 +235,13 @@ public class HrEmpBasicController {
         return Collections.singletonList(convertSingleObjectToMap(data));
     }
 
-    // 将单个对象转为Map
+
+
+    /**
+     * 将单个对象转为Map
+     * @param obj 转换的单个对象
+     * @return map
+     */
     private Map<String, Object> convertSingleObjectToMap(Object obj) {
         if (obj == null) {
             return new HashMap<>();
@@ -248,8 +267,8 @@ public class HrEmpBasicController {
 
     /**
      * 回调接口
-     * @param param
-     * @return
+     * @param param 与框架约定好的入参实体
+     * @return 返回值
      */
     @PutMapping("/approval-callback")
     @IgnoreTenant
@@ -265,11 +284,13 @@ public class HrEmpBasicController {
             }
 
             String userCode = request.getChangedData().getUserCode();
-            String isUpdatingValue = "1"; // 默认值
+            // 默认值
+            String isUpdatingValue = "1";
 
             // 2. 处理不同审批状态
-            if (param.getProcessInstanceStatus() == 2) { // 审批通过
-                if ("APPROVED".equals(request.getStatus())) {
+            if (param.getProcessInstanceStatus() == 2) {
+                // 审批通过
+                if (APPROVED.equals(request.getStatus())) {
                     return new ResponseResult<>(HttpStatus.OK.value(), "已处理过该申请", true);
                 }
 
@@ -277,12 +298,15 @@ public class HrEmpBasicController {
                 updateHrEmpBasicNew(request.getChangedData());
 
                 // 更新状态
-                request.setStatus("APPROVED");
-                isUpdatingValue = "0"; // 审批通过时设为0
+                request.setStatus(APPROVED);
+                // 审批通过时设为0
+                isUpdatingValue = "0";
 
-            } else if (param.getProcessInstanceStatus() == 3) { // 审批拒绝
-                request.setStatus("REJECTED");
-                isUpdatingValue = "0"; // 审批拒绝时也设为0
+            } else if (param.getProcessInstanceStatus() == 3) {
+                // 审批拒绝
+                request.setStatus(REJECTED);
+                // 审批拒绝时也设为0
+                isUpdatingValue = "0";
             }
 
             mongoTemplate.save(request);
@@ -295,7 +319,11 @@ public class HrEmpBasicController {
         }
     }
 
-    // 变更是否被更新的状态
+    /**
+     * 变更是否被更新的状态
+     * @param isUpdating 将要变更的状态
+     * @param userCode 档案号
+     */
     private void updateIsUpdating(String isUpdating, String userCode) {
         HrEmpBasic temp = hrEmpBasicService.selectMsg(userCode).get(0);
         if(temp == null) {
@@ -306,7 +334,6 @@ public class HrEmpBasicController {
     }
 
 
-    // 实际更新方法
     private void updateHrEmpBasicNew(HrEmpBasicDTO updateReqVO) {
         String userCode = updateReqVO.getUserCode();
 
@@ -338,6 +365,40 @@ public class HrEmpBasicController {
             hrEmpHousehold.setHouseHoldLocationDetail(updateReqVO.getHouseHoldLocationDetail());
             hrEmpHousehold.setHouseHoldType(updateReqVO.getHouseHoldType());
             hrEmpHouseholdService.saveOrUpdate(hrEmpHousehold);
+        }
+
+        // 证件号码部分
+        HrEmpCertificate hrEmpCertificate = hrEmpCertificateService.selectByUserCode(userCode);
+        if (hrEmpCertificate == null) {
+            HrEmpCertificate saveEntity = new HrEmpCertificate();
+            saveEntity.setUserCode(userCode);
+            saveEntity.setId(IdUtil.simpleUUID());
+            saveEntity.setCertiId(updateReqVO.getCertiId());
+            saveEntity.setCertiType(updateReqVO.getCertiType());
+            hrEmpCertificateService.save(saveEntity);
+        } else {
+            hrEmpCertificate.setCertiId(updateReqVO.getCertiId());
+            hrEmpCertificate.setCertiType(updateReqVO.getCertiType());
+            hrEmpCertificateService.saveOrUpdate(hrEmpCertificate);
+        }
+
+        // 通讯信息部分
+        HrEmpCommunication hrEmpCommunication = hrEmpCommunicationService.selectByUserCode(userCode);
+        if (hrEmpCommunication == null) {
+            HrEmpCommunication saveEntity = new HrEmpCommunication();
+            saveEntity.setUserCode(userCode);
+            saveEntity.setId(IdUtil.simpleUUID());
+            saveEntity.setMobilePhone(updateReqVO.getMobilePhone());
+            saveEntity.setPersonalEmail(updateReqVO.getPersonalEmail());
+            saveEntity.setAddress(updateReqVO.getAddress());
+            saveEntity.setWorkEmail(updateReqVO.getWorkEmail());
+            hrEmpCommunicationService.save(saveEntity);
+        } else {
+            hrEmpCommunication.setMobilePhone(updateReqVO.getMobilePhone());
+            hrEmpCommunication.setPersonalEmail(updateReqVO.getPersonalEmail());
+            hrEmpCommunication.setAddress(updateReqVO.getAddress());
+            hrEmpCommunication.setWorkEmail(updateReqVO.getWorkEmail());
+            hrEmpCommunicationService.saveOrUpdate(hrEmpCommunication);
         }
 
         // 基本信息
