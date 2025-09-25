@@ -158,7 +158,7 @@ public class HrEmpBasicController {
             // 4. 启动审批流程
             // 封装数据，提交审批流
             StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
-            String bizCode = "EDU-" + System.currentTimeMillis();
+            String bizCode = "BASIC-" + System.currentTimeMillis();
             instanceDTO.setBizCode(bizCode);
             // 封装数据主键，存在MongoDB里面的生成的simpleUUID
             instanceDTO.setBizId(changeRequest.getId());

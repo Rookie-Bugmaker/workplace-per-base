@@ -13,61 +13,57 @@ import lombok.NoArgsConstructor;
 public class HrEmpBasicDTO extends HrEmpBasic{
 
     @Schema(description = "最高学历")
-    public String education;
+    private String education;
 
     @Schema(description = "最高学位")
-    public String degree;
+    private String degree;
 
     @Schema(description = "所学专业")
-    public String major;
+    private String major;
 
     @Schema(description = "专业技术资格")
-    public String skillName;
+    private String skillName;
 
     @Schema(description = "技能等级")
-    public String skillLevel;
+    private String skillLevel;
 
     @Schema(description = "学校名称")
-    public String schoolName;
+    private String schoolName;
 
     @Schema(description = "证件类型")
-    public String certiType;
+    private String certiType;
 
     @Schema(description = "证件号码")
-    public String certiId;
+    private String certiId;
 
     @Schema(description = "户口性质")
-    public String houseHoldType;
+    private String houseHoldType;
 
     @Schema(description = "户口所在地")
-    public String houseHoldLocation;
+    private String houseHoldLocation;
 
     @Schema(description = "户口详细地址")
-    public String houseHoldLocationDetail;
+    private String houseHoldLocationDetail;
 
     @Schema(description = "移动电话")
-    public String mobilePhone;
+    private String mobilePhone;
 
     @Schema(description = "办公邮箱")
-    public String workEmail;
+    private String workEmail;
 
     @Schema(description = "个人邮箱")
-    public String personalEmail;
+    private String personalEmail;
 
     @Schema(description = "家庭地址")
-    public String address;
+    private String address;
 
     @Schema(description = "健康状况")
-    public String healthStatus;
+    private String healthStatus;
 
-    /**
-     * 流程模板id
-     */
+    @Schema(description = "流程模板id")
     private Long wfId;
 
-    /**
-     * 流程实例id
-     */
+    @Schema(description = "流程实例id")
     private String processInstanceId;
 
 }
