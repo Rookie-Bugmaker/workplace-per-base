@@ -2,7 +2,7 @@ kind: Deployment
 apiVersion: apps/v1
 metadata:
   name: workplace-human-resource
-  namespace: test
+  namespace: human_resource
 spec:
   replicas: 1
   selector:
