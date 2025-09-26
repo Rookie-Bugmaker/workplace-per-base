@@ -475,7 +475,6 @@ public class HrEmpEducationController {
 
 
     // 实际更新方法
-// 实际更新方法
     private void updateHrEmpEducationNew(HrEmpEducationDTO updateReqVO) {
         // 查询现有数据
         List<HrEmpEducation> existList = hrEmpEducationService.selectMsg(updateReqVO.getUserCode());
