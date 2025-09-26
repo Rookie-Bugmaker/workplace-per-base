@@ -1,7 +1,6 @@
-package com.crrc.mongoDB;
+package com.crrc.mongodb;
 
 import com.crrc.entity.HrEmpEducation;
-import com.crrc.pojo.dto.HrEmpBasicDTO;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;

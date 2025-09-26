@@ -1,4 +1,4 @@
-package com.crrc.mongoDB;
+package com.crrc.mongodb;
 
 
 import com.crrc.pojo.dto.HrEmpBasicDTO;

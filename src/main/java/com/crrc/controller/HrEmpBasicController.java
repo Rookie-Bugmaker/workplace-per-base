@@ -8,7 +8,6 @@ import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
-import com.crrc.annotation.IgnoreTenant;
 import com.crrc.api.WkWorkflowApi;
 import com.crrc.entity.*;
 import com.crrc.entity.dto.ProcessInstanceVo;
@@ -16,11 +15,10 @@ import com.crrc.entity.dto.StartProcessInstanceDTO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
-import com.crrc.mongoDB.HrEmpBasicChangeRequest;
+import com.crrc.mongodb.HrEmpBasicChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
-import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.service.impl.*;
 import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,13 +28,11 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.data.mongodb.core.query.Query;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
@@ -265,149 +261,149 @@ public class HrEmpBasicController {
         }
     }
 
-    /**
-     * 回调接口
-     * @param param 与框架约定好的入参实体
-     * @return 返回值
-     */
-    @PutMapping("/approval-callback")
-    @IgnoreTenant
-    public ResponseResult<Boolean> approvalCallback(@RequestBody WorkflowWriteBackParamDTO param) {
-        try {
-            // 1. 获取变更请求
-            Query query = new Query(Criteria.where("_id").is(param.getBizId()));
-            HrEmpBasicChangeRequest request = mongoTemplate.findOne(query, HrEmpBasicChangeRequest.class);
+//    /**
+//     * 回调接口
+//     * @param param 与框架约定好的入参实体
+//     * @return 返回值
+//     */
+//    @PutMapping("/approval-callback")
+//    @IgnoreTenant
+//    public ResponseResult<Boolean> approvalCallback(@RequestBody WorkflowWriteBackParamDTO param) {
+//        try {
+//            // 1. 获取变更请求
+//            Query query = new Query(Criteria.where("_id").is(param.getBizId()));
+//            HrEmpBasicChangeRequest request = mongoTemplate.findOne(query, HrEmpBasicChangeRequest.class);
+//
+//
+//            if (request == null) {
+//                return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "变更申请不存在", false);
+//            }
+//
+//            String userCode = request.getChangedData().getUserCode();
+//            // 默认值
+//            String isUpdatingValue = "1";
+//
+//            // 2. 处理不同审批状态
+//            if (param.getProcessInstanceStatus() == 2) {
+//                // 审批通过
+//                if (APPROVED.equals(request.getStatus())) {
+//                    return new ResponseResult<>(HttpStatus.OK.value(), "已处理过该申请", true);
+//                }
+//
+//                // 执行实际更新
+//                updateHrEmpBasicNew(request.getChangedData());
+//
+//                // 更新状态
+//                request.setStatus(APPROVED);
+//                // 审批通过时设为0
+//                isUpdatingValue = "0";
+//
+//            } else if (param.getProcessInstanceStatus() == 3) {
+//                // 审批拒绝
+//                request.setStatus(REJECTED);
+//                // 审批拒绝时也设为0
+//                isUpdatingValue = "0";
+//            }
+//
+//            mongoTemplate.save(request);
+//            updateIsUpdating(isUpdatingValue, userCode);
+//
+//            return new ResponseResult<>(HttpStatus.OK.value(), "处理成功", true);
+//        } catch (Exception e) {
+//            log.error("审批回调处理失败: {}", e.getMessage());
+//            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "处理失败", false);
+//        }
+//    }
 
-
-            if (request == null) {
-                return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "变更申请不存在", false);
-            }
-
-            String userCode = request.getChangedData().getUserCode();
-            // 默认值
-            String isUpdatingValue = "1";
-
-            // 2. 处理不同审批状态
-            if (param.getProcessInstanceStatus() == 2) {
-                // 审批通过
-                if (APPROVED.equals(request.getStatus())) {
-                    return new ResponseResult<>(HttpStatus.OK.value(), "已处理过该申请", true);
-                }
-
-                // 执行实际更新
-                updateHrEmpBasicNew(request.getChangedData());
-
-                // 更新状态
-                request.setStatus(APPROVED);
-                // 审批通过时设为0
-                isUpdatingValue = "0";
-
-            } else if (param.getProcessInstanceStatus() == 3) {
-                // 审批拒绝
-                request.setStatus(REJECTED);
-                // 审批拒绝时也设为0
-                isUpdatingValue = "0";
-            }
-
-            mongoTemplate.save(request);
-            updateIsUpdating(isUpdatingValue, userCode);
-
-            return new ResponseResult<>(HttpStatus.OK.value(), "处理成功", true);
-        } catch (Exception e) {
-            log.error("审批回调处理失败: {}", e.getMessage());
-            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "处理失败", false);
-        }
-    }
-
-    /**
-     * 变更是否被更新的状态
-     * @param isUpdating 将要变更的状态
-     * @param userCode 档案号
-     */
-    private void updateIsUpdating(String isUpdating, String userCode) {
-        HrEmpBasic temp = hrEmpBasicService.selectMsg(userCode).get(0);
-        if(temp == null) {
-            return;
-        }
-        temp.setIsUpdating(isUpdating);
-        hrEmpBasicService.updateById(temp);
-    }
-
-
-    private void updateHrEmpBasicNew(HrEmpBasicDTO updateReqVO) {
-        String userCode = updateReqVO.getUserCode();
-
-        // 健康信息部分
-        HrEmpHealth hrEmpHealth = hrEmpHealthService.selectByUserCode(userCode);
-        if (hrEmpHealth == null) {
-            HrEmpHealth saveEntity = new HrEmpHealth();
-            saveEntity.setUserCode(userCode);
-            saveEntity.setHealthStatus(updateReqVO.getHealthStatus());
-            saveEntity.setId(IdUtil.simpleUUID());
-            hrEmpHealthService.save(saveEntity);
-        } else {
-            hrEmpHealth.setHealthStatus(updateReqVO.getHealthStatus());
-            hrEmpHealthService.saveOrUpdate(hrEmpHealth);
-        }
-
-        // 户口信息部分
-        HrEmpHouseHold hrEmpHousehold = hrEmpHouseholdService.selectByUserCode(userCode);
-        if (hrEmpHousehold == null) {
-            HrEmpHouseHold saveEntity = new HrEmpHouseHold();
-            saveEntity.setUserCode(userCode);
-            saveEntity.setId(IdUtil.simpleUUID());
-            saveEntity.setHouseHoldLocation(updateReqVO.getHouseHoldLocation());
-            saveEntity.setHouseHoldLocationDetail(updateReqVO.getHouseHoldLocationDetail());
-            saveEntity.setHouseHoldType(updateReqVO.getHouseHoldType());
-            hrEmpHouseholdService.save(saveEntity);
-        } else {
-            hrEmpHousehold.setHouseHoldLocation(updateReqVO.getHouseHoldLocation());
-            hrEmpHousehold.setHouseHoldLocationDetail(updateReqVO.getHouseHoldLocationDetail());
-            hrEmpHousehold.setHouseHoldType(updateReqVO.getHouseHoldType());
-            hrEmpHouseholdService.saveOrUpdate(hrEmpHousehold);
-        }
-
-        // 证件号码部分
-        HrEmpCertificate hrEmpCertificate = hrEmpCertificateService.selectByUserCode(userCode);
-        if (hrEmpCertificate == null) {
-            HrEmpCertificate saveEntity = new HrEmpCertificate();
-            saveEntity.setUserCode(userCode);
-            saveEntity.setId(IdUtil.simpleUUID());
-            saveEntity.setCertiId(updateReqVO.getCertiId());
-            saveEntity.setCertiType(updateReqVO.getCertiType());
-            hrEmpCertificateService.save(saveEntity);
-        } else {
-            hrEmpCertificate.setCertiId(updateReqVO.getCertiId());
-            hrEmpCertificate.setCertiType(updateReqVO.getCertiType());
-            hrEmpCertificateService.saveOrUpdate(hrEmpCertificate);
-        }
-
-        // 通讯信息部分
-        HrEmpCommunication hrEmpCommunication = hrEmpCommunicationService.selectByUserCode(userCode);
-        if (hrEmpCommunication == null) {
-            HrEmpCommunication saveEntity = new HrEmpCommunication();
-            saveEntity.setUserCode(userCode);
-            saveEntity.setId(IdUtil.simpleUUID());
-            saveEntity.setMobilePhone(updateReqVO.getMobilePhone());
-            saveEntity.setPersonalEmail(updateReqVO.getPersonalEmail());
-            saveEntity.setAddress(updateReqVO.getAddress());
-            saveEntity.setWorkEmail(updateReqVO.getWorkEmail());
-            hrEmpCommunicationService.save(saveEntity);
-        } else {
-            hrEmpCommunication.setMobilePhone(updateReqVO.getMobilePhone());
-            hrEmpCommunication.setPersonalEmail(updateReqVO.getPersonalEmail());
-            hrEmpCommunication.setAddress(updateReqVO.getAddress());
-            hrEmpCommunication.setWorkEmail(updateReqVO.getWorkEmail());
-            hrEmpCommunicationService.saveOrUpdate(hrEmpCommunication);
-        }
-
-        // 基本信息
-        if (updateReqVO.getId() == null) {
-            updateReqVO.setId(IdUtil.simpleUUID());
-            hrEmpBasicService.save(updateReqVO);
-        }
-        hrEmpBasicService.updateById(updateReqVO);
-    }
+//    /**
+//     * 变更是否被更新的状态
+//     * @param isUpdating 将要变更的状态
+//     * @param userCode 档案号
+//     */
+//    private void updateIsUpdating(String isUpdating, String userCode) {
+//        HrEmpBasic temp = hrEmpBasicService.selectMsg(userCode).get(0);
+//        if(temp == null) {
+//            return;
+//        }
+//        temp.setIsUpdating(isUpdating);
+//        hrEmpBasicService.updateById(temp);
+//    }
+//
+//
+//    private void updateHrEmpBasicNew(HrEmpBasicDTO updateReqVO) {
+//        String userCode = updateReqVO.getUserCode();
+//
+//        // 健康信息部分
+//        HrEmpHealth hrEmpHealth = hrEmpHealthService.selectByUserCode(userCode);
+//        if (hrEmpHealth == null) {
+//            HrEmpHealth saveEntity = new HrEmpHealth();
+//            saveEntity.setUserCode(userCode);
+//            saveEntity.setHealthStatus(updateReqVO.getHealthStatus());
+//            saveEntity.setId(IdUtil.simpleUUID());
+//            hrEmpHealthService.save(saveEntity);
+//        } else {
+//            hrEmpHealth.setHealthStatus(updateReqVO.getHealthStatus());
+//            hrEmpHealthService.saveOrUpdate(hrEmpHealth);
+//        }
+//
+//        // 户口信息部分
+//        HrEmpHouseHold hrEmpHousehold = hrEmpHouseholdService.selectByUserCode(userCode);
+//        if (hrEmpHousehold == null) {
+//            HrEmpHouseHold saveEntity = new HrEmpHouseHold();
+//            saveEntity.setUserCode(userCode);
+//            saveEntity.setId(IdUtil.simpleUUID());
+//            saveEntity.setHouseHoldLocation(updateReqVO.getHouseHoldLocation());
+//            saveEntity.setHouseHoldLocationDetail(updateReqVO.getHouseHoldLocationDetail());
+//            saveEntity.setHouseHoldType(updateReqVO.getHouseHoldType());
+//            hrEmpHouseholdService.save(saveEntity);
+//        } else {
+//            hrEmpHousehold.setHouseHoldLocation(updateReqVO.getHouseHoldLocation());
+//            hrEmpHousehold.setHouseHoldLocationDetail(updateReqVO.getHouseHoldLocationDetail());
+//            hrEmpHousehold.setHouseHoldType(updateReqVO.getHouseHoldType());
+//            hrEmpHouseholdService.saveOrUpdate(hrEmpHousehold);
+//        }
+//
+//        // 证件号码部分
+//        HrEmpCertificate hrEmpCertificate = hrEmpCertificateService.selectByUserCode(userCode);
+//        if (hrEmpCertificate == null) {
+//            HrEmpCertificate saveEntity = new HrEmpCertificate();
+//            saveEntity.setUserCode(userCode);
+//            saveEntity.setId(IdUtil.simpleUUID());
+//            saveEntity.setCertiId(updateReqVO.getCertiId());
+//            saveEntity.setCertiType(updateReqVO.getCertiType());
+//            hrEmpCertificateService.save(saveEntity);
+//        } else {
+//            hrEmpCertificate.setCertiId(updateReqVO.getCertiId());
+//            hrEmpCertificate.setCertiType(updateReqVO.getCertiType());
+//            hrEmpCertificateService.saveOrUpdate(hrEmpCertificate);
+//        }
+//
+//        // 通讯信息部分
+//        HrEmpCommunication hrEmpCommunication = hrEmpCommunicationService.selectByUserCode(userCode);
+//        if (hrEmpCommunication == null) {
+//            HrEmpCommunication saveEntity = new HrEmpCommunication();
+//            saveEntity.setUserCode(userCode);
+//            saveEntity.setId(IdUtil.simpleUUID());
+//            saveEntity.setMobilePhone(updateReqVO.getMobilePhone());
+//            saveEntity.setPersonalEmail(updateReqVO.getPersonalEmail());
+//            saveEntity.setAddress(updateReqVO.getAddress());
+//            saveEntity.setWorkEmail(updateReqVO.getWorkEmail());
+//            hrEmpCommunicationService.save(saveEntity);
+//        } else {
+//            hrEmpCommunication.setMobilePhone(updateReqVO.getMobilePhone());
+//            hrEmpCommunication.setPersonalEmail(updateReqVO.getPersonalEmail());
+//            hrEmpCommunication.setAddress(updateReqVO.getAddress());
+//            hrEmpCommunication.setWorkEmail(updateReqVO.getWorkEmail());
+//            hrEmpCommunicationService.saveOrUpdate(hrEmpCommunication);
+//        }
+//
+//        // 基本信息
+//        if (updateReqVO.getId() == null) {
+//            updateReqVO.setId(IdUtil.simpleUUID());
+//            hrEmpBasicService.save(updateReqVO);
+//        }
+//        hrEmpBasicService.updateById(updateReqVO);
+//    }
 
 
 
