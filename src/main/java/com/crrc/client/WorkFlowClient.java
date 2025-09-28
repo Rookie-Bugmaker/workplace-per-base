@@ -14,11 +14,8 @@ import java.util.Map;
 public interface WorkFlowClient {
 
 
-//    @GetMapping("/processCtl/getFromDataByProcessInstanceId")
-//    ResultData<Map<String, Object>> getFromDataByProcessInstanceId(@RequestParam String processInstanceId);
-
     @GetMapping("/processCtl/getFromDataByProcessInstanceId")
-   Map<String, Object> getFromDataByProcessInstanceId(@RequestParam String processInstanceId);
+    ResultData<Map<String, Object>> getFromDataByProcessInstanceId(@RequestParam String processInstanceId);
 
 
 
