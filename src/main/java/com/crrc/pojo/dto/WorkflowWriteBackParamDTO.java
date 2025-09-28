@@ -46,9 +46,4 @@ public class WorkflowWriteBackParamDTO {
      * 节点编码
      */
     private String nodeCode;
-
-    /**
-     * 回调类型
-     */
-    private String type;
 }

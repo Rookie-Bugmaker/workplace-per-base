@@ -91,16 +91,14 @@ public class CallbackController {
         try {
             log.info("基本信息approval-callback 请求参数: {}", JSON.toJSONString(param));
 
-            // 从param中获取type参数
-//            String requestType = param.getType();
-//
+            return processBasicRequest(param);
 //            switch (requestType) {
 //                case "basic":
 //                    return processBasicRequest(param);
 //                case "edu":
 //                    return processEduRequest(param);
 //                default:
-                    return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "不支持的变更类型: " , false);
+//                    return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "不支持的变更类型: " , false);
 //            }
         } catch (Exception e) {
             log.error("审批回调处理失败: {}", e.getMessage(), e);
