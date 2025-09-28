@@ -103,15 +103,15 @@ public class CallbackController {
             // 获取表单数据
             ResultData<Map<String, Object>> fromDataByProcessInstanceId = workFlowClient.getFromDataByProcessInstanceId(processInstanceId);
             log.info("基本信息approval-callback fromDataByProcessInstanceId: {} processInstanceId {}", fromDataByProcessInstanceId, processInstanceId);
-            if (ObjectUtils.isEmpty(fromDataByProcessInstanceId)) {
-                return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "获取到的表单数据为空！");
-            }
-            Map<String, Object> formDataResult = fromDataByProcessInstanceId.getResult();
-            String message = fromDataByProcessInstanceId.getMessage();
-            Boolean success = fromDataByProcessInstanceId.getSuccess();
-            Integer code = fromDataByProcessInstanceId.getCode();
-            String basic = (String)formDataResult.get("Basic");
-            log.info("基本信息approval-callback formDataResult: {} message{} success{} code{} basic{}", formDataResult, message, success, code, basic);
+//            if (ObjectUtils.isEmpty(fromDataByProcessInstanceId)) {
+//                return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "获取到的表单数据为空！");
+//            }
+//            Map<String, Object> formDataResult = fromDataByProcessInstanceId.getResult();
+//            String message = fromDataByProcessInstanceId.getMessage();
+//            Boolean success = fromDataByProcessInstanceId.getSuccess();
+//            Integer code = fromDataByProcessInstanceId.getCode();
+//            String basic = (String)formDataResult.get("Basic");
+//            log.info("基本信息approval-callback formDataResult: {} message{} success{} code{} basic{}", formDataResult, message, success, code, basic);
 //            String requestType = formDataResult.get("type").toString();
             switch ("basic") {
                 case "basic":
