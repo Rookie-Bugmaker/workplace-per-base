@@ -53,6 +53,26 @@ public class CallbackController {
     @Autowired
     private HrEmpEducationServiceImpl hrEmpEducationService;
     @Autowired
+    private HrEmpAppointmentServiceImpl hrEmpAppointmentService;
+    @Autowired
+    private HrEmpPenaltiesServiceImpl hrEmpPenaltiesService;
+    @Autowired
+    private HrEmpCareerPathServiceImpl hrEmpCareerPathService;
+    @Autowired
+    private HrEmpOtherAppointmentServiceImpl hrEmpOtherAppointmentService;
+    @Autowired
+    private HrEmpRewardsServiceImpl hrEmpRewardsService;
+    @Autowired
+    private HrEmpProfessionalQualificationServiceImpl hrEmpProfessionalQualificationService;
+    @Autowired
+    private HrEmpResumeServiceImpl hrEmpResumeService;
+    @Autowired
+    private HrEmpSalaryStandardServiceImpl hrEmpSalaryStandardService;
+    @Autowired
+    private HrEmpSkillLevelServiceImpl hrEmpSkillLevelService;
+    @Autowired
+    private HrEmpSalaryInfoServiceImpl hrEmpSalaryInfoService;
+    @Autowired
     private HrEmpHouseholdServiceImpl hrEmpHouseholdService;
     @Autowired
     private HrEmpHealthServiceImpl hrEmpHealthService;
@@ -87,18 +107,15 @@ public class CallbackController {
             }
             Map<String, Object> formDataResult = fromDataByProcessInstanceId.getResult();
             log.info("基本信息approval-callback formDataResult: {}", formDataResult);
-
-
-
-            return processBasicRequest(param);
-//            switch (requestType) {
-//                case "basic":
-//                    return processBasicRequest(param);
-//                case "edu":
-//                    return processEduRequest(param);
-//                default:
-//                    return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "不支持的变更类型: " , false);
-//            }
+            String requestType = formDataResult.get("type").toString();
+            switch (requestType) {
+                case "basic":
+                    return processBasicRequest(param);
+                case "edu":
+                    return processEduRequest(param);
+                default:
+                    return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "不支持的变更类型: " , false);
+            }
         } catch (Exception e) {
             log.error("审批回调处理失败: {}", e.getMessage(), e);
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "处理失败", false);

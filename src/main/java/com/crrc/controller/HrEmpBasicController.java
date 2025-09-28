@@ -165,7 +165,7 @@ public class HrEmpBasicController {
             String bizCode = "BASIC-" + System.currentTimeMillis();
             instanceDTO.setBizCode(bizCode);
             // 封装数据主键，存在MongoDB里面的生成的simpleUUID
-            instanceDTO.setBizId(changeRequest.getId());
+            instanceDTO.setBizId("basic_" + changeRequest.getId());
             // 封装业务模板编码
             instanceDTO.setTemplateAlias(PROCESS_TEMPLATE_ALIAS);
             // 封装业务表单数据，20250924上线暂时没用，如果之后需要修改审批流分支，需使用该数据

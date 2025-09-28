@@ -319,10 +319,10 @@ public class HrEmpEducationController {
             // 4. 启动审批流程
             // 封装数据，提交审批流
             StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
-            String bizCode = "BASIC-" + System.currentTimeMillis();
+            String bizCode = "EDU-" + System.currentTimeMillis();
             instanceDTO.setBizCode(bizCode);
             // 封装数据主键，存在MongoDB里面的生成的simpleUUID
-            instanceDTO.setBizId(changeRequest.getId());
+            instanceDTO.setBizId("edu_" +changeRequest.getId());
             // 封装业务模板编码
             instanceDTO.setTemplateAlias(PROCESS_TEMPLATE_ALIAS);
             // 封装业务表单数据，20250924上线暂时没用，如果之后需要修改审批流分支，需使用该数据
@@ -431,10 +431,12 @@ public class HrEmpEducationController {
                 throw new RuntimeException("传入的新的教育经历中没有档案号信息！");
             }
             String userCode = hrEmpEducation.getUserCode();
-            String isUpdatingValue = "1"; // 默认值
+            // 默认值
+            String isUpdatingValue = "1";
 
             // 2. 处理不同审批状态
-            if (param.getProcessInstanceStatus() == 2) { // 审批通过
+            if (param.getProcessInstanceStatus() == 2) {
+                // 审批通过
                 if ("APPROVED".equals(request.getStatus())) {
                     return new ResponseResult<>(HttpStatus.OK.value(), "已处理过该申请", true);
                 }
@@ -446,11 +448,14 @@ public class HrEmpEducationController {
 
                 // 更新状态
                 request.setStatus("APPROVED");
-                isUpdatingValue = "0"; // 审批通过时设为0
+                // 审批通过时设为0
+                isUpdatingValue = "0";
 
-            } else if (param.getProcessInstanceStatus() == 3) { // 审批拒绝
+            } else if (param.getProcessInstanceStatus() == 3) {
+                // 审批拒绝
                 request.setStatus("REJECTED");
-                isUpdatingValue = "0"; // 审批拒绝时也设为0
+                // 审批拒绝时也设为0
+                isUpdatingValue = "0";
             }
 
             mongoTemplate.save(request);
