@@ -303,6 +303,26 @@ public class HrEmpEducationController {
 //                return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "员工教育经历不存在");
 //            }
 
+            // 判断传入数据里面有无最高学历
+            boolean isHighestEdu = true;
+            int isHighestNum = 0;
+            for (HrEmpEducation hrEmpEducation : changeReqVO.getList()) {
+                // 判断最高学历
+                if(SystemConstants.TRUE_FLAG.equals(hrEmpEducation.getIsHighestEducation())) {
+                    isHighestNum++;
+                    isHighestEdu = false;
+                }
+                // 当最高学历数量多余1时
+                if(isHighestNum > 1) {
+                    return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "最高学历数量不唯一！");
+                }
+                hrEmpEducation.setUserCode(changeReqVO.getUserCode());
+            }
+            // 没有最高学历,且教育信息列表不为空时
+            if(isHighestEdu && !changeReqVO.getList().isEmpty()) {
+                return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "录入教育经历中未设置最高学历！");
+            }
+
             // 2. 创建变更申请文档
             HrEmpEduChangeRequest changeRequest = new HrEmpEduChangeRequest();
             changeRequest.setId(IdUtil.simpleUUID());
