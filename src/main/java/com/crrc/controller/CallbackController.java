@@ -107,9 +107,13 @@ public class CallbackController {
                 return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "获取到的表单数据为空！");
             }
             Map<String, Object> formDataResult = fromDataByProcessInstanceId.getResult();
-            log.info("基本信息approval-callback formDataResult: {}", formDataResult);
-            String requestType = formDataResult.get("type").toString();
-            switch (requestType) {
+            String message = fromDataByProcessInstanceId.getMessage();
+            Boolean success = fromDataByProcessInstanceId.getSuccess();
+            Integer code = fromDataByProcessInstanceId.getCode();
+            String basic = (String)formDataResult.get("Basic");
+            log.info("基本信息approval-callback formDataResult: {} message{} success{} code{} basic{}", formDataResult, message, success, code, basic);
+//            String requestType = formDataResult.get("type").toString();
+            switch ("basic") {
                 case "basic":
                     return processBasicRequest(param);
                 case "edu":
