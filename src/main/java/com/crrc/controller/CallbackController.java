@@ -82,6 +82,7 @@ public class CallbackController {
             }
             // 获取表单数据
             ResultData<Map<String, Object>> fromDataByProcessInstanceId = workFlowClient.getFromDataByProcessInstanceId(processInstanceId);
+            log.info("基本信息approval-callback fromDataByProcessInstanceId: {} processInstanceId {}", fromDataByProcessInstanceId, processInstanceId);
             if (ObjectUtils.isEmpty(fromDataByProcessInstanceId)) {
                 return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "获取到的表单数据为空！");
             }
