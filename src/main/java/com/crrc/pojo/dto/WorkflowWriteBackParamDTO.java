@@ -2,6 +2,8 @@ package com.crrc.pojo.dto;
 
 import lombok.Data;
 
+import java.util.Map;
+
 /**
  * 工作流回写数参数对象
  *
@@ -46,4 +48,9 @@ public class WorkflowWriteBackParamDTO {
      * 节点编码
      */
     private String nodeCode;
+
+    /**
+     * 表单数据
+     */
+    private Map<String, Object> formData;
 }

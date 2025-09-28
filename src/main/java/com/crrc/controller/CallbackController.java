@@ -100,9 +100,10 @@ public class CallbackController {
             if (ObjectUtils.isEmpty(processInstanceId)) {
                 return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "processInstanceId不能为空");
             }
+            Map<String, Object> formData = param.getFormData();
             // 获取表单数据
-            ResultData<Map<String, Object>> fromDataByProcessInstanceId = workFlowClient.getFromDataByProcessInstanceId(processInstanceId);
-            log.info("基本信息approval-callback fromDataByProcessInstanceId: {} processInstanceId {}", fromDataByProcessInstanceId, processInstanceId);
+//            ResultData<Map<String, Object>> fromDataByProcessInstanceId = workFlowClient.getFromDataByProcessInstanceId(processInstanceId);
+            log.info("基本信息approval-callback formData {}", formData);
 //            if (ObjectUtils.isEmpty(fromDataByProcessInstanceId)) {
 //                return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "获取到的表单数据为空！");
 //            }
