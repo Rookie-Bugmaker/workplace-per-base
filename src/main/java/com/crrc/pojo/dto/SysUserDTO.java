@@ -28,4 +28,21 @@ public class SysUserDTO {
      * 人员ID
      */
     private Long userRelationId;
+
+    /**
+     * 部门id
+     */
+    private Long deptId;
+
+    /**
+     * 租户id
+     */
+    private Long companyId;
+
+    /**
+     * 角色编码
+     */
+    private String roleCode;
+
+
 }

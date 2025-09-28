@@ -40,12 +40,15 @@ public interface SysServerClient {
     ResultData<List<SysUserDTO>> findByPersonIds(@RequestBody List<Long> personIdList);
 
     /**
-     * 通过角色编码获取用户 roleCodes
+     * 根据用户部门id和companyId和角色编码信息 查询用户
      * @param sysUserRequestDTO
      * @return
      */
-    @PostMapping("/user/findUserByRoleCodes")
-    ResultData<List<SysUserDTO>> findUserByRoleCodes(@RequestBody SysUserRequestDTO sysUserRequestDTO);
+    @PostMapping("/user/findUserByRoleCode")
+    ResultData<List<SysUserDTO>> findUserByRoleCode(@RequestBody SysUserRequestDTO sysUserRequestDTO);
+
+
+
 
 
 }

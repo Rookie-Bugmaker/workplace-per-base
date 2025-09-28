@@ -68,84 +68,31 @@ public class HrEmpFlowableController {
     private SysServerClient sysServerClient;
 
 
-
-
     @GetMapping("/findUserByDeptIdAndRoleCode")
-    public ResponseResult<WorkflowUserPageDTO> findUserByDeptId(Integer page, Integer pageSize, Long deptId,String roleCode) {
-//        LoginUser curUser = SecurityFrameworkUtils.getLoginUser();
-        page = 1;
-        pageSize = 50000;
-        log.info("获取人员审批信息：");
-        LoginUser curUser = SecurityFrameworkUtils.getLoginUser();
-        log.info("获取人员审批信息11：" + curUser);
+    public ResponseResult<List<SysUserDTO>> findUserByDeptIdAndRoleCode(Long companyId, Long deptId, String roleCode) {
+        log.info("触发人力资源获取人员信息接口findUserByDeptIdAndRoleCode 查询参数companyId{},deptId{},roleId{}", companyId, deptId, roleCode);
         if (ObjectUtils.isEmpty(deptId)) {
-            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "部门ID不能为空");
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "deptId不能为空");
         }
         if (ObjectUtils.isEmpty(roleCode)) {
             return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "roleCode不能为空");
         }
-        WorkflowUserPageDTO workflowUserPage = new WorkflowUserPageDTO();
-        if (ObjectUtils.isEmpty(page) || ObjectUtils.isEmpty(pageSize)) {
-            //不需要分页查询
-            page = 1;
-            pageSize = 50000;
+        if (ObjectUtils.isEmpty(companyId)) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "companyId不能为空");
         }
-        //根据部门ID查询部门人员列表
-        ResultData<PaginationGrid<SysDeptPersonDTO>> resultData = sysServerClient.findPageByDeptId(deptId, page, pageSize);
-        if (Boolean.FALSE.equals(resultData.getSuccess())) {
-            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "部门人员查询失败");
-        }
-        PaginationGrid<SysDeptPersonDTO> paginationGrid = resultData.getResult();
-        if (ObjectUtils.isEmpty(paginationGrid)) {
-            throw new IllegalArgumentException("查询失败");
-        }
-        List<SysDeptPersonDTO> deptPersonList = paginationGrid.getRows();
-        if (CollectionUtils.isEmpty(deptPersonList)) {
-            //没查询到数据，直接返回即可
-            return ResponseResult.success(workflowUserPage);
-        }
-        List<Long> personIdList = deptPersonList.stream().map(SysDeptPersonDTO::getPersonId).collect(Collectors.toList());
-        //根据人员ID查询用户信息
-        ResultData<List<SysUserDTO>> userResultData = sysServerClient.findByPersonIds(personIdList);
-        if (Boolean.FALSE.equals(userResultData.getSuccess())) {
-            throw new IllegalArgumentException("用户查询失败");
-        }
-        List<SysUserDTO> userList = userResultData.getResult();
-        if (CollectionUtils.isEmpty(userList)) {
-            return ResponseResult.success(workflowUserPage);
-        }
-        for (SysUserDTO sysUser : userList) {
-            SysDeptPersonDTO sysDeptPerson = deptPersonList.stream().filter(o -> o.getPersonId().equals(sysUser.getUserRelationId())).findFirst().orElse(null);
-            if (!ObjectUtils.isEmpty(sysDeptPerson)) {
-                sysUser.setFullName(sysDeptPerson.getPersonName());
-            }
-        }
-        log.info("获取人员审批信息1：" + userList);
-        // 获取角色下的用户
+        // 查询人员信息
         SysUserRequestDTO sysUserRequestDTO = new SysUserRequestDTO();
-        sysUserRequestDTO.setRoleCodes(Collections.singletonList(roleCode));
-        ResultData<List<SysUserDTO>> result = sysServerClient.findUserByRoleCodes(sysUserRequestDTO);
-        List<SysUserDTO> userByRoleCodes = result.getResult();
-        if (ObjectUtils.isEmpty(userByRoleCodes)) {
-            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "获取角色下的用户为空！");
+        sysUserRequestDTO.setRoleCode(roleCode);
+        sysUserRequestDTO.setCompanyId(companyId);
+        sysUserRequestDTO.setDeptId(deptId);
+        ResultData<List<SysUserDTO>> userByRoleCodeAndCompanyId = sysServerClient.findUserByRoleCode(sysUserRequestDTO);
+        log.info("触发人力资源获取人员信息接口findUserByDeptIdAndRoleCode {}", userByRoleCodeAndCompanyId);
+        if(ObjectUtils.isEmpty(userByRoleCodeAndCompanyId) || ObjectUtils.isEmpty(userByRoleCodeAndCompanyId.getResult())){
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "未查到审批人数据!");
         }
-        log.info("获取人员审批信息2：" + result);
-        // 获取当前部门用户和当前角色用户交集，返回审批人
-        Set<Long> userIds = userByRoleCodes.stream()
-                .map(SysUserDTO::getUserId)
-                .collect(Collectors.toSet());
-        List<SysUserDTO> finalUserList = userList.stream()
-                .filter(user -> userIds.contains(user.getUserId()))
-                .collect(Collectors.toList());
-        log.info("获取人员审批信息3：" + finalUserList);
-        if (ObjectUtils.isEmpty(finalUserList)) {
-            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "查询的审批人为空，请配置审批人");
-        }
-        workflowUserPage.setTotal((long) finalUserList.size());
-        workflowUserPage.setRows(finalUserList);
-        return ResponseResult.success(workflowUserPage);
+        List<SysUserDTO> result = userByRoleCodeAndCompanyId.getResult();
+        return ResponseResult.success(result);
     }
-
 
 
 
