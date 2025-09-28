@@ -1,6 +1,7 @@
 package com.crrc.controller;
 
 import cn.hutool.core.util.IdUtil;
+import com.alibaba.fastjson.JSON;
 import com.crrc.annotation.IgnoreTenant;
 import com.crrc.api.WkWorkflowApi;
 import com.crrc.mongodb.HrEmpBasicChangeRequest;
@@ -88,17 +89,19 @@ public class CallbackController {
     @IgnoreTenant
     public ResponseResult<Boolean> approvalCallback(@RequestBody WorkflowWriteBackParamDTO param) {
         try {
-            // 从param中获取type参数
-            String requestType = param.getType();
+            log.info("基本信息approval-callback 请求参数: {}", JSON.toJSONString(param));
 
-            switch (requestType) {
-                case "basic":
-                    return processBasicRequest(param);
-                case "edu":
-                    return processEduRequest(param);
-                default:
-                    return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "不支持的变更类型: " + requestType, false);
-            }
+            // 从param中获取type参数
+//            String requestType = param.getType();
+//
+//            switch (requestType) {
+//                case "basic":
+//                    return processBasicRequest(param);
+//                case "edu":
+//                    return processEduRequest(param);
+//                default:
+                    return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "不支持的变更类型: " , false);
+//            }
         } catch (Exception e) {
             log.error("审批回调处理失败: {}", e.getMessage(), e);
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "处理失败", false);
