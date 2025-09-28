@@ -4,6 +4,8 @@ import cn.hutool.core.util.IdUtil;
 import com.alibaba.fastjson.JSON;
 import com.crrc.annotation.IgnoreTenant;
 import com.crrc.api.WkWorkflowApi;
+import com.crrc.client.WorkFlowClient;
+import com.crrc.common.ResultData;
 import com.crrc.mongodb.HrEmpBasicChangeRequest;
 import com.crrc.mongodb.HrEmpEduChangeRequest;
 import com.crrc.pojo.ResponseResult;
@@ -15,6 +17,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
+import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,7 +26,10 @@ import org.springframework.web.bind.annotation.RestController;
 import com.crrc.entity.*;
 import com.crrc.pojo.dto.*;
 
+import javax.annotation.Resource;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -47,26 +53,6 @@ public class CallbackController {
     @Autowired
     private HrEmpEducationServiceImpl hrEmpEducationService;
     @Autowired
-    private HrEmpAppointmentServiceImpl hrEmpAppointmentService;
-    @Autowired
-    private HrEmpPenaltiesServiceImpl hrEmpPenaltiesService;
-    @Autowired
-    private HrEmpCareerPathServiceImpl hrEmpCareerPathService;
-    @Autowired
-    private HrEmpOtherAppointmentServiceImpl hrEmpOtherAppointmentService;
-    @Autowired
-    private HrEmpRewardsServiceImpl hrEmpRewardsService;
-    @Autowired
-    private HrEmpProfessionalQualificationServiceImpl hrEmpProfessionalQualificationService;
-    @Autowired
-    private HrEmpResumeServiceImpl hrEmpResumeService;
-    @Autowired
-    private HrEmpSalaryStandardServiceImpl hrEmpSalaryStandardService;
-    @Autowired
-    private HrEmpSkillLevelServiceImpl hrEmpSkillLevelService;
-    @Autowired
-    private HrEmpSalaryInfoServiceImpl hrEmpSalaryInfoService;
-    @Autowired
     private HrEmpHouseholdServiceImpl hrEmpHouseholdService;
     @Autowired
     private HrEmpHealthServiceImpl hrEmpHealthService;
@@ -76,8 +62,8 @@ public class CallbackController {
     private HrEmpCommunicationServiceImpl hrEmpCommunicationService;
     @Autowired
     private MongoTemplate mongoTemplate;
-    @Autowired
-    private WkWorkflowApi wkWorkflowApi;
+    @Resource
+    private WorkFlowClient workFlowClient;
 
 
     /**
@@ -90,6 +76,19 @@ public class CallbackController {
     public ResponseResult<Boolean> approvalCallback(@RequestBody WorkflowWriteBackParamDTO param) {
         try {
             log.info("基本信息approval-callback 请求参数: {}", JSON.toJSONString(param));
+            String processInstanceId = param.getProcessInstanceId();
+            if (ObjectUtils.isEmpty(processInstanceId)) {
+                return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "processInstanceId不能为空");
+            }
+            // 获取表单数据
+            ResultData<Map<String, Object>> fromDataByProcessInstanceId = workFlowClient.getFromDataByProcessInstanceId(processInstanceId);
+            if (ObjectUtils.isEmpty(fromDataByProcessInstanceId)) {
+                return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "获取到的表单数据为空！");
+            }
+            Map<String, Object> formDataResult = fromDataByProcessInstanceId.getResult();
+            log.info("基本信息approval-callback formDataResult: {}", formDataResult);
+
+
 
             return processBasicRequest(param);
 //            switch (requestType) {
