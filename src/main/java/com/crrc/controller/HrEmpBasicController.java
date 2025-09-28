@@ -171,6 +171,7 @@ public class HrEmpBasicController {
             // 封装业务表单数据，20250924上线暂时没用，如果之后需要修改审批流分支，需使用该数据
             Map<String, Object> formData = new HashMap<>();
             formData.put("type","basic");
+            formData.put("roleCode", "wmrz_audit");
             formData.put("Basic",convertToMapList(changeReqVO));
             instanceDTO.setFormData(formData);
             log.info("流程测试instanceDTO" + instanceDTO);
