@@ -102,7 +102,12 @@ public class CallbackController {
     public ResponseResult<Boolean> approvalCallback(@RequestBody WorkflowWriteBackParamDTO param) {
         try {
             log.info("流程状态：" + param.getProcessInstanceStatus());
-            Map<String, Object> formDataAll = param.getFormData() != null ? param.getFormData() : workflowApi.getFormDataByPid(param.getProcessInstanceId()).getResult();
+            Map<String, Object> formDataAll;
+            if(param.getFormData() != null && param.getFormData().containsKey("formData")) {
+                formDataAll = (Map<String, Object>)param.getFormData().get("formData");
+            } else {
+                formDataAll =  workflowApi.getFormDataByPid(param.getProcessInstanceId()).getResult();
+            }
             log.info("基本信息approval-callback 请求参数: {}", JSON.toJSONString(param));
             log.info("基本信息approval-callback formDataAll {}", formDataAll);
 //            // 方法一 不好使
