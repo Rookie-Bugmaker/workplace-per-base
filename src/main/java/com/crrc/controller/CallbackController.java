@@ -306,6 +306,7 @@ public class CallbackController {
      * 更新基本信息
      */
     private void updateHrEmpBasicNew(HrEmpBasicDTO updateReqVO) {
+        log.info("updateReqVO HealthStatus:" + updateReqVO.getHealthStatus());
         String userCode = updateReqVO.getUserCode();
 
         // 更新健康信息
@@ -359,6 +360,7 @@ public class CallbackController {
             updateReqVO.setId(IdUtil.simpleUUID());
             hrEmpBasicService.save(updateReqVO);
         }
+        log.info("updateHrEmpBasicNew finished");
         hrEmpBasicService.updateById(updateReqVO);
     }
 
