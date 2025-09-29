@@ -116,9 +116,7 @@ public class CallbackController {
             });
 
             // 方法二 推荐
-            String requestType2 = Optional.ofNullable(formDataAll)
-                    .map(formData -> (String) formData.get("type"))
-                    .orElse("default_value");
+            String requestType2 = (String) formDataAll.get("type");
             log.info("基本信息方法二approval-callback requestType2 {}", requestType2);
             String bizId = MyUtils.subPk(param.getBizId());
             param.setBizId(bizId);
