@@ -294,8 +294,9 @@ public class CallbackController {
             statusSetter.accept(REJECTED);
             isUpdatingValue = "0";
         }
-
         mongoTemplate.save(request);
+        // 执行更新状态方法
+        log.info("执行更新状态方法");
         updateIsUpdating(isUpdatingValue, userCode);
 
         return new ResponseResult<>(HttpStatus.OK.value(), "处理成功", true);
@@ -422,6 +423,7 @@ public class CallbackController {
      */
     private void updateIsUpdating(String isUpdating, String userCode) {
         List<HrEmpBasicDTO> basics = hrEmpBasicService.selectMsg(userCode);
+        log.info("basicList的大小：" + basics.size());
         if (!basics.isEmpty()) {
             HrEmpBasic temp = basics.get(0);
             temp.setIsUpdating(isUpdating);
