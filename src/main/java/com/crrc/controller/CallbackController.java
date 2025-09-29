@@ -100,10 +100,10 @@ public class CallbackController {
             log.info("基本信息approval-callback 请求参数: {}", JSON.toJSONString(param));
             Map<String, Object> formDataAll = param.getFormData();
             log.info("基本信息approval-callback formDataAll {}", formDataAll);
-            // 方法一
-            JSONObject jsonObj = new JSONObject(formDataAll);
-            String requestType = jsonObj.getJSONObject("formData").getString("type");
-            log.info("基本信息方法一approval-callback requestType {}", requestType);
+//            // 方法一 不好使
+//            JSONObject jsonObj = new JSONObject(formDataAll);
+//            String requestType = jsonObj.getJSONObject("formData").getString("type");
+//            log.info("基本信息方法一approval-callback requestType {}", requestType);
             // 方法二 推荐
             String requestType2 = Optional.ofNullable(formDataAll)
                     .map(t -> (Map<String, Object>) t.get("formData"))
