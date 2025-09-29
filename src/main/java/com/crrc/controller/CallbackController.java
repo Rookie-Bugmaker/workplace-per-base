@@ -101,6 +101,7 @@ public class CallbackController {
     @IgnoreTenant
     public ResponseResult<Boolean> approvalCallback(@RequestBody WorkflowWriteBackParamDTO param) {
         try {
+            log.info("流程状态：" + param.getProcessInstanceStatus());
             Map<String, Object> formDataAll;
             if(param.getProcessInstanceStatus() != 0) {
                 formDataAll = workflowApi.getFormDataByPid(param.getProcessInstanceId()).getResult();
@@ -122,7 +123,6 @@ public class CallbackController {
 
             // 方法二 推荐
             String requestType2 = Optional.ofNullable(formDataAll)
-                    .map(t -> (Map<String, Object>) t.get("formData"))
                     .map(formData -> (String) formData.get("type"))
                     .orElse("default_value");
             log.info("基本信息方法二approval-callback requestType2 {}", requestType2);
