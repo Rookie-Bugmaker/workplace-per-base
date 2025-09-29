@@ -25,6 +25,7 @@ import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.service.impl.HrEmpEducationServiceImpl;
 import com.crrc.service.impl.HrEmpMajorInfoServiceImpl;
 import com.crrc.service.impl.HrEmpSchoolInfoServiceImpl;
+import com.crrc.utils.MyUtils;
 import com.crrc.utils.SystemConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -368,6 +369,7 @@ public class HrEmpEducationController {
 
     @GetMapping("/change-detail")
     public ResponseResult<Map<String, Object>> getChangeDetail(@RequestParam String requestId) {
+        requestId = MyUtils.subPk(requestId);
         // 1. 从MongoDB获取变更请求
         HrEmpBasicChangeRequest request = mongoTemplate.findById(requestId, HrEmpBasicChangeRequest.class);
         if (request == null) {
