@@ -132,7 +132,7 @@ public class CallbackController {
     processBasicRequest(WorkflowWriteBackParamDTO param) {
         Query query = new Query(Criteria.where("_id").is(param.getBizId()));
         HrEmpBasicChangeRequest request = mongoTemplate.findOne(query, HrEmpBasicChangeRequest.class);
-
+        log.info("查询请求数据成功: " + request);
         if (request == null) {
             return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "基本信息变更申请不存在", false);
         }
@@ -183,6 +183,7 @@ public class CallbackController {
             java.util.function.Predicate<String> statusChecker,
             Integer processInstanceStatus
     ) {
+        log.info("进入通用回调申请方法成功");
         String isUpdatingValue = "1";
 
         if (processInstanceStatus == 2) {
