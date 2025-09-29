@@ -70,7 +70,7 @@ public class HrEmpFlowableController {
 
     @GetMapping("/findUserByDeptIdAndRoleCode")
     public ResponseResult<List<SysUserDTO>> findUserByDeptIdAndRoleCode(Long companyId, Long deptId, String roleCode) {
-        log.info("触发人力资源获取人员信息接口findUserByDeptIdAndRoleCode 查询参数companyId{},deptId{},roleId{}", companyId, deptId, roleCode);
+        log.info("触发人力资源获取人员信息接口findUserByDeptIdAndRoleCode 查询参数companyId:{},deptId:{},roleCode:{}", companyId, deptId, roleCode);
         if (ObjectUtils.isEmpty(deptId)) {
             return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "deptId不能为空");
         }
@@ -86,7 +86,7 @@ public class HrEmpFlowableController {
         sysUserRequestDTO.setCompanyId(companyId);
         sysUserRequestDTO.setDeptId(deptId);
         ResultData<List<SysUserDTO>> userByRoleCodeAndCompanyId = sysServerClient.findUserByRoleCode(sysUserRequestDTO);
-        log.info("触发人力资源获取人员信息接口findUserByDeptIdAndRoleCode {}", userByRoleCodeAndCompanyId);
+        log.info("触发人力资源获取人员信息接口findUserByDeptIdAndRoleCode {}", userByRoleCodeAndCompanyId.getResult());
         if(ObjectUtils.isEmpty(userByRoleCodeAndCompanyId) || ObjectUtils.isEmpty(userByRoleCodeAndCompanyId.getResult())){
             return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "未查到审批人数据!");
         }
