@@ -104,7 +104,7 @@ public class CallbackController {
 //            JSONObject jsonObj = new JSONObject(formDataAll);
 //            String requestType = jsonObj.getJSONObject("formData").getString("type");
 //            log.info("基本信息方法一approval-callback requestType {}", requestType);
-            Map<String, Object> formData1 = (Map<String, Object>) formDataAll.get("formData");
+            Map<String, Object> formData1 = param.getFormData();
             formData1.forEach((k, v) -> {
                 log.info("key:" + k);
                 log.info("value:" + v);
