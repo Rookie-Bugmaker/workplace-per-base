@@ -127,7 +127,8 @@ public class HrEmpFamMemberController {
             int emergencyNum = 0;
             for (HrEmpFamMember hrEmpFamMember : updateReqVO.getList()) {
                 if (hrEmpFamMember.getId() == null) {
-                    hrEmpFamMember.setId(IdUtil.simpleUUID()); // 生成新ID
+                    // 生成新ID
+                    hrEmpFamMember.setId(IdUtil.simpleUUID());
                 }
                 // 判断紧急联系人
                 if(SystemConstants.TRUE_FLAG.equals(hrEmpFamMember.getIsEmergencyContact())) {
@@ -140,7 +141,8 @@ public class HrEmpFamMemberController {
                 }
                 hrEmpFamMember.setUserCode(updateReqVO.getUserCode());
                 toSaveOrUpdate.add(hrEmpFamMember);
-                existIds.remove(hrEmpFamMember.getId()); // 移除不需要删除的ID
+                // 移除不需要删除的ID
+                existIds.remove(hrEmpFamMember.getId());
             }
             // 没有紧急联系人,且家庭成员列表不为空时
             if(isEmergency && !updateReqVO.getList().isEmpty()) {

@@ -4,12 +4,10 @@ import cn.hutool.core.util.IdUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.crrc.annotation.IgnoreTenant;
-import com.crrc.api.WkWorkflowApi;
 import com.crrc.client.WorkFlowClient;
-import com.crrc.common.ResultData;
-import com.crrc.entity.dto.StartProcessInstanceDTO;
 import com.crrc.mongodb.HrEmpBasicChangeRequest;
 import com.crrc.mongodb.HrEmpEduChangeRequest;
+import com.crrc.mongodb.HrEmpFamMemberChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.service.impl.*;
@@ -21,7 +19,6 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
-import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -55,6 +52,8 @@ public class CallbackController {
     private HrEmpBasicServiceImpl hrEmpBasicService;
     @Autowired
     private HrEmpEducationServiceImpl hrEmpEducationService;
+    @Autowired
+    private HrEmpFamMemberServiceImpl hrEmpFamMemberService;
     @Autowired
     private HrEmpAppointmentServiceImpl hrEmpAppointmentService;
     @Autowired
@@ -111,12 +110,26 @@ public class CallbackController {
                     .map(formData -> (String) formData.get("type"))
                     .orElse("default_value");
             log.info("基本信息方法二approval-callback requestType2 {}", requestType2);
+            String bizId = MyUtils.subPk(param.getBizId());
+            param.setBizId(bizId);
 
             switch (requestType2) {
                 case "basic":
                     return processBasicRequest(param);
                 case "edu":
                     return processEduRequest(param);
+                case "family":
+                    return processFamilyRequest(param);
+//                case "professional":
+//                    return processProfessionalRequest(param);
+//                case "skills":
+//                    return processSkillsRequest(param);
+//                case "careerPath":
+//                    return processCareerPathRequest(param);
+//                case "rewards":
+//                    return processRewardsRequest(param);
+//                case "penalties":
+//                    return processPenaltiesRequest(param);
                 default:
                     return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "不支持的变更类型: " , false);
             }
@@ -129,10 +142,8 @@ public class CallbackController {
     /**
      * 处理基本信息变更请求
      */
-    private ResponseResult<Boolean>
-    processBasicRequest(WorkflowWriteBackParamDTO param) {
-        String bizId = MyUtils.subPk(param.getBizId());
-        Query query = new Query(Criteria.where("_id").is(bizId));
+    private ResponseResult<Boolean> processBasicRequest(WorkflowWriteBackParamDTO param) {
+        Query query = new Query(Criteria.where("_id").is(param.getBizId()));
         HrEmpBasicChangeRequest request = mongoTemplate.findOne(query, HrEmpBasicChangeRequest.class);
         log.info("查询请求数据成功: " + request);
         if (request == null) {
@@ -170,6 +181,86 @@ public class CallbackController {
                 APPROVED::equals,
                 param.getProcessInstanceStatus()
         );
+    }
+
+
+    /**
+     * 处理家庭主要成员的变更请求
+     */
+    private ResponseResult<Boolean> processFamilyRequest(WorkflowWriteBackParamDTO param) {
+        Query query = new Query(Criteria.where("_id").is(param.getBizId()));
+        HrEmpFamMemberChangeRequest request = mongoTemplate.findOne(query, HrEmpFamMemberChangeRequest.class);
+
+        if (request == null) {
+            return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "家庭成员变更申请不存在", false);
+        }
+
+        return processRequest(
+                request,
+                request.getStatus(),
+                request.getUserCode(),
+                request::setStatus,
+                () -> updateHrEmpFamMemberNew(request.getChangedData()),
+                APPROVED::equals,
+                param.getProcessInstanceStatus()
+        );
+    }
+
+    /**
+     * 更新家庭成员信息
+     */
+    private void updateHrEmpFamMemberNew(List<HrEmpFamMember> changedData) {
+        if (changedData == null || changedData.isEmpty()) {
+            return;
+        }
+
+        // 获取用户编码（假设所有家庭成员记录都有相同的userCode）
+        String userCode = changedData.get(0).getUserCode();
+
+        // 查询现有数据
+        List<HrEmpFamMember> existList = hrEmpFamMemberService.selectMsg(userCode);
+        Set<String> existIds = existList.stream()
+                .map(HrEmpFamMember::getId)
+                .collect(Collectors.toSet());
+
+        // 准备新增、更新和删除的数据
+        List<HrEmpFamMember> toSaveOrUpdate = new ArrayList<>();
+
+        // 判断传入数据里面有无紧急联系人
+        boolean isEmergency = true;
+        int emergencyNum = 0;
+        for (HrEmpFamMember hrEmpFamMember : changedData) {
+            if (hrEmpFamMember.getId() == null) {
+                // 生成新ID
+                hrEmpFamMember.setId(IdUtil.simpleUUID());
+            }
+            // 判断紧急联系人
+            if(SystemConstants.TRUE_FLAG.equals(hrEmpFamMember.getIsEmergencyContact())) {
+                emergencyNum++;
+                isEmergency = false;
+            }
+            // 当紧急联系人数量多余1时
+            if(emergencyNum > 1) {
+                throw new RuntimeException("紧急联系人数量不唯一！");
+            }
+            hrEmpFamMember.setUserCode(userCode);
+            toSaveOrUpdate.add(hrEmpFamMember);
+            // 移除不需要删除的ID
+            existIds.remove(hrEmpFamMember.getId());
+        }
+        // 没有紧急联系人,且家庭成员列表不为空时
+        if(isEmergency && !changedData.isEmpty()) {
+            throw new RuntimeException("录入员工主要家庭成员中未设置紧急联系人！");
+        }
+
+        // 批量保存或更新
+        if (!toSaveOrUpdate.isEmpty()) {
+            hrEmpFamMemberService.saveOrUpdateBatch(toSaveOrUpdate);
+        }
+        // 批量删除
+        if (!existIds.isEmpty()) {
+            hrEmpFamMemberService.removeByIds(existIds);
+        }
     }
 
 
