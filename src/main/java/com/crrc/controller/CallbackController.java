@@ -98,29 +98,20 @@ public class CallbackController {
     public ResponseResult<Boolean> approvalCallback(@RequestBody WorkflowWriteBackParamDTO param) {
         try {
             log.info("基本信息approval-callback 请求参数: {}", JSON.toJSONString(param));
-            String processInstanceId = param.getProcessInstanceId();
-            if (ObjectUtils.isEmpty(processInstanceId)) {
-                return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "processInstanceId不能为空");
-            }
             Map<String, Object> formDataAll = param.getFormData();
-            // 获取表单数据
-//            ResultData<Map<String, Object>> fromDataByProcessInstanceId = workFlowClient.getFromDataByProcessInstanceId(processInstanceId);
             log.info("基本信息approval-callback formDataAll {}", formDataAll);
-            // 如果已经用Map接收了数据（如你的test变量）
+            // 方法一
             JSONObject jsonObj = new JSONObject(formDataAll);
             String requestType = jsonObj.getJSONObject("formData").getString("type");
-            log.info("基本信息approval-callback type {}", requestType);
-//            if (ObjectUtils.isEmpty(fromDataByProcessInstanceId)) {
-//                return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "获取到的表单数据为空！");
-//            }
-//            Map<String, Object> formDataResult = fromDataByProcessInstanceId.getResult();
-//            String message = fromDataByProcessInstanceId.getMessage();
-//            Boolean success = fromDataByProcessInstanceId.getSuccess();
-//            Integer code = fromDataByProcessInstanceId.getCode();
-//            String basic = (String)formDataResult.get("Basic");
-//            log.info("基本信息approval-callback formDataResult: {} message{} success{} code{} basic{}", formDataResult, message, success, code, basic);
-//            String requestType = formData.get("type").toString();
-            switch (requestType) {
+            log.info("基本信息方法一approval-callback requestType {}", requestType);
+            // 方法二 推荐
+            String requestType2 = Optional.ofNullable(formDataAll)
+                    .map(t -> (Map<String, Object>) t.get("formData"))
+                    .map(formData -> (String) formData.get("type"))
+                    .orElse("default_value");
+            log.info("基本信息方法二approval-callback requestType2 {}", requestType2);
+
+            switch (requestType2) {
                 case "basic":
                     return processBasicRequest(param);
                 case "edu":
