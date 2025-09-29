@@ -200,7 +200,6 @@ public class HrEmpBasicController {
         if (request == null) {
             return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "变更申请不存在");
         }
-        requestId = MyUtils.subPk(requestId);
 
         // 2. 构建返回结果（直接返回两个列表）
         Map<String, Object> result = new HashMap<>();
