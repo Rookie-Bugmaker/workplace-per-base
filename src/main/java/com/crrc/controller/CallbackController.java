@@ -13,6 +13,7 @@ import com.crrc.mongodb.HrEmpEduChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.service.impl.*;
+import com.crrc.utils.MyUtils;
 import com.crrc.utils.SystemConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -130,7 +131,8 @@ public class CallbackController {
      */
     private ResponseResult<Boolean>
     processBasicRequest(WorkflowWriteBackParamDTO param) {
-        Query query = new Query(Criteria.where("_id").is(param.getBizId()));
+        String bizId = MyUtils.subPk(param.getBizId());
+        Query query = new Query(Criteria.where("_id").is(bizId));
         HrEmpBasicChangeRequest request = mongoTemplate.findOne(query, HrEmpBasicChangeRequest.class);
         log.info("查询请求数据成功: " + request);
         if (request == null) {
