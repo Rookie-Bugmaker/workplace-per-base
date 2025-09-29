@@ -286,7 +286,7 @@ public class CallbackController {
             java.util.function.Predicate<String> statusChecker,
             Integer processInstanceStatus
     ) {
-        log.info("进入通用回调申请方法成功");
+        log.info("进入通用回调申请方法成功processInstanceStatus： " + processInstanceStatus);
         String isUpdatingValue = "1";
 
         if (processInstanceStatus == 2) {
@@ -306,7 +306,7 @@ public class CallbackController {
         }
         mongoTemplate.save(request);
         // 执行更新状态方法
-        log.info("执行更新状态方法");
+        log.info("执行更新状态方法: " +  isUpdatingValue);
         updateIsUpdating(isUpdatingValue, userCode);
 
         return new ResponseResult<>(HttpStatus.OK.value(), "处理成功", true);
