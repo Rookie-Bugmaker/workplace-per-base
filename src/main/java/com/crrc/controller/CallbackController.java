@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.crrc.annotation.IgnoreTenant;
 import com.crrc.client.WorkFlowClient;
+import com.crrc.feign.WorkflowApi;
 import com.crrc.mongodb.HrEmpBasicChangeRequest;
 import com.crrc.mongodb.HrEmpEduChangeRequest;
 import com.crrc.mongodb.HrEmpFamMemberChangeRequest;
@@ -84,8 +85,11 @@ public class CallbackController {
     private HrEmpCommunicationServiceImpl hrEmpCommunicationService;
     @Autowired
     private MongoTemplate mongoTemplate;
+    @Autowired
+    private WorkflowApi workflowApi;
     @Resource
     private WorkFlowClient workFlowClient;
+
 
 
     /**
@@ -97,15 +101,21 @@ public class CallbackController {
     @IgnoreTenant
     public ResponseResult<Boolean> approvalCallback(@RequestBody WorkflowWriteBackParamDTO param) {
         try {
+            Map<String, Object> formDataAll;
+            if(param.getProcessInstanceStatus() != 0) {
+                formDataAll = workflowApi.getFormDataByPid(param.getProcessInstanceId()).getResult();
+            } else {
+                formDataAll = param.getFormData();
+            }
             log.info("基本信息approval-callback 请求参数: {}", JSON.toJSONString(param));
-            Map<String, Object> formDataAll = param.getFormData();
+
             log.info("基本信息approval-callback formDataAll {}", formDataAll);
 //            // 方法一 不好使
 //            JSONObject jsonObj = new JSONObject(formDataAll);
 //            String requestType = jsonObj.getJSONObject("formData").getString("type");
 //            log.info("基本信息方法一approval-callback requestType {}", requestType);
-            Map<String, Object> formData1 = param.getFormData();
-            formData1.forEach((k, v) -> {
+
+            formDataAll.forEach((k, v) -> {
                 log.info("key:" + k);
                 log.info("value:" + v);
             });
