@@ -2,10 +2,12 @@ package com.crrc.controller;
 
 import cn.hutool.core.util.IdUtil;
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.crrc.annotation.IgnoreTenant;
 import com.crrc.api.WkWorkflowApi;
 import com.crrc.client.WorkFlowClient;
 import com.crrc.common.ResultData;
+import com.crrc.entity.dto.StartProcessInstanceDTO;
 import com.crrc.mongodb.HrEmpBasicChangeRequest;
 import com.crrc.mongodb.HrEmpEduChangeRequest;
 import com.crrc.pojo.ResponseResult;
@@ -100,10 +102,14 @@ public class CallbackController {
             if (ObjectUtils.isEmpty(processInstanceId)) {
                 return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "processInstanceId不能为空");
             }
-            Map<String, Object> formData = param.getFormData();
+            Map<String, Object> formDataAll = param.getFormData();
             // 获取表单数据
 //            ResultData<Map<String, Object>> fromDataByProcessInstanceId = workFlowClient.getFromDataByProcessInstanceId(processInstanceId);
-            log.info("基本信息approval-callback formData {}", formData);
+            log.info("基本信息approval-callback formDataAll {}", formDataAll);
+            // 如果已经用Map接收了数据（如你的test变量）
+            JSONObject jsonObj = new JSONObject(formDataAll);
+            String requestType = jsonObj.getJSONObject("formData").getString("type");
+            log.info("基本信息approval-callback type {}", requestType);
 //            if (ObjectUtils.isEmpty(fromDataByProcessInstanceId)) {
 //                return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "获取到的表单数据为空！");
 //            }
@@ -113,7 +119,7 @@ public class CallbackController {
 //            Integer code = fromDataByProcessInstanceId.getCode();
 //            String basic = (String)formDataResult.get("Basic");
 //            log.info("基本信息approval-callback formDataResult: {} message{} success{} code{} basic{}", formDataResult, message, success, code, basic);
-            String requestType = formData.get("type").toString();
+//            String requestType = formData.get("type").toString();
             switch (requestType) {
                 case "basic":
                     return processBasicRequest(param);
