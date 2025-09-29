@@ -11,6 +11,7 @@ import com.crrc.mongodb.HrEmpEduChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.service.impl.*;
+import com.crrc.utils.SystemConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -27,10 +28,9 @@ import com.crrc.entity.*;
 import com.crrc.pojo.dto.*;
 
 import javax.annotation.Resource;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * @author mayiyao
@@ -113,8 +113,8 @@ public class CallbackController {
 //            Integer code = fromDataByProcessInstanceId.getCode();
 //            String basic = (String)formDataResult.get("Basic");
 //            log.info("基本信息approval-callback formDataResult: {} message{} success{} code{} basic{}", formDataResult, message, success, code, basic);
-//            String requestType = formDataResult.get("type").toString();
-            switch ("basic") {
+            String requestType = formData.get("type").toString();
+            switch (requestType) {
                 case "basic":
                     return processBasicRequest(param);
                 case "edu":
@@ -131,7 +131,8 @@ public class CallbackController {
     /**
      * 处理基本信息变更请求
      */
-    private ResponseResult<Boolean> processBasicRequest(WorkflowWriteBackParamDTO param) {
+    private ResponseResult<Boolean>
+    processBasicRequest(WorkflowWriteBackParamDTO param) {
         Query query = new Query(Criteria.where("_id").is(param.getBizId()));
         HrEmpBasicChangeRequest request = mongoTemplate.findOne(query, HrEmpBasicChangeRequest.class);
 
@@ -270,18 +271,59 @@ public class CallbackController {
     }
 
     /**
-     * 更新教育信息（示例方法）
+     * 更新教育信息
      */
     private void updateHrEmpEduNew(List<HrEmpEducation> changedData) {
-        // 实际实现应根据业务需求编写
-        changedData.forEach(edu -> {
-            if (edu.getId() == null) {
-                edu.setId(IdUtil.simpleUUID());
-                hrEmpEducationService.save(edu);
-            } else {
-                hrEmpEducationService.updateById(edu);
+        if (changedData == null || changedData.isEmpty()) {
+            return;
+        }
+        // 获取用户编码（假设所有教育记录都有相同的userCode）
+        String userCode = changedData.get(0).getUserCode();
+
+        // 查询现有数据
+        List<HrEmpEducation> existList = hrEmpEducationService.selectMsg(userCode);
+        Set<String> existIds = existList.stream()
+                .map(HrEmpEducation::getId)
+                .collect(Collectors.toSet());
+
+        // 准备新增、更新和删除的数据
+        List<HrEmpEducation> toSaveOrUpdate = new ArrayList<>();
+
+        // 判断传入数据里面有无最高学历
+        boolean isHighestEdu = true;
+        int isHighestNum = 0;
+        for (HrEmpEducation hrEmpEducation : changedData) {
+            if (hrEmpEducation.getId() == null) {
+                // 生成新ID
+                hrEmpEducation.setId(IdUtil.simpleUUID());
             }
-        });
+            // 判断最高学历
+            if(SystemConstants.TRUE_FLAG.equals(hrEmpEducation.getIsHighestEducation())) {
+                isHighestNum++;
+                isHighestEdu = false;
+            }
+            // 当最高学历数量多余1时
+            if(isHighestNum > 1) {
+                throw new RuntimeException("最高学历数量不唯一！");
+            }
+            hrEmpEducation.setUserCode(userCode);
+            toSaveOrUpdate.add(hrEmpEducation);
+            // 移除不需要删除的ID
+            existIds.remove(hrEmpEducation.getId());
+        }
+        // 没有最高学历,且教育信息列表不为空时
+        if(isHighestEdu && !changedData.isEmpty()) {
+            throw new RuntimeException("录入教育经历中未设置最高学历！");
+        }
+
+        // 批量保存或更新
+        if (!toSaveOrUpdate.isEmpty()) {
+            hrEmpEducationService.saveOrUpdateBatch(toSaveOrUpdate);
+        }
+        // 批量删除
+        if (!existIds.isEmpty()) {
+            hrEmpEducationService.removeByIds(existIds);
+        }
     }
 
     /**

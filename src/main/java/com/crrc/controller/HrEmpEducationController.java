@@ -515,7 +515,8 @@ public class HrEmpEducationController {
         int isHighestNum = 0;
         for (HrEmpEducation hrEmpEducation : updateReqVO.getList()) {
             if (hrEmpEducation.getId() == null) {
-                hrEmpEducation.setId(IdUtil.simpleUUID()); // 生成新ID
+                // 生成新ID
+                hrEmpEducation.setId(IdUtil.simpleUUID());
             }
             // 判断最高学历
             if(SystemConstants.TRUE_FLAG.equals(hrEmpEducation.getIsHighestEducation())) {
@@ -528,7 +529,8 @@ public class HrEmpEducationController {
             }
             hrEmpEducation.setUserCode(updateReqVO.getUserCode());
             toSaveOrUpdate.add(hrEmpEducation);
-            existIds.remove(hrEmpEducation.getId()); // 移除不需要删除的ID
+            // 移除不需要删除的ID
+            existIds.remove(hrEmpEducation.getId());
         }
         // 没有最高学历,且教育信息列表不为空时
         if(isHighestEdu && !updateReqVO.getList().isEmpty()) {
