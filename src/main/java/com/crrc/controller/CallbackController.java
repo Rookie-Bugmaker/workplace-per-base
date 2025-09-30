@@ -470,10 +470,24 @@ public class CallbackController {
             case FAMILY:
                 updateFamilyIsUpdating(isUpdating, userCode);
                 break;
-            // 其他类型...
+            case SKILLS:
+                updateSkillsIsUpdating(isUpdating, userCode);
+                break;
+            case REWARDS:
+                updateRewardsIsUpdating(isUpdating, userCode);
+                break;
+            case PENALTIES:
+                updatePenaltiesIsUpdating(isUpdating, userCode);
+                break;
+            case CAREER_PATH:
+                updateCareerPathIsUpdating(isUpdating, userCode);
+                break;
+            case PROFESSIONAL:
+                updateProfessionalIsUpdating(isUpdating, userCode);
+                break;
             default:
                 log.warn("未知的更新类型: {}", updateType);
-                updateBasicIsUpdating(isUpdating, userCode); // 默认使用基础信息更新
+                break;
         }
     }
 
@@ -498,7 +512,57 @@ public class CallbackController {
 
     private void updateFamilyIsUpdating(String isUpdating, String userCode) {
         // 家庭成员信息的更新状态逻辑
-        // todo
+        List<HrEmpFamMember> familyMembers = hrEmpFamMemberService.selectMsg(userCode);
+        if (!familyMembers.isEmpty()) {
+            HrEmpFamMember temp = familyMembers.get(0);
+            temp.setIsUpdating(isUpdating);
+            hrEmpFamMemberService.updateById(temp);
+        }
+    }
+
+    private void updateSkillsIsUpdating(String isUpdating, String userCode) {
+        List<HrEmpSkillLevel> skills = hrEmpSkillLevelService.selectMsg(userCode);
+        if (!skills.isEmpty()) {
+            HrEmpSkillLevel temp = skills.get(0);
+            temp.setIsUpdating(isUpdating);
+            hrEmpSkillLevelService.updateById(temp);
+        }
+    }
+
+    private void updateRewardsIsUpdating(String isUpdating, String userCode) {
+        List<HrEmpRewards> rewards = hrEmpRewardsService.selectMsg(userCode);
+        if (!rewards.isEmpty()) {
+            HrEmpRewards temp = rewards.get(0);
+            temp.setIsUpdating(isUpdating);
+            hrEmpRewardsService.updateById(temp);
+        }
+    }
+
+    private void updatePenaltiesIsUpdating(String isUpdating, String userCode) {
+        List<HrEmpPenalties> penalties = hrEmpPenaltiesService.selectMsg(userCode);
+        if (!penalties.isEmpty()) {
+            HrEmpPenalties temp = penalties.get(0);
+            temp.setIsUpdating(isUpdating);
+            hrEmpPenaltiesService.updateById(temp);
+        }
+    }
+
+    private void updateCareerPathIsUpdating(String isUpdating, String userCode) {
+        List<HrEmpCareerPath> careerPaths = hrEmpCareerPathService.selectMsg(userCode);
+        if (!careerPaths.isEmpty()) {
+            HrEmpCareerPath temp = careerPaths.get(0);
+            temp.setIsUpdating(isUpdating);
+            hrEmpCareerPathService.updateById(temp);
+        }
+    }
+
+    private void updateProfessionalIsUpdating(String isUpdating, String userCode) {
+        List<HrEmpProfessionalQualification> professionals = hrEmpProfessionalQualificationService.selectMsg(userCode);
+        if (!professionals.isEmpty()) {
+            HrEmpProfessionalQualification temp = professionals.get(0);
+            temp.setIsUpdating(isUpdating);
+            hrEmpProfessionalQualificationService.updateById(temp);
+        }
     }
 
 }

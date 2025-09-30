@@ -88,4 +88,9 @@ public class HrEmpProfessionalQualification extends BaseEntity implements Serial
     @Schema(description = "聘任结束时间")
     private LocalDate appointedEndDate;
 
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"是否存在正在被修改的状态"}, index = 11)
+    @Schema(description = "是否存在正在被修改的状态，0为否，1为是")
+    private String isUpdating;
+
 }

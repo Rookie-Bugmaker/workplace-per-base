@@ -93,4 +93,8 @@ public class HrEmpSkillLevel extends BaseEntity implements Serializable {
     @Schema(description = "工号")
     private String userCode;
 
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"是否存在正在被修改的状态"}, index = 12)
+    @Schema(description = "是否存在正在被修改的状态，0为否，1为是")
+    private String isUpdating;
 }

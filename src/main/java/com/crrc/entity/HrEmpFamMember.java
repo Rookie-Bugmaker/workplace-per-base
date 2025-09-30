@@ -83,4 +83,9 @@ public class HrEmpFamMember extends BaseEntity implements Serializable {
     @ExcelProperty(value = {"联系电话"}, index = 9)
     @Schema(description = "联系电话")
     private String famPhone;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"是否存在正在被修改的状态"}, index = 10)
+    @Schema(description = "是否存在正在被修改的状态，0为否，1为是")
+    private String isUpdating;
 }

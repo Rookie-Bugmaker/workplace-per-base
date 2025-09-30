@@ -83,4 +83,8 @@ public class HrEmpCareerPath extends BaseEntity implements Serializable {
     @Schema(description = "是否失效")
     private String isExpired;
 
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"是否存在正在被修改的状态"}, index = 7)
+    @Schema(description = "是否存在正在被修改的状态，0为否，1为是")
+    private String isUpdating;
 }

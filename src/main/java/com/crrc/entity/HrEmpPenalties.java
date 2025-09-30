@@ -65,4 +65,9 @@ public class HrEmpPenalties extends BaseEntity implements Serializable {
     @ExcelProperty(value = {"惩处措施"}, index = 6)
     @Schema(description = "惩处措施")
     private String penaltyMeasures;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"是否存在正在被修改的状态"}, index = 7)
+    @Schema(description = "是否存在正在被修改的状态，0为否，1为是")
+    private String isUpdating;
 }
