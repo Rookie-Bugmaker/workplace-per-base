@@ -79,7 +79,7 @@ public class HrEmpEducationController {
     private WkWorkflowApi wkWorkflowApi;
 
     // 流程模板编码，在框架界面中规定
-    private static final String PROCESS_TEMPLATE_ALIAS = "education";
+    private static final String PROCESS_TEMPLATE_ALIAS = "userinfo";
 
 
     @GetMapping("/getSchoolInfo")
