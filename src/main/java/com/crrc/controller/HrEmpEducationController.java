@@ -299,7 +299,7 @@ public class HrEmpEducationController {
     public ResponseResult<String> submitChange(@Valid @RequestBody  HrEmpEducationDTO changeReqVO) {
         try {
             // 1. 获取当前数据快照
-            List<HrEmpEducation> originalData = hrEmpEducationService.selectMsg(changeReqVO.getUserCode());
+            List<HrEmpEducation> originalData = getMsg(changeReqVO.getUserCode()).getData();
 //            if (originalData.isEmpty()) {
 //                return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "员工教育经历不存在");
 //            }
@@ -349,7 +349,7 @@ public class HrEmpEducationController {
             // 封装业务表单数据，20250924上线暂时没用，如果之后需要修改审批流分支，需使用该数据
             Map<String, Object> formData = new HashMap<>();
             formData.put("type","edu");
-            formData.put("Edu",convertToMapList(changeReqVO));
+            formData.put("Edu",MyUtils.convertToMapList(changeReqVO));
             instanceDTO.setFormData(formData);
             log.info("流程测试instanceDTO" + instanceDTO);
             // 返回流程实例id
@@ -382,52 +382,15 @@ public class HrEmpEducationController {
         Map<String, Object> result = new HashMap<>();
 
         // 原始数据列表（转换为Map列表或直接使用对象）
-        result.put("originalData", convertToMapList(request.getOriginalData()));
+        result.put("originalData", MyUtils.convertToMapList(request.getOriginalData()));
 
         // 审批流中的数据列表
-        result.put("changedData", convertToMapList(request.getChangedData()));
+        result.put("changedData", MyUtils.convertToMapList(request.getChangedData()));
 
         // 基础信息
         result.put("requestId", requestId);
         result.put("createTime", request.getCreateTime());
 
         return new ResponseResult<>(HttpStatus.OK.value(), "成功", result);
-    }
-
-    // 辅助方法：将数据对象转换为Map（可根据实际需求调整）
-    private List<Map<String, Object>> convertToMapList(Object data) {
-        // 方案1：如果数据本身就是集合
-        if (data instanceof Collection) {
-            return ((Collection<?>) data).stream()
-                    .map(this::convertSingleObjectToMap)
-                    .collect(Collectors.toList());
-        }
-
-        // 方案2：如果是单个对象
-        return Collections.singletonList(convertSingleObjectToMap(data));
-    }
-
-    // 将单个对象转为Map
-    private Map<String, Object> convertSingleObjectToMap(Object obj) {
-        if (obj == null) {
-            return new HashMap<>();
-        }
-
-        try {
-            return Arrays.stream(BeanUtils.getPropertyDescriptors(obj.getClass()))
-                    .filter(pd -> pd.getReadMethod() != null && !"class".equals(pd.getName()))
-                    .collect(HashMap::new,
-                            (map, pd) -> {
-                                try {
-                                    Object value = pd.getReadMethod().invoke(obj);
-                                    if (value != null) {  // 显式过滤null值
-                                        map.put(pd.getName(), value);
-                                    }
-                                } catch (Exception ignored) {}
-                            },
-                            HashMap::putAll);
-        } catch (Exception e) {
-            throw new RuntimeException("对象转换Map失败", e);
-        }
     }
 }
