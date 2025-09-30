@@ -373,7 +373,7 @@ public class HrEmpEducationController {
         requestId = MyUtils.subPk(requestId);
         log.info("新requestId:" + requestId);
         // 1. 从MongoDB获取变更请求
-        HrEmpBasicChangeRequest request = mongoTemplate.findById(requestId, HrEmpBasicChangeRequest.class);
+        HrEmpEduChangeRequest request = mongoTemplate.findById(requestId, HrEmpEduChangeRequest.class);
         if (request == null) {
             return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "变更申请不存在");
         }
