@@ -23,6 +23,7 @@ public class HrEmpEducationServiceImpl extends WorkServiceImpl<HrEmpEducationMap
     @Autowired
     private HrEmpEducationMapper hrEmpEducationMapper;
 
+    @Override
     public List<HrEmpEducation> selectMsg(String userCode){
         MPJLambdaWrapper<HrEmpEducation> wrapper = new MPJLambdaWrapper<HrEmpEducation>()
                 .selectAll(HrEmpEducation.class)

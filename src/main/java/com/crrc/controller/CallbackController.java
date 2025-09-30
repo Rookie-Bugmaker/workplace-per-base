@@ -90,6 +90,25 @@ public class CallbackController {
     @Resource
     private WorkFlowClient workFlowClient;
 
+    public enum UpdateType {
+        // 基本信息
+        BASIC,
+        // 教育经历
+        EDU,
+        // 主要家庭成员社会关系
+        FAMILY,
+        // 专业职务任职资格
+        PROFESSIONAL,
+        // 职业技能等级
+        SKILLS,
+        // 职业发展通道
+        CAREER_PATH,
+        // 奖励情况
+        REWARDS,
+        // 惩处信息
+        PENALTIES
+    }
+
 
 
     /**
@@ -110,10 +129,6 @@ public class CallbackController {
             }
             log.info("基本信息approval-callback 请求参数: {}", JSON.toJSONString(param));
             log.info("基本信息approval-callback formDataAll {}", formDataAll);
-//            // 方法一 不好使
-//            JSONObject jsonObj = new JSONObject(formDataAll);
-//            String requestType = jsonObj.getJSONObject("formData").getString("type");
-//            log.info("基本信息方法一approval-callback requestType {}", requestType);
 
             formDataAll.forEach((k, v) -> {
                 log.info("key:" + k);
@@ -121,12 +136,12 @@ public class CallbackController {
             });
 
             // 方法二 推荐
-            String requestType2 = (String) formDataAll.get("type");
-            log.info("基本信息方法二approval-callback requestType2 {}", requestType2);
+            String requestType = (String) formDataAll.get("type");
+            log.info("基本信息方法二approval-callback requestType2 {}", requestType);
             String bizId = MyUtils.subPk(param.getBizId());
             param.setBizId(bizId);
 
-            switch (requestType2) {
+            switch (requestType) {
                 case "basic":
                     return processBasicRequest(param);
                 case "edu":
@@ -170,7 +185,8 @@ public class CallbackController {
                 request::setStatus,
                 () -> updateHrEmpBasicNew(request.getChangedData()),
                 APPROVED::equals,
-                param.getProcessInstanceStatus()
+                param.getProcessInstanceStatus(),
+                UpdateType.BASIC
         );
     }
 
@@ -192,7 +208,8 @@ public class CallbackController {
                 request::setStatus,
                 () -> updateHrEmpEduNew(request.getChangedData()),
                 APPROVED::equals,
-                param.getProcessInstanceStatus()
+                param.getProcessInstanceStatus(),
+                UpdateType.EDU
         );
     }
 
@@ -215,7 +232,8 @@ public class CallbackController {
                 request::setStatus,
                 () -> updateHrEmpFamMemberNew(request.getChangedData()),
                 APPROVED::equals,
-                param.getProcessInstanceStatus()
+                param.getProcessInstanceStatus(),
+                UpdateType.FAMILY
         );
     }
 
@@ -287,7 +305,8 @@ public class CallbackController {
             Consumer<String> statusSetter,
             Runnable updateAction,
             java.util.function.Predicate<String> statusChecker,
-            Integer processInstanceStatus
+            Integer processInstanceStatus,
+            UpdateType updateType
     ) {
         log.info("进入通用回调申请方法成功processInstanceStatus： " + processInstanceStatus);
         String isUpdatingValue = "1";
@@ -310,7 +329,8 @@ public class CallbackController {
         mongoTemplate.save(request);
         // 执行更新状态方法
         log.info("执行更新状态方法: " +  isUpdatingValue);
-        updateIsUpdating(isUpdatingValue, userCode);
+        updateIsUpdating(isUpdatingValue, userCode, updateType);
+
 
         return new ResponseResult<>(HttpStatus.OK.value(), "处理成功", true);
     }
@@ -435,15 +455,50 @@ public class CallbackController {
 
     /**
      * 更新是否在更新状态
+     * @param isUpdating 更新状态值
+     * @param userCode 用户编码
+     * @param updateType 更新类型
      */
-    private void updateIsUpdating(String isUpdating, String userCode) {
+    private void updateIsUpdating(String isUpdating, String userCode, UpdateType updateType) {
+        switch (updateType) {
+            case BASIC:
+                updateBasicIsUpdating(isUpdating, userCode);
+                break;
+            case EDU:
+                updateEduIsUpdating(isUpdating, userCode);
+                break;
+            case FAMILY:
+                updateFamilyIsUpdating(isUpdating, userCode);
+                break;
+            // 其他类型...
+            default:
+                log.warn("未知的更新类型: {}", updateType);
+                updateBasicIsUpdating(isUpdating, userCode); // 默认使用基础信息更新
+        }
+    }
+
+    private void updateBasicIsUpdating(String isUpdating, String userCode) {
         List<HrEmpBasicDTO> basics = hrEmpBasicService.selectMsg(userCode);
-        log.info("basicList的大小：" + basics.size());
         if (!basics.isEmpty()) {
             HrEmpBasic temp = basics.get(0);
             temp.setIsUpdating(isUpdating);
             hrEmpBasicService.updateById(temp);
         }
+    }
+
+    private void updateEduIsUpdating(String isUpdating, String userCode) {
+        // 教育信息的更新状态逻辑
+        List<HrEmpEducation> edus = hrEmpEducationService.selectMsg(userCode);
+        if (!edus.isEmpty()) {
+            HrEmpEducation temp = edus.get(0);
+            temp.setIsUpdating(isUpdating);
+            hrEmpEducationService.updateById(temp);
+        }
+    }
+
+    private void updateFamilyIsUpdating(String isUpdating, String userCode) {
+        // 家庭成员信息的更新状态逻辑
+        // todo
     }
 
 }

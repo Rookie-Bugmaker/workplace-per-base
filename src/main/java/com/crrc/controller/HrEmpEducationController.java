@@ -369,7 +369,9 @@ public class HrEmpEducationController {
 
     @GetMapping("/change-detail")
     public ResponseResult<Map<String, Object>> getChangeDetail(@RequestParam String requestId) {
+        log.info("requestId:" + requestId);
         requestId = MyUtils.subPk(requestId);
+        log.info("新requestId:" + requestId);
         // 1. 从MongoDB获取变更请求
         HrEmpBasicChangeRequest request = mongoTemplate.findById(requestId, HrEmpBasicChangeRequest.class);
         if (request == null) {
