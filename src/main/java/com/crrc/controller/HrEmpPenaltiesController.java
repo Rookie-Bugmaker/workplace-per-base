@@ -7,14 +7,18 @@ import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.api.WkCoreAPi;
 import com.crrc.entity.HrEmpPenalties;
+import com.crrc.entity.LoginUser;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.UpdateListDTO;
 import com.crrc.service.impl.HrEmpPenaltiesServiceImpl;
+import com.crrc.utils.SecurityFrameworkUtils;
 import com.crrc.utils.UpdateListUtil;
+import com.crrc.entity.dto.UserWithRoleDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,6 +35,7 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -49,6 +54,8 @@ public class HrEmpPenaltiesController {
 
     @Autowired
     private HrEmpPenaltiesServiceImpl hrEmpPenaltiesService;
+    @Autowired
+    private WkCoreAPi wkCoreAPi;
 
     private final UpdateListUtil<HrEmpPenalties, String> updateUtil;
 
@@ -119,6 +126,26 @@ public class HrEmpPenaltiesController {
     @AuditLog(value = "更新员工惩处信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
     public ResponseResult<Boolean> updateHrEmpPenalties(@Valid @RequestBody UpdateListDTO<HrEmpPenalties> updateReqVO) {
+        // 1. 获取当前用户并校验
+        LoginUser currentUser = SecurityFrameworkUtils.getLoginUser();
+        if (currentUser == null) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "获取当前登录用户失败!");
+        }
+
+        // 2. 权限校验 - 检查是否是人力资源部-人事管理专员
+        boolean isHrPersonnelManager = wkCoreAPi.getUsersWithRoles(Collections.singletonList(currentUser.getUser().getId()))
+                .stream()
+                .findFirst()
+                .map(UserWithRoleDTO::getRoles)
+                .orElse(Collections.emptyList())
+                .stream()
+                .anyMatch(role -> "人力资源部-人事管理专员".equals(role.getName()));
+
+        if (!isHrPersonnelManager) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "当前登录用户无权修改惩处信息!");
+        }
+
+        // 3. 业务处理 - 调用updateUtil.update方法
         return updateUtil.update(updateReqVO);
     }
 

@@ -17,6 +17,7 @@ import com.crrc.mongodb.HrEmpSkillsChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.UpdateListDTO;
 import com.crrc.service.impl.HrEmpSkillLevelServiceImpl;
+import com.crrc.utils.SystemConstants;
 import com.crrc.utils.UpdateListUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -209,7 +210,7 @@ public class HrEmpSkillLevelController {
             String bizCode = "SKL-" + System.currentTimeMillis();
             instanceDTO.setBizCode(bizCode);
             instanceDTO.setBizId("skl_" + changeRequest.getId());
-            instanceDTO.setTemplateAlias("skill_level_change"); // 替换为实际模板别名
+            instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
 
             Map<String, Object> formData = new HashMap<>();
             formData.put("type", "skills");

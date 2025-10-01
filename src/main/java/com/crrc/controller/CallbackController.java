@@ -149,12 +149,8 @@ public class CallbackController {
                     return processProfessionalRequest(param);
                 case "skills":
                     return processSkillsRequest(param);
-//                case "careerPath":
-//                    return processCareerPathRequest(param);
 //                case "rewards":
 //                    return processRewardsRequest(param);
-//                case "penalties":
-//                    return processPenaltiesRequest(param);
                 default:
                     return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "不支持的变更类型: " , false);
             }

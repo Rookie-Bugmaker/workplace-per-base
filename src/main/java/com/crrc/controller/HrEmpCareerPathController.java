@@ -1,19 +1,24 @@
 package com.crrc.controller;
 
 
+import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.api.WkCoreAPi;
 import com.crrc.entity.HrEmpCareerPath;
+import com.crrc.entity.LoginUser;
+import com.crrc.entity.dto.UserWithRoleDTO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.UpdateListDTO;
 import com.crrc.service.impl.HrEmpCareerPathServiceImpl;
+import com.crrc.utils.SecurityFrameworkUtils;
 import com.crrc.utils.UpdateListUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -31,6 +36,7 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -49,6 +55,8 @@ public class HrEmpCareerPathController {
 
     @Autowired
     private HrEmpCareerPathServiceImpl hrEmpCareerPathService;
+    @Autowired
+    private WkCoreAPi wkCoreAPi;
 
     private final UpdateListUtil<HrEmpCareerPath, String> updateUtil;
 
@@ -112,18 +120,38 @@ public class HrEmpCareerPathController {
         return new ResponseResult<>(HttpStatus.OK.value(), "创建职业发展通道实体成功", hrEmpCareerPathService.save(createReqVO));
     }
 
-//    @Transactional(rollbackFor = Exception.class)
-//    @PostMapping("/update")
-//    @Operation(summary = "更新职业发展通道实体")
-//    @AuditLog(value = "更新职业发展通道实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
-//    @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
-//    public ResponseResult<Boolean> updateHrEmpCareerPath(@Valid @RequestBody HrEmpCareerPath updateReqVO) {
-//        if(updateReqVO.getId() == null){
-//            updateReqVO.setId(IdUtil.simpleUUID());
-//            return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功", hrEmpCareerPathService.save(updateReqVO));
-//        }
-//        return new ResponseResult<>(HttpStatus.OK.value(), "更新职业发展通道实体成功", hrEmpCareerPathService.saveOrUpdate(updateReqVO));
-//    }
+    @Transactional(rollbackFor = Exception.class)
+    @PostMapping("/update")
+    @Operation(summary = "更新职业发展通道实体")
+    @AuditLog(value = "更新职业发展通道实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
+    @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
+    public ResponseResult<Boolean> updateHrEmpCareerPath(@Valid @RequestBody HrEmpCareerPath updateReqVO) {
+        // 1. 获取当前用户并校验
+        LoginUser currentUser = SecurityFrameworkUtils.getLoginUser();
+        if (currentUser == null) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "获取当前登录用户失败!");
+        }
+
+        // 2. 权限校验 - 检查是否是人力资源部-人才管理专员
+        boolean isHrTalentManager = wkCoreAPi.getUsersWithRoles(Collections.singletonList(currentUser.getUser().getId()))
+                .stream()
+                .findFirst()
+                .map(UserWithRoleDTO::getRoles)
+                .orElse(Collections.emptyList())
+                .stream()
+                .anyMatch(role -> "人力资源部-人才管理专员".equals(role.getName()));
+
+        if (isHrTalentManager) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "当前登录用户无权修改此信息!");
+        }
+
+        // 3. 业务处理
+        if (updateReqVO.getId() == null) {
+            updateReqVO.setId(IdUtil.simpleUUID());
+            return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功", hrEmpCareerPathService.save(updateReqVO));
+        }
+        return new ResponseResult<>(HttpStatus.OK.value(), "更新职业发展通道实体成功", hrEmpCareerPathService.saveOrUpdate(updateReqVO));
+    }
 
 
     @Transactional(rollbackFor = Exception.class)
