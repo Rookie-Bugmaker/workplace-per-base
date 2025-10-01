@@ -8,34 +8,39 @@ import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
-import com.crrc.entity.HrEmpEducation;
-import com.crrc.entity.HrEmpProfessionalQualification;
+import com.crrc.api.WkWorkflowApi;
 import com.crrc.entity.HrEmpSkillLevel;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
+import com.crrc.mongodb.HrEmpSkillsChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.UpdateListDTO;
-import com.crrc.service.impl.HrEmpProfessionalQualificationServiceImpl;
 import com.crrc.service.impl.HrEmpSkillLevelServiceImpl;
 import com.crrc.utils.UpdateListUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import com.alibaba.fastjson.JSON;
+import com.crrc.entity.dto.ProcessInstanceVo;
+import com.crrc.entity.dto.StartProcessInstanceDTO;
+import com.crrc.utils.MyUtils;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
-import java.util.List;
+import java.util.*;
 
 /**
  * <p>
@@ -49,10 +54,16 @@ import java.util.List;
 @RequestMapping("/hrEmpSkillLevel")
 @RefreshScope
 @Tag(name = "职业技能等级", description = "职业技能等级")
+@Slf4j
 public class HrEmpSkillLevelController {
 
     @Autowired
     private HrEmpSkillLevelServiceImpl hrEmpSkillLevelService;
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
+    @Autowired
+    private WkWorkflowApi wkWorkflowApi;
 
     private final UpdateListUtil<HrEmpSkillLevel, String> updateUtil;
 
@@ -172,6 +183,75 @@ public class HrEmpSkillLevelController {
                 .sheet()
                 .doRead();
         return new ResponseResult<>(HttpStatus.OK.value(), "导入职业技能等级报表成功");
+    }
+
+    @PostMapping("/submit-change")
+    @Operation(summary = "提交职业技能等级变更申请")
+    public ResponseResult<String> submitSkillChange(@Valid @RequestBody UpdateListDTO<HrEmpSkillLevel> changeReqVO) {
+        try {
+            // 1. 获取当前数据快照
+            List<HrEmpSkillLevel> originalData = hrEmpSkillLevelService.selectMsg(changeReqVO.getUserCode());
+            log.info("职业技能等级原始数据：{}", JSON.toJSONString(originalData));
+
+            // 2. 创建变更申请文档
+            HrEmpSkillsChangeRequest changeRequest = new HrEmpSkillsChangeRequest();
+            changeRequest.setId(IdUtil.simpleUUID());
+            changeRequest.setUserCode(changeReqVO.getUserCode());
+            changeRequest.setOriginalData(originalData);
+            changeRequest.setChangedData(changeReqVO.getList());
+            changeRequest.setStatus("PENDING");
+
+            // 3. 保存到MongoDB
+            mongoTemplate.save(changeRequest);
+
+            // 4. 启动审批流程
+            StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
+            String bizCode = "SKL-" + System.currentTimeMillis();
+            instanceDTO.setBizCode(bizCode);
+            instanceDTO.setBizId("skl_" + changeRequest.getId());
+            instanceDTO.setTemplateAlias("skill_level_change"); // 替换为实际模板别名
+
+            Map<String, Object> formData = new HashMap<>();
+            formData.put("type", "skills");
+            formData.put("SkillLevels", MyUtils.convertToMapList(changeReqVO.getList()));
+            instanceDTO.setFormData(formData);
+
+            ProcessInstanceVo processInstanceVo = wkWorkflowApi.startProcessInstanceNew(instanceDTO);
+
+            // 5. 更新流程实例ID
+            changeRequest.setProcessInstanceId(processInstanceVo.getProcessInstanceId());
+            mongoTemplate.save(changeRequest);
+
+            return new ResponseResult<>(HttpStatus.OK.value(), "职业技能等级变更申请已提交", changeRequest.getId());
+        } catch (Exception e) {
+            log.error("提交职业技能等级变更申请失败: {}", e.getMessage(), e);
+            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "提交失败");
+        }
+    }
+
+    // 获取变更详情的Controller方法
+    @GetMapping("/change-detail")
+    public ResponseResult<Map<String, Object>> getSkillChangeDetail(@RequestParam String requestId) {
+        try {
+            requestId = MyUtils.subPk(requestId);
+            HrEmpSkillsChangeRequest request = mongoTemplate.findById(requestId, HrEmpSkillsChangeRequest.class);
+
+            if (request == null) {
+                return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "变更申请不存在");
+            }
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("originalData", MyUtils.convertToMapList(request.getOriginalData()));
+            result.put("changedData", MyUtils.convertToMapList(request.getChangedData()));
+            result.put("requestId", requestId);
+            result.put("createTime", request.getCreateTime());
+            result.put("status", request.getStatus());
+
+            return new ResponseResult<>(HttpStatus.OK.value(), "成功", result);
+        } catch (Exception e) {
+            log.error("获取职业技能等级变更详情失败: {}", e.getMessage(), e);
+            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "获取详情失败");
+        }
     }
 
 }

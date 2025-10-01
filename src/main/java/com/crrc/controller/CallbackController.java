@@ -2,14 +2,10 @@ package com.crrc.controller;
 
 import cn.hutool.core.util.IdUtil;
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.crrc.annotation.IgnoreTenant;
 import com.crrc.client.WorkFlowClient;
 import com.crrc.feign.WorkflowApi;
-import com.crrc.mongodb.HrEmpBasicChangeRequest;
-import com.crrc.mongodb.HrEmpEduChangeRequest;
-import com.crrc.mongodb.HrEmpFamMemberChangeRequest;
-import com.crrc.mongodb.HrEmpProfessionalChangeRequest;
+import com.crrc.mongodb.*;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.service.impl.*;
@@ -151,8 +147,8 @@ public class CallbackController {
                     return processFamilyRequest(param);
                 case "professional":
                     return processProfessionalRequest(param);
-//                case "skills":
-//                    return processSkillsRequest(param);
+                case "skills":
+                    return processSkillsRequest(param);
 //                case "careerPath":
 //                    return processCareerPathRequest(param);
 //                case "rewards":
@@ -167,6 +163,71 @@ public class CallbackController {
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "处理失败", false);
         }
     }
+
+    /**
+     * 处理职业技能等级变更请求
+     */
+    private ResponseResult<Boolean> processSkillsRequest(WorkflowWriteBackParamDTO param) {
+        Query query = new Query(Criteria.where("_id").is(param.getBizId()));
+        HrEmpSkillsChangeRequest request = mongoTemplate.findOne(query, HrEmpSkillsChangeRequest.class);
+
+        if (request == null) {
+            return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "职业技能等级变更申请不存在", false);
+        }
+
+        return processRequest(
+                request,
+                request.getStatus(),
+                request.getUserCode(),
+                request::setStatus,
+                () -> updateHrEmpSkillsNew(request.getChangedData()),
+                APPROVED::equals,
+                param.getProcessInstanceStatus(),
+                UpdateType.SKILLS
+        );
+    }
+
+    /**
+     * 更新职业技能等级信息
+     */
+    private void updateHrEmpSkillsNew(List<HrEmpSkillLevel> changedData) {
+        if (changedData == null || changedData.isEmpty()) {
+            return;
+        }
+
+        // 获取用户编码
+        String userCode = changedData.get(0).getUserCode();
+
+        // 查询现有数据
+        List<HrEmpSkillLevel> existList = hrEmpSkillLevelService.selectMsg(userCode);
+        Set<String> existIds = existList.stream()
+                .map(HrEmpSkillLevel::getId)
+                .collect(Collectors.toSet());
+
+        // 准备新增、更新和删除的数据
+        List<HrEmpSkillLevel> toSaveOrUpdate = new ArrayList<>();
+
+        for (HrEmpSkillLevel skill : changedData) {
+            if (skill.getId() == null) {
+                // 生成新ID
+                skill.setId(IdUtil.simpleUUID());
+            }
+            skill.setUserCode(userCode);
+            toSaveOrUpdate.add(skill);
+            // 移除不需要删除的ID
+            existIds.remove(skill.getId());
+        }
+
+        // 批量保存或更新
+        if (!toSaveOrUpdate.isEmpty()) {
+            hrEmpSkillLevelService.saveOrUpdateBatch(toSaveOrUpdate);
+        }
+        // 批量删除
+        if (!existIds.isEmpty()) {
+            hrEmpSkillLevelService.removeByIds(existIds);
+        }
+    }
+
 
     /**
      * 处理专业职务任职资格变更请求
