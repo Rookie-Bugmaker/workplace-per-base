@@ -2,6 +2,8 @@ package com.crrc.controller;
 
 
 import cn.hutool.core.util.IdUtil;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.crrc.annotation.IgnoreTenant;
 import com.crrc.api.WkWorkflowApi;
@@ -300,6 +302,7 @@ public class HrEmpEducationController {
         try {
             // 1. 获取当前数据快照
             List<HrEmpEducation> originalData = getMsg(changeReqVO.getUserCode()).getData();
+            log.info("教育经历原始数据：{}", JSON.toJSONString(originalData, SerializerFeature.PrettyFormat));
 //            if (originalData.isEmpty()) {
 //                return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "员工教育经历不存在");
 //            }
