@@ -1,6 +1,7 @@
 package com.crrc.controller;
 
 
+import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
@@ -14,6 +15,7 @@ import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.dto.HrEmpPenaltiesDTO;
 import com.crrc.pojo.dto.UpdateListDTO;
 import com.crrc.service.impl.HrEmpPenaltiesServiceImpl;
 import com.crrc.utils.SecurityFrameworkUtils;
@@ -22,6 +24,7 @@ import com.crrc.entity.dto.UserWithRoleDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
@@ -35,8 +38,11 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -50,6 +56,7 @@ import java.util.List;
 @RequestMapping("/hrEmpPenalties")
 @RefreshScope
 @Tag(name = "员工惩处信息表", description = "员工惩处信息表")
+@Slf4j
 public class HrEmpPenaltiesController {
 
     @Autowired
@@ -124,29 +131,92 @@ public class HrEmpPenaltiesController {
     @PostMapping("/update")
     @Operation(summary = "更新员工惩处信息表实体")
     @AuditLog(value = "更新员工惩处信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
-    @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
-    public ResponseResult<Boolean> updateHrEmpPenalties(@Valid @RequestBody UpdateListDTO<HrEmpPenalties> updateReqVO) {
-        // 1. 获取当前用户并校验
-        LoginUser currentUser = SecurityFrameworkUtils.getLoginUser();
-        if (currentUser == null) {
-            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "获取当前登录用户失败!");
+    @Parameter(name = "updateReqVO", description = "需要更新的实体对象", required = true)
+    public ResponseResult<Boolean> updateHrEmpPenalties(@Valid @RequestBody HrEmpPenaltiesDTO updateReqVO) {
+        try {
+            // 1. 获取当前用户并校验
+            LoginUser currentUser = SecurityFrameworkUtils.getLoginUser();
+            if (currentUser == null) {
+                log.warn("获取当前登录用户失败!");
+                return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "获取当前登录用户失败!");
+            }
+            log.info("当前操作用户ID: {}, 用户名: {}", currentUser.getUser().getId(), currentUser.getUser().getUserName());
+
+            // 2. 权限校验 - 检查是否是人力资源部-人事管理专员
+            log.info("开始权限校验，用户ID: {}", currentUser.getUser().getId());
+            List<UserWithRoleDTO> usersWithRoles = wkCoreAPi.getUsersWithRoles(
+                    Collections.singletonList(currentUser.getUser().getId()));
+
+            boolean isHrPersonnelManager = usersWithRoles.stream()
+                    .findFirst()
+                    .map(UserWithRoleDTO::getRoles)
+                    .orElse(Collections.emptyList())
+                    .stream()
+                    .anyMatch(role -> "人力资源部-人事管理专员".equals(role.getName()));
+
+            if (!isHrPersonnelManager) {
+                log.warn("权限校验失败，用户缺少'人力资源部-人事管理专员'角色");
+                return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "当前登录用户无权修改惩处信息!");
+            }
+            log.info("权限校验通过，用户拥有'人力资源部-人事管理专员'角色");
+
+            // 3. 业务处理 - 增删改三合一
+            return processHrEmpPenaltiesUpdate(updateReqVO);
+        } catch (Exception e) {
+            log.error("更新惩处信息时出错：\n入参：{}\n错误日志：{}", updateReqVO, e.getMessage(), e);
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "更新员工惩处信息表实体失败");
+        }
+    }
+
+    /**
+     * 处理惩处信息更新逻辑（增删改三合一）
+     */
+    private ResponseResult<Boolean> processHrEmpPenaltiesUpdate(HrEmpPenaltiesDTO updateReqVO) {
+        log.info("开始处理惩处信息更新，员工编码: {}", updateReqVO.getUserCode());
+
+        // 查询现有数据
+        List<HrEmpPenalties> existList = hrEmpPenaltiesService.selectMsg(updateReqVO.getUserCode());
+        Set<String> existIds = existList.stream()
+                .map(HrEmpPenalties::getId)
+                .collect(Collectors.toSet());
+        log.info("查询到现有惩处记录数量: {}", existList.size());
+
+        // 准备新增/更新的数据
+        List<HrEmpPenalties> toSaveOrUpdate = new ArrayList<>();
+        int newCount = 0, updateCount = 0;
+
+        for (HrEmpPenalties penalty : updateReqVO.getList()) {
+            // 生成ID（新增记录）
+            if (penalty.getId() == null) {
+                penalty.setId(IdUtil.simpleUUID());
+                newCount++;
+            } else {
+                updateCount++;
+            }
+
+            // 设置员工编码
+            penalty.setUserCode(updateReqVO.getUserCode());
+            toSaveOrUpdate.add(penalty);
+
+            // 从待删除集合中移除当前ID
+            existIds.remove(penalty.getId());
+        }
+        log.info("待处理记录 - 新增: {}, 更新: {}", newCount, updateCount);
+
+        // 批量保存或更新
+        if (!toSaveOrUpdate.isEmpty()) {
+            log.info("开始批量保存/更新 {} 条惩处记录", toSaveOrUpdate.size());
+            hrEmpPenaltiesService.saveOrUpdateBatch(toSaveOrUpdate);
         }
 
-        // 2. 权限校验 - 检查是否是人力资源部-人事管理专员
-        boolean isHrPersonnelManager = wkCoreAPi.getUsersWithRoles(Collections.singletonList(currentUser.getUser().getId()))
-                .stream()
-                .findFirst()
-                .map(UserWithRoleDTO::getRoles)
-                .orElse(Collections.emptyList())
-                .stream()
-                .anyMatch(role -> "人力资源部-人事管理专员".equals(role.getName()));
-
-        if (!isHrPersonnelManager) {
-            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "当前登录用户无权修改惩处信息!");
+        // 批量删除（本次未传入的记录）
+        if (!existIds.isEmpty()) {
+            log.info("开始批量删除 {} 条惩处记录", existIds.size());
+            hrEmpPenaltiesService.removeByIds(existIds);
         }
 
-        // 3. 业务处理 - 调用updateUtil.update方法
-        return updateUtil.update(updateReqVO);
+        log.info("惩处信息更新处理完成");
+        return new ResponseResult<>(HttpStatus.OK.value(), "更新员工惩处信息表实体成功", true);
     }
 
     @Transactional(rollbackFor = Exception.class)
