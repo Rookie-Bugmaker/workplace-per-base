@@ -148,6 +148,7 @@ public class HrEmpEducationController {
                 hrEmpEducation.setMajor("未知专业");
             }
         }
+        log.info("getDetails查询回来的教育经历原始数据：{}", JSON.toJSONString(result, SerializerFeature.PrettyFormat));
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工教育信息表实体成功", result);
     }
 
@@ -302,7 +303,7 @@ public class HrEmpEducationController {
         try {
             // 1. 获取当前数据快照
             List<HrEmpEducation> originalData = getMsg(changeReqVO.getUserCode()).getData();
-            log.info("教育经历原始数据：{}", JSON.toJSONString(originalData, SerializerFeature.PrettyFormat));
+            log.info("提交审批流时查询回来的教育经历原始数据：{}", JSON.toJSONString(originalData, SerializerFeature.PrettyFormat));
 //            if (originalData.isEmpty()) {
 //                return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "员工教育经历不存在");
 //            }
