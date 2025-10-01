@@ -149,14 +149,78 @@ public class CallbackController {
                     return processProfessionalRequest(param);
                 case "skills":
                     return processSkillsRequest(param);
-//                case "rewards":
-//                    return processRewardsRequest(param);
+                case "rewards":
+                    return processRewardsRequest(param);
                 default:
                     return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "不支持的变更类型: " , false);
             }
         } catch (Exception e) {
             log.error("审批回调处理失败: {}", e.getMessage(), e);
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "处理失败", false);
+        }
+    }
+
+    /**
+     * 处理员工奖励情况变更请求
+     */
+    private ResponseResult<Boolean> processRewardsRequest(WorkflowWriteBackParamDTO param) {
+        Query query = new Query(Criteria.where("_id").is(param.getBizId()));
+        HrEmpRewardsChangeRequest request = mongoTemplate.findOne(query, HrEmpRewardsChangeRequest.class);
+
+        if (request == null) {
+            return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "员工奖励情况变更申请不存在", false);
+        }
+
+        return processRequest(
+                request,
+                request.getStatus(),
+                request.getUserCode(),
+                request::setStatus,
+                () -> updateHrEmpRewardsNew(request.getChangedData()),
+                APPROVED::equals,
+                param.getProcessInstanceStatus(),
+                UpdateType.REWARDS
+        );
+    }
+
+    /**
+     * 更新员工奖励情况信息
+     */
+    private void updateHrEmpRewardsNew(List<HrEmpRewards> changedData) {
+        if (changedData == null || changedData.isEmpty()) {
+            return;
+        }
+
+        // 获取用户编码
+        String userCode = changedData.get(0).getUserCode();
+
+        // 查询现有数据
+        List<HrEmpRewards> existList = hrEmpRewardsService.selectMsg(userCode);
+        Set<String> existIds = existList.stream()
+                .map(HrEmpRewards::getId)
+                .collect(Collectors.toSet());
+
+        // 准备新增、更新和删除的数据
+        List<HrEmpRewards> toSaveOrUpdate = new ArrayList<>();
+
+        for (HrEmpRewards reward : changedData) {
+            if (reward.getId() == null) {
+                // 生成新ID
+                reward.setId(IdUtil.simpleUUID());
+            }
+            reward.setUserCode(userCode);
+            toSaveOrUpdate.add(reward);
+            // 移除不需要删除的ID
+            existIds.remove(reward.getId());
+        }
+
+        // 批量保存或更新
+        if (!toSaveOrUpdate.isEmpty()) {
+            hrEmpRewardsService.saveOrUpdateBatch(toSaveOrUpdate);
+        }
+        // 批量删除
+        if (!existIds.isEmpty()) {
+            hrEmpRewardsService.removeByIds(existIds);
         }
     }
 
