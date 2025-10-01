@@ -9,6 +9,7 @@ import com.crrc.feign.WorkflowApi;
 import com.crrc.mongodb.HrEmpBasicChangeRequest;
 import com.crrc.mongodb.HrEmpEduChangeRequest;
 import com.crrc.mongodb.HrEmpFamMemberChangeRequest;
+import com.crrc.mongodb.HrEmpProfessionalChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.service.impl.*;
@@ -148,8 +149,8 @@ public class CallbackController {
                     return processEduRequest(param);
                 case "family":
                     return processFamilyRequest(param);
-//                case "professional":
-//                    return processProfessionalRequest(param);
+                case "professional":
+                    return processProfessionalRequest(param);
 //                case "skills":
 //                    return processSkillsRequest(param);
 //                case "careerPath":
@@ -164,6 +165,70 @@ public class CallbackController {
         } catch (Exception e) {
             log.error("审批回调处理失败: {}", e.getMessage(), e);
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "处理失败", false);
+        }
+    }
+
+    /**
+     * 处理专业职务任职资格变更请求
+     */
+    private ResponseResult<Boolean> processProfessionalRequest(WorkflowWriteBackParamDTO param) {
+        Query query = new Query(Criteria.where("_id").is(param.getBizId()));
+        HrEmpProfessionalChangeRequest request = mongoTemplate.findOne(query, HrEmpProfessionalChangeRequest.class);
+
+        if (request == null) {
+            return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "专业职务任职资格变更申请不存在", false);
+        }
+
+        return processRequest(
+                request,
+                request.getStatus(),
+                request.getUserCode(),
+                request::setStatus,
+                () -> updateHrEmpProfessionalNew(request.getChangedData()),
+                APPROVED::equals,
+                param.getProcessInstanceStatus(),
+                UpdateType.PROFESSIONAL
+        );
+    }
+
+    /**
+     * 更新专业职务任职资格信息
+     */
+    private void updateHrEmpProfessionalNew(List<HrEmpProfessionalQualification> changedData) {
+        if (changedData == null || changedData.isEmpty()) {
+            return;
+        }
+
+        // 获取用户编码
+        String userCode = changedData.get(0).getUserCode();
+
+        // 查询现有数据
+        List<HrEmpProfessionalQualification> existList = hrEmpProfessionalQualificationService.selectMsg(userCode);
+        Set<String> existIds = existList.stream()
+                .map(HrEmpProfessionalQualification::getId)
+                .collect(Collectors.toSet());
+
+        // 准备新增、更新和删除的数据
+        List<HrEmpProfessionalQualification> toSaveOrUpdate = new ArrayList<>();
+
+        for (HrEmpProfessionalQualification qualification : changedData) {
+            if (qualification.getId() == null) {
+                // 生成新ID
+                qualification.setId(IdUtil.simpleUUID());
+            }
+            qualification.setUserCode(userCode);
+            toSaveOrUpdate.add(qualification);
+            // 移除不需要删除的ID
+            existIds.remove(qualification.getId());
+        }
+
+        // 批量保存或更新
+        if (!toSaveOrUpdate.isEmpty()) {
+            hrEmpProfessionalQualificationService.saveOrUpdateBatch(toSaveOrUpdate);
+        }
+        // 批量删除
+        if (!existIds.isEmpty()) {
+            hrEmpProfessionalQualificationService.removeByIds(existIds);
         }
     }
 
