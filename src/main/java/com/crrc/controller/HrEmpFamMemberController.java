@@ -5,16 +5,26 @@ import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.api.WkWorkflowApi;
 import com.crrc.entity.HrEmpFamMember;
+import com.crrc.entity.dto.ProcessInstanceVo;
+import com.crrc.entity.dto.StartProcessInstanceDTO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
+import com.crrc.mongodb.HrEmpBasicChangeRequest;
+import com.crrc.mongodb.HrEmpEduChangeRequest;
+import com.crrc.mongodb.HrEmpFamMemberChangeRequest;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpFamMemberDTO;
 import com.crrc.service.impl.HrEmpFamMemberServiceImpl;
+import com.crrc.utils.MyUtils;
 import com.crrc.utils.SystemConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -22,6 +32,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -33,9 +44,7 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -55,6 +64,10 @@ public class HrEmpFamMemberController {
 
     @Autowired
     private HrEmpFamMemberServiceImpl hrEmpFamMemberService;
+    @Autowired
+    private MongoTemplate mongoTemplate;
+    @Autowired
+    private WkWorkflowApi wkWorkflowApi;
 
 
     @GetMapping("/getDetails")
@@ -211,4 +224,94 @@ public class HrEmpFamMemberController {
         return new ResponseResult<>(HttpStatus.OK.value(), "导入员工主要家庭成员社会关系表报表成功");
     }
 
+
+    @PostMapping("/submit-change")
+    @Operation(summary = "提交员工家庭成员变更申请")
+    public ResponseResult<String> submitChange(@Valid @RequestBody HrEmpFamMemberDTO changeReqVO) {
+        try {
+            // 1. 获取当前数据快照
+            List<HrEmpFamMember> originalData = hrEmpFamMemberService.selectMsg(changeReqVO.getUserCode());
+            log.info("提交审批流时查询回来的家庭成员原始数据：{}", JSON.toJSONString(originalData, SerializerFeature.PrettyFormat));
+
+            // 2. 验证紧急联系人设置
+            boolean isEmergency = true;
+            int emergencyNum = 0;
+            for (HrEmpFamMember member : changeReqVO.getList()) {
+                // 判断紧急联系人
+                if(SystemConstants.TRUE_FLAG.equals(member.getIsEmergencyContact())) {
+                    emergencyNum++;
+                    isEmergency = false;
+                }
+                // 当紧急联系人数量多余1时
+                if(emergencyNum > 1) {
+                    return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "紧急联系人数量不唯一！");
+                }
+                member.setUserCode(changeReqVO.getUserCode());
+            }
+            // 没有紧急联系人,且家庭成员列表不为空时
+            if(isEmergency && !changeReqVO.getList().isEmpty()) {
+                return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "录入员工主要家庭成员中未设置紧急联系人！");
+            }
+
+            // 3. 创建变更申请文档
+            HrEmpFamMemberChangeRequest changeRequest = new HrEmpFamMemberChangeRequest();
+            changeRequest.setId(IdUtil.simpleUUID());
+            changeRequest.setUserCode(changeReqVO.getUserCode());
+            changeRequest.setOriginalData(originalData);
+            changeRequest.setChangedData(changeReqVO.getList());
+
+            // 4. 保存到MongoDB
+            mongoTemplate.save(changeRequest);
+            log.info("家庭成员变更请求已保存: {}", changeRequest);
+
+            // 5. 启动审批流程
+            StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
+            String bizCode = "FAM-" + System.currentTimeMillis();
+            instanceDTO.setBizCode(bizCode);
+            instanceDTO.setBizId("fam_" + changeRequest.getId());
+            instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
+
+            Map<String, Object> formData = new HashMap<>();
+            formData.put("type", "family");
+            formData.put("FamilyMembers", MyUtils.convertToMapList(changeReqVO.getList()));
+            instanceDTO.setFormData(formData);
+
+            ProcessInstanceVo processInstanceVo = wkWorkflowApi.startProcessInstanceNew(instanceDTO);
+
+            // 6. 更新流程实例ID
+            changeRequest.setProcessInstanceId(processInstanceVo.getProcessInstanceId());
+            mongoTemplate.save(changeRequest);
+
+            return new ResponseResult<>(HttpStatus.OK.value(), "家庭成员变更申请已提交", changeRequest.getId());
+        } catch (Exception e) {
+            log.error("提交家庭成员变更申请失败: {}", e.getMessage(), e);
+            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "提交失败");
+        }
+    }
+
+    @GetMapping("/change-detail")
+    public ResponseResult<Map<String, Object>> getChangeDetail(@RequestParam String requestId) {
+        try {
+            log.info("家庭成员变更请求ID: {}", requestId);
+            requestId = MyUtils.subPk(requestId);
+
+            // 1. 从MongoDB获取变更请求
+            HrEmpFamMemberChangeRequest request = mongoTemplate.findById(requestId, HrEmpFamMemberChangeRequest.class);
+            if (request == null) {
+                return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "变更申请不存在");
+            }
+
+            // 2. 构建返回结果
+            Map<String, Object> result = new HashMap<>();
+            result.put("originalData", MyUtils.convertToMapList(request.getOriginalData()));
+            result.put("changedData", MyUtils.convertToMapList(request.getChangedData()));
+            result.put("requestId", requestId);
+            result.put("createTime", request.getCreateTime());
+
+            return new ResponseResult<>(HttpStatus.OK.value(), "成功", result);
+        } catch (Exception e) {
+            log.error("获取家庭成员变更详情失败: {}", e.getMessage(), e);
+            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "获取详情失败");
+        }
+    }
 }

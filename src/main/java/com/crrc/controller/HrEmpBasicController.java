@@ -21,6 +21,7 @@ import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
 import com.crrc.service.impl.*;
 import com.crrc.utils.MyUtils;
+import com.crrc.utils.SystemConstants;
 import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -57,11 +58,6 @@ import java.util.stream.Collectors;
 @RefreshScope
 @Tag(name = "员工基本信息表", description = "员工基本信息表")
 public class HrEmpBasicController {
-
-    /**
-     * 流程模板编码，在框架界面中规定
-      */
-    private static final String PROCESS_TEMPLATE_ALIAS = "userinfo";
 
     private static final String APPROVED = "APPROVED";
 
@@ -168,7 +164,7 @@ public class HrEmpBasicController {
             // 封装数据主键，存在MongoDB里面的生成的simpleUUID
             instanceDTO.setBizId("basic_" + changeRequest.getId());
             // 封装业务模板编码
-            instanceDTO.setTemplateAlias(PROCESS_TEMPLATE_ALIAS);
+            instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
             // 封装业务表单数据，20250924上线暂时没用，如果之后需要修改审批流分支，需使用该数据
             Map<String, Object> formData = new HashMap<>();
             formData.put("type","basic");

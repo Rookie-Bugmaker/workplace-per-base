@@ -20,4 +20,9 @@ public class SystemConstants {
      * 定义为“否”的标记
      */
     public static final String FALSE_FLAG = "0";
+
+    /**
+     * 流程模板编码，在框架界面中规定
+     */
+    public static final String PROCESS_TEMPLATE_ALIAS = "userinfo";
 }

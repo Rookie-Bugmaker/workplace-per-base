@@ -21,8 +21,10 @@ import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.mongodb.HrEmpBasicChangeRequest;
 import com.crrc.mongodb.HrEmpEduChangeRequest;
+import com.crrc.mongodb.HrEmpFamMemberChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpEducationDTO;
+import com.crrc.pojo.dto.HrEmpFamMemberDTO;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.service.impl.HrEmpEducationServiceImpl;
 import com.crrc.service.impl.HrEmpMajorInfoServiceImpl;
@@ -79,9 +81,6 @@ public class HrEmpEducationController {
     private MongoTemplate mongoTemplate;
     @Autowired
     private WkWorkflowApi wkWorkflowApi;
-
-    // 流程模板编码，在框架界面中规定
-    private static final String PROCESS_TEMPLATE_ALIAS = "userinfo";
 
 
     @GetMapping("/getSchoolInfo")
@@ -349,7 +348,7 @@ public class HrEmpEducationController {
             // 封装数据主键，存在MongoDB里面的生成的simpleUUID
             instanceDTO.setBizId("edu_" +changeRequest.getId());
             // 封装业务模板编码
-            instanceDTO.setTemplateAlias(PROCESS_TEMPLATE_ALIAS);
+            instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
             // 封装业务表单数据，20250924上线暂时没用，如果之后需要修改审批流分支，需使用该数据
             Map<String, Object> formData = new HashMap<>();
             formData.put("type","edu");
