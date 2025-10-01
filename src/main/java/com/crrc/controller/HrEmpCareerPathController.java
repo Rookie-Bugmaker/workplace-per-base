@@ -23,6 +23,7 @@ import com.crrc.utils.UpdateListUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
@@ -51,6 +52,7 @@ import java.util.List;
 @RequestMapping("/hrEmpCareerPath")
 @RefreshScope
 @Tag(name = "职业发展通道", description = "职业发展通道")
+@Slf4j
 public class HrEmpCareerPathController {
 
     @Autowired
@@ -120,6 +122,40 @@ public class HrEmpCareerPathController {
         return new ResponseResult<>(HttpStatus.OK.value(), "创建职业发展通道实体成功", hrEmpCareerPathService.save(createReqVO));
     }
 
+//    @Transactional(rollbackFor = Exception.class)
+//    @PostMapping("/update")
+//    @Operation(summary = "更新职业发展通道实体")
+//    @AuditLog(value = "更新职业发展通道实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
+//    @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
+//    public ResponseResult<Boolean> updateHrEmpCareerPath(@Valid @RequestBody HrEmpCareerPath updateReqVO) {
+//        // 1. 获取当前用户并校验
+//        LoginUser currentUser = SecurityFrameworkUtils.getLoginUser();
+//        if (currentUser == null) {
+//            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "获取当前登录用户失败!");
+//        }
+//
+//        // 2. 权限校验 - 检查是否是人力资源部-人才管理专员
+//        boolean isHrTalentManager = wkCoreAPi.getUsersWithRoles(Collections.singletonList(currentUser.getUser().getId()))
+//                .stream()
+//                .findFirst()
+//                .map(UserWithRoleDTO::getRoles)
+//                .orElse(Collections.emptyList())
+//                .stream()
+//                .anyMatch(role -> "人力资源部-人才管理专员".equals(role.getName()));
+//
+//
+//        if (isHrTalentManager) {
+//            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "当前登录用户无权修改此信息!");
+//        }
+//
+//        // 3. 业务处理
+//        if (updateReqVO.getId() == null) {
+//            updateReqVO.setId(IdUtil.simpleUUID());
+//            return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功", hrEmpCareerPathService.save(updateReqVO));
+//        }
+//        return new ResponseResult<>(HttpStatus.OK.value(), "更新职业发展通道实体成功", hrEmpCareerPathService.saveOrUpdate(updateReqVO));
+//    }
+
     @Transactional(rollbackFor = Exception.class)
     @PostMapping("/update")
     @Operation(summary = "更新职业发展通道实体")
@@ -127,14 +163,43 @@ public class HrEmpCareerPathController {
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
     public ResponseResult<Boolean> updateHrEmpCareerPath(@Valid @RequestBody HrEmpCareerPath updateReqVO) {
         // 1. 获取当前用户并校验
-        LoginUser currentUser = SecurityFrameworkUtils.getLoginUser();
+        LoginUser currentUser = getAndValidateCurrentUser();
         if (currentUser == null) {
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "获取当前登录用户失败!");
         }
 
-        // 2. 权限校验 - 检查是否是人力资源部-人才管理专员
-        boolean isHrTalentManager = wkCoreAPi.getUsersWithRoles(Collections.singletonList(currentUser.getUser().getId()))
-                .stream()
+        // 2. 权限校验
+        if (!hasHrTalentManagerPermission(currentUser)) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "当前登录用户无权修改此信息!");
+        }
+
+        // 3. 业务处理
+        return processHrEmpCareerPathUpdate(updateReqVO);
+    }
+
+    /**
+     * 获取并验证当前用户
+     */
+    private LoginUser getAndValidateCurrentUser() {
+        LoginUser currentUser = SecurityFrameworkUtils.getLoginUser();
+        if (currentUser == null) {
+            log.info("获取当前登录用户失败，用户未登录");
+        } else {
+            log.info("当前操作用户ID: {}, 用户名: {}", currentUser.getUser().getId(), currentUser.getUser().getUserName());
+        }
+        return currentUser;
+    }
+
+    /**
+     * 检查是否有人力资源部-人才管理专员权限
+     */
+    private boolean hasHrTalentManagerPermission(LoginUser currentUser) {
+        log.info("开始权限校验，用户ID: {}", currentUser.getUser().getId());
+
+        List<UserWithRoleDTO> usersWithRoles = wkCoreAPi.getUsersWithRoles(
+                Collections.singletonList(currentUser.getUser().getId()));
+
+        boolean isHrTalentManager = usersWithRoles.stream()
                 .findFirst()
                 .map(UserWithRoleDTO::getRoles)
                 .orElse(Collections.emptyList())
@@ -142,15 +207,30 @@ public class HrEmpCareerPathController {
                 .anyMatch(role -> "人力资源部-人才管理专员".equals(role.getName()));
 
         if (isHrTalentManager) {
-            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "当前登录用户无权修改此信息!");
+            log.info("权限校验通过，用户拥有'人力资源部-人才管理专员'角色");
+        } else {
+            log.warn("权限校验失败，用户缺少'人力资源部-人才管理专员'角色");
         }
 
-        // 3. 业务处理
+        return isHrTalentManager;
+    }
+
+    /**
+     * 处理职业发展通道更新逻辑
+     */
+    private ResponseResult<Boolean> processHrEmpCareerPathUpdate(HrEmpCareerPath updateReqVO) {
         if (updateReqVO.getId() == null) {
+            log.info("开始创建新的职业发展通道记录");
             updateReqVO.setId(IdUtil.simpleUUID());
-            return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功", hrEmpCareerPathService.save(updateReqVO));
+            boolean result = hrEmpCareerPathService.save(updateReqVO);
+            log.info("创建职业发展通道记录结果: {}", result);
+            return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功", result);
         }
-        return new ResponseResult<>(HttpStatus.OK.value(), "更新职业发展通道实体成功", hrEmpCareerPathService.saveOrUpdate(updateReqVO));
+
+        log.info("开始更新职业发展通道记录，ID: {}", updateReqVO.getId());
+        boolean result = hrEmpCareerPathService.saveOrUpdate(updateReqVO);
+        log.info("更新职业发展通道记录结果: {}", result);
+        return new ResponseResult<>(HttpStatus.OK.value(), "更新职业发展通道实体成功", result);
     }
 
 
