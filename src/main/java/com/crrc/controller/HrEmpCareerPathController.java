@@ -155,16 +155,6 @@ public class HrEmpCareerPathController {
 
 
     @Transactional(rollbackFor = Exception.class)
-    @PostMapping("/update")
-    @Operation(summary = "更新职业发展通道实体")
-    @AuditLog(value = "更新职业发展通道实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
-    @Parameter(name = "updateReqVO", description = "需要更新的实体对象", required = true)
-    public ResponseResult<Boolean> updateHrEmpCareerPath( @Valid @RequestBody UpdateListDTO<HrEmpCareerPath> updateReqVO) {
-        return updateUtil.update(updateReqVO);
-    }
-
-
-    @Transactional(rollbackFor = Exception.class)
     @GetMapping("/delete")
     @Operation(summary = "删除职业发展通道实体")
     @AuditLog(value = "删除职业发展通道实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_DELETE)
