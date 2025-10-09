@@ -2,6 +2,7 @@ package com.crrc.controller;
 
 import cn.hutool.core.util.IdUtil;
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.crrc.annotation.IgnoreTenant;
 import com.crrc.client.WorkFlowClient;
 import com.crrc.feign.WorkflowApi;
@@ -381,11 +382,15 @@ public class CallbackController {
      */
     private ResponseResult<Boolean> processEduRequest(WorkflowWriteBackParamDTO param) {
         Query query = new Query(Criteria.where("_id").is(param.getBizId()));
+
+        log.info("流程实例ID：{}", param.getBizId());
         HrEmpEduChangeRequest request = mongoTemplate.findOne(query, HrEmpEduChangeRequest.class);
 
         if (request == null) {
             return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "教育信息变更申请不存在", false);
         }
+
+        log.info("等待更新的教育经历变更数据：{}", JSON.toJSONString(request.getChangedData(), SerializerFeature.PrettyFormat));
 
         return processRequest(
                 request,
