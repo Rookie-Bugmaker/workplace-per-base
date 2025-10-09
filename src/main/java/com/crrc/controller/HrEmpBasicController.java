@@ -220,7 +220,7 @@ public class HrEmpBasicController {
     @Operation(summary = "更新员工基本信息表实体")
     @AuditLog(value = "更新员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
-    public ResponseResult<String> updateHrEmpBasic(HrEmpBasicDTO updateReqVO) {
+    public ResponseResult<String> updateHrEmpBasic(@Valid @RequestBody HrEmpBasicDTO updateReqVO) {
         log.info("进入更新调用成功");
         //基本信息中，健康状况，户口相关需要跨表保存
         try {
