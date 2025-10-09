@@ -25,6 +25,7 @@ import com.crrc.service.impl.HrEmpEducationServiceImpl;
 import com.crrc.service.impl.HrEmpMajorInfoServiceImpl;
 import com.crrc.service.impl.HrEmpSchoolInfoServiceImpl;
 import com.crrc.utils.MyUtils;
+import com.crrc.utils.RoleUtils;
 import com.crrc.utils.SystemConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -184,12 +185,11 @@ public class HrEmpEducationController {
         return new ResponseResult<>(HttpStatus.OK.value(), "创建员工教育信息表实体成功", hrEmpEducationService.save(createReqVO));
     }
 
-    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/update")
     @Operation(summary = "更新员工教育信息表实体")
     @AuditLog(value = "更新员工教育信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
-    public ResponseResult<Boolean> updateHrEmpEducation(@Valid @RequestBody HrEmpEducationDTO updateReqVO) {
+    public ResponseResult<String> updateHrEmpEducation(@Valid @RequestBody HrEmpEducationDTO updateReqVO) {
         try {
             // 查询现有数据
             List<HrEmpEducation> existList = hrEmpEducationService.selectMsg(updateReqVO.getUserCode());
@@ -205,7 +205,8 @@ public class HrEmpEducationController {
             int isHighestNum = 0;
             for (HrEmpEducation hrEmpEducation : updateReqVO.getList()) {
                 if (hrEmpEducation.getId() == null) {
-                    hrEmpEducation.setId(IdUtil.simpleUUID()); // 生成新ID
+                    // 生成新ID
+                    hrEmpEducation.setId(IdUtil.simpleUUID());
                 }
                 // 判断最高学历
                 if(SystemConstants.TRUE_FLAG.equals(hrEmpEducation.getIsHighestEducation())) {
@@ -218,7 +219,8 @@ public class HrEmpEducationController {
                 }
                 hrEmpEducation.setUserCode(updateReqVO.getUserCode());
                 toSaveOrUpdate.add(hrEmpEducation);
-                existIds.remove(hrEmpEducation.getId()); // 移除不需要删除的ID
+                // 移除不需要删除的ID
+                existIds.remove(hrEmpEducation.getId());
             }
             // 没有最高学历,且教育信息列表不为空时
             if(isHighestEdu && !updateReqVO.getList().isEmpty()) {
@@ -292,12 +294,20 @@ public class HrEmpEducationController {
     @Operation(summary = "提交员工教育经历变更申请")
     public ResponseResult<String> submitChange(@Valid @RequestBody  HrEmpEducationDTO changeReqVO) {
         try {
+            boolean flag = RoleUtils.check("人力资源部-招聘管理专员");
+            if (flag) {
+                log.info("权限校验通过，用户拥有'人力资源部-招聘管理专员'角色，直接进行更新");
+                try{
+                    updateHrEmpEducation(changeReqVO).getData();
+                    return new ResponseResult<>(HttpStatus.OK.value(), "直接更新成功!");
+                } catch (Exception e){
+                    log.warn("权限校验成功，但直接更新失败，尝试走审批流");
+                }
+            }
+            log.warn("权限校验失败，用户缺少'人力资源部-招聘管理专员'角色");
             // 1. 获取当前数据快照
             List<HrEmpEducation> originalData = getMsg(changeReqVO.getUserCode()).getData();
             log.info("提交审批流时查询回来的教育经历原始数据：{}", JSON.toJSONString(originalData, SerializerFeature.PrettyFormat));
-//            if (originalData.isEmpty()) {
-//                return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "员工教育经历不存在");
-//            }
 
             // 判断传入数据里面有无最高学历
             boolean isHighestEdu = true;
@@ -325,7 +335,6 @@ public class HrEmpEducationController {
             changeRequest.setUserCode(changeReqVO.getUserCode());
             changeRequest.setOriginalData(originalData);
             changeRequest.setChangedData(changeReqVO.getList());
-//            changeRequest.setWfId(changeReqVO.getWfId());
 
             log.info("等待保存的教育经历变更数据：{}", JSON.toJSONString(changeReqVO.getList(), SerializerFeature.PrettyFormat));
             // 3. 保存到MongoDB

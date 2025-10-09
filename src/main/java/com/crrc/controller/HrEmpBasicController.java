@@ -21,12 +21,12 @@ import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
 import com.crrc.service.impl.*;
 import com.crrc.utils.MyUtils;
+import com.crrc.utils.RoleUtils;
 import com.crrc.utils.SystemConstants;
 import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -42,7 +42,6 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -59,20 +58,12 @@ import java.util.stream.Collectors;
 @Tag(name = "员工基本信息表", description = "员工基本信息表")
 public class HrEmpBasicController {
 
-    private static final String APPROVED = "APPROVED";
-
-    private static final String REJECTED = "REJECTED";
-
     @Autowired
     private HrEmpBasicServiceImpl hrEmpBasicService;
     @Autowired
     private HrEmpHouseholdServiceImpl hrEmpHouseholdService;
     @Autowired
     private HrEmpHealthServiceImpl hrEmpHealthService;
-    @Autowired
-    private HrEmpCertificateServiceImpl hrEmpCertificateService;
-    @Autowired
-    private HrEmpCommunicationServiceImpl hrEmpCommunicationService;
     @Autowired
     private MongoTemplate mongoTemplate;
     @Autowired
@@ -137,6 +128,18 @@ public class HrEmpBasicController {
     @Operation(summary = "提交员工信息变更申请")
     public ResponseResult<String> submitChange(@Valid @RequestBody HrEmpBasicDTO changeReqVO) {
         try {
+            boolean flag = RoleUtils.check("人力资源部-招聘管理专员");
+            if (flag) {
+                log.info("权限校验通过，用户拥有'人力资源部-招聘管理专员'角色，直接进行更新");
+                try{
+                    updateHrEmpBasic(changeReqVO).getData();
+                    return new ResponseResult<>(HttpStatus.OK.value(), "直接更新成功!");
+                } catch (Exception e){
+                    log.warn("权限校验成功，但直接更新失败，尝试走审批流");
+                }
+            }
+            log.warn("权限校验失败，用户缺少'人力资源部-招聘管理专员'角色");
+
             // 1. 获取当前数据快照
             HrEmpBasicDTO originalData = hrEmpBasicService.selectMsg(changeReqVO.getUserCode()).get(0);
             if (originalData == null) {
@@ -213,12 +216,12 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), "成功", result);
     }
 
-    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/update")
     @Operation(summary = "更新员工基本信息表实体")
     @AuditLog(value = "更新员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
-    public ResponseResult<Boolean> updateHrEmpBasic(@Valid @RequestBody HrEmpBasicDTO updateReqVO) {
+    public ResponseResult<String> updateHrEmpBasic(@Valid @RequestBody HrEmpBasicDTO updateReqVO) {
+        log.info("进入更新调用成功");
         //基本信息中，健康状况，户口相关需要跨表保存
         try {
             //健康信息部分
@@ -234,7 +237,7 @@ public class HrEmpBasicController {
                 hrEmpHealth.setHealthStatus(updateReqVO.getHealthStatus());
                 hrEmpHealthService.saveOrUpdate(hrEmpHealth);
             }
-
+            log.info("健康信息部分更新成功");
             //户口信息部分
             HrEmpHouseHold hrEmpHousehold = hrEmpHouseholdService.selectByUserCode(userCode);
             if (hrEmpHousehold == null) {
@@ -251,15 +254,18 @@ public class HrEmpBasicController {
                 hrEmpHousehold.setHouseHoldType(updateReqVO.getHouseHoldType());
                 hrEmpHouseholdService.saveOrUpdate(hrEmpHousehold);
             }
+            log.info("户口信息部分更新成功");
             if (updateReqVO.getId() == null) {
                 updateReqVO.setId(IdUtil.simpleUUID());
                 hrEmpBasicService.save(updateReqVO);
             }
             hrEmpBasicService.saveOrUpdate(updateReqVO);
+            log.info("其余基本信息部分更新成功");
         } catch (Exception e) {
             log.error("更新或保存时出错：\n" + "入参： " + updateReqVO + "\n" + "错误日志： " + e.getMessage() + "\n");
             return new ResponseResult<>(HttpStatus.EXPECTATION_FAILED.value(), "更新员工教育信息表实体失败");
         }
+        log.info("准备返回成功");
         return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功");
     }
 
