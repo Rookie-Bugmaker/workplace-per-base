@@ -132,15 +132,10 @@ public class HrEmpBasicController {
             if (flag) {
                 log.info("权限校验通过，用户拥有'人力资源部-招聘管理专员'角色，直接进行更新");
                 try{
-                    boolean result = updateHrEmpBasic(changeReqVO).getData();
-                    if(result) {
-                        log.info("准备返回最后成功的信息！");
-                        return new ResponseResult<>(HttpStatus.OK.value(), "直接更新成功");
-                    } else {
-                        log.warn("权限校验成功，但直接更新失败，尝试走审批流");
-                    }
+                    String msg = updateHrEmpBasic(changeReqVO).getData();
+                    return new ResponseResult<>(HttpStatus.OK.value(), "直接更新成功! " + msg);
                 } catch (Exception e){
-                    log.error("提交变更申请失败: {}", e.getMessage());
+                    log.warn("权限校验成功，但直接更新失败，尝试走审批流");
                 }
             }
             log.warn("权限校验失败，用户缺少'人力资源部-招聘管理专员'角色");
@@ -225,7 +220,7 @@ public class HrEmpBasicController {
     @Operation(summary = "更新员工基本信息表实体")
     @AuditLog(value = "更新员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
-    public ResponseResult<Boolean> updateHrEmpBasic(@Valid @RequestBody HrEmpBasicDTO updateReqVO) {
+    public ResponseResult<String> updateHrEmpBasic(HrEmpBasicDTO updateReqVO) {
         log.info("进入更新调用成功");
         //基本信息中，健康状况，户口相关需要跨表保存
         try {
