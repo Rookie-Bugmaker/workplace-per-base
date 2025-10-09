@@ -21,12 +21,12 @@ import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
 import com.crrc.service.impl.*;
 import com.crrc.utils.MyUtils;
+import com.crrc.utils.RoleUtils;
 import com.crrc.utils.SystemConstants;
 import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -42,7 +42,6 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -59,20 +58,12 @@ import java.util.stream.Collectors;
 @Tag(name = "员工基本信息表", description = "员工基本信息表")
 public class HrEmpBasicController {
 
-    private static final String APPROVED = "APPROVED";
-
-    private static final String REJECTED = "REJECTED";
-
     @Autowired
     private HrEmpBasicServiceImpl hrEmpBasicService;
     @Autowired
     private HrEmpHouseholdServiceImpl hrEmpHouseholdService;
     @Autowired
     private HrEmpHealthServiceImpl hrEmpHealthService;
-    @Autowired
-    private HrEmpCertificateServiceImpl hrEmpCertificateService;
-    @Autowired
-    private HrEmpCommunicationServiceImpl hrEmpCommunicationService;
     @Autowired
     private MongoTemplate mongoTemplate;
     @Autowired
@@ -137,6 +128,19 @@ public class HrEmpBasicController {
     @Operation(summary = "提交员工信息变更申请")
     public ResponseResult<String> submitChange(@Valid @RequestBody HrEmpBasicDTO changeReqVO) {
         try {
+            boolean flag = RoleUtils.check("人力资源部-招聘管理专员");
+            if (flag) {
+                log.info("权限校验通过，用户拥有'人力资源部-招聘管理专员'角色，直接进行更新");
+                boolean result = updateHrEmpBasic(changeReqVO).getData();
+                if(result) {
+                    return new ResponseResult<>(HttpStatus.OK.value(), "直接更新成功");
+                } else {
+                    log.warn("权限校验成功，但直接更新失败，尝试走审批流");
+                }
+
+            }
+            log.warn("权限校验失败，用户缺少'人力资源部-招聘管理专员'角色");
+
             // 1. 获取当前数据快照
             HrEmpBasicDTO originalData = hrEmpBasicService.selectMsg(changeReqVO.getUserCode()).get(0);
             if (originalData == null) {
@@ -213,7 +217,6 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), "成功", result);
     }
 
-    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/update")
     @Operation(summary = "更新员工基本信息表实体")
     @AuditLog(value = "更新员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
