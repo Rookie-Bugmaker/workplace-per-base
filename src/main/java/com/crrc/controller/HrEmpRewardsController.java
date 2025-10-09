@@ -18,6 +18,7 @@ import com.crrc.mongodb.HrEmpRewardsChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.UpdateListDTO;
 import com.crrc.service.impl.HrEmpRewardsServiceImpl;
+import com.crrc.utils.RoleUtils;
 import com.crrc.utils.SystemConstants;
 import com.crrc.utils.UpdateListUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,11 +33,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import com.crrc.entity.*;
 import com.crrc.entity.dto.ProcessInstanceVo;
 import com.crrc.entity.dto.StartProcessInstanceDTO;
 import com.crrc.utils.MyUtils;
-import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
@@ -131,7 +130,6 @@ public class HrEmpRewardsController {
         return new ResponseResult<>(HttpStatus.OK.value(), "创建员工奖励情况表实体成功", hrEmpRewardsService.save(createReqVO));
     }
 
-    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/update")
     @Operation(summary = "更新员工奖励情况表实体")
     @AuditLog(value = "更新员工奖励情况表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
@@ -188,11 +186,21 @@ public class HrEmpRewardsController {
         return new ResponseResult<>(HttpStatus.OK.value(), "导入员工奖励情况表报表成功");
     }
 
-    // 提交变更申请的Controller方法
     @PostMapping("/submit-change")
     @Operation(summary = "提交员工奖励情况变更申请")
     public ResponseResult<String> submitRewardChange(@Valid @RequestBody UpdateListDTO<HrEmpRewards> changeReqVO) {
         try {
+            boolean flag = RoleUtils.check("人力资源部-人事管理专员");
+            if (flag) {
+                log.info("权限校验通过，用户拥有'人力资源部-人事管理专员'角色，直接进行更新");
+                try{
+                    updateHrEmpRewards(changeReqVO).getData();
+                    return new ResponseResult<>(HttpStatus.OK.value(), "直接更新成功!");
+                } catch (Exception e){
+                    log.warn("权限校验成功，但直接更新失败，尝试走审批流");
+                }
+            }
+            log.warn("权限校验失败，用户缺少'人力资源部-人事管理专员'角色");
             // 1. 获取当前数据快照
             List<HrEmpRewards> originalData = hrEmpRewardsService.selectMsg(changeReqVO.getUserCode());
             log.info("员工奖励情况原始数据：{}", JSON.toJSONString(originalData));
@@ -213,7 +221,7 @@ public class HrEmpRewardsController {
             String bizCode = "RWD-" + System.currentTimeMillis();
             instanceDTO.setBizCode(bizCode);
             instanceDTO.setBizId("rwd_" + changeRequest.getId());
-            instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS); // 替换为实际模板别名
+            instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
 
             Map<String, Object> formData = new HashMap<>();
             formData.put("type", "rewards");
