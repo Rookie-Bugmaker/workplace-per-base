@@ -10,17 +10,14 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
 import com.crrc.api.WkCoreAPi;
 import com.crrc.entity.HrEmpPenalties;
-import com.crrc.entity.LoginUser;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpPenaltiesDTO;
-import com.crrc.pojo.dto.UpdateListDTO;
 import com.crrc.service.impl.HrEmpPenaltiesServiceImpl;
-import com.crrc.utils.SecurityFrameworkUtils;
+import com.crrc.utils.RoleUtils;
 import com.crrc.utils.UpdateListUtil;
-import com.crrc.entity.dto.UserWithRoleDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,7 +36,6 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -134,32 +130,12 @@ public class HrEmpPenaltiesController {
     @Parameter(name = "updateReqVO", description = "需要更新的实体对象", required = true)
     public ResponseResult<Boolean> updateHrEmpPenalties(@Valid @RequestBody HrEmpPenaltiesDTO updateReqVO) {
         try {
-            // 1. 获取当前用户并校验
-            LoginUser currentUser = SecurityFrameworkUtils.getLoginUser();
-            if (currentUser == null) {
-                log.warn("获取当前登录用户失败!");
-                return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "获取当前登录用户失败!");
-            }
-            log.info("当前操作用户ID: {}, 用户名: {}", currentUser.getUser().getId(), currentUser.getUser().getUserName());
-
-            // 2. 权限校验 - 检查是否是人力资源部-人事管理专员
-            log.info("开始权限校验，用户ID: {}", currentUser.getUser().getId());
-            List<UserWithRoleDTO> usersWithRoles = wkCoreAPi.getUsersWithRoles(
-                    Collections.singletonList(currentUser.getUser().getId()));
-
-            boolean isHrPersonnelManager = usersWithRoles.stream()
-                    .findFirst()
-                    .map(UserWithRoleDTO::getRoles)
-                    .orElse(Collections.emptyList())
-                    .stream()
-                    .anyMatch(role -> "人力资源部-人事管理专员".equals(role.getName()));
-
+            boolean isHrPersonnelManager = RoleUtils.check("人力资源部-人事管理专员");
             if (!isHrPersonnelManager) {
                 log.warn("权限校验失败，用户缺少'人力资源部-人事管理专员'角色");
                 return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "当前登录用户无权修改惩处信息!");
             }
             log.info("权限校验通过，用户拥有'人力资源部-人事管理专员'角色");
-
             // 3. 业务处理 - 增删改三合一
             return processHrEmpPenaltiesUpdate(updateReqVO);
         } catch (Exception e) {
