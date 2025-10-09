@@ -68,6 +68,29 @@ public class HrEmpFlowableController {
     }
 
 
+    @GetMapping("/findUserByRoleCodeAndCompanyId")
+    @Operation(summary = "findUserByRoleCodeAndCompanyId工作流获取审批人信息")
+    @AuditLog(value = "findUserByRoleCodeAndCompanyId工作流获取审批人信息", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResult<List<SysUserDTO>> findUserByRoleCodeAndCompanyId(Long companyId, String roleCode) {
+        log.info("触发人力资源获取人员信息接口findUserByRoleCodeAndCompanyId 查询参数companyId:{},roleCode:{}", companyId, roleCode);
+        if (ObjectUtils.isEmpty(roleCode)) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "roleCode不能为空");
+        }
+        if (ObjectUtils.isEmpty(companyId)) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "companyId不能为空");
+        }
+        // 查询人员信息
+        SysUserRequestDTO sysUserRequestDTO = new SysUserRequestDTO();
+        sysUserRequestDTO.setRoleCode(roleCode);
+        sysUserRequestDTO.setCompanyId(companyId);
+        ResultData<List<SysUserDTO>> userByRoleCodeAndCompanyId = sysServerClient.findUserByRoleCodeAndCompanyId(sysUserRequestDTO);
+        log.info("触发人力资源获取人员信息接口findUserByDeptIdAndRoleCode {}", userByRoleCodeAndCompanyId.getResult());
+        if(ObjectUtils.isEmpty(userByRoleCodeAndCompanyId) || ObjectUtils.isEmpty(userByRoleCodeAndCompanyId.getResult())){
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "未查到审批人数据!");
+        }
+        List<SysUserDTO> result = userByRoleCodeAndCompanyId.getResult();
+        return ResponseResult.success(result);
+    }
 
 
 }

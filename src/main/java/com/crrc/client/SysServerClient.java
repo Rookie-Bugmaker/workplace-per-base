@@ -47,6 +47,14 @@ public interface SysServerClient {
     @PostMapping("/user/findUserByRoleCode")
     ResultData<List<SysUserDTO>> findUserByRoleCode(@RequestBody SysUserRequestDTO sysUserRequestDTO);
 
+    /**
+     * 根据租户id和角色编码获取用户信息
+     * @param sysUserRequestDTO
+     * @return
+     */
+    @PostMapping("/user/findUserByRoleCodeAndCompanyId")
+    ResultData<List<SysUserDTO>> findUserByRoleCodeAndCompanyId(@RequestBody SysUserRequestDTO sysUserRequestDTO);
+
 
 
 
