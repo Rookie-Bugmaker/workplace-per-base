@@ -19,6 +19,7 @@ import com.crrc.mongodb.HrEmpProfessionalChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.UpdateListDTO;
 import com.crrc.service.impl.HrEmpProfessionalQualificationServiceImpl;
+import com.crrc.utils.RoleUtils;
 import com.crrc.utils.SystemConstants;
 import com.crrc.utils.UpdateListUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -130,7 +131,6 @@ public class HrEmpProfessionalQualificationController {
         return new ResponseResult<>(HttpStatus.OK.value(), "创建员工专业职务任职资格表实体成功", hrEmpProfessionalQualificationService.save(createReqVO));
     }
 
-    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/update")
     @Operation(summary = "更新员工专业职务任职资格表实体")
     @AuditLog(value = "更新员工专业职务任职资格表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
@@ -191,6 +191,17 @@ public class HrEmpProfessionalQualificationController {
     @Operation(summary = "提交专业职务任职资格变更申请")
     public ResponseResult<String> submitProfessionalChange(@Valid @RequestBody UpdateListDTO<HrEmpProfessionalQualification> changeReqVO) {
         try {
+            boolean flag = RoleUtils.check("人力资源部-人才管理专员");
+            if (flag) {
+                log.info("权限校验通过，用户拥有'人力资源部-人才管理专员'角色，直接进行更新");
+                try{
+                    updateHrEmpProfessionalQualification(changeReqVO).getData();
+                    return new ResponseResult<>(HttpStatus.OK.value(), "直接更新成功!");
+                } catch (Exception e){
+                    log.warn("权限校验成功，但直接更新失败，尝试走审批流");
+                }
+            }
+            log.warn("权限校验失败，用户缺少'人力资源部-人才管理专员'角色");
             // 1. 获取当前数据快照
             List<HrEmpProfessionalQualification> originalData = hrEmpProfessionalQualificationService.selectMsg(changeReqVO.getUserCode());
             log.info("专业职务任职资格原始数据：{}", JSON.toJSONString(originalData));

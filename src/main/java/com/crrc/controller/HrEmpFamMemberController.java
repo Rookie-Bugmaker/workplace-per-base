@@ -22,6 +22,7 @@ import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpFamMemberDTO;
 import com.crrc.service.impl.HrEmpFamMemberServiceImpl;
 import com.crrc.utils.MyUtils;
+import com.crrc.utils.RoleUtils;
 import com.crrc.utils.SystemConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -116,7 +117,6 @@ public class HrEmpFamMemberController {
         return new ResponseResult<>(HttpStatus.OK.value(), "创建员工主要家庭成员社会关系表实体成功", hrEmpFamMemberService.save(createReqVO));
     }
 
-    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/update")
     @Operation(summary = "更新员工主要家庭成员社会关系表实体")
     @AuditLog(value = "更新员工主要家庭成员社会关系表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
@@ -226,6 +226,17 @@ public class HrEmpFamMemberController {
     @Operation(summary = "提交员工家庭成员变更申请")
     public ResponseResult<String> submitChange(@Valid @RequestBody HrEmpFamMemberDTO changeReqVO) {
         try {
+            boolean flag = RoleUtils.check("人力资源部-招聘管理专员");
+            if (flag) {
+                log.info("权限校验通过，用户拥有'人力资源部-招聘管理专员'角色，直接进行更新");
+                try{
+                    updateHrEmpFamMember(changeReqVO).getData();
+                    return new ResponseResult<>(HttpStatus.OK.value(), "直接更新成功!");
+                } catch (Exception e){
+                    log.warn("权限校验成功，但直接更新失败，尝试走审批流");
+                }
+            }
+            log.warn("权限校验失败，用户缺少'人力资源部-招聘管理专员'角色");
             // 1. 获取当前数据快照
             List<HrEmpFamMember> originalData = hrEmpFamMemberService.selectMsg(changeReqVO.getUserCode());
             log.info("提交审批流时查询回来的家庭成员原始数据：{}", JSON.toJSONString(originalData, SerializerFeature.PrettyFormat));
