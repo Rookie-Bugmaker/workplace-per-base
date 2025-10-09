@@ -283,12 +283,14 @@ public class HrEmpFamMemberController {
             formData.put("type", "family");
             formData.put("FamilyMembers", MyUtils.convertToMapList(changeReqVO.getList()));
             instanceDTO.setFormData(formData);
+            log.info("流程测试instanceDTO" + instanceDTO);
 
             ProcessInstanceVo processInstanceVo = wkWorkflowApi.startProcessInstanceNew(instanceDTO);
-
+            log.info("流程测试processInstanceVo" + processInstanceVo);
             // 6. 更新流程实例ID
             changeRequest.setProcessInstanceId(processInstanceVo.getProcessInstanceId());
             mongoTemplate.save(changeRequest);
+            log.info("流程测试success");
 
             return new ResponseResult<>(HttpStatus.OK.value(), "家庭成员变更申请已提交", changeRequest.getId());
         } catch (Exception e) {
