@@ -131,13 +131,17 @@ public class HrEmpBasicController {
             boolean flag = RoleUtils.check("人力资源部-招聘管理专员");
             if (flag) {
                 log.info("权限校验通过，用户拥有'人力资源部-招聘管理专员'角色，直接进行更新");
-                boolean result = updateHrEmpBasic(changeReqVO).getData();
-                if(result) {
-                    return new ResponseResult<>(HttpStatus.OK.value(), "直接更新成功");
-                } else {
-                    log.warn("权限校验成功，但直接更新失败，尝试走审批流");
+                try{
+                    boolean result = updateHrEmpBasic(changeReqVO).getData();
+                    if(result) {
+                        log.info("准备返回最后成功的信息！");
+                        return new ResponseResult<>(HttpStatus.OK.value(), "直接更新成功");
+                    } else {
+                        log.warn("权限校验成功，但直接更新失败，尝试走审批流");
+                    }
+                } catch (Exception e){
+                    log.error("提交变更申请失败: {}", e.getMessage());
                 }
-
             }
             log.warn("权限校验失败，用户缺少'人力资源部-招聘管理专员'角色");
 
@@ -266,6 +270,7 @@ public class HrEmpBasicController {
             log.error("更新或保存时出错：\n" + "入参： " + updateReqVO + "\n" + "错误日志： " + e.getMessage() + "\n");
             return new ResponseResult<>(HttpStatus.EXPECTATION_FAILED.value(), "更新员工教育信息表实体失败");
         }
+        log.info("准备返回成功");
         return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功");
     }
 
