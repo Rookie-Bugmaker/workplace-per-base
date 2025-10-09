@@ -327,6 +327,7 @@ public class HrEmpEducationController {
             changeRequest.setChangedData(changeReqVO.getList());
 //            changeRequest.setWfId(changeReqVO.getWfId());
 
+            log.info("等待保存的教育经历变更数据：{}", JSON.toJSONString(changeReqVO.getList(), SerializerFeature.PrettyFormat));
             // 3. 保存到MongoDB
             mongoTemplate.save(changeRequest);
             log.info("流程测试changeRequest" + changeRequest);
