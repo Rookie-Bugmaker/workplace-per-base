@@ -132,8 +132,8 @@ public class HrEmpBasicController {
             if (flag) {
                 log.info("权限校验通过，用户拥有'人力资源部-招聘管理专员'角色，直接进行更新");
                 try{
-                    String msg = updateHrEmpBasic(changeReqVO).getData();
-                    return new ResponseResult<>(HttpStatus.OK.value(), "直接更新成功! " + msg);
+                    updateHrEmpBasic(changeReqVO).getData();
+                    return new ResponseResult<>(HttpStatus.OK.value(), "直接更新成功!");
                 } catch (Exception e){
                     log.warn("权限校验成功，但直接更新失败，尝试走审批流");
                 }
