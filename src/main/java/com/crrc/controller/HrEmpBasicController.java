@@ -222,6 +222,7 @@ public class HrEmpBasicController {
     @AuditLog(value = "更新员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
     public ResponseResult<Boolean> updateHrEmpBasic(@Valid @RequestBody HrEmpBasicDTO updateReqVO) {
+        log.info("进入更新调用成功");
         //基本信息中，健康状况，户口相关需要跨表保存
         try {
             //健康信息部分
@@ -237,7 +238,7 @@ public class HrEmpBasicController {
                 hrEmpHealth.setHealthStatus(updateReqVO.getHealthStatus());
                 hrEmpHealthService.saveOrUpdate(hrEmpHealth);
             }
-
+            log.info("健康信息部分更新成功");
             //户口信息部分
             HrEmpHouseHold hrEmpHousehold = hrEmpHouseholdService.selectByUserCode(userCode);
             if (hrEmpHousehold == null) {
@@ -254,11 +255,13 @@ public class HrEmpBasicController {
                 hrEmpHousehold.setHouseHoldType(updateReqVO.getHouseHoldType());
                 hrEmpHouseholdService.saveOrUpdate(hrEmpHousehold);
             }
+            log.info("户口信息部分更新成功");
             if (updateReqVO.getId() == null) {
                 updateReqVO.setId(IdUtil.simpleUUID());
                 hrEmpBasicService.save(updateReqVO);
             }
             hrEmpBasicService.saveOrUpdate(updateReqVO);
+            log.info("其余基本信息部分更新成功");
         } catch (Exception e) {
             log.error("更新或保存时出错：\n" + "入参： " + updateReqVO + "\n" + "错误日志： " + e.getMessage() + "\n");
             return new ResponseResult<>(HttpStatus.EXPECTATION_FAILED.value(), "更新员工教育信息表实体失败");
