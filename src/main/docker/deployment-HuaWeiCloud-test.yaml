@@ -15,6 +15,11 @@ spec:
         app: workplace-per-base
         version: v1
     spec:
+      volumes:
+        - name: vol-workplace-per-base-config
+          configMap:
+            name: workplace-per-base-config
+            defaultMode: 420
       containers:
         - name: container-workplace-per-base
           image: swr.ckgf-global-1.cccar.com.cn/work_place/workplace-per-base-test:0.0.1
@@ -25,6 +30,11 @@ spec:
             requests:
               cpu: '2'
               memory: 2Gi
+          volumeMounts:
+            - name: vol-workplace-per-base-config
+              readOnly: true
+              mountPath: /home/workplace/application.yml
+              subPath: application.yml
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
           imagePullPolicy: Always
