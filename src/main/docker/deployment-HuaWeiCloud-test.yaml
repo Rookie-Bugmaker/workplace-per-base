@@ -1,23 +1,23 @@
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: workplace-human-resource
+  name: workplace-per-base
   namespace: human-resource
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: workplace-human-resource
+      app: workplace-per-base
       version: v1
   template:
     metadata:
       labels:
-        app: workplace-human-resource
+        app: workplace-per-base
         version: v1
     spec:
       containers:
-        - name: container-workplace-human-resource
-          image: swr.ckgf-global-1.cccar.com.cn/work_place/workplace-human-resource-test:0.0.1
+        - name: container-workplace-per-base
+          image: swr.ckgf-global-1.cccar.com.cn/work_place/workplace-per-base-test:0.0.1
           resources:
             limits:
               cpu: '4'
