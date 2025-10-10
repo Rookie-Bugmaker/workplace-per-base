@@ -220,11 +220,12 @@ public class HrEmpSkillLevelController {
             StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
             String bizCode = "SKL-" + System.currentTimeMillis();
             instanceDTO.setBizCode(bizCode);
-            instanceDTO.setBizId("skl_" + changeRequest.getId());
+            instanceDTO.setBizId("skills_" + changeRequest.getId());
             instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
 
             Map<String, Object> formData = new HashMap<>();
             formData.put("type", "skills");
+            formData.put("roleCode", "wmrz_audit");
             formData.put("SkillLevels", MyUtils.convertToMapList(changeReqVO.getList()));
             instanceDTO.setFormData(formData);
 

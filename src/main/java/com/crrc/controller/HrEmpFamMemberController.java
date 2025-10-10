@@ -276,7 +276,7 @@ public class HrEmpFamMemberController {
             StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
             String bizCode = "FAM-" + System.currentTimeMillis();
             instanceDTO.setBizCode(bizCode);
-            instanceDTO.setBizId("fam_" + changeRequest.getId());
+            instanceDTO.setBizId("family_" + changeRequest.getId());
             instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
 
             Map<String, Object> formData = new HashMap<>();

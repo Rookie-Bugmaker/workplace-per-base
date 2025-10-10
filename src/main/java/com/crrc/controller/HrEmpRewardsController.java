@@ -220,11 +220,12 @@ public class HrEmpRewardsController {
             StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
             String bizCode = "RWD-" + System.currentTimeMillis();
             instanceDTO.setBizCode(bizCode);
-            instanceDTO.setBizId("rwd_" + changeRequest.getId());
+            instanceDTO.setBizId("rewards_" + changeRequest.getId());
             instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
 
             Map<String, Object> formData = new HashMap<>();
             formData.put("type", "rewards");
+            formData.put("roleCode", "wmrz_audit");
             formData.put("EmployeeRewards", MyUtils.convertToMapList(changeReqVO.getList()));
             instanceDTO.setFormData(formData);
 
