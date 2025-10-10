@@ -17,6 +17,7 @@ import com.crrc.service.impl.HrEmpCertificateServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
@@ -44,10 +45,28 @@ import java.util.List;
 @RequestMapping("/hrEmpCertificate")
 @RefreshScope
 @Tag(name = "员工证件信息表", description = "员工证件信息表")
+@Slf4j
 public class HrEmpCertificateController {
 
     @Autowired
     private HrEmpCertificateServiceImpl hrEmpCertificateService;
+
+    @PostMapping("/getCertiId")
+    @Operation(summary = "通过档案号查询身份证号")
+    @AuditLog(value = "通过档案号查询身份证号", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResult<String> getCertiId(@RequestParam(required = false) String userCode) {
+        if(userCode == null || userCode.isEmpty()) {
+            log.warn("没有传入档案号");
+            return new ResponseResult<>(HttpStatus.OK.value(), "没有传入档案号", null);
+        }
+        log.info("接收到档案号；{}，开始查询对应身份证号", userCode);
+        HrEmpCertificate entity = hrEmpCertificateService.selectByUserCode(userCode);
+        if(entity == null) {
+            log.warn("{}，该档案号查询结果为空", userCode);
+            return new ResponseResult<>(HttpStatus.OK.value(), "档案号查询结果为空", null);
+        }
+        return new ResponseResult<>(HttpStatus.OK.value(), "没有传入档案号", entity.getCertiId());
+    }
 
     @PostMapping("/page")
     @Operation(summary = "获取员工证件信息表列表 page")
