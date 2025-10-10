@@ -33,8 +33,8 @@ spec:
           volumeMounts:
             - name: vol-workplace-per-base-config
               readOnly: true
-              mountPath: /home/workplace/application.yml
-              subPath: application.yml
+              mountPath: /home/workplace/bootstrap.yml
+              subPath: bootstrap.yml
           lifecycle:
             preStop:
               exec:
