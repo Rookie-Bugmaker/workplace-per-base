@@ -22,7 +22,7 @@ spec:
             defaultMode: 420
       containers:
         - name: container-workplace-per-base
-          image: swr.ckgf-global-1.cccar.com.cn/work_place/workplace-per-base-product:5.0.0
+          image: swr.ckgf-global-1.cccar.com.cn/work_place/workplace-per-base-product:1.0.0
           resources:
             limits:
               cpu: '4'
