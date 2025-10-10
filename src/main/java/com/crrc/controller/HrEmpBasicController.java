@@ -65,6 +65,10 @@ public class HrEmpBasicController {
     @Autowired
     private HrEmpHealthServiceImpl hrEmpHealthService;
     @Autowired
+    private HrEmpCommunicationServiceImpl hrEmpCommunicationService;
+    @Autowired
+    private HrEmpCertificateServiceImpl hrEmpCertificateService;
+    @Autowired
     private MongoTemplate mongoTemplate;
     @Autowired
     private WkWorkflowApi wkWorkflowApi;
@@ -259,7 +263,36 @@ public class HrEmpBasicController {
                 updateReqVO.setId(IdUtil.simpleUUID());
                 hrEmpBasicService.save(updateReqVO);
             }
-            hrEmpBasicService.saveOrUpdate(updateReqVO);
+            // 更新证件信息
+            HrEmpCertificate certificate = hrEmpCertificateService.selectByUserCode(userCode);
+            if (certificate == null) {
+                certificate = new HrEmpCertificate();
+                certificate.setUserCode(userCode);
+                certificate.setId(IdUtil.simpleUUID());
+            }
+            certificate.setCertiId(updateReqVO.getCertiId());
+            certificate.setCertiType(updateReqVO.getCertiType());
+            hrEmpCertificateService.saveOrUpdate(certificate);
+            log.info("证件信息部分更新成功");
+            // 更新通讯信息
+            HrEmpCommunication communication = hrEmpCommunicationService.selectByUserCode(userCode);
+            if (communication == null) {
+                communication = new HrEmpCommunication();
+                communication.setUserCode(userCode);
+                communication.setId(IdUtil.simpleUUID());
+            }
+            communication.setMobilePhone(updateReqVO.getMobilePhone());
+            communication.setPersonalEmail(updateReqVO.getPersonalEmail());
+            communication.setAddress(updateReqVO.getAddress());
+            communication.setWorkEmail(updateReqVO.getWorkEmail());
+            hrEmpCommunicationService.saveOrUpdate(communication);
+            log.info("通讯信息部分更新成功");
+            // 更新基本信息
+            if (updateReqVO.getId() == null) {
+                updateReqVO.setId(IdUtil.simpleUUID());
+                hrEmpBasicService.save(updateReqVO);
+            }
+            hrEmpBasicService.updateById(updateReqVO);
             log.info("其余基本信息部分更新成功");
         } catch (Exception e) {
             log.error("更新或保存时出错：\n" + "入参： " + updateReqVO + "\n" + "错误日志： " + e.getMessage() + "\n");
