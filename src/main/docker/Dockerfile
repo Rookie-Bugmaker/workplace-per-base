@@ -1,15 +1,13 @@
-FROM swr.ckgf-global-1.cccar.com.cn/cloud_base/jdk:1.8.0_201
-
-ENV TZ="Asia/Shanghai" \
-    SPRING_OUTPUT_ANSI_ENABLED=ALWAYS \
+FROM swr.ckgf-global-1.cccar.com.cn/cloud_base/jdk_u:1.8_201_v1
+# 环境变量配置
+ENV SPRING_OUTPUT_ANSI_ENABLED=ALWAYS \
     IBIZ_SLEEP=0 \
-    JAVA_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
-
+    TZ=Asia/Shanghai \
+    JAVA_OPTS="-Xmx3700m -Xms3700m -javaagent:/usr/local/skywalking/skywalking-agent/skywalking-agent.jar -Duser.timezone=Asia/Shanghai"
+#设置工作目录
 WORKDIR /home/workplace/
-
-ADD *.jar /home/workplace/workplace-per-base.jar
-
-EXPOSE 8864
-
-CMD java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -Duser.timezone=Asia/Shanghai -Djava.security.egd=file:/dev/./urandom -jar workplace-per-base.jar
-
+# 拷贝文件夹下的文件到镜像中的app.jar
+ADD @project.artifactId@-@project.version@-@env@.jar /home/workplace/app.jar
+EXPOSE 11501
+# 启动命令
+ENTRYPOINT ["sh", "-c", "java ${JAVA_OPTS} -jar app.jar"]
