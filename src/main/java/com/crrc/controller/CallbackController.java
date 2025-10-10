@@ -117,17 +117,16 @@ public class CallbackController {
     @PutMapping("/approval-callback")
     @IgnoreTenant
     public ResponseResult<Boolean> approvalCallback(@RequestBody WorkflowWriteBackParamDTO param) {
+        log.info("人力资源回写接口请求参数 param ：{}",JSON.toJSONString(param));
         try {
-            log.info("流程状态：" + param.getProcessInstanceStatus());
             Map<String, Object> formDataAll;
             if(param.getFormData() != null && param.getFormData().containsKey("formData")) {
                 formDataAll = (Map<String, Object>)param.getFormData().get("formData");
+                log.info("人力资源回写接口直接获取formData formDataAll ：{}",formDataAll);
             } else {
                 formDataAll =  workflowApi.getFormDataByPid(param.getProcessInstanceId()).getResult();
+                log.info("人力资源回写接口通过查询获取formData formDataAllQuery ：{}",formDataAll);
             }
-            log.info("基本信息approval-callback 请求参数: {}", JSON.toJSONString(param));
-            log.info("基本信息approval-callback formDataAll {}", formDataAll);
-
             formDataAll.forEach((k, v) -> {
                 log.info("key:" + k);
                 log.info("value:" + v);
@@ -135,7 +134,7 @@ public class CallbackController {
 
             // 方法二 推荐
             String requestType = (String) formDataAll.get("type");
-            log.info("基本信息方法二approval-callback requestType2 {}", requestType);
+            log.info("人力资源回写接口approval-callback requestType2 {}", requestType);
             String bizId = MyUtils.subPk(param.getBizId());
             param.setBizId(bizId);
 
