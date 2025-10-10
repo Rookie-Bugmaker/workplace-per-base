@@ -7,9 +7,9 @@ ENV TZ="Asia/Shanghai" \
 
 WORKDIR /home/workplace/
 
-ADD human-resources-center.jar /home/workplace/human-resources-center.jar
+ADD *.jar /home/workplace/workplace-per-base.jar
 
 EXPOSE 8864
 
-CMD java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -Duser.timezone=Asia/Shanghai -Djava.security.egd=file:/dev/./urandom -jar human-resources-center.jar
+CMD java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -Duser.timezone=Asia/Shanghai -Djava.security.egd=file:/dev/./urandom -jar workplace-per-base.jar
 

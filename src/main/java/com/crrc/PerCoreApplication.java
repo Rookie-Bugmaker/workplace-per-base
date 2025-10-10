@@ -12,8 +12,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableDiscoveryClient
 @EnableFeignClients
 @MapperScan("com.crrc.mapper")
-public class HumanResourcesCenterApplication {
+public class PerCoreApplication {
     public static void main(String[] args) {
-        SpringApplication.run(HumanResourcesCenterApplication.class, args);
+        SpringApplication.run(PerCoreApplication.class, args);
     }
 }

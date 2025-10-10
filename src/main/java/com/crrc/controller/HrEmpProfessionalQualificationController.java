@@ -221,11 +221,12 @@ public class HrEmpProfessionalQualificationController {
             StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
             String bizCode = "PRO-" + System.currentTimeMillis();
             instanceDTO.setBizCode(bizCode);
-            instanceDTO.setBizId("pro_" + changeRequest.getId());
+            instanceDTO.setBizId("professional_" + changeRequest.getId());
             instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
 
             Map<String, Object> formData = new HashMap<>();
             formData.put("type", "professional");
+            formData.put("roleCode", "wmrz_audit");
             formData.put("ProfessionalQualifications", MyUtils.convertToMapList(changeReqVO.getList()));
             instanceDTO.setFormData(formData);
 

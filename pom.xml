@@ -4,10 +4,10 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.crrc</groupId>
-    <artifactId>human-resources-center</artifactId>
+    <artifactId>workplace-per-base</artifactId>
     <version>v0.0.1</version>
-    <name>human-resources-center</name>
-    <description>human-resources-center</description>
+    <name>workplace-per-base</name>
+    <description>workplace-per-base</description>
     <properties>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -129,7 +129,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
                 <configuration>
-                    <mainClass>com.crrc.HumanResourcesCenterApplication</mainClass>
+                    <mainClass>com.crrc.PerCoreApplication</mainClass>
                 </configuration>
                 <executions>
                     <execution>
