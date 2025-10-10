@@ -7,7 +7,7 @@ ENV TZ="Asia/Shanghai" \
 
 WORKDIR /home/workplace/
 
-ADD workplace-per-base.jar /home/workplace/workplace-per-base.jar
+ADD *.jar /home/workplace/workplace-per-base.jar
 
 EXPOSE 8864
 
