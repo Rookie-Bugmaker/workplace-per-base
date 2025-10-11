@@ -6,7 +6,7 @@
                     converterClass="org.apache.skywalking.apm.toolkit.log.logback.v1.x.LogbackPatternConverter"/>
 
     <!-- 2. 基础属性 -->
-    <property name="SERVICE_NAME" value="workplace-human-resource"/>
+    <property name="SERVICE_NAME" value="workplace-per-self"/>
     <property name="LOG_HOME" value="/var/log/workplace-new"/>
 
     <!-- 3. 优化后的日志模式（已修复换行问题） -->
