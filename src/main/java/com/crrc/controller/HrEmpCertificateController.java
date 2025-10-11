@@ -63,9 +63,9 @@ public class HrEmpCertificateController {
         HrEmpCertificate entity = hrEmpCertificateService.selectByUserCode(userCode);
         if(entity == null) {
             log.warn("{}，该档案号查询结果为空", userCode);
-            return new ResponseResult<>(HttpStatus.OK.value(), "档案号查询结果为空", null);
+            return new ResponseResult<>(HttpStatus.OK.value(), userCode + "该档案号查询结果为空", null);
         }
-        return new ResponseResult<>(HttpStatus.OK.value(), "没有传入档案号", entity.getCertiId());
+        return new ResponseResult<>(HttpStatus.OK.value(), "查询成功", entity.getCertiId());
     }
 
     @PostMapping("/page")

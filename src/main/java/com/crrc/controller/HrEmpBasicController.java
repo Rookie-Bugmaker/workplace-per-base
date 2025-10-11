@@ -12,6 +12,7 @@ import com.crrc.api.WkWorkflowApi;
 import com.crrc.entity.*;
 import com.crrc.entity.dto.ProcessInstanceVo;
 import com.crrc.entity.dto.StartProcessInstanceDTO;
+import com.crrc.entity.dto.response.ResultData;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
@@ -180,11 +181,11 @@ public class HrEmpBasicController {
             instanceDTO.setFormData(formData);
             log.info("流程测试instanceDTO" + instanceDTO);
             // 返回流程实例id
-            ProcessInstanceVo processInstanceVo = wkWorkflowApi.startProcessInstanceNew(instanceDTO);
+            ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
             log.info("流程测试processInstanceVo" + processInstanceVo);
 
             // 5. 更新流程实例ID
-            changeRequest.setProcessInstanceId(processInstanceVo.getProcessInstanceId());
+            changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
             mongoTemplate.save(changeRequest);
             log.info("流程测试success");
             return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交", changeRequest.getId());
@@ -225,7 +226,6 @@ public class HrEmpBasicController {
     @AuditLog(value = "更新员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
     public ResponseResult<String> updateHrEmpBasic(@Valid @RequestBody HrEmpBasicDTO updateReqVO) {
-
         log.info("进入更新调用成功");
         //基本信息中，健康状况，户口相关需要跨表保存
         try {

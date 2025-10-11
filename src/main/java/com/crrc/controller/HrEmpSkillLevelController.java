@@ -10,6 +10,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
 import com.crrc.api.WkWorkflowApi;
 import com.crrc.entity.HrEmpSkillLevel;
+import com.crrc.entity.dto.response.ResultData;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
@@ -229,10 +230,10 @@ public class HrEmpSkillLevelController {
             formData.put("SkillLevels", MyUtils.convertToMapList(changeReqVO.getList()));
             instanceDTO.setFormData(formData);
 
-            ProcessInstanceVo processInstanceVo = wkWorkflowApi.startProcessInstanceNew(instanceDTO);
+            ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
 
             // 5. 更新流程实例ID
-            changeRequest.setProcessInstanceId(processInstanceVo.getProcessInstanceId());
+            changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
             mongoTemplate.save(changeRequest);
 
             return new ResponseResult<>(HttpStatus.OK.value(), "职业技能等级变更申请已提交", changeRequest.getId());

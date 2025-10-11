@@ -12,6 +12,7 @@ import com.crrc.annotation.AuditLog;
 import com.crrc.api.WkWorkflowApi;
 import com.crrc.entity.HrEmpProfessionalQualification;
 import com.crrc.entity.dto.StartProcessInstanceDTO;
+import com.crrc.entity.dto.response.ResultData;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
@@ -230,10 +231,10 @@ public class HrEmpProfessionalQualificationController {
             formData.put("ProfessionalQualifications", MyUtils.convertToMapList(changeReqVO.getList()));
             instanceDTO.setFormData(formData);
 
-            ProcessInstanceVo processInstanceVo = wkWorkflowApi.startProcessInstanceNew(instanceDTO);
+            ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
 
             // 5. 更新流程实例ID
-            changeRequest.setProcessInstanceId(processInstanceVo.getProcessInstanceId());
+            changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
             mongoTemplate.save(changeRequest);
 
             return new ResponseResult<>(HttpStatus.OK.value(), "专业职务任职资格变更申请已提交", changeRequest.getId());

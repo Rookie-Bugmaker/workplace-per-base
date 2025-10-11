@@ -18,6 +18,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -120,12 +121,12 @@ public class CallbackController {
         log.info("人力资源回写接口请求参数 param ：{}",JSON.toJSONString(param));
         try {
             Map<String, Object> formDataAll;
-            if(param.getFormData() != null && param.getFormData().containsKey("formData")) {
-                formDataAll = (Map<String, Object>)param.getFormData().get("formData");
-                log.info("人力资源回写接口直接获取formData formDataAll ：{}",formDataAll);
+            if (!CollectionUtils.isEmpty(param.getFormData())) {
+                formDataAll = param.getFormData();
+                log.info("人力资源回写接口直接获取formData formDataAll ：{}", formDataAll);
             } else {
-                formDataAll =  workflowApi.getFormDataByPid(param.getProcessInstanceId()).getResult();
-                log.info("人力资源回写接口通过查询获取formData formDataAllQuery ：{}",formDataAll);
+                formDataAll = workflowApi.getFormDataByPid(param.getProcessInstanceId()).getResult();
+                log.info("人力资源回写接口通过查询获取formData formDataAllQuery ：{}", formDataAll);
             }
             formDataAll.forEach((k, v) -> {
                 log.info("key:" + k);
