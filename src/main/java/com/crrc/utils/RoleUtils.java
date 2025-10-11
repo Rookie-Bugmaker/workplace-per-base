@@ -10,12 +10,12 @@ import java.util.Collections;
 import java.util.List;
 
 @Slf4j
-@Component // 声明为Spring Bean
+@Component
 public class RoleUtils {
 
-    private static WkCoreAPi wkCoreAPi; // 改为静态引用
+    private static WkCoreAPi wkCoreAPi;
 
-    // 通过Setter实现静态字段注入
+
     @Autowired
     public void setWkCoreAPi(WkCoreAPi wkCoreAPi) {
         RoleUtils.wkCoreAPi = wkCoreAPi;

@@ -14,6 +14,7 @@ import com.crrc.api.WkWorkflowApi;
 import com.crrc.entity.HrEmpFamMember;
 import com.crrc.entity.dto.ProcessInstanceVo;
 import com.crrc.entity.dto.StartProcessInstanceDTO;
+import com.crrc.entity.dto.response.ResultData;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
@@ -286,10 +287,10 @@ public class HrEmpFamMemberController {
             instanceDTO.setFormData(formData);
             log.info("流程测试instanceDTO" + instanceDTO);
 
-            ProcessInstanceVo processInstanceVo = wkWorkflowApi.startProcessInstanceNew(instanceDTO);
+            ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
             log.info("流程测试processInstanceVo" + processInstanceVo);
             // 6. 更新流程实例ID
-            changeRequest.setProcessInstanceId(processInstanceVo.getProcessInstanceId());
+            changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
             mongoTemplate.save(changeRequest);
             log.info("流程测试success");
 
