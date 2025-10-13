@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.crrc.entity.*;
 import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mapper.HrEmpEducationMapper;
+import com.crrc.mapper.HrEmpProfessionalQualificationMapper;
+import com.crrc.mapper.HrEmpSkillLevelMapper;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
 import com.crrc.service.HrEmpBasicService;
@@ -40,6 +42,12 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
     @Autowired
     private HrEmpMajorInfoServiceImpl hrEmpMajorInfoService;
+
+    @Autowired
+    private HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper;
+
+    @Autowired
+    private HrEmpSkillLevelMapper hrEmpSkillLevelMapper;
 
 
 
@@ -113,10 +121,6 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 .leftJoin(HrEmpCommunication.class, HrEmpCommunication::getUserCode, HrEmpBasic::getUserCode)
                 .select(HrEmpHealth::getHealthStatus)
                 .leftJoin(HrEmpHealth.class, HrEmpHealth::getUserCode, HrEmpBasic::getUserCode)
-                .select(HrEmpSkillLevel::getSkillLevel)
-                .leftJoin(HrEmpSkillLevel.class, HrEmpSkillLevel::getUserCode, HrEmpBasic::getUserCode)
-                .select(HrEmpProfessionalQualification::getQuaId)
-                .leftJoin(HrEmpSkillLevel.class, HrEmpSkillLevel::getUserCode, HrEmpBasic::getUserCode)
                 .eq(HrEmpBasic::getUserCode, userCode);
 
         MPJLambdaWrapper<HrEmpEducation> queryWrapper2 = JoinWrappers.lambda(HrEmpEducation.class)
@@ -124,9 +128,23 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 .eq(HrEmpEducation::getIsHighestEducation, SystemConstants.TRUE_FLAG)
                 .eq(HrEmpBasic::getUserCode, userCode);
 
+        // 用于查询一个人可能具有多条数据的信息，按最新的排序
+        MPJLambdaWrapper<HrEmpSkillLevel> queryWrapper3 = JoinWrappers.lambda(HrEmpSkillLevel.class)
+                .select(HrEmpSkillLevel::getSkillLevel)
+                .eq(HrEmpSkillLevel::getUserCode, userCode)
+                .eq(HrEmpSkillLevel::getIsHighest, SystemConstants.TRUE_FLAG);
+
+        MPJLambdaWrapper<HrEmpProfessionalQualification> queryWrapper4 = JoinWrappers.lambda(HrEmpProfessionalQualification.class)
+                .select(HrEmpProfessionalQualification::getQuaId)
+                .eq(HrEmpProfessionalQualification::getUserCode, userCode)
+                .eq(HrEmpProfessionalQualification::getIsHighest, SystemConstants.TRUE_FLAG);
+
+
         List<HrEmpBasicDTO> result = hrEmpBasicMapper.selectJoinList(HrEmpBasicDTO.class, queryWrapper);
         List<HrEmpEducation> hrEmpEducationList = hrEmpEducationMapper.selectList(queryWrapper2);
-        if(hrEmpEducationList.size() > 1) {
+        List<HrEmpSkillLevel>  hrEmpSkillLevelList = hrEmpSkillLevelMapper.selectList(queryWrapper3);
+        List<HrEmpProfessionalQualification> hrEmpProfessionalQualificationList = hrEmpProfessionalQualificationMapper.selectList(queryWrapper4);
+        if(hrEmpEducationList.size() > 1 || hrEmpSkillLevelList.size() > 1 || hrEmpProfessionalQualificationList.size() > 1) {
             return result;
         }
         if(!hrEmpEducationList.isEmpty()){
@@ -148,6 +166,16 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             hrEmpBasicDTO.setEducation(hrEmpEducation.getEducation());
             hrEmpBasicDTO.setDegree(hrEmpEducation.getDegree());
             hrEmpBasicDTO.setMajor(hrEmpEducation.getMajor());
+        }
+        if(!hrEmpSkillLevelList.isEmpty()){
+            HrEmpSkillLevel hrEmpSkillLevel = hrEmpSkillLevelList.get(0);
+            HrEmpBasicDTO hrEmpBasicDTO = result.get(0);
+            hrEmpBasicDTO.setSkillLevel(hrEmpSkillLevel.getSkillLevel());
+        }
+        if(!hrEmpProfessionalQualificationList.isEmpty()){
+            HrEmpProfessionalQualification hrEmpProfessionalQualification = hrEmpProfessionalQualificationList.get(0);
+            HrEmpBasicDTO hrEmpBasicDTO = result.get(0);
+            hrEmpBasicDTO.setQuaId(hrEmpProfessionalQualification.getQuaId());
         }
         return result;
     }
