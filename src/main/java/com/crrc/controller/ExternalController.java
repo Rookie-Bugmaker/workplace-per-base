@@ -52,8 +52,8 @@ public class ExternalController {
     private HrEmpSalaryStandardServiceImpl hrEmpSalaryStandardService;
     @Autowired
     private HrEmpSkillLevelServiceImpl hrEmpSkillLevelService;
-    @Autowired
-    private HrEmpSalaryInfoServiceImpl hrEmpSalaryInfoService;
+//    @Autowired
+//    private HrEmpSalaryInfoServiceImpl hrEmpSalaryInfoService;
 
     @PostMapping("/receiveKingDieMsg")
     @Operation(summary = "接收金蝶传递人事令信息")

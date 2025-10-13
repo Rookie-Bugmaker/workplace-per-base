@@ -1,11 +1,9 @@
 package com.crrc.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.crrc.annotation.IgnoreTenant;
 import com.crrc.entity.HrEmpCertificate;
 import com.crrc.mapper.HrEmpCertificateMapper;
 import com.crrc.service.HrEmpCertificateService;
-import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
