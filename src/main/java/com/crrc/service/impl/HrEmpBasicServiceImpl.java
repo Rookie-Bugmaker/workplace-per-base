@@ -10,6 +10,7 @@ import com.crrc.service.HrEmpBasicService;
 import com.crrc.utils.SystemConstants;
 import com.github.yulichang.toolkit.JoinWrappers;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import java.util.List;
  * @since 2025-07-26 16:18:11
  */
 @Service
+@Slf4j
 public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrEmpBasic> implements HrEmpBasicService {
 
     @Autowired
@@ -111,8 +113,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 .leftJoin(HrEmpCommunication.class, HrEmpCommunication::getUserCode, HrEmpBasic::getUserCode)
                 .select(HrEmpHealth::getHealthStatus)
                 .leftJoin(HrEmpHealth.class, HrEmpHealth::getUserCode, HrEmpBasic::getUserCode)
-                .select(HrEmpProfessionalSkill::getSkillLevel, HrEmpProfessionalSkill::getSkillName)
-                .leftJoin(HrEmpProfessionalSkill.class, HrEmpProfessionalSkill::getUserCode, HrEmpBasic::getUserCode)
+                .select(HrEmpSkillLevel::getSkillLevel)
+                .leftJoin(HrEmpSkillLevel.class, HrEmpSkillLevel::getUserCode, HrEmpBasic::getUserCode)
+                .select(HrEmpProfessionalQualification::getQuaId)
+                .leftJoin(HrEmpSkillLevel.class, HrEmpSkillLevel::getUserCode, HrEmpBasic::getUserCode)
                 .eq(HrEmpBasic::getUserCode, userCode);
 
         MPJLambdaWrapper<HrEmpEducation> queryWrapper2 = JoinWrappers.lambda(HrEmpEducation.class)
@@ -126,7 +130,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             return result;
         }
         if(!hrEmpEducationList.isEmpty()){
-            HrEmpEducation hrEmpEducation = new HrEmpEducation();
+            HrEmpEducation hrEmpEducation = hrEmpEducationList.get(0);
             HrEmpBasicDTO hrEmpBasicDTO = result.get(0);
             HrEmpSchoolInfo hrEmpSchoolInfo = hrEmpSchoolInfoService.selectByCode(hrEmpEducation.getSchoolCode());
             if(hrEmpSchoolInfo != null) {
