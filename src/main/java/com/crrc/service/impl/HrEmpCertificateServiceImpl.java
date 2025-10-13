@@ -1,11 +1,14 @@
 package com.crrc.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.crrc.entity.HrEmpCertificate;
 import com.crrc.mapper.HrEmpCertificateMapper;
 import com.crrc.service.HrEmpCertificateService;
-import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
+
+import java.util.List;
 
 /**
  * <p>
@@ -22,9 +25,12 @@ public class HrEmpCertificateServiceImpl extends WorkServiceImpl<HrEmpCertificat
     private HrEmpCertificateMapper hrEmpCertificateMapper;
 
     public HrEmpCertificate selectByUserCode(String userCode) {
-        MPJLambdaWrapper<HrEmpCertificate> queryWrapper = new MPJLambdaWrapper<>(HrEmpCertificate.class)
-                .selectAll(HrEmpCertificate.class)
-                .eq(HrEmpCertificate::getUserCode, userCode);
-        return hrEmpCertificateMapper.selectOne(queryWrapper);
+        LambdaQueryWrapper<HrEmpCertificate> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(HrEmpCertificate::getUserCode, userCode);
+        List<HrEmpCertificate> hrEmpCertificates = hrEmpCertificateMapper.selectList(queryWrapper);
+        if(ObjectUtils.isEmpty(hrEmpCertificates)) {
+            return null;
+        }
+        return hrEmpCertificates.get(0);
     }
 }

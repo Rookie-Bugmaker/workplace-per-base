@@ -5,7 +5,6 @@ import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
-import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
@@ -183,7 +182,7 @@ public class HrEmpBasicController {
             log.info("流程测试instanceDTO" + instanceDTO);
             // 返回流程实例id
             ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
-            log.info("流程测试processInstanceVo:{}", JSON.toJSONString(processInstanceVo));
+            log.info("流程测试processInstanceVo" + processInstanceVo);
 
             // 5. 更新流程实例ID
             changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
