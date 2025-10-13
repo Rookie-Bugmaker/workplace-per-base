@@ -204,22 +204,22 @@ public class ExternalController {
                 }
 
                 // 员工薪资信息表 - 按工号更新
-                if (dto.getHrEmpSalaryInfo() != null) {
-                    HrEmpSalaryInfo salaryInfo = dto.getHrEmpSalaryInfo();
-                    if (salaryInfo.getUserCode() == null) {
-                        return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "工号不能为空!");
-                    }
-
-                    UpdateWrapper<HrEmpSalaryInfo> updateWrapper = UpdateWrapperUtils
-                            .buildNonNullUpdateWrapper(salaryInfo, "id", "userCode")
-                            .eq("user_code", salaryInfo.getUserCode());
-
-                    boolean updateResult = hrEmpSalaryInfoService.update(updateWrapper);
-                    if (!updateResult) {
-                        log.error("更新员工薪资信息失败，工号：{}", salaryInfo.getUserCode());
-                        return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "更新员工薪资信息失败!");
-                    }
-                }
+//                if (dto.getHrEmpSalaryInfo() != null) {
+//                    HrEmpSalaryInfo salaryInfo = dto.getHrEmpSalaryInfo();
+//                    if (salaryInfo.getUserCode() == null) {
+//                        return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "工号不能为空!");
+//                    }
+//
+//                    UpdateWrapper<HrEmpSalaryInfo> updateWrapper = UpdateWrapperUtils
+//                            .buildNonNullUpdateWrapper(salaryInfo, "id", "userCode")
+//                            .eq("user_code", salaryInfo.getUserCode());
+//
+//                    boolean updateResult = hrEmpSalaryInfoService.update(updateWrapper);
+//                    if (!updateResult) {
+//                        log.error("更新员工薪资信息失败，工号：{}", salaryInfo.getUserCode());
+//                        return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "更新员工薪资信息失败!");
+//                    }
+//                }
                 updateFlag++;
             } catch (Exception e) {
                 log.error("处理人事令信息异常，工号：{}，异常信息：{}",
