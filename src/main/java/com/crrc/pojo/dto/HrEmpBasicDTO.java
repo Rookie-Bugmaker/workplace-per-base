@@ -22,12 +22,12 @@ public class HrEmpBasicDTO extends HrEmpBasic{
     private String major;
 
     @Schema(description = "专业技术资格")
-    private String skillName;
+    private String quaId;
 
     @Schema(description = "技能等级")
     private String skillLevel;
 
-    @Schema(description = "学校名称")
+    @Schema(description = "学校")
     private String schoolName;
 
     @Schema(description = "证件类型")
