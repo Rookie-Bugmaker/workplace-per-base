@@ -89,6 +89,13 @@
                 <env>product</env>
             </properties>
         </profile>
+
+        <profile>
+            <id>test-hw</id>
+            <properties>
+                <env>test-hw</env>
+            </properties>
+        </profile>
     </profiles>
 
     <build>

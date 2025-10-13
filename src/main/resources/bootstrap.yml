@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: test
+    active: test-hw
   main:
     allow-bean-definition-overriding: true
   mvc:
@@ -22,4 +22,4 @@ spring:
         namespace: 02526464-a067-476c-ab4b-0c38d14017e0
         username: nacos
         password: QiangK0uLing
-        ip: 10.151.255.167
+        # ip: 10.151.255.167
