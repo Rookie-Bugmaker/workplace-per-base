@@ -1,9 +1,12 @@
 package com.crrc.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.crrc.api.WkCoreAPi;
 import com.crrc.entity.*;
 import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mapper.HrEmpEducationMapper;
+import com.crrc.mapper.HrEmpProfessionalQualificationMapper;
+import com.crrc.mapper.HrEmpSkillLevelMapper;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
 import com.crrc.service.HrEmpBasicService;
@@ -12,9 +15,9 @@ import com.github.yulichang.toolkit.JoinWrappers;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -29,18 +32,29 @@ import java.util.List;
 @Slf4j
 public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrEmpBasic> implements HrEmpBasicService {
 
-    @Autowired
-    private HrEmpBasicMapper hrEmpBasicMapper;
+    private final HrEmpBasicMapper hrEmpBasicMapper;
 
-    @Autowired
-    private HrEmpEducationMapper hrEmpEducationMapper;
+    private final HrEmpEducationMapper hrEmpEducationMapper;
 
-    @Autowired
-    private HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService;
+    private final HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService;
 
-    @Autowired
-    private HrEmpMajorInfoServiceImpl hrEmpMajorInfoService;
+    private final HrEmpMajorInfoServiceImpl hrEmpMajorInfoService;
 
+    private final HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper;
+
+    private final HrEmpSkillLevelMapper hrEmpSkillLevelMapper;
+
+    private final WkCoreAPi wkCoreApi;
+
+    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi) {
+        this.hrEmpBasicMapper = hrEmpBasicMapper;
+        this.hrEmpEducationMapper = hrEmpEducationMapper;
+        this.hrEmpSchoolInfoService = hrEmpSchoolInfoService;
+        this.hrEmpMajorInfoService = hrEmpMajorInfoService;
+        this.hrEmpProfessionalQualificationMapper = hrEmpProfessionalQualificationMapper;
+        this.hrEmpSkillLevelMapper = hrEmpSkillLevelMapper;
+        this.wkCoreApi = wkCoreApi;
+    }
 
 
     /**
@@ -96,59 +110,157 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
 
     /**
-     *  通过档案号联表查询基本信息
-     * @param userCode 档案号
-     * @return 查询结果List
+     * 通过档案号查询员工完整信息（含关联表数据）
+     * @param userCode 员工档案号
+     * @return 员工基本信息DTO集合（通常仅1条记录）
      */
     @Override
-    public List<HrEmpBasicDTO> selectMsg(String userCode){
+    public List<HrEmpBasicDTO> selectMsg(String userCode) {
+        // 1. 主表及左连接表查询
+        List<HrEmpBasicDTO> result = queryBaseInfoWithJoins(userCode);
+        if (result.isEmpty()) {
+            return Collections.emptyList();
+        }
 
-        MPJLambdaWrapper<HrEmpBasic> queryWrapper = JoinWrappers.lambda(HrEmpBasic.class)
+        // 2. 部门名称转换
+        resolveDepartmentName(result.get(0));
+
+        // 3. 查询关联子表数据
+        SubTableData subData = querySubTableData(userCode);
+
+        // 4. 处理子表数据（当所有子表数据唯一时）
+        if (subData.isAllUnique()) {
+            mergeSubTableData(result.get(0), subData);
+        }
+
+        return result;
+    }
+
+
+    /**
+     * 主表关联查询（基础信息+左连接表）
+     */
+    private List<HrEmpBasicDTO> queryBaseInfoWithJoins(String userCode) {
+        MPJLambdaWrapper<HrEmpBasic> wrapper = JoinWrappers.lambda(HrEmpBasic.class)
                 .selectAll(HrEmpBasic.class)
+                // 证书信息
                 .select(HrEmpCertificate::getCertiId, HrEmpCertificate::getCertiType)
                 .leftJoin(HrEmpCertificate.class, HrEmpCertificate::getUserCode, HrEmpBasic::getUserCode)
+                // 户籍信息
                 .select(HrEmpHouseHold::getHouseHoldType, HrEmpHouseHold::getHouseHoldLocation, HrEmpHouseHold::getHouseHoldLocationDetail)
                 .leftJoin(HrEmpHouseHold.class, HrEmpHouseHold::getUserCode, HrEmpBasic::getUserCode)
+                // 联系信息
                 .select(HrEmpCommunication::getMobilePhone, HrEmpCommunication::getPersonalEmail, HrEmpCommunication::getAddress, HrEmpCommunication::getWorkEmail)
                 .leftJoin(HrEmpCommunication.class, HrEmpCommunication::getUserCode, HrEmpBasic::getUserCode)
+                // 健康信息
                 .select(HrEmpHealth::getHealthStatus)
                 .leftJoin(HrEmpHealth.class, HrEmpHealth::getUserCode, HrEmpBasic::getUserCode)
-                .select(HrEmpSkillLevel::getSkillLevel)
-                .leftJoin(HrEmpSkillLevel.class, HrEmpSkillLevel::getUserCode, HrEmpBasic::getUserCode)
-                .select(HrEmpProfessionalQualification::getQuaId)
-                .leftJoin(HrEmpSkillLevel.class, HrEmpSkillLevel::getUserCode, HrEmpBasic::getUserCode)
                 .eq(HrEmpBasic::getUserCode, userCode);
 
-        MPJLambdaWrapper<HrEmpEducation> queryWrapper2 = JoinWrappers.lambda(HrEmpEducation.class)
-                .select(HrEmpEducation::getSchoolCode, HrEmpEducation::getEducation, HrEmpEducation::getDegree, HrEmpEducation::getIsHighestEducation, HrEmpEducation::getMajorCode)
-                .eq(HrEmpEducation::getIsHighestEducation, SystemConstants.TRUE_FLAG)
-                .eq(HrEmpBasic::getUserCode, userCode);
+        return hrEmpBasicMapper.selectJoinList(HrEmpBasicDTO.class, wrapper);
+    }
 
-        List<HrEmpBasicDTO> result = hrEmpBasicMapper.selectJoinList(HrEmpBasicDTO.class, queryWrapper);
-        List<HrEmpEducation> hrEmpEducationList = hrEmpEducationMapper.selectList(queryWrapper2);
-        if(hrEmpEducationList.size() > 1) {
-            return result;
+    /**
+     * 解析部门名称（通过组织编码）
+     */
+    private void resolveDepartmentName(HrEmpBasicDTO dto) {
+        if (StringUtils.isBlank(dto.getDept())) {
+            return;
         }
-        if(!hrEmpEducationList.isEmpty()){
-            HrEmpEducation hrEmpEducation = hrEmpEducationList.get(0);
-            HrEmpBasicDTO hrEmpBasicDTO = result.get(0);
-            HrEmpSchoolInfo hrEmpSchoolInfo = hrEmpSchoolInfoService.selectByCode(hrEmpEducation.getSchoolCode());
-            if(hrEmpSchoolInfo != null) {
-                hrEmpEducation.setSchoolName(hrEmpSchoolInfo.getSchoolName());
-            }else {
-                hrEmpEducation.setSchoolName("未知院校");
-            }
-            HrEmpMajorInfo hrEmpMajorInfo = hrEmpMajorInfoService.selectByCode(hrEmpEducation.getMajorCode());
-            if(hrEmpMajorInfo != null) {
-                hrEmpEducation.setMajor(hrEmpMajorInfo.getMajor());
-            } else {
-                hrEmpEducation.setMajor("未知专业");
-            }
-            hrEmpBasicDTO.setSchoolName(hrEmpEducation.getSchoolName());
-            hrEmpBasicDTO.setEducation(hrEmpEducation.getEducation());
-            hrEmpBasicDTO.setDegree(hrEmpEducation.getDegree());
-            hrEmpBasicDTO.setMajor(hrEmpEducation.getMajor());
+
+        try {
+            String deptName = wkCoreApi.getDeptByOrgCode(dto.getDept()).getDepartmentName();
+            dto.setDept(deptName);
+        } catch (Exception e) {
+            log.warn("部门名称查询失败, orgCode: {}", dto.getDept(), e);
         }
-        return result;
+    }
+
+    /**
+     * 查询子表数据（教育/技能/资格）
+     */
+    private SubTableData querySubTableData(String userCode) {
+        SubTableData data = new SubTableData();
+
+        // 教育信息（最高学历）
+        data.educationList = hrEmpEducationMapper.selectList(
+                JoinWrappers.lambda(HrEmpEducation.class)
+                        .select(HrEmpEducation::getSchoolCode, HrEmpEducation::getEducation,
+                                HrEmpEducation::getDegree, HrEmpEducation::getMajorCode)
+                        .eq(HrEmpEducation::getIsHighestEducation, SystemConstants.TRUE_FLAG)
+                        .eq(HrEmpEducation::getUserCode, userCode)
+        );
+
+        // 技能等级（最高等级）
+        data.skillLevelList = hrEmpSkillLevelMapper.selectList(
+                JoinWrappers.lambda(HrEmpSkillLevel.class)
+                        .select(HrEmpSkillLevel::getSkillLevel)
+                        .eq(HrEmpSkillLevel::getIsHighest, SystemConstants.TRUE_FLAG)
+                        .eq(HrEmpSkillLevel::getUserCode, userCode)
+        );
+
+        // 职业资格（最高资格）
+        data.qualificationList = hrEmpProfessionalQualificationMapper.selectList(
+                JoinWrappers.lambda(HrEmpProfessionalQualification.class)
+                        .select(HrEmpProfessionalQualification::getQuaId)
+                        .eq(HrEmpProfessionalQualification::getIsHighest, SystemConstants.TRUE_FLAG)
+                        .eq(HrEmpProfessionalQualification::getUserCode, userCode)
+        );
+
+        return data;
+    }
+
+    /**
+     * 合并子表数据到主DTO
+     */
+    private void mergeSubTableData(HrEmpBasicDTO dto, SubTableData data) {
+        // 处理教育信息
+        if (!data.educationList.isEmpty()) {
+            HrEmpEducation edu = data.educationList.get(0);
+            // 补充院校/专业名称
+            enrichEducationInfo(edu);
+            dto.setSchoolName(edu.getSchoolName());
+            dto.setEducation(edu.getEducation());
+            dto.setDegree(edu.getDegree());
+            dto.setMajor(edu.getMajor());
+        }
+
+        // 处理技能等级
+        if (!data.skillLevelList.isEmpty()) {
+            dto.setSkillLevel(data.skillLevelList.get(0).getSkillLevel());
+        }
+
+        // 处理职业资格
+        if (!data.qualificationList.isEmpty()) {
+            dto.setQuaId(data.qualificationList.get(0).getQuaId());
+        }
+    }
+
+    /**
+     * 补充教育明细信息（院校名称+专业名称）
+     */
+    private void enrichEducationInfo(HrEmpEducation edu) {
+        // 院校名称
+        HrEmpSchoolInfo school = hrEmpSchoolInfoService.selectByCode(edu.getSchoolCode());
+        edu.setSchoolName(school != null ? school.getSchoolName() : "未知院校");
+
+        // 专业名称
+        HrEmpMajorInfo major = hrEmpMajorInfoService.selectByCode(edu.getMajorCode());
+        edu.setMajor(major != null ? major.getMajor() : "未知专业");
+    }
+
+    /**
+     * 子表数据容器（内部使用）
+     */
+    private static class SubTableData {
+        List<HrEmpEducation> educationList;
+        List<HrEmpSkillLevel> skillLevelList;
+        List<HrEmpProfessionalQualification> qualificationList;
+
+        boolean isAllUnique() {
+            return educationList.size() <= 1 &&
+                    skillLevelList.size() <= 1 &&
+                    qualificationList.size() <= 1;
+        }
     }
 }
