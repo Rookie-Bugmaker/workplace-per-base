@@ -124,7 +124,7 @@ public class HrEmpEducationController {
     @GetMapping("/getDetails")
     @Operation(summary = "获得员工教育信息表实体")
     @AuditLog(value = "获得员工教育信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    public ResponseResult<List<HrEmpEducation>> getMsg(@RequestParam String userCode ) {
+    public ResponseResult<List<HrEmpEducation>> getMsg(@RequestParam String userCode) {
         List<HrEmpEducation> result = hrEmpEducationService.selectMsg(userCode);
         for (HrEmpEducation hrEmpEducation : result) {
             HrEmpSchoolInfo hrEmpSchoolInfo = hrEmpSchoolInfoService.selectByCode(hrEmpEducation.getSchoolCode());
