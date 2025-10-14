@@ -127,15 +127,18 @@ public class HrEmpEducationController {
     public ResponseResult<List<HrEmpEducation>> getMsg(@RequestParam String userCode) {
         List<HrEmpEducation> result = hrEmpEducationService.selectMsg(userCode);
         for (HrEmpEducation hrEmpEducation : result) {
-            HrEmpSchoolInfo hrEmpSchoolInfo = hrEmpSchoolInfoService.selectByCode(hrEmpEducation.getSchoolCode());
-            if(hrEmpSchoolInfo != null) {
-                hrEmpEducation.setSchoolName(hrEmpSchoolInfo.getSchoolName());
-            } else if(StringUtils.isBlank(hrEmpEducation.getSchoolCode()) && !StringUtils.isBlank(hrEmpEducation.getSchoolName())) {
-                // 如果没有schoolCode，且存在schoolName，直接返回校名
-                continue;
-            } else {
-                hrEmpEducation.setSchoolName("未知院校");
+            // 学校名称部分
+            if(StringUtils.isNotBlank(hrEmpEducation.getSchoolCode()) && StringUtils.isNotBlank(hrEmpEducation.getSchoolName())) {
+                // 如果存在schoolCode，且存在schoolName,使用code查询进行反写
+                HrEmpSchoolInfo hrEmpSchoolInfo = hrEmpSchoolInfoService.selectByCode(hrEmpEducation.getSchoolCode());
+                if(StringUtils.isNotBlank(hrEmpSchoolInfo.getSchoolName())) {
+                    hrEmpEducation.setSchoolName(hrEmpSchoolInfo.getSchoolName());
+                } else {
+                    hrEmpEducation.setSchoolName("未知院校");
+                }
             }
+
+            // 专业部分
             if("001".equals(hrEmpEducation.getEducation()) || "002".equals(hrEmpEducation.getEducation())
                     || "003".equals(hrEmpEducation.getEducation()) || "004".equals(hrEmpEducation.getEducation())) {
                 if(StringUtils.isNotBlank(hrEmpEducation.getMajorCode())) {
@@ -149,6 +152,8 @@ public class HrEmpEducationController {
                 // 其它学历，将专业置空
                 hrEmpEducation.setMajor(null);
             }
+
+            // 学位部分 todo
         }
         log.info("getDetails查询回来的教育经历原始数据：{}", JSON.toJSONString(result, SerializerFeature.PrettyFormat));
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工教育信息表实体成功", result);
