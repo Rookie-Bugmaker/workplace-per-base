@@ -17,6 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.Collections;
 import java.util.List;
 
@@ -133,6 +135,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             mergeSubTableData(result.get(0), subData);
         }
 
+        // 5. 处理年龄
+        resolveAge(result.get(0));
+
         return result;
     }
 
@@ -173,6 +178,26 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             dto.setDept(deptName);
         } catch (Exception e) {
             log.warn("部门名称查询失败, orgCode: {}", dto.getDept(), e);
+        }
+    }
+
+    /**
+     * 计算并设置员工年龄（基于出生日期计算周岁）
+     * @param dto 包含出生日期的员工DTO对象
+     */
+    private void resolveAge(HrEmpBasicDTO dto) {
+        if (dto.getBirthDate() == null) {
+            log.warn("档案号：{}，人员出生日期为空", dto.getUserCode());
+            dto.setAge(null);
+            return;
+        }
+
+        try {
+            int age = Period.between(dto.getBirthDate(), LocalDate.now()).getYears();
+            dto.setAge(Math.max(age, 0));
+        } catch (Exception e) {
+            log.error("年龄计算异常，档案号：{}", dto.getUserCode(), e);
+            dto.setAge(null);
         }
     }
 
