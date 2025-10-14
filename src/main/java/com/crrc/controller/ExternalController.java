@@ -226,6 +226,8 @@ public class ExternalController {
                         dto.getHrEmpBasic() != null ? dto.getHrEmpBasic().getUserCode() : "未知",
                         e.getMessage(), e);
                 throw new RuntimeException("处理人事令信息异常：" + e.getMessage());
+            } finally {
+                MultiTenantHandler.tenantId.remove();
             }
         }
         return new ResponseResult<>(HttpStatus.OK.value(), "人事令下达成功，信息已变更！ 变更数量： " + updateFlag);
