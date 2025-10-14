@@ -128,15 +128,25 @@ public class HrEmpEducationController {
         List<HrEmpEducation> result = hrEmpEducationService.selectMsg(userCode);
         for (HrEmpEducation hrEmpEducation : result) {
             // 学校名称部分
-            if(StringUtils.isNotBlank(hrEmpEducation.getSchoolCode()) && StringUtils.isNotBlank(hrEmpEducation.getSchoolName())) {
-                // 如果存在schoolCode，且存在schoolName,使用code查询进行反写
+            log.info("原始数据 - schoolCode: {}, schoolName: {}",
+                    hrEmpEducation.getSchoolCode(),
+                    hrEmpEducation.getSchoolName());
+
+            // 修改判断逻辑
+            if(StringUtils.isNotBlank(hrEmpEducation.getSchoolCode())) {
                 HrEmpSchoolInfo hrEmpSchoolInfo = hrEmpSchoolInfoService.selectByCode(hrEmpEducation.getSchoolCode());
-                if(StringUtils.isNotBlank(hrEmpSchoolInfo.getSchoolName())) {
-                    hrEmpEducation.setSchoolName(hrEmpSchoolInfo.getSchoolName());
-                } else {
-                    hrEmpEducation.setSchoolName("未知院校");
+                log.info("查询结果: {}", hrEmpSchoolInfo);  // 打印整个对象
+
+                String finalName = "未知院校";
+                if(hrEmpSchoolInfo != null && StringUtils.isNotBlank(hrEmpSchoolInfo.getSchoolName())) {
+                    finalName = hrEmpSchoolInfo.getSchoolName();
                 }
+                hrEmpEducation.setSchoolName(finalName);
+            } else if(StringUtils.isBlank(hrEmpEducation.getSchoolName())) {
+                hrEmpEducation.setSchoolName("未知院校");
             }
+
+            log.info("处理后 - schoolName: {}", hrEmpEducation.getSchoolName());
 
             // 专业部分
             if("001".equals(hrEmpEducation.getEducation()) || "002".equals(hrEmpEducation.getEducation())
