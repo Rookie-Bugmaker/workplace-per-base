@@ -130,15 +130,24 @@ public class HrEmpEducationController {
             HrEmpSchoolInfo hrEmpSchoolInfo = hrEmpSchoolInfoService.selectByCode(hrEmpEducation.getSchoolCode());
             if(hrEmpSchoolInfo != null) {
                 hrEmpEducation.setSchoolName(hrEmpSchoolInfo.getSchoolName());
-            }else {
+            } else if(StringUtils.isBlank(hrEmpEducation.getSchoolCode()) && !StringUtils.isBlank(hrEmpEducation.getSchoolName())) {
+                // 如果没有schoolCode，且存在schoolName，直接返回校名
+                continue;
+            } else {
                 hrEmpEducation.setSchoolName("未知院校");
             }
-
-            HrEmpMajorInfo hrEmpMajorInfo = hrEmpMajorInfoService.selectByCode(hrEmpEducation.getMajorCode());
-            if(hrEmpMajorInfo != null) {
-                hrEmpEducation.setMajor(hrEmpMajorInfo.getMajor());
-            } else {
-                hrEmpEducation.setMajor("未知专业");
+            if("001".equals(hrEmpEducation.getEducation()) || "002".equals(hrEmpEducation.getEducation())
+                    || "003".equals(hrEmpEducation.getEducation()) || "004".equals(hrEmpEducation.getEducation())) {
+                if(StringUtils.isNotBlank(hrEmpEducation.getMajorCode())) {
+                    // 大专及以上学历,且学历编码不为空，进行学历回写
+                    HrEmpMajorInfo hrEmpMajorInfo = hrEmpMajorInfoService.selectByCode(hrEmpEducation.getMajorCode());
+                    hrEmpEducation.setMajor(hrEmpMajorInfo.getMajor());
+                } else {
+                    hrEmpEducation.setMajor("未知专业");
+                }
+            }else{
+                // 其它学历，将专业置空
+                hrEmpEducation.setMajor(null);
             }
         }
         log.info("getDetails查询回来的教育经历原始数据：{}", JSON.toJSONString(result, SerializerFeature.PrettyFormat));
