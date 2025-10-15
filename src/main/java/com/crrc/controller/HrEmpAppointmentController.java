@@ -58,15 +58,17 @@ public class HrEmpAppointmentController {
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<List<HrEmpAppointment>> getMsg(@RequestParam String userCode) {
         List<HrEmpAppointment> list = hrEmpAppointmentService.selectMsg(userCode);
-        // 回显部门名称
+        // 回显部门名称和组织单元名称
         for(HrEmpAppointment entity : list) {
             String deptCode = entity.getDept();
-            log.info("deptCode:{}", deptCode);
             String deptName = DeptUtils.getDeptNameByCode(deptCode);
-            log.info("deptName:{}", deptName);
             entity.setDept(deptName);
+
+            String orgId = entity.getOrgUnit();
+            String orgName = DeptUtils.getDeptNameByCode(orgId);
+            entity.setOrgUnit(orgName);
         }
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工任职信息表实体成功", hrEmpAppointmentService.selectMsg(userCode));
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工任职信息表实体成功", list);
     }
 
     @PostMapping("/page")
