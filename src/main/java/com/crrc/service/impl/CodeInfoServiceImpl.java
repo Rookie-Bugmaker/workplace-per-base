@@ -37,7 +37,7 @@ public class CodeInfoServiceImpl extends WorkServiceImpl<CodeInfoMapper, CodeInf
     @Override
     public String translateCode(String dictCode, String tableName, String type) {
         MPJLambdaWrapper<CodeInfo> wrapper = new MPJLambdaWrapper<CodeInfo>()
-                .selectAll(CodeInfo.class)
+                .select(CodeInfo::getCode, CodeInfo::getCodeValue, CodeInfo::getType, CodeInfo::getTableName)
                 .eq(CodeInfo::getTableName, tableName)
                 .eq(CodeInfo::getType, type)
                 .eq(CodeInfo::getCode, dictCode);
