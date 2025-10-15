@@ -47,8 +47,8 @@ public class HrEmpPenalties extends BaseEntity implements Serializable {
     private String penaltyName;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"批准单位"}, index = 3)
-    @Schema(description = "批准单位")
+    @ExcelProperty(value = {"批准单位（20251015，应人力要求作废）"}, index = 3)
+    @Schema(description = "批准单位（20251015，应人力要求作废）")
     private String penaltyUnit;
     
     @QueryMethod(method = QueryType.EQ)
