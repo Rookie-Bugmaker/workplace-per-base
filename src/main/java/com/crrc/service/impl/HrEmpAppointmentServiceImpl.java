@@ -1,9 +1,7 @@
 package com.crrc.service.impl;
 
 import com.crrc.entity.HrEmpAppointment;
-import com.crrc.entity.HrEmpEducation;
 import com.crrc.mapper.HrEmpAppointmentMapper;
-import com.crrc.mapper.HrEmpEducationMapper;
 import com.crrc.service.HrEmpAppointmentService;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +26,8 @@ public class HrEmpAppointmentServiceImpl extends WorkServiceImpl<HrEmpAppointmen
     public List<HrEmpAppointment> selectMsg(String userCode){
         MPJLambdaWrapper<HrEmpAppointment> wrapper = new MPJLambdaWrapper<HrEmpAppointment>()
                 .selectAll(HrEmpAppointment.class)
-                .eq(HrEmpAppointment::getUserCode, userCode);
+                .eq(HrEmpAppointment::getUserCode, userCode)
+                .orderByAsc(HrEmpAppointment::getStartDate);
         return hrEmpAppointmentMapper.selectList(wrapper);
     }
 
@@ -42,7 +41,7 @@ public class HrEmpAppointmentServiceImpl extends WorkServiceImpl<HrEmpAppointmen
                 .eq(HrEmpAppointment::getUserCode, userCode)
                 .isNull(HrEmpAppointment::getEndDate);
         List<HrEmpAppointment> result = hrEmpAppointmentMapper.selectList(wrapper);
-        if (result == null || result.size() == 0) {
+        if (result == null || result.isEmpty()) {
             return null;
         } else {
             return result;

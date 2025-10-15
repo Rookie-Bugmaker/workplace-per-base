@@ -10,6 +10,7 @@ import com.crrc.mapper.HrEmpSkillLevelMapper;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
 import com.crrc.service.HrEmpBasicService;
+import com.crrc.utils.DeptUtils;
 import com.crrc.utils.SystemConstants;
 import com.github.yulichang.toolkit.JoinWrappers;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
@@ -174,7 +175,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         }
 
         try {
-            String deptName = wkCoreApi.getDeptByOrgCode(dto.getDept()).getDepartmentName();
+            String deptName = DeptUtils.getDeptNameByCode(dto.getDept());
             dto.setDept(deptName);
         } catch (Exception e) {
             log.warn("部门名称查询失败, orgCode: {}", dto.getDept(), e);

@@ -9,12 +9,12 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
 import com.crrc.entity.HrEmpAppointment;
-import com.crrc.entity.HrEmpEducation;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.service.impl.HrEmpAppointmentServiceImpl;
+import com.crrc.utils.DeptUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -54,8 +54,15 @@ public class HrEmpAppointmentController {
     @Operation(summary = "获得任职信息实体")
     @AuditLog(value = "获得任职信息实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
-    public ResponseResult<List<HrEmpAppointment>> getMsg(@RequestParam String userCode ) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工教育信息表实体成功", hrEmpAppointmentService.selectMsg(userCode));
+    public ResponseResult<List<HrEmpAppointment>> getMsg(@RequestParam String userCode) {
+        List<HrEmpAppointment> list = hrEmpAppointmentService.selectMsg(userCode);
+        // 回显部门名称
+        for(HrEmpAppointment entity : list) {
+            String deptCode = entity.getDept();
+            String deptName = DeptUtils.getDeptNameByCode(deptCode);
+            entity.setDept(deptName);
+        }
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工任职信息表实体成功", hrEmpAppointmentService.selectMsg(userCode));
     }
 
     @PostMapping("/page")

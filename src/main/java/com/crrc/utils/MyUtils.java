@@ -5,6 +5,9 @@ import org.springframework.beans.BeanUtils;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * 用于封装一些独特的不一定别的类能复用的私有方法
+ */
 public class MyUtils {
 
     /**
