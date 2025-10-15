@@ -13,6 +13,7 @@ import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.service.impl.CodeInfoServiceImpl;
 import com.crrc.service.impl.HrEmpAppointmentServiceImpl;
 import com.crrc.utils.DeptUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,6 +52,8 @@ public class HrEmpAppointmentController {
 
     @Autowired
     private HrEmpAppointmentServiceImpl hrEmpAppointmentService;
+    @Autowired
+    private CodeInfoServiceImpl codeInfoService;
 
     @GetMapping("/getDetails")
     @Operation(summary = "获得任职信息实体")
@@ -58,7 +61,7 @@ public class HrEmpAppointmentController {
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<List<HrEmpAppointment>> getMsg(@RequestParam String userCode) {
         List<HrEmpAppointment> list = hrEmpAppointmentService.selectMsg(userCode);
-        // 回显部门名称和组织单元名称
+        // 回显部门名称、组织单元名称、职位名称
         for(HrEmpAppointment entity : list) {
             String deptCode = entity.getDept();
             String deptName = DeptUtils.getDeptNameByCode(deptCode);
@@ -67,6 +70,10 @@ public class HrEmpAppointmentController {
             String orgId = entity.getOrgUnit();
             String orgName = DeptUtils.getDeptNameByCode(orgId);
             entity.setOrgUnit(orgName);
+
+            String position = entity.getPosition();
+            String positionName = codeInfoService.translateCode(position, "hr_emp_appointment", "APPOINTMENT_POSITION");
+            entity.setPosition(positionName);
         }
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工任职信息表实体成功", list);
     }
