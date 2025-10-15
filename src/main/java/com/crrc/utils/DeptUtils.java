@@ -28,6 +28,7 @@ public class DeptUtils {
      */
     public static String getDeptNameByCode(String code) {
         try {
+            log.info("进入查询，deptCode: {}", code);
             return wkCoreApi.getDeptByOrgCode(code).getDepartmentName();
         } catch (Exception e) {
             log.warn("部门名称查询失败, orgCode: {}", code, e);

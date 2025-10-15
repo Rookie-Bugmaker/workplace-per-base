@@ -18,6 +18,7 @@ import com.crrc.utils.DeptUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
@@ -45,6 +46,7 @@ import java.util.List;
 @RequestMapping("/hrEmpAppointment")
 @RefreshScope
 @Tag(name = "任职信息", description = "任职信息")
+@Slf4j
 public class HrEmpAppointmentController {
 
     @Autowired
@@ -59,7 +61,9 @@ public class HrEmpAppointmentController {
         // 回显部门名称
         for(HrEmpAppointment entity : list) {
             String deptCode = entity.getDept();
+            log.info("deptCode:{}", deptCode);
             String deptName = DeptUtils.getDeptNameByCode(deptCode);
+            log.info("deptName:{}", deptName);
             entity.setDept(deptName);
         }
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工任职信息表实体成功", hrEmpAppointmentService.selectMsg(userCode));
