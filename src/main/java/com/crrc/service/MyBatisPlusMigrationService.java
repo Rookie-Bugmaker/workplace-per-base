@@ -110,7 +110,9 @@ public class MyBatisPlusMigrationService {
                     batchData = openGaussJdbcTemplate.queryForList(querySql, lastUserCode, batchSize);
                 }
 
-                if (batchData.isEmpty()) break;
+                if (batchData.isEmpty()) {
+                    break;
+                }
 
                 // 批量插入目标表
                 try (PreparedStatement pstmt = oracleConn.prepareStatement(insertSql)) {
@@ -218,7 +220,9 @@ public class MyBatisPlusMigrationService {
                     batchData = openGaussJdbcTemplate.queryForList(querySql, lastUserCode, batchSize);
                 }
 
-                if (batchData.isEmpty()) break;
+                if (batchData.isEmpty()) {
+                    break;
+                }
 
                 // 批量插入目标表
                 try (PreparedStatement pstmt = oracleConn.prepareStatement(insertSql)) {

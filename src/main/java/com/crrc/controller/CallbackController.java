@@ -11,6 +11,7 @@ import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.service.impl.*;
 import com.crrc.utils.MyUtils;
+import com.crrc.utils.ProcessStatus;
 import com.crrc.utils.SystemConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -502,7 +503,7 @@ public class CallbackController {
         log.info("进入通用回调申请方法成功processInstanceStatus： " + processInstanceStatus);
         String isUpdatingValue = "1";
 
-        if (processInstanceStatus == 2) {
+        if (processInstanceStatus.equals(ProcessStatus.COMPLETED) ) {
             // 审批通过
             if (statusChecker.test(currentStatus)) {
                 return new ResponseResult<>(HttpStatus.OK.value(), "已处理过该申请", true);
@@ -512,7 +513,7 @@ public class CallbackController {
             statusSetter.accept(APPROVED);
             isUpdatingValue = "0";
 
-        } else if (processInstanceStatus == 3 || processInstanceStatus == 4) {
+        } else if (processInstanceStatus.equals(ProcessStatus.REJECTED) || processInstanceStatus.equals(ProcessStatus.RESET)) {
             // 审批拒绝
             statusSetter.accept(REJECTED);
             isUpdatingValue = "0";

@@ -17,7 +17,6 @@ import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpCareerPathDTO;
-import com.crrc.pojo.dto.UpdateListDTO;
 import com.crrc.service.impl.HrEmpCareerPathServiceImpl;
 import com.crrc.utils.SecurityFrameworkUtils;
 import com.crrc.utils.UpdateListUtil;
@@ -62,7 +61,7 @@ public class HrEmpCareerPathController {
     @Autowired
     private HrEmpCareerPathServiceImpl hrEmpCareerPathService;
     @Autowired
-    private WkCoreAPi wkCoreAPi;
+    private WkCoreAPi wkCoreApi;
 
     private final UpdateListUtil<HrEmpCareerPath, String> updateUtil;
 
@@ -144,7 +143,7 @@ public class HrEmpCareerPathController {
 
             // 2. 权限校验 - 检查是否是人力资源部-人才管理专员
             log.info("开始权限校验，用户ID: {}", currentUser.getUser().getId());
-            List<UserWithRoleDTO> usersWithRoles = wkCoreAPi.getUsersWithRoles(
+            List<UserWithRoleDTO> usersWithRoles = wkCoreApi.getUsersWithRoles(
                     Collections.singletonList(currentUser.getUser().getId()));
 
             boolean isHrTalentManager = usersWithRoles.stream()
