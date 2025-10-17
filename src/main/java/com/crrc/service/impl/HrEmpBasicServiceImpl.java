@@ -132,30 +132,38 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
      */
     @Override
     public List<HrEmpBasicDTO> selectMsg(String userCode) {
-        // 1. 主表及左连接表查询
-        List<HrEmpBasicDTO> result = queryBaseInfoWithJoins(userCode);
-        if (result.isEmpty()) {
-            return Collections.emptyList();
+        try{
+            // 1. 主表及左连接表查询
+            List<HrEmpBasicDTO> result = queryBaseInfoWithJoins(userCode);
+            if (result.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            // 2. 部门名称转换
+            resolveDepartmentName(result.get(0));
+
+            // 3. 查询关联子表数据
+            SubTableData subData = querySubTableData(userCode);
+
+            // 4. 处理子表数据（当所有子表数据唯一时）
+            if (subData.isAllUnique()) {
+                mergeSubTableData(result.get(0), subData);
+            }
+
+            // 5. 处理年龄
+            log.info("准备开始处理年龄信息");
+            resolveAge(result.get(0));
+
+            // 5. 处理人员分类1,4,7,8
+            log.info("准备开始处理人员分类信息");
+            resolveCategory(result.get(0));
+
+            return result;
+        } catch (Exception e) {
+            log.warn("查询异常,{}", e.getMessage());
+            return queryBaseInfoWithJoins(userCode);
         }
 
-        // 2. 部门名称转换
-        resolveDepartmentName(result.get(0));
-
-        // 3. 查询关联子表数据
-        SubTableData subData = querySubTableData(userCode);
-
-        // 4. 处理子表数据（当所有子表数据唯一时）
-        if (subData.isAllUnique()) {
-            mergeSubTableData(result.get(0), subData);
-        }
-
-        // 5. 处理年龄
-        resolveAge(result.get(0));
-
-        // 5. 处理人员分类1,4,7,8
-        resolveCategory(result.get(0));
-
-        return result;
     }
 
 
@@ -187,6 +195,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
      * 解析人员分类1478
      */
     private void resolveCategory(HrEmpBasicDTO dto) {
+        log.info("进入方法体成功");
         // 查询的表名
         String tableName = "person_category";
 
