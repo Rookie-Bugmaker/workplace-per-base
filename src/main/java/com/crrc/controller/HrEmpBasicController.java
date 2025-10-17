@@ -24,6 +24,7 @@ import com.crrc.service.impl.*;
 import com.crrc.utils.MyUtils;
 import com.crrc.utils.RoleUtils;
 import com.crrc.utils.SystemConstants;
+import io.seata.common.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -78,17 +79,51 @@ public class HrEmpBasicController {
     @Operation(summary = "同步人员分类，目前用定时任务每天处理")
     @AuditLog(value = "同步人员分类，目前用定时任务每天处理", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     public ResponseResult<String> syncPersonCategory(@RequestBody(required = false) List<HrEmpBasic> userCodeList) {
-        // 如果传参了且非空，就用传参，否则全量更新
-        List<HrEmpBasic> list = (userCodeList != null && !userCodeList.isEmpty())
-                ? userCodeList
-                : hrEmpBasicService.getAllUser();
+        try {
+            // 如果传参了且非空，就用传参，否则全量更新
+            List<HrEmpBasic> list = (userCodeList != null && !userCodeList.isEmpty())
+                    ? userCodeList
+                    : hrEmpBasicService.getAllUser();
 
-        // 同步人员分类1
-        // 同步人员分类4
-        // 同步人员分类7
-        // 同步人员分类8
+            for(HrEmpBasic hrEmpBasic:list){
+                // 同步人员分类1，根据基本信息的身份类型判断人员分类1，
+                // 员工基本信息→身份类型→干部  干
+                // 员工基本信息→身份类型→工人  工
+                if(StringUtils.isNotBlank(hrEmpBasic.getIdentityType())) {
+                    String category1 = null;
+                    switch (hrEmpBasic.getIdentityType()) {
+                        // 身份类型 干部
+                        case "1":
+                            // 人员分类1 “干”对应的码值
+                            category1 = "001";
+                            break;
 
-        return new ResponseResult<>(HttpStatus.OK.value(), "人员分类同步处理完成");
+                        // 身份类型 工人
+                        case "2":
+                            // 人员分类1 “工”对应的码值
+                            category1 = "002";
+                            break;
+
+                        default:
+                    }
+                    hrEmpBasic.setCategory1(category1);
+                }
+                // 同步人员分类4
+                String category4 = null;
+                hrEmpBasic.setCategory4(category4);
+                // 同步人员分类7
+                String category7 = null;
+                hrEmpBasic.setCategory7(category7);
+                // 同步人员分类8
+                String category8 = null;
+                hrEmpBasic.setCategory8(category8);
+                hrEmpBasicService.updateById(hrEmpBasic);
+            }
+            return new ResponseResult<>(HttpStatus.OK.value(), "人员分类同步成功");
+        } catch (Exception e) {
+            log.error("同步失败，{}", e.getMessage());
+            return new ResponseResult<>(HttpStatus.EXPECTATION_FAILED.value(), "人员分类同步失败" + e.getMessage());
+        }
     }
 
 
