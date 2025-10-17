@@ -47,15 +47,18 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
     private final HrEmpSkillLevelMapper hrEmpSkillLevelMapper;
 
+    private final CodeInfoServiceImpl codeInfoService;
+
     private final WkCoreAPi wkCoreApi;
 
-    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi) {
+    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService) {
         this.hrEmpBasicMapper = hrEmpBasicMapper;
         this.hrEmpEducationMapper = hrEmpEducationMapper;
         this.hrEmpSchoolInfoService = hrEmpSchoolInfoService;
         this.hrEmpMajorInfoService = hrEmpMajorInfoService;
         this.hrEmpProfessionalQualificationMapper = hrEmpProfessionalQualificationMapper;
         this.hrEmpSkillLevelMapper = hrEmpSkillLevelMapper;
+        this.codeInfoService = codeInfoService;
         this.wkCoreApi = wkCoreApi;
     }
 
@@ -149,6 +152,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         // 5. 处理年龄
         resolveAge(result.get(0));
 
+        // 5. 处理人员分类1,4,7,8
+        resolveCategory(result.get(0));
+
         return result;
     }
 
@@ -174,6 +180,40 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 .eq(HrEmpBasic::getUserCode, userCode);
 
         return hrEmpBasicMapper.selectJoinList(HrEmpBasicDTO.class, wrapper);
+    }
+
+
+    /**
+     * 解析人员分类1478
+     */
+    private void resolveCategory(HrEmpBasicDTO dto) {
+        // 查询的表名
+        String tableName = "person_category";
+
+        try {
+            if (StringUtils.isNotBlank(dto.getCategory1())) {
+                String category1 = codeInfoService.translateCode(dto.getCategory1(), tableName, "category1");
+                dto.setCategory1(category1);
+            }
+
+            if (StringUtils.isNotBlank(dto.getCategory4())) {
+                String category4 = codeInfoService.translateCode(dto.getCategory4(), tableName, "category4");
+                dto.setCategory1(category4);
+            }
+
+            if (StringUtils.isNotBlank(dto.getCategory7())) {
+                String category7 = codeInfoService.translateCode(dto.getCategory7(), tableName, "category7");
+                dto.setCategory1(category7);
+            }
+
+            if (StringUtils.isNotBlank(dto.getCategory8())) {
+                String category8 = codeInfoService.translateCode(dto.getCategory8(), tableName, "category8");
+                dto.setCategory1(category8);
+            }
+
+        } catch (Exception e) {
+            log.warn("人员分类1478解析, orgCode: {}", dto.getDept(), e);
+        }
     }
 
     /**
