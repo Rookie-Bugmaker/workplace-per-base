@@ -74,6 +74,23 @@ public class HrEmpBasicController {
     @Autowired
     private WkWorkflowApi wkWorkflowApi;
 
+    @PostMapping("/syncPersonCategory")
+    @Operation(summary = "同步人员分类，目前用定时任务每天处理")
+    @AuditLog(value = "同步人员分类，目前用定时任务每天处理", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResult<String> syncPersonCategory(@RequestBody(required = false) List<HrEmpBasic> userCodeList) {
+        // 如果传参了且非空，就用传参，否则全量更新
+        List<HrEmpBasic> list = (userCodeList != null && !userCodeList.isEmpty())
+                ? userCodeList
+                : hrEmpBasicService.getAllUser();
+
+        // 同步人员分类1
+        // 同步人员分类4
+        // 同步人员分类7
+        // 同步人员分类8
+
+        return new ResponseResult<>(HttpStatus.OK.value(), "人员分类同步处理完成");
+    }
+
 
     @GetMapping("/getDetails")
     @Operation(summary = "获得员工基本信息表实体")

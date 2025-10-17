@@ -59,6 +59,16 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         this.wkCoreApi = wkCoreApi;
     }
 
+    /**
+     * 获取全量用户信息
+     * @return 全量用户信息list
+     */
+    public List<HrEmpBasic> getAllUser() {
+        MPJLambdaWrapper<HrEmpBasic> queryWrapper = new MPJLambdaWrapper<>();
+        queryWrapper.selectAll(HrEmpBasic.class);
+        return hrEmpBasicMapper.selectList(queryWrapper);
+    }
+
 
     /**
      * 条件查询
