@@ -200,6 +200,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         String tableName = "person_category";
 
         try {
+            log.info("userCode:{},category1:{}", dto.getUserCode(), dto.getCategory1());
             if (StringUtils.isNotBlank(dto.getCategory1())) {
                 log.info("读取到category1：{}", dto.getCategory1());
                 String category1 = codeInfoService.translateCode(dto.getCategory1(), tableName, "category1");
