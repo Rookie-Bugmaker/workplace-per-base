@@ -23,14 +23,10 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class PostCatalogInfoServiceImpl extends WorkServiceImpl<PostCatalogInfoMapper, PostCatalogInfo> implements PostCatalogInfoService {
-    public Page<FlatRow> queryVO(Page<PostCatalogInfo> page, PostCatalogInfo pageReqVO) {
-        this.query(page, pageReqVO);
-        List<PostCatalogInfo> records = page.getRecords();
+    public List<FlatRow> queryVO(PostCatalogInfo pageReqVO) {
+        List<PostCatalogInfo> records = this.query(pageReqVO);
         List<PostCatalogInfoServiceImpl.FlatRow> rows = PostCatalogInfoServiceImpl.flattenLeafOnly(records); // 只要叶子
-        Page<FlatRow> flatRowPage = new Page<>();
-        BeanUtils.copyProperties(page, flatRowPage);
-        flatRowPage.setRecords(rows);
-        return flatRowPage;
+        return rows;
     }
 
     // === 展平后的行 ===
@@ -46,7 +42,7 @@ public class PostCatalogInfoServiceImpl extends WorkServiceImpl<PostCatalogInfoM
                 .collect(Collectors.toMap(PostCatalogInfo::getId, Function.identity()));
 
         return all.stream()
-                .filter(n -> n.getNodeLevel().equals("3")) // 只取职种
+                .filter(n -> "3".equals(n.getNodeLevel())) // 只取职种
                 .map(n -> {
                     PostCatalogInfo group = ancestorAtLevel(n, 2, byId);
                     PostCatalogInfo category = ancestorAtLevel(n, 1, byId);

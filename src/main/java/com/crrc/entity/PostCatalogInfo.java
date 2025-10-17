@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @Schema(description = "中国中车职类职群职种信息")
 @NoArgsConstructor
 public class PostCatalogInfo extends BaseEntity {
-    @TableId(value = "id", type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.INPUT)
     Long id;
     /**
      * 父亲id
