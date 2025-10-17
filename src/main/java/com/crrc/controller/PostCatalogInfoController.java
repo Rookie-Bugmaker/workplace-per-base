@@ -52,8 +52,9 @@ public class PostCatalogInfoController {
                                                      @RequestParam(required = false, defaultValue = "10")int pageSize) {
         pageReqVO = (pageReqVO == null) ? new PostCatalogInfo() : pageReqVO;
         Page<PostCatalogInfo> page = new Page<>(pageNo, pageSize);
-        postCatalogInfoService.query(page, pageReqVO);
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取列表 page成功", page);
+        // TODO: 测试用
+        Page<PostCatalogInfoServiceImpl.FlatRow> flatRowPage = postCatalogInfoService.queryVO(page, pageReqVO);
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取列表 page成功", flatRowPage);
     }
 
     @PostMapping("/query")

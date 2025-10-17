@@ -18,27 +18,19 @@ public class PostCatalogInfo extends BaseEntity {
     @TableId(value = "id", type = IdType.AUTO)
     Long id;
     /**
-     * 职类
+     * 父亲id
      */
-    String category;
+    Long parentId;
     /**
-     * 职类编码
+     * 1: 职类; 2: 职群; 3: 职种
      */
-    String categoryCode;
+    String nodeLevel;
     /**
-     * 职群
+     * 名称
      */
-    String groupName;
+    String name;
     /**
-     * 职群编码
+     * 编码
      */
-    String groupCode;
-    /**
-     * 职种
-     */
-    String typeName;
-    /**
-     * 职种编码
-     */
-    String typeCode;
+    String code;
 }
