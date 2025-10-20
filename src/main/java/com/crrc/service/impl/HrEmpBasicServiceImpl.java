@@ -210,17 +210,17 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
             if (StringUtils.isNotBlank(dto.getCategory4())) {
                 String category4 = codeInfoService.translateCode(dto.getCategory4(), tableName, "category4");
-                dto.setCategory1(category4);
+                dto.setCategory4(category4);
             }
 
             if (StringUtils.isNotBlank(dto.getCategory7())) {
                 String category7 = codeInfoService.translateCode(dto.getCategory7(), tableName, "category7");
-                dto.setCategory1(category7);
+                dto.setCategory7(category7);
             }
 
             if (StringUtils.isNotBlank(dto.getCategory8())) {
                 String category8 = codeInfoService.translateCode(dto.getCategory8(), tableName, "category8");
-                dto.setCategory1(category8);
+                dto.setCategory8(category8);
             }
 
         } catch (Exception e) {
