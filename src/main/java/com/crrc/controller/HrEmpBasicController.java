@@ -94,6 +94,7 @@ public class HrEmpBasicController {
                 // 员工基本信息→身份类型→工人  工
                 if(StringUtils.isNotBlank(hrEmpBasic.getIdentityType())) {
                     String category1 = null;
+                    log.info("当前身份类型{}", hrEmpBasic.getIdentityType());
                     switch (hrEmpBasic.getIdentityType()) {
                         // 身份类型 干部
                         case "1":
@@ -157,6 +158,8 @@ public class HrEmpBasicController {
                 hrEmpBasic.setCategory8(category8);
 
                 // 更新方法
+                log.info("准备执行更新方法，category1:{}，category4:{}，category7:{}，category8:{}",
+                        hrEmpBasic.getCategory1(), hrEmpBasic.getCategory4(), hrEmpBasic.getCategory7() ,hrEmpBasic.getCategory8());
                 LambdaUpdateWrapper<HrEmpBasic> wrapper = new LambdaUpdateWrapper<>();
                 wrapper.eq(HrEmpBasic::getUserCode, hrEmpBasic.getUserCode())
                         .set(HrEmpBasic::getCategory1, hrEmpBasic.getCategory1())
