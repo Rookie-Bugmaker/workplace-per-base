@@ -19,23 +19,29 @@ import lombok.experimental.Accessors;
 @Accessors(chain = false)
 public class PostCatalogInfo extends BaseEntity {
     @TableId(value = "id", type = IdType.AUTO)
-    Long id;
+    @Schema(description = "id")
+    private Long id;
+
     @TableLogic(value = "0")
     private Integer deleted;
     /**
      * 父亲id
      */
-    Long parentId;
+    @Schema(description = "父亲id")
+    private Long parentId;
     /**
      * 1: 职类; 2: 职群; 3: 职种
      */
-    String nodeLevel;
+    @Schema(description = "节点level")
+    private String nodeLevel;
     /**
      * 名称
      */
-    String name;
+    @Schema(description = "节点名称")
+    private String name;
     /**
      * 编码
      */
-    String code;
+    @Schema(description = "节点编码")
+    private String code;
 }

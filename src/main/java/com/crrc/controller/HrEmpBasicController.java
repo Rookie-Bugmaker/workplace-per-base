@@ -18,7 +18,9 @@ import com.crrc.entity.dto.response.ResultData;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
+import com.crrc.mapper.HrEmpAppointmentMapper;
 import com.crrc.mapper.HrEmpCareerPathMapper;
+import com.crrc.mapper.HrEmpOtherAppointmentMapper;
 import com.crrc.mapper.HrEmpResumeMapper;
 import com.crrc.mongodb.HrEmpBasicChangeRequest;
 import com.crrc.pojo.ResponseResult;
@@ -89,6 +91,10 @@ public class HrEmpBasicController {
     private HrEmpCareerPathMapper hrEmpCareerPathMapper;
     @Autowired
     private HrEmpResumeMapper hrEmpResumeMapper;
+    @Autowired
+    private HrEmpAppointmentMapper hrEmpAppointmentMapper;
+    @Autowired
+    private HrEmpOtherAppointmentMapper hrEmpOtherAppointmentMapper;
 
     @PostMapping("/syncPersonCategory")
     @Operation(summary = "同步人员分类，目前用定时任务每天处理")
@@ -166,7 +172,7 @@ public class HrEmpBasicController {
                 }
                 hrEmpBasic.setCategory7(category7);
                 // 同步人员分类8
-                String category8 = null;
+                String category8 = resolveCategory8(hrEmpBasic);
                 hrEmpBasic.setCategory8(category8);
 
                 // 更新方法
@@ -185,6 +191,76 @@ public class HrEmpBasicController {
             log.error("同步失败，{}", e.getMessage());
             return new ResponseResult<>(HttpStatus.EXPECTATION_FAILED.value(), "人员分类同步失败" + e.getMessage());
         }
+    }
+
+    private String resolveCategory8(HrEmpBasic hrEmpBasic) {
+        LambdaQueryWrapper<HrEmpAppointment> appointmentQueryWrapper = new LambdaQueryWrapper<>();
+        appointmentQueryWrapper.eq(HrEmpAppointment::getUserCode, hrEmpBasic.getUserCode());
+        // 查找duty_status不为空的任职信息
+        List<HrEmpAppointment> hrEmpAppointments = hrEmpAppointmentMapper.selectList(appointmentQueryWrapper).stream()
+                .filter(e -> e.getDutyStatus() != null).collect(Collectors.toList());
+        if(!ObjectUtils.isEmpty(hrEmpAppointments)) {
+            HrEmpAppointment hrEmpAppointment = hrEmpAppointments.get(0);
+            // 如果超过一条，选择startDate最晚的
+            if(hrEmpAppointments.size() > 1) {
+                hrEmpAppointment = hrEmpAppointments.stream().reduce((a, b) -> a.getStartDate().isAfter(b.getStartDate()) ? a : b).get();
+            }
+            String dutyStatus = hrEmpAppointment.getDutyStatus();
+            // 任职信息→在岗状态→待岗 -> 待
+            if("待岗".equals(dutyStatus) || "201".equals(dutyStatus)) {
+                return "001";
+            }
+            // TODO: 现在劳和伤判断逻辑一样，应该需要修改
+            // 任职信息→在岗状态→因病因伤长期休假人员 -> 劳
+            if("因病因伤长期休假人员".equals(dutyStatus) || "206".equals(dutyStatus)) {
+                return "003";
+            }
+            // 任职信息→在岗状态→因病因伤长期休假人员 -> 伤
+            if("因病因伤长期休假人员".equals(dutyStatus) || "206".equals(dutyStatus)) {
+                return "005";
+            }
+            // 任职信息→在岗状态→在岗 -> 现
+            if("在岗".equals(dutyStatus) || "101".equals(dutyStatus)) {
+                return "006";
+            }
+            // 任职信息→在岗状态→859内退人员&“三类精算”内退人员&新增精算内退人员&其他内退人员
+            if("859内退人员".equals(dutyStatus) || "“三类精算”内退人员".equals(dutyStatus) || "新增精算内退人员".equals(dutyStatus) || "其他内退人员".equals(dutyStatus)
+            || "202".equals(dutyStatus) || "203".equals(dutyStatus) || "204".equals(dutyStatus) || "205".equals(dutyStatus)) {
+                return "007";
+            }
+
+        }
+
+        // 查找duty_status不为空的其他任职信息
+        LambdaQueryWrapper<HrEmpOtherAppointment> otherAppQueryWrapper = new LambdaQueryWrapper<>();
+        otherAppQueryWrapper.eq(HrEmpOtherAppointment::getUserCode, hrEmpBasic.getUserCode());
+        List<HrEmpOtherAppointment> hrEmpOtherAppointments = hrEmpOtherAppointmentMapper.selectList(otherAppQueryWrapper).stream()
+                .filter(e -> e.getDutyStatus() != null).collect(Collectors.toList());
+        if(!ObjectUtils.isEmpty(hrEmpOtherAppointments)) {
+            HrEmpOtherAppointment hrEmpOtherAppointment = hrEmpOtherAppointments.get(0);
+            // 如果超过一条，选择startDate最晚的
+            if (hrEmpOtherAppointments.size() > 1) {
+                hrEmpOtherAppointment = hrEmpOtherAppointments.stream().reduce(
+                        (a, b) -> a.getStartDate().isAfter(b.getStartDate()) ? a : b
+                ).get();
+            }
+            String appointmentType = hrEmpOtherAppointment.getOtherAppointmentType();
+            // 其他任职信息→其他任职类型→借调 -> 借
+            // TODO: 暂时没有借调、外派和助勤的code
+            if("借调".equals(appointmentType) || "".equals(appointmentType)) {
+                return "002";
+            }
+            // 其他任职信息→其他任职类型→外派 -> 派
+            if("外派".equals(appointmentType) || "".equals(appointmentType)) {
+                return "004";
+            }
+            // 其他任职信息→其他任职类型→助勤 -> 助
+            if("助勤".equals(appointmentType) || "".equals(appointmentType)) {
+                return "008";
+            }
+        }
+        // 全都匹配不上，返回空
+        return null;
     }
 
     private String resolveCategory4(HrEmpBasic hrEmpBasic) {
