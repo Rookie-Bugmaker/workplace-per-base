@@ -52,7 +52,6 @@ public class PostCatalogInfoController {
                                                      @RequestParam(required = false, defaultValue = "10")int pageSize) {
         pageReqVO = (pageReqVO == null) ? new PostCatalogInfo() : pageReqVO;
         Page<PostCatalogInfo> page = new Page<>(pageNo, pageSize);
-        // TODO: 测试用
         postCatalogInfoService.query(page, pageReqVO);
         return new ResponseResult<>(HttpStatus.OK.value(), "获取列表 page成功", page);
     }
@@ -61,9 +60,9 @@ public class PostCatalogInfoController {
     @Operation(summary = "获取列表")
     @AuditLog(value = "获取列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象", required = false)
-    public ResponseResult<List<PostCatalogInfoServiceImpl.FlatRow>> queryPostCatalogInfo(@Validated @RequestBody(required = false) PostCatalogInfo queryReqVO) {
+    public ResponseResult<List<PostCatalogInfo>> queryPostCatalogInfo(@Validated @RequestBody(required = false) PostCatalogInfo queryReqVO) {
         queryReqVO = (queryReqVO == null) ? new PostCatalogInfo() : queryReqVO;
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取列表成功", postCatalogInfoService.queryVO(queryReqVO));
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取列表成功", postCatalogInfoService.query(queryReqVO));
     }
 
     @GetMapping("/get")
