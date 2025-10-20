@@ -71,6 +71,8 @@ public class HrEmpBasicController {
     @Autowired
     private HrEmpCertificateServiceImpl hrEmpCertificateService;
     @Autowired
+    private HrEmpProfessionalQualificationServiceImpl hrEmpProfessionalQualificationService;
+    @Autowired
     private MongoTemplate mongoTemplate;
     @Autowired
     private WkWorkflowApi wkWorkflowApi;
@@ -113,6 +115,41 @@ public class HrEmpBasicController {
                 hrEmpBasic.setCategory4(category4);
                 // 同步人员分类7
                 String category7 = null;
+                // 获取专业职务任职资格列表
+                List<HrEmpProfessionalQualification> qualificationList = hrEmpProfessionalQualificationService.selectMsg(hrEmpBasic.getUserCode());
+                if(!qualificationList.isEmpty()) {
+                    for(HrEmpProfessionalQualification qualification:qualificationList){
+                        // 找到目前最高的任职资格，以此为判断标准
+                        if(StringUtils.isNotBlank(qualification.getIsHighest())  && SystemConstants.TRUE_FLAG.equals(qualification.getIsHighest())) {
+                            /*
+                              00010	正高级 正
+                              00020	高级 高
+                              00030	中级 师
+                              00040	助理级 助
+                              00050	员级 员
+                              00060	未聘任专业技术职务
+                             */
+                            switch(qualification.getQuaTitleLevel()) {
+                                case "00010":
+                                    category7 = "001";
+                                    break;
+                                case "00020":
+                                    category7 = "002";
+                                    break;
+                                case "00030":
+                                    category7 = "003";
+                                    break;
+                                case "00040":
+                                    category7 = "004";
+                                    break;
+                                case "00050":
+                                    category7 = "005";
+                                    break;
+                                default:
+                            }
+                        }
+                    }
+                }
                 hrEmpBasic.setCategory7(category7);
                 // 同步人员分类8
                 String category8 = null;
