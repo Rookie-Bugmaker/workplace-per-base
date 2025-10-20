@@ -195,13 +195,13 @@ public class HrEmpBasicController {
         if(!ObjectUtils.isEmpty(hrEmpCareerPaths)) {
             // 找到经营管理通道的list
             // 001	经营管理
-            List<HrEmpCareerPath> pathList = hrEmpCareerPaths.stream().filter(item -> "001".equals(item.getPathId())).collect(Collectors.toList());
+            List<HrEmpCareerPath> pathList = hrEmpCareerPaths.stream().filter(item -> "001".equals(item.getPathId()))
+                    .filter(e -> !ObjectUtils.isEmpty(e.getEffectiveDate())).collect(Collectors.toList());
             if(!ObjectUtils.isEmpty(pathList)) {
                 // 如果有多个，找到getEffectiveDate最晚的
                 HrEmpCareerPath path = pathList.get(0);
                 if(hrEmpCareerPaths.size() > 1) {
-                    Comparator<HrEmpCareerPath> localDateComparator = Comparator.comparing(HrEmpCareerPath::getEffectiveDate);
-                    path = pathList.stream().max(localDateComparator).get();
+                    path = pathList.stream().reduce((a, b) -> a.getEffectiveDate().isAfter(b.getEffectiveDate()) ? a : b).get();
                 }
                 // 经营管理职类，经营管理通道，等级D1/D2 -> 厂
                 String levelId = path.getLevelId();
@@ -221,29 +221,29 @@ public class HrEmpBasicController {
         String position = null;
         if(!ObjectUtils.isEmpty(hrEmpResumeList)) {
             // 找到endDate为空的，即现任岗位
-            List<HrEmpResume> hrEmpResumes = hrEmpResumeList.stream().filter(item -> item.getEndDate() == null).collect(Collectors.toList());
+            List<HrEmpResume> hrEmpResumes = hrEmpResumeList.stream().filter(item -> item.getEndDate() == null)
+                    .filter(item -> !ObjectUtils.isEmpty(item.getStartDate())).collect(Collectors.toList());
             if(!ObjectUtils.isEmpty(hrEmpResumes)) {
                 // 如果endDate有多个不为空，找到startDate最晚的
                 HrEmpResume hrEmpResume = hrEmpResumes.get(0);
                 if(hrEmpCareerPaths.size() > 1) {
-                    Comparator<HrEmpResume> localDateComparator = Comparator.comparing(HrEmpResume::getStartDate);
-                    hrEmpResume = hrEmpResumes.stream().max(localDateComparator).get();
+                    hrEmpResume = hrEmpResumes.stream().reduce((a, b) -> a.getStartDate().isAfter(b.getStartDate()) ? a : b).get();
                 }
                 position = hrEmpResume.getPosition();
                 // 岗位名称“协理（临时）” -> 二
-                if(position.equals("协理（临时）")) {
+                if("协理（临时）".equals(position)) {
                     return "二";
                 }
                 // 岗位名称“高级顾问/顾问” -> 厂二
-                if(position.equals("高级顾问") || position.contains("顾问") || position.equals("高级顾问/顾问")) {
+                if("高级顾问".equals(position) || "顾问".contains(position) || "高级顾问/顾问".equals(position)) {
                     return "厂二";
                 }
                 // 岗位名称“级经理” -> 干业
-                if(position.equals("级经理")) {
+                if("级经理".equals(position)) {
                     return "干业";
                 }
                 // 岗位名称“级业务经理” -> 人业
-                if(position.equals("级业务经理")) {
+                if("级经理".equals(position)) {
                     return "人业";
                 }
             }
