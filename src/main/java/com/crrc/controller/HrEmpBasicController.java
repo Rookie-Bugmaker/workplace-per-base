@@ -5,6 +5,7 @@ import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
@@ -154,7 +155,15 @@ public class HrEmpBasicController {
                 // 同步人员分类8
                 String category8 = null;
                 hrEmpBasic.setCategory8(category8);
-                hrEmpBasicService.updateById(hrEmpBasic);
+
+                // 更新方法
+                LambdaUpdateWrapper<HrEmpBasic> wrapper = new LambdaUpdateWrapper<>();
+                wrapper.eq(HrEmpBasic::getUserCode, hrEmpBasic.getUserCode())
+                        .set(HrEmpBasic::getCategory1, hrEmpBasic.getCategory1())
+                        .set(HrEmpBasic::getCategory4, hrEmpBasic.getCategory4())
+                        .set(HrEmpBasic::getCategory7, hrEmpBasic.getCategory7())
+                        .set(HrEmpBasic::getCategory8, hrEmpBasic.getCategory8());
+                hrEmpBasicService.update(hrEmpBasic, wrapper);
             }
             return new ResponseResult<>(HttpStatus.OK.value(), "人员分类同步成功");
         } catch (Exception e) {
