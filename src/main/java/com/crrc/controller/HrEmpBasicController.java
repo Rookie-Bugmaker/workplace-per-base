@@ -247,15 +247,15 @@ public class HrEmpBasicController {
             String appointmentType = hrEmpOtherAppointment.getOtherAppointmentType();
             // 其他任职信息→其他任职类型→借调 -> 借
             // TODO: 暂时没有借调、外派和助勤的code
-            if("借调".equals(appointmentType) || "".equals(appointmentType)) {
+            if("借调".equals(appointmentType)) {
                 return "002";
             }
             // 其他任职信息→其他任职类型→外派 -> 派
-            if("外派".equals(appointmentType) || "".equals(appointmentType)) {
+            if("外派".equals(appointmentType)) {
                 return "004";
             }
             // 其他任职信息→其他任职类型→助勤 -> 助
-            if("助勤".equals(appointmentType) || "".equals(appointmentType)) {
+            if("助勤".equals(appointmentType)) {
                 return "008";
             }
         }
@@ -307,19 +307,21 @@ public class HrEmpBasicController {
                 }
                 position = hrEmpResume.getPosition();
                 // 岗位名称“协理（临时）” -> 二
+                // TODO: 目前没有编码，增加编码后修改这里
                 if("协理（临时）".equals(position)) {
                     return "003";
                 }
                 // 岗位名称“高级顾问/顾问” -> 厂二
-                if("高级顾问".equals(position) || "顾问".equals(position) || "高级顾问/顾问".equals(position)) {
+                if("高级顾问".equals(position) || "顾问".equals(position) || "高级顾问/顾问".equals(position) || "434".equals(position) || "435".equals(position)) {
                     return "002";
                 }
                 // 岗位名称“级经理” -> 干业
-                if("级经理".equals(position)) {
+                // 匹配 一级经理等等
+                if(position != null && position.contains("级经理")) {
                     return "005";
                 }
                 // 岗位名称“级业务经理” -> 人业
-                if("级业务经理".equals(position)) {
+                if(position != null && position.contains("级业务经理")) {
                     return "006";
                 }
             }
