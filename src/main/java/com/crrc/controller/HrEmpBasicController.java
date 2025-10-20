@@ -235,7 +235,7 @@ public class HrEmpBasicController {
                     return "二";
                 }
                 // 岗位名称“高级顾问/顾问” -> 厂二
-                if("高级顾问".equals(position) || "顾问".contains(position) || "高级顾问/顾问".equals(position)) {
+                if("高级顾问".equals(position) || "顾问".equals(position) || "高级顾问/顾问".equals(position)) {
                     return "厂二";
                 }
                 // 岗位名称“级经理” -> 干业
@@ -243,7 +243,7 @@ public class HrEmpBasicController {
                     return "干业";
                 }
                 // 岗位名称“级业务经理” -> 人业
-                if("级经理".equals(position)) {
+                if("级业务经理".equals(position)) {
                     return "人业";
                 }
             }
