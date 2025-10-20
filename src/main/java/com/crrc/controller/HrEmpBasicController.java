@@ -163,7 +163,7 @@ public class HrEmpBasicController {
                         .set(HrEmpBasic::getCategory4, hrEmpBasic.getCategory4())
                         .set(HrEmpBasic::getCategory7, hrEmpBasic.getCategory7())
                         .set(HrEmpBasic::getCategory8, hrEmpBasic.getCategory8());
-                hrEmpBasicService.update(hrEmpBasic, wrapper);
+                hrEmpBasicService.update(null, wrapper);
             }
             return new ResponseResult<>(HttpStatus.OK.value(), "人员分类同步成功");
         } catch (Exception e) {
