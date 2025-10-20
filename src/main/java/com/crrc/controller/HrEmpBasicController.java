@@ -206,11 +206,11 @@ public class HrEmpBasicController {
                 // 经营管理职类，经营管理通道，等级D1/D2 -> 厂
                 String levelId = path.getLevelId();
                 if("D1".equals(levelId) || "D2".equals(levelId)) {
-                    return "厂";
+                    return "001";
                 }
                 // 经营管理职类，经营管理通道，等级M1/M2/M3 -> 中
                 if("M1".equals(levelId) || "M2".equals(levelId) || "M3".equals(levelId)) {
-                    return "中";
+                    return "004";
                 }
             }
         }
@@ -232,19 +232,19 @@ public class HrEmpBasicController {
                 position = hrEmpResume.getPosition();
                 // 岗位名称“协理（临时）” -> 二
                 if("协理（临时）".equals(position)) {
-                    return "二";
+                    return "003";
                 }
                 // 岗位名称“高级顾问/顾问” -> 厂二
                 if("高级顾问".equals(position) || "顾问".equals(position) || "高级顾问/顾问".equals(position)) {
-                    return "厂二";
+                    return "002";
                 }
                 // 岗位名称“级经理” -> 干业
                 if("级经理".equals(position)) {
-                    return "干业";
+                    return "005";
                 }
                 // 岗位名称“级业务经理” -> 人业
                 if("级业务经理".equals(position)) {
-                    return "人业";
+                    return "006";
                 }
             }
         }
@@ -261,19 +261,19 @@ public class HrEmpBasicController {
                 String categoryCode = postCatalogInfoVO.getCategoryCode();
                 // 专业管理、市场营销职类 -> 普
                 if("2".equals(categoryCode) || "3".equals(categoryCode)) {
-                    return "普";
+                    return "007";
                 }
                 String groupCode = postCatalogInfoVO.getGroupCode();
                 // 技能操作职类，直接生产操作、辅助生产操作职群 -> 计
                 if("5-01".equals(groupCode) || "5-02".equals(groupCode)) {
-                    return "计";
+                    return "008";
                 }
                 // 技能操作职类，辅助服务职群 -> 辅
                 if("5-03".equals(groupCode)) {
-                    return "辅";
+                    return "009";
                 }
                 // 其他职类 -> 他
-                return "他";
+                return "010";
             }
         }
         return null;
