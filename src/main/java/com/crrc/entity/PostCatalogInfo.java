@@ -2,10 +2,12 @@ package com.crrc.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
 /**
  * @author yukun
@@ -14,9 +16,12 @@ import lombok.NoArgsConstructor;
 @TableName("post_catalog_info")
 @Schema(description = "中国中车职类职群职种信息")
 @NoArgsConstructor
+@Accessors(chain = false)
 public class PostCatalogInfo extends BaseEntity {
     @TableId(value = "id", type = IdType.INPUT)
     Long id;
+    @TableLogic(value = "0")
+    private Integer deleted;
     /**
      * 父亲id
      */

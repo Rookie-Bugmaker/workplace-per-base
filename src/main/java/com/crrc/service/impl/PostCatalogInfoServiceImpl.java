@@ -1,9 +1,12 @@
 package com.crrc.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.entity.PostCatalogInfo;
 import com.crrc.mapper.PostCatalogInfoMapper;
 import com.crrc.pojo.vo.PostCatalogInfoVO;
 import com.crrc.service.PostCatalogInfoService;
+import com.crrc.utils.WrapperUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -48,6 +51,21 @@ public class PostCatalogInfoServiceImpl extends WorkServiceImpl<PostCatalogInfoM
             postCatalogInfoVO.setCategoryCode(category.getCode());
             return postCatalogInfoVO;
         }).collect(Collectors.toList());
+    }
+
+    /**
+     * 根据实体进行分页查询
+     * @param reqVO
+     * @return
+     */
+    public void page(Page<PostCatalogInfo> page, PostCatalogInfo reqVO) {
+        QueryWrapper<PostCatalogInfo> queryWrapper = WrapperUtils.buildWrapper(reqVO);
+        this.page(page, queryWrapper);
+    }
+
+    public List<PostCatalogInfo> query(PostCatalogInfo reqVO) {
+        QueryWrapper<PostCatalogInfo> queryWrapper = WrapperUtils.buildWrapper(reqVO);
+        return this.baseMapper.selectList(queryWrapper);
     }
 
 }
