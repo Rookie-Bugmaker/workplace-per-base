@@ -22,6 +22,7 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -69,6 +70,25 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     public List<HrEmpBasic> getAllUser() {
         MPJLambdaWrapper<HrEmpBasic> queryWrapper = new MPJLambdaWrapper<>();
         queryWrapper.selectAll(HrEmpBasic.class);
+        return hrEmpBasicMapper.selectList(queryWrapper);
+    }
+
+
+    /**
+     * 根据传入的档案号列表查询用户信息列表
+     * @param userCodeList 包含userCode的员工基本信息列表
+     * @return 用户信息list
+     */
+    public List<HrEmpBasic> getListByUserCode(List<HrEmpBasic> userCodeList) {
+        // 1. 从参数中提取userCode列表
+        List<String> codes = userCodeList.stream()
+                .map(HrEmpBasic::getUserCode)
+                .collect(Collectors.toList());
+
+        // 2. 构建查询条件
+        MPJLambdaWrapper<HrEmpBasic> queryWrapper = new MPJLambdaWrapper<>();
+        queryWrapper.selectAll(HrEmpBasic.class)
+                .in(HrEmpBasic::getUserCode, codes);
         return hrEmpBasicMapper.selectList(queryWrapper);
     }
 

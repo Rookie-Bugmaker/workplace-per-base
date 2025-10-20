@@ -49,7 +49,6 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -98,7 +97,7 @@ public class HrEmpBasicController {
         try {
             // 如果传参了且非空，就用传参，否则全量更新
             List<HrEmpBasic> list = (userCodeList != null && !userCodeList.isEmpty())
-                    ? userCodeList
+                    ? hrEmpBasicService.getListByUserCode(userCodeList)
                     : hrEmpBasicService.getAllUser();
 
             for(HrEmpBasic hrEmpBasic : list){
