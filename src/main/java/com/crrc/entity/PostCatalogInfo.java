@@ -18,7 +18,7 @@ import lombok.experimental.Accessors;
 @NoArgsConstructor
 @Accessors(chain = false)
 public class PostCatalogInfo extends BaseEntity {
-    @TableId(value = "id", type = IdType.INPUT)
+    @TableId(value = "id", type = IdType.AUTO)
     Long id;
     @TableLogic(value = "0")
     private Integer deleted;
