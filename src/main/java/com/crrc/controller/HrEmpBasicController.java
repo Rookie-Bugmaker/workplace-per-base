@@ -5,6 +5,7 @@ import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -17,10 +18,13 @@ import com.crrc.entity.dto.response.ResultData;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
+import com.crrc.mapper.HrEmpCareerPathMapper;
+import com.crrc.mapper.HrEmpResumeMapper;
 import com.crrc.mongodb.HrEmpBasicChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
+import com.crrc.pojo.vo.PostCatalogInfoVO;
 import com.crrc.service.impl.*;
 import com.crrc.utils.MyUtils;
 import com.crrc.utils.RoleUtils;
@@ -35,6 +39,7 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.ObjectUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,7 +49,9 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -77,6 +84,12 @@ public class HrEmpBasicController {
     private MongoTemplate mongoTemplate;
     @Autowired
     private WkWorkflowApi wkWorkflowApi;
+    @Autowired
+    private PostCatalogInfoServiceImpl postCatalogInfoService;
+    @Autowired
+    private HrEmpCareerPathMapper hrEmpCareerPathMapper;
+    @Autowired
+    private HrEmpResumeMapper hrEmpResumeMapper;
 
     @PostMapping("/syncPersonCategory")
     @Operation(summary = "同步人员分类，目前用定时任务每天处理")
@@ -88,7 +101,7 @@ public class HrEmpBasicController {
                     ? userCodeList
                     : hrEmpBasicService.getAllUser();
 
-            for(HrEmpBasic hrEmpBasic:list){
+            for(HrEmpBasic hrEmpBasic : list){
                 // 同步人员分类1，根据基本信息的身份类型判断人员分类1，
                 // 员工基本信息→身份类型→干部  干
                 // 员工基本信息→身份类型→工人  工
@@ -113,7 +126,7 @@ public class HrEmpBasicController {
                     hrEmpBasic.setCategory1(category1);
                 }
                 // 同步人员分类4
-                String category4 = null;
+                String category4 = resolveCategory4(hrEmpBasic);
                 hrEmpBasic.setCategory4(category4);
                 // 同步人员分类7
                 String category7 = null;
@@ -175,6 +188,97 @@ public class HrEmpBasicController {
         }
     }
 
+    private String resolveCategory4(HrEmpBasic hrEmpBasic) {
+        // 同步人员分类4，根据基本信息的身份类型判断人员分类4
+        LambdaQueryWrapper<HrEmpCareerPath> pathQueryWrapper = new LambdaQueryWrapper<>();
+        pathQueryWrapper.eq(HrEmpCareerPath::getUserCode, hrEmpBasic.getUserCode());
+        List<HrEmpCareerPath> hrEmpCareerPaths = hrEmpCareerPathMapper.selectList(pathQueryWrapper);
+        if(!ObjectUtils.isEmpty(hrEmpCareerPaths)) {
+            // 找到经营管理通道的list
+            // 001	经营管理
+            List<HrEmpCareerPath> pathList = hrEmpCareerPaths.stream().filter(item -> "001".equals(item.getPathId())).collect(Collectors.toList());
+            if(!ObjectUtils.isEmpty(pathList)) {
+                // 如果有多个，找到getEffectiveDate最晚的
+                HrEmpCareerPath path = pathList.get(0);
+                if(hrEmpCareerPaths.size() > 1) {
+                    Comparator<HrEmpCareerPath> localDateComparator = Comparator.comparing(HrEmpCareerPath::getEffectiveDate);
+                    path = pathList.stream().max(localDateComparator).get();
+                }
+                // 经营管理职类，经营管理通道，等级D1/D2 -> 厂
+                String levelId = path.getLevelId();
+                if("D1".equals(levelId) || "D2".equals(levelId)) {
+                    return "厂";
+                }
+                // 经营管理职类，经营管理通道，等级M1/M2/M3 -> 中
+                if("M1".equals(levelId) || "M2".equals(levelId) || "M3".equals(levelId)) {
+                    return "中";
+                }
+            }
+        }
+
+        LambdaQueryWrapper<HrEmpResume> resumeQueryWrapper = new LambdaQueryWrapper<>();
+        resumeQueryWrapper.eq(HrEmpResume::getUserCode, hrEmpBasic.getUserCode());
+        List<HrEmpResume> hrEmpResumeList = hrEmpResumeMapper.selectList(resumeQueryWrapper);
+        String position = null;
+        if(!ObjectUtils.isEmpty(hrEmpResumeList)) {
+            // 找到endDate为空的，即现任岗位
+            List<HrEmpResume> hrEmpResumes = hrEmpResumeList.stream().filter(item -> item.getEndDate() == null).collect(Collectors.toList());
+            if(!ObjectUtils.isEmpty(hrEmpResumes)) {
+                // 如果endDate有多个不为空，找到startDate最晚的
+                HrEmpResume hrEmpResume = hrEmpResumes.get(0);
+                if(hrEmpCareerPaths.size() > 1) {
+                    Comparator<HrEmpResume> localDateComparator = Comparator.comparing(HrEmpResume::getStartDate);
+                    hrEmpResume = hrEmpResumes.stream().max(localDateComparator).get();
+                }
+                position = hrEmpResume.getPosition();
+                // 岗位名称“协理（临时）” -> 二
+                if(position.equals("协理（临时）")) {
+                    return "二";
+                }
+                // 岗位名称“高级顾问/顾问” -> 厂二
+                if(position.equals("高级顾问") || position.contains("顾问") || position.equals("高级顾问/顾问")) {
+                    return "厂二";
+                }
+                // 岗位名称“级经理” -> 干业
+                if(position.equals("级经理")) {
+                    return "干业";
+                }
+                // 岗位名称“级业务经理” -> 人业
+                if(position.equals("级业务经理")) {
+                    return "人业";
+                }
+            }
+        }
+
+        // TODO: 职位和职种关联后，修改这里的代码
+        if(position != null) {
+            // 关联String typeCode = service.queryType(String position);
+            PostCatalogInfo reqVO = new PostCatalogInfo();
+            reqVO.setName(position);
+            List<PostCatalogInfoVO> postCatalogInfoVOS = postCatalogInfoService.queryVO(reqVO);
+
+            if(!ObjectUtils.isEmpty(postCatalogInfoVOS)) {
+                PostCatalogInfoVO postCatalogInfoVO = postCatalogInfoVOS.get(0);
+                String categoryCode = postCatalogInfoVO.getCategoryCode();
+                // 专业管理、市场营销职类 -> 普
+                if("2".equals(categoryCode) || "3".equals(categoryCode)) {
+                    return "普";
+                }
+                String groupCode = postCatalogInfoVO.getGroupCode();
+                // 技能操作职类，直接生产操作、辅助生产操作职群 -> 计
+                if("5-01".equals(groupCode) || "5-02".equals(groupCode)) {
+                    return "计";
+                }
+                // 技能操作职类，辅助服务职群 -> 辅
+                if("5-03".equals(groupCode)) {
+                    return "辅";
+                }
+                // 其他职类 -> 他
+                return "他";
+            }
+        }
+        return null;
+    }
 
     @GetMapping("/getDetails")
     @Operation(summary = "获得员工基本信息表实体")

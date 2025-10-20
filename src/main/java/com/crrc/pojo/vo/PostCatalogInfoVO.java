@@ -9,17 +9,10 @@ import lombok.Data;
  */
 @Data
 public class PostCatalogInfoVO {
-    // TODO: 这个类仅做职级职群职种查询测试使用，可以删除
-    @TableId(value = "id", type = IdType.AUTO)
-    Long id;
-    /**
-     * 父亲id
-     */
-    Long parent_id;
     /**
      * 职类
      */
-    String category;
+    String categoryName;
     /**
      * 职类编码
      */
