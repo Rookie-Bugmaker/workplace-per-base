@@ -10,6 +10,7 @@ import com.crrc.mapper.HrEmpSkillLevelMapper;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
 import com.crrc.service.HrEmpBasicService;
+import com.crrc.utils.DeptUtils;
 import com.crrc.utils.SystemConstants;
 import com.github.yulichang.toolkit.JoinWrappers;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
@@ -17,8 +18,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -44,16 +48,48 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
     private final HrEmpSkillLevelMapper hrEmpSkillLevelMapper;
 
+    private final CodeInfoServiceImpl codeInfoService;
+
     private final WkCoreAPi wkCoreApi;
 
-    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi) {
+    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService) {
         this.hrEmpBasicMapper = hrEmpBasicMapper;
         this.hrEmpEducationMapper = hrEmpEducationMapper;
         this.hrEmpSchoolInfoService = hrEmpSchoolInfoService;
         this.hrEmpMajorInfoService = hrEmpMajorInfoService;
         this.hrEmpProfessionalQualificationMapper = hrEmpProfessionalQualificationMapper;
         this.hrEmpSkillLevelMapper = hrEmpSkillLevelMapper;
+        this.codeInfoService = codeInfoService;
         this.wkCoreApi = wkCoreApi;
+    }
+
+    /**
+     * 获取全量用户信息
+     * @return 全量用户信息list
+     */
+    public List<HrEmpBasic> getAllUser() {
+        MPJLambdaWrapper<HrEmpBasic> queryWrapper = new MPJLambdaWrapper<>();
+        queryWrapper.selectAll(HrEmpBasic.class);
+        return hrEmpBasicMapper.selectList(queryWrapper);
+    }
+
+
+    /**
+     * 根据传入的档案号列表查询用户信息列表
+     * @param userCodeList 包含userCode的员工基本信息列表
+     * @return 用户信息list
+     */
+    public List<HrEmpBasic> getListByUserCode(List<HrEmpBasic> userCodeList) {
+        // 1. 从参数中提取userCode列表
+        List<String> codes = userCodeList.stream()
+                .map(HrEmpBasic::getUserCode)
+                .collect(Collectors.toList());
+
+        // 2. 构建查询条件
+        MPJLambdaWrapper<HrEmpBasic> queryWrapper = new MPJLambdaWrapper<>();
+        queryWrapper.selectAll(HrEmpBasic.class)
+                .in(HrEmpBasic::getUserCode, codes);
+        return hrEmpBasicMapper.selectList(queryWrapper);
     }
 
 
@@ -116,24 +152,38 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
      */
     @Override
     public List<HrEmpBasicDTO> selectMsg(String userCode) {
-        // 1. 主表及左连接表查询
-        List<HrEmpBasicDTO> result = queryBaseInfoWithJoins(userCode);
-        if (result.isEmpty()) {
-            return Collections.emptyList();
+        try{
+            // 1. 主表及左连接表查询
+            List<HrEmpBasicDTO> result = queryBaseInfoWithJoins(userCode);
+            if (result.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            // 2. 部门名称转换
+            resolveDepartmentName(result.get(0));
+
+            // 3. 查询关联子表数据
+            SubTableData subData = querySubTableData(userCode);
+
+            // 4. 处理子表数据（当所有子表数据唯一时）
+            if (subData.isAllUnique()) {
+                mergeSubTableData(result.get(0), subData);
+            }
+
+            // 5. 处理年龄
+            log.info("准备开始处理年龄信息");
+            resolveAge(result.get(0));
+
+            // 5. 处理人员分类1,4,7,8
+            log.info("准备开始处理人员分类信息");
+            resolveCategory(result.get(0));
+
+            return result;
+        } catch (Exception e) {
+            log.warn("查询异常,{}", e.getMessage());
+            return queryBaseInfoWithJoins(userCode);
         }
 
-        // 2. 部门名称转换
-        resolveDepartmentName(result.get(0));
-
-        // 3. 查询关联子表数据
-        SubTableData subData = querySubTableData(userCode);
-
-        // 4. 处理子表数据（当所有子表数据唯一时）
-        if (subData.isAllUnique()) {
-            mergeSubTableData(result.get(0), subData);
-        }
-
-        return result;
     }
 
 
@@ -160,6 +210,44 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         return hrEmpBasicMapper.selectJoinList(HrEmpBasicDTO.class, wrapper);
     }
 
+
+    /**
+     * 解析人员分类1478
+     */
+    private void resolveCategory(HrEmpBasicDTO dto) {
+        log.info("进入方法体成功");
+        // 查询的表名
+        String tableName = "person_category";
+
+        try {
+            log.info("userCode:{},category1:{}", dto.getUserCode(), dto.getCategory1());
+            if (StringUtils.isNotBlank(dto.getCategory1())) {
+                log.info("读取到category1：{}", dto.getCategory1());
+                String category1 = codeInfoService.translateCode(dto.getCategory1(), tableName, "category1");
+                log.info("查询到category1：{}", category1);
+                dto.setCategory1(category1);
+            }
+
+            if (StringUtils.isNotBlank(dto.getCategory4())) {
+                String category4 = codeInfoService.translateCode(dto.getCategory4(), tableName, "category4");
+                dto.setCategory4(category4);
+            }
+
+            if (StringUtils.isNotBlank(dto.getCategory7())) {
+                String category7 = codeInfoService.translateCode(dto.getCategory7(), tableName, "category7");
+                dto.setCategory7(category7);
+            }
+
+            if (StringUtils.isNotBlank(dto.getCategory8())) {
+                String category8 = codeInfoService.translateCode(dto.getCategory8(), tableName, "category8");
+                dto.setCategory8(category8);
+            }
+
+        } catch (Exception e) {
+            log.warn("人员分类1478解析, orgCode: {}", dto.getDept(), e);
+        }
+    }
+
     /**
      * 解析部门名称（通过组织编码）
      */
@@ -169,10 +257,30 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         }
 
         try {
-            String deptName = wkCoreApi.getDeptByOrgCode(dto.getDept()).getDepartmentName();
+            String deptName = DeptUtils.getDeptNameByCode(dto.getDept());
             dto.setDept(deptName);
         } catch (Exception e) {
             log.warn("部门名称查询失败, orgCode: {}", dto.getDept(), e);
+        }
+    }
+
+    /**
+     * 计算并设置员工年龄（基于出生日期计算周岁）
+     * @param dto 包含出生日期的员工DTO对象
+     */
+    private void resolveAge(HrEmpBasicDTO dto) {
+        if (dto.getBirthDate() == null) {
+            log.warn("档案号：{}，人员出生日期为空", dto.getUserCode());
+            dto.setAge(null);
+            return;
+        }
+
+        try {
+            int age = Period.between(dto.getBirthDate(), LocalDate.now()).getYears();
+            dto.setAge(Math.max(age, 0));
+        } catch (Exception e) {
+            log.error("年龄计算异常，档案号：{}", dto.getUserCode(), e);
+            dto.setAge(null);
         }
     }
 

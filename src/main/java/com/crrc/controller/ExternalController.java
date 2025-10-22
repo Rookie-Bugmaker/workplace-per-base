@@ -2,6 +2,7 @@ package com.crrc.controller;
 
 
 import cn.hutool.core.util.IdUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.crrc.annotation.AuditLog;
 import com.crrc.entity.*;
@@ -52,8 +53,8 @@ public class ExternalController {
     private HrEmpSalaryStandardServiceImpl hrEmpSalaryStandardService;
     @Autowired
     private HrEmpSkillLevelServiceImpl hrEmpSkillLevelService;
-//    @Autowired
-//    private HrEmpSalaryInfoServiceImpl hrEmpSalaryInfoService;
+    @Autowired
+    private HrEmpSalaryInfoServiceImpl hrEmpSalaryInfoService;
 
     @PostMapping("/receiveKingDieMsg")
     @Operation(summary = "接收金蝶传递人事令信息")
@@ -203,29 +204,47 @@ public class ExternalController {
                     }
                 }
 
-                // 员工薪资信息表 - 按工号更新
-//                if (dto.getHrEmpSalaryInfo() != null) {
-//                    HrEmpSalaryInfo salaryInfo = dto.getHrEmpSalaryInfo();
-//                    if (salaryInfo.getUserCode() == null) {
-//                        return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "工号不能为空!");
-//                    }
-//
-//                    UpdateWrapper<HrEmpSalaryInfo> updateWrapper = UpdateWrapperUtils
-//                            .buildNonNullUpdateWrapper(salaryInfo, "id", "userCode")
-//                            .eq("user_code", salaryInfo.getUserCode());
-//
-//                    boolean updateResult = hrEmpSalaryInfoService.update(updateWrapper);
-//                    if (!updateResult) {
-//                        log.error("更新员工薪资信息失败，工号：{}", salaryInfo.getUserCode());
-//                        return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "更新员工薪资信息失败!");
-//                    }
-//                }
+                // 员工薪资信息表 - 按工号更新，或者新增
+                if (dto.getHrEmpSalaryInfo() != null) {
+                    HrEmpSalaryInfo salaryInfo = dto.getHrEmpSalaryInfo();
+                    if (salaryInfo.getUserCode() == null) {
+                        return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "工号不能为空!");
+                    }
+
+                    // 先查询数据库中是否已存在该工号的记录
+                    LambdaQueryWrapper<HrEmpSalaryInfo> queryWrapper = new LambdaQueryWrapper<>();
+                    queryWrapper.eq(HrEmpSalaryInfo::getUserCode, salaryInfo.getUserCode());
+                    HrEmpSalaryInfo existingRecord = hrEmpSalaryInfoService.getOne(queryWrapper);
+
+                    if (existingRecord != null) {
+                        // 如果存在记录，执行更新操作
+                        UpdateWrapper<HrEmpSalaryInfo> updateWrapper = UpdateWrapperUtils
+                                .buildNonNullUpdateWrapper(salaryInfo, "id", "userCode")
+                                .eq("user_code", salaryInfo.getUserCode());
+
+                        boolean updateResult = hrEmpSalaryInfoService.update(updateWrapper);
+                        if (!updateResult) {
+                            log.error("更新员工薪资信息失败，工号：{}", salaryInfo.getUserCode());
+                            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "更新员工薪资信息失败!");
+                        }
+                    } else {
+                        // 如果不存在记录，执行新增操作
+                        salaryInfo.setId(IdUtil.simpleUUID());
+                        boolean saveResult = hrEmpSalaryInfoService.save(salaryInfo);
+                        if (!saveResult) {
+                            log.error("新增员工薪资信息失败，工号：{}", salaryInfo.getUserCode());
+                            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "新增员工薪资信息失败!");
+                        }
+                    }
+                }
                 updateFlag++;
             } catch (Exception e) {
                 log.error("处理人事令信息异常，工号：{}，异常信息：{}",
                         dto.getHrEmpBasic() != null ? dto.getHrEmpBasic().getUserCode() : "未知",
                         e.getMessage(), e);
                 throw new RuntimeException("处理人事令信息异常：" + e.getMessage());
+            } finally {
+                MultiTenantHandler.tenantId.remove();
             }
         }
         return new ResponseResult<>(HttpStatus.OK.value(), "人事令下达成功，信息已变更！ 变更数量： " + updateFlag);

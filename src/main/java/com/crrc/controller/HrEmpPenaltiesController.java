@@ -58,7 +58,7 @@ public class HrEmpPenaltiesController {
     @Autowired
     private HrEmpPenaltiesServiceImpl hrEmpPenaltiesService;
     @Autowired
-    private WkCoreAPi wkCoreAPi;
+    private WkCoreAPi wkCoreApi;
 
     private final UpdateListUtil<HrEmpPenalties, String> updateUtil;
 

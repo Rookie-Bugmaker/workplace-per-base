@@ -124,22 +124,46 @@ public class HrEmpEducationController {
     @GetMapping("/getDetails")
     @Operation(summary = "获得员工教育信息表实体")
     @AuditLog(value = "获得员工教育信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    public ResponseResult<List<HrEmpEducation>> getMsg(@RequestParam String userCode ) {
+    public ResponseResult<List<HrEmpEducation>> getMsg(@RequestParam String userCode) {
         List<HrEmpEducation> result = hrEmpEducationService.selectMsg(userCode);
         for (HrEmpEducation hrEmpEducation : result) {
-            HrEmpSchoolInfo hrEmpSchoolInfo = hrEmpSchoolInfoService.selectByCode(hrEmpEducation.getSchoolCode());
-            if(hrEmpSchoolInfo != null) {
-                hrEmpEducation.setSchoolName(hrEmpSchoolInfo.getSchoolName());
-            }else {
+            // 学校名称部分
+            log.info("原始数据 - schoolCode: {}, schoolName: {}",
+                    hrEmpEducation.getSchoolCode(),
+                    hrEmpEducation.getSchoolName());
+
+            // 修改判断逻辑
+            if(StringUtils.isNotBlank(hrEmpEducation.getSchoolCode())) {
+                HrEmpSchoolInfo hrEmpSchoolInfo = hrEmpSchoolInfoService.selectByCode(hrEmpEducation.getSchoolCode());
+                log.info("查询结果: {}", hrEmpSchoolInfo);  // 打印整个对象
+
+                String finalName = "未知院校";
+                if(hrEmpSchoolInfo != null && StringUtils.isNotBlank(hrEmpSchoolInfo.getSchoolName())) {
+                    finalName = hrEmpSchoolInfo.getSchoolName();
+                }
+                hrEmpEducation.setSchoolName(finalName);
+            } else if(StringUtils.isBlank(hrEmpEducation.getSchoolName())) {
                 hrEmpEducation.setSchoolName("未知院校");
             }
 
-            HrEmpMajorInfo hrEmpMajorInfo = hrEmpMajorInfoService.selectByCode(hrEmpEducation.getMajorCode());
-            if(hrEmpMajorInfo != null) {
-                hrEmpEducation.setMajor(hrEmpMajorInfo.getMajor());
-            } else {
-                hrEmpEducation.setMajor("未知专业");
+            log.info("处理后 - schoolName: {}", hrEmpEducation.getSchoolName());
+
+            // 专业部分
+            if("001".equals(hrEmpEducation.getEducation()) || "002".equals(hrEmpEducation.getEducation())
+                    || "003".equals(hrEmpEducation.getEducation()) || "004".equals(hrEmpEducation.getEducation())) {
+                if(StringUtils.isNotBlank(hrEmpEducation.getMajorCode())) {
+                    // 大专及以上学历,且学历编码不为空，进行学历回写
+                    HrEmpMajorInfo hrEmpMajorInfo = hrEmpMajorInfoService.selectByCode(hrEmpEducation.getMajorCode());
+                    hrEmpEducation.setMajor(hrEmpMajorInfo.getMajor());
+                } else {
+                    hrEmpEducation.setMajor("未知专业");
+                }
+            }else{
+                // 其它学历，将专业置空
+                hrEmpEducation.setMajor(null);
             }
+
+            // 学位部分 todo
         }
         log.info("getDetails查询回来的教育经历原始数据：{}", JSON.toJSONString(result, SerializerFeature.PrettyFormat));
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工教育信息表实体成功", result);

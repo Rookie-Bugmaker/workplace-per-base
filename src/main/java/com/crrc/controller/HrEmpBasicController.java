@@ -5,6 +5,8 @@ import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
@@ -16,14 +18,20 @@ import com.crrc.entity.dto.response.ResultData;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
+import com.crrc.mapper.HrEmpAppointmentMapper;
+import com.crrc.mapper.HrEmpCareerPathMapper;
+import com.crrc.mapper.HrEmpOtherAppointmentMapper;
+import com.crrc.mapper.HrEmpResumeMapper;
 import com.crrc.mongodb.HrEmpBasicChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
+import com.crrc.pojo.vo.PostCatalogInfoVO;
 import com.crrc.service.impl.*;
 import com.crrc.utils.MyUtils;
 import com.crrc.utils.RoleUtils;
 import com.crrc.utils.SystemConstants;
+import io.seata.common.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -33,6 +41,7 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.ObjectUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -43,6 +52,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -70,10 +80,282 @@ public class HrEmpBasicController {
     @Autowired
     private HrEmpCertificateServiceImpl hrEmpCertificateService;
     @Autowired
+    private HrEmpProfessionalQualificationServiceImpl hrEmpProfessionalQualificationService;
+    @Autowired
     private MongoTemplate mongoTemplate;
     @Autowired
     private WkWorkflowApi wkWorkflowApi;
+    @Autowired
+    private PostCatalogInfoServiceImpl postCatalogInfoService;
+    @Autowired
+    private HrEmpCareerPathMapper hrEmpCareerPathMapper;
+    @Autowired
+    private HrEmpResumeMapper hrEmpResumeMapper;
+    @Autowired
+    private HrEmpAppointmentMapper hrEmpAppointmentMapper;
+    @Autowired
+    private HrEmpOtherAppointmentMapper hrEmpOtherAppointmentMapper;
 
+    @PostMapping("/syncPersonCategory")
+    @Operation(summary = "同步人员分类，目前用定时任务每天处理")
+    @AuditLog(value = "同步人员分类，目前用定时任务每天处理", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResult<String> syncPersonCategory(@RequestBody(required = false) List<HrEmpBasic> userCodeList) {
+        try {
+            // 如果传参了且非空，就用传参，否则全量更新
+            List<HrEmpBasic> list = (userCodeList != null && !userCodeList.isEmpty())
+                    ? hrEmpBasicService.getListByUserCode(userCodeList)
+                    : hrEmpBasicService.getAllUser();
+
+            for(HrEmpBasic hrEmpBasic : list){
+                // 同步人员分类1，根据基本信息的身份类型判断人员分类1，
+                // 员工基本信息→身份类型→干部  干
+                // 员工基本信息→身份类型→工人  工
+                if(StringUtils.isNotBlank(hrEmpBasic.getIdentityType())) {
+                    String category1 = null;
+                    log.info("当前身份类型{}", hrEmpBasic.getIdentityType());
+                    switch (hrEmpBasic.getIdentityType()) {
+                        // 身份类型 干部
+                        case "1":
+                            // 人员分类1 “干”对应的码值
+                            category1 = "001";
+                            break;
+
+                        // 身份类型 工人
+                        case "2":
+                            // 人员分类1 “工”对应的码值
+                            category1 = "002";
+                            break;
+
+                        default:
+                    }
+                    hrEmpBasic.setCategory1(category1);
+                }
+                // 同步人员分类4
+                String category4 = resolveCategory4(hrEmpBasic);
+                hrEmpBasic.setCategory4(category4);
+                // 同步人员分类7
+                String category7 = null;
+                // 获取专业职务任职资格列表
+                List<HrEmpProfessionalQualification> qualificationList = hrEmpProfessionalQualificationService.selectMsg(hrEmpBasic.getUserCode());
+                if(!qualificationList.isEmpty()) {
+                    for(HrEmpProfessionalQualification qualification:qualificationList){
+                        // 找到目前最高的任职资格，以此为判断标准
+                        if(StringUtils.isNotBlank(qualification.getIsHighest())  && SystemConstants.TRUE_FLAG.equals(qualification.getIsHighest())) {
+                            /*
+                              00010	正高级 正
+                              00020	高级 高
+                              00030	中级 师
+                              00040	助理级 助
+                              00050	员级 员
+                              00060	未聘任专业技术职务
+                             */
+                            switch(qualification.getQuaTitleLevel()) {
+                                case "00010":
+                                    category7 = "001";
+                                    break;
+                                case "00020":
+                                    category7 = "002";
+                                    break;
+                                case "00030":
+                                    category7 = "003";
+                                    break;
+                                case "00040":
+                                    category7 = "004";
+                                    break;
+                                case "00050":
+                                    category7 = "005";
+                                    break;
+                                default:
+                            }
+                        }
+                    }
+                }
+                hrEmpBasic.setCategory7(category7);
+                // 同步人员分类8
+                String category8 = resolveCategory8(hrEmpBasic);
+                hrEmpBasic.setCategory8(category8);
+
+                // 更新方法
+                log.info("准备执行更新方法，category1:{}，category4:{}，category7:{}，category8:{}",
+                        hrEmpBasic.getCategory1(), hrEmpBasic.getCategory4(), hrEmpBasic.getCategory7() ,hrEmpBasic.getCategory8());
+                LambdaUpdateWrapper<HrEmpBasic> wrapper = new LambdaUpdateWrapper<>();
+                wrapper.eq(HrEmpBasic::getUserCode, hrEmpBasic.getUserCode())
+                        .set(HrEmpBasic::getCategory1, hrEmpBasic.getCategory1())
+                        .set(HrEmpBasic::getCategory4, hrEmpBasic.getCategory4())
+                        .set(HrEmpBasic::getCategory7, hrEmpBasic.getCategory7())
+                        .set(HrEmpBasic::getCategory8, hrEmpBasic.getCategory8());
+                hrEmpBasicService.update(null, wrapper);
+            }
+            return new ResponseResult<>(HttpStatus.OK.value(), "人员分类同步成功");
+        } catch (Exception e) {
+            log.error("同步失败，{}", e.getMessage());
+            return new ResponseResult<>(HttpStatus.EXPECTATION_FAILED.value(), "人员分类同步失败" + e.getMessage());
+        }
+    }
+
+    private String resolveCategory8(HrEmpBasic hrEmpBasic) {
+        LambdaQueryWrapper<HrEmpAppointment> appointmentQueryWrapper = new LambdaQueryWrapper<>();
+        appointmentQueryWrapper.eq(HrEmpAppointment::getUserCode, hrEmpBasic.getUserCode());
+        // 查找duty_status不为空的任职信息
+        List<HrEmpAppointment> hrEmpAppointments = hrEmpAppointmentMapper.selectList(appointmentQueryWrapper).stream()
+                .filter(e -> e.getDutyStatus() != null).collect(Collectors.toList());
+        if(!ObjectUtils.isEmpty(hrEmpAppointments)) {
+            HrEmpAppointment hrEmpAppointment = hrEmpAppointments.get(0);
+            // 如果超过一条，选择startDate最晚的
+            if(hrEmpAppointments.size() > 1) {
+                hrEmpAppointment = hrEmpAppointments.stream().reduce((a, b) -> a.getStartDate().isAfter(b.getStartDate()) ? a : b).get();
+            }
+            String dutyStatus = hrEmpAppointment.getDutyStatus();
+            // 任职信息→在岗状态→待岗 -> 待
+            if("待岗".equals(dutyStatus) || "201".equals(dutyStatus)) {
+                return "001";
+            }
+            // TODO: 现在劳和伤判断逻辑一样，应该需要修改
+            // 任职信息→在岗状态→因病因伤长期休假人员 -> 劳
+            if("因病因伤长期休假人员".equals(dutyStatus) || "206".equals(dutyStatus)) {
+                return "003";
+            }
+            // 任职信息→在岗状态→因病因伤长期休假人员 -> 伤
+            if("因病因伤长期休假人员".equals(dutyStatus) || "206".equals(dutyStatus)) {
+                return "005";
+            }
+            // 任职信息→在岗状态→在岗 -> 现
+            if("在岗".equals(dutyStatus) || "101".equals(dutyStatus)) {
+                return "006";
+            }
+            // 任职信息→在岗状态→859内退人员&“三类精算”内退人员&新增精算内退人员&其他内退人员
+            if("859内退人员".equals(dutyStatus) || "“三类精算”内退人员".equals(dutyStatus) || "新增精算内退人员".equals(dutyStatus) || "其他内退人员".equals(dutyStatus)
+            || "202".equals(dutyStatus) || "203".equals(dutyStatus) || "204".equals(dutyStatus) || "205".equals(dutyStatus)) {
+                return "007";
+            }
+
+        }
+
+        // 查找duty_status不为空的其他任职信息
+        LambdaQueryWrapper<HrEmpOtherAppointment> otherAppQueryWrapper = new LambdaQueryWrapper<>();
+        otherAppQueryWrapper.eq(HrEmpOtherAppointment::getUserCode, hrEmpBasic.getUserCode());
+        List<HrEmpOtherAppointment> hrEmpOtherAppointments = hrEmpOtherAppointmentMapper.selectList(otherAppQueryWrapper).stream()
+                .filter(e -> e.getDutyStatus() != null).collect(Collectors.toList());
+        if(!ObjectUtils.isEmpty(hrEmpOtherAppointments)) {
+            HrEmpOtherAppointment hrEmpOtherAppointment = hrEmpOtherAppointments.get(0);
+            // 如果超过一条，选择startDate最晚的
+            if (hrEmpOtherAppointments.size() > 1) {
+                hrEmpOtherAppointment = hrEmpOtherAppointments.stream().reduce(
+                        (a, b) -> a.getStartDate().isAfter(b.getStartDate()) ? a : b
+                ).get();
+            }
+            String appointmentType = hrEmpOtherAppointment.getOtherAppointmentType();
+            // 其他任职信息→其他任职类型→借调 -> 借
+            // TODO: 暂时没有借调、外派和助勤的code
+            if("借调".equals(appointmentType)) {
+                return "002";
+            }
+            // 其他任职信息→其他任职类型→外派 -> 派
+            if("外派".equals(appointmentType)) {
+                return "004";
+            }
+            // 其他任职信息→其他任职类型→助勤 -> 助
+            if("助勤".equals(appointmentType)) {
+                return "008";
+            }
+        }
+        // 全都匹配不上，返回空
+        return null;
+    }
+
+    private String resolveCategory4(HrEmpBasic hrEmpBasic) {
+        // 同步人员分类4，根据基本信息的身份类型判断人员分类4
+        LambdaQueryWrapper<HrEmpCareerPath> pathQueryWrapper = new LambdaQueryWrapper<>();
+        pathQueryWrapper.eq(HrEmpCareerPath::getUserCode, hrEmpBasic.getUserCode());
+        List<HrEmpCareerPath> hrEmpCareerPaths = hrEmpCareerPathMapper.selectList(pathQueryWrapper);
+        if(!ObjectUtils.isEmpty(hrEmpCareerPaths)) {
+            // 找到经营管理通道的list
+            // 001	经营管理
+            List<HrEmpCareerPath> pathList = hrEmpCareerPaths.stream().filter(item -> "001".equals(item.getPathId()))
+                    .filter(e -> !ObjectUtils.isEmpty(e.getEffectiveDate())).collect(Collectors.toList());
+            if(!ObjectUtils.isEmpty(pathList)) {
+                // 如果有多个，找到getEffectiveDate最晚的
+                HrEmpCareerPath path = pathList.get(0);
+                if(hrEmpCareerPaths.size() > 1) {
+                    path = pathList.stream().reduce((a, b) -> a.getEffectiveDate().isAfter(b.getEffectiveDate()) ? a : b).get();
+                }
+                // 经营管理职类，经营管理通道，等级D1/D2 -> 厂
+                String levelId = path.getLevelId();
+                if("D1".equals(levelId) || "D2".equals(levelId)) {
+                    return "001";
+                }
+                // 经营管理职类，经营管理通道，等级M1/M2/M3 -> 中
+                if("M1".equals(levelId) || "M2".equals(levelId) || "M3".equals(levelId)) {
+                    return "004";
+                }
+            }
+        }
+
+        LambdaQueryWrapper<HrEmpResume> resumeQueryWrapper = new LambdaQueryWrapper<>();
+        resumeQueryWrapper.eq(HrEmpResume::getUserCode, hrEmpBasic.getUserCode());
+        List<HrEmpResume> hrEmpResumeList = hrEmpResumeMapper.selectList(resumeQueryWrapper);
+        String position = null;
+        if(!ObjectUtils.isEmpty(hrEmpResumeList)) {
+            // 找到endDate为空的，即现任岗位
+            List<HrEmpResume> hrEmpResumes = hrEmpResumeList.stream().filter(item -> item.getEndDate() == null)
+                    .filter(item -> !ObjectUtils.isEmpty(item.getStartDate())).collect(Collectors.toList());
+            if(!ObjectUtils.isEmpty(hrEmpResumes)) {
+                // 如果endDate有多个不为空，找到startDate最晚的
+                HrEmpResume hrEmpResume = hrEmpResumes.get(0);
+                if(hrEmpCareerPaths.size() > 1) {
+                    hrEmpResume = hrEmpResumes.stream().reduce((a, b) -> a.getStartDate().isAfter(b.getStartDate()) ? a : b).get();
+                }
+                position = hrEmpResume.getPosition();
+                // 岗位名称“协理（临时）” -> 二
+                // TODO: 目前没有编码，增加编码后修改这里
+                if("协理（临时）".equals(position)) {
+                    return "003";
+                }
+                // 岗位名称“高级顾问/顾问” -> 厂二
+                if("高级顾问".equals(position) || "顾问".equals(position) || "高级顾问/顾问".equals(position) || "434".equals(position) || "435".equals(position)) {
+                    return "002";
+                }
+                // 岗位名称“级经理” -> 干业
+                // 匹配 一级经理等等
+                if(position != null && position.contains("级经理")) {
+                    return "005";
+                }
+                // 岗位名称“级业务经理” -> 人业
+                if(position != null && position.contains("级业务经理")) {
+                    return "006";
+                }
+            }
+        }
+
+        // TODO: 职位和职种关联后，修改这里的代码
+        if(position != null) {
+            // 关联String typeCode = service.queryType(String position);
+            PostCatalogInfo reqVO = new PostCatalogInfo();
+            reqVO.setName(position);
+            List<PostCatalogInfoVO> postCatalogInfoVOS = postCatalogInfoService.queryVO(reqVO);
+
+            if(!ObjectUtils.isEmpty(postCatalogInfoVOS)) {
+                PostCatalogInfoVO postCatalogInfoVO = postCatalogInfoVOS.get(0);
+                String categoryCode = postCatalogInfoVO.getCategoryCode();
+                // 专业管理、市场营销职类 -> 普
+                if("2".equals(categoryCode) || "3".equals(categoryCode)) {
+                    return "007";
+                }
+                String groupCode = postCatalogInfoVO.getGroupCode();
+                // 技能操作职类，直接生产操作、辅助生产操作职群 -> 计
+                if("5-01".equals(groupCode) || "5-02".equals(groupCode)) {
+                    return "008";
+                }
+                // 技能操作职类，辅助服务职群 -> 辅
+                if("5-03".equals(groupCode)) {
+                    return "009";
+                }
+                // 其他职类 -> 他
+                return "010";
+            }
+        }
+        return null;
+    }
 
     @GetMapping("/getDetails")
     @Operation(summary = "获得员工基本信息表实体")

@@ -15,7 +15,7 @@ import java.io.Serializable;
 @ExcelIgnoreUnannotated
 @Accessors(chain = false)
 @TableName("data_major_info")
-@Schema(description = "大学专业信息表")
+@Schema(description = "大学专业信息表(字典)")
 @Data
 public class HrEmpMajorInfo extends BaseEntity implements Serializable {
 

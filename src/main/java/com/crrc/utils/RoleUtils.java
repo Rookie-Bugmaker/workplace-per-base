@@ -9,18 +9,26 @@ import org.springframework.stereotype.Component; // 关键注解
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * 角色相关工具类
+ * @author mayiyao
+ */
 @Slf4j
 @Component
 public class RoleUtils {
 
-    private static WkCoreAPi wkCoreAPi;
-
+    private static WkCoreAPi wkCoreApi;
 
     @Autowired
-    public void setWkCoreAPi(WkCoreAPi wkCoreAPi) {
-        RoleUtils.wkCoreAPi = wkCoreAPi;
+    public void setWkCoreApi(WkCoreAPi wkCoreApi) {
+        RoleUtils.wkCoreApi = wkCoreApi;
     }
 
+    /**
+     * 判断当前登录用户是否具有指定名称的角色名
+     * @param roleName 中文角色名称
+     * @return 是否具有
+     */
     public static boolean check(String roleName) {
         try {
             LoginUser currentUser = SecurityFrameworkUtils.getLoginUser();
@@ -30,7 +38,7 @@ public class RoleUtils {
             }
 
             // 权限校验逻辑
-            List<UserWithRoleDTO> usersWithRoles = wkCoreAPi.getUsersWithRoles(
+            List<UserWithRoleDTO> usersWithRoles = wkCoreApi.getUsersWithRoles(
                     Collections.singletonList(currentUser.getUser().getId()));
 
             return usersWithRoles.stream()
@@ -38,7 +46,8 @@ public class RoleUtils {
                     .map(UserWithRoleDTO::getRoles)
                     .orElse(Collections.emptyList())
                     .stream()
-                    .anyMatch(role -> roleName.equals(role.getName())); // 修复角色名引用
+                    // 修复角色名引用
+                    .anyMatch(role -> roleName.equals(role.getName()));
 
         } catch (Exception e) {
             log.error("权限校验异常 | 角色: {} | 错误: {}", roleName, e.getMessage(), e);

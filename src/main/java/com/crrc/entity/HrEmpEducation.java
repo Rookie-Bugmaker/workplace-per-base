@@ -53,7 +53,6 @@ public class HrEmpEducation extends BaseEntity implements Serializable {
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"学校名称"}, index = 4)
     @Schema(description = "学校名称")
-    @TableField(exist = false)
     private String schoolName;
     
     @QueryMethod(method = QueryType.EQ)

@@ -1,10 +1,9 @@
 package com.crrc.service.impl;
 
-import com.crrc.entity.HrEmpEducation;
 import com.crrc.entity.HrEmpProfessionalQualification;
-import com.crrc.mapper.HrEmpEducationMapper;
 import com.crrc.mapper.HrEmpProfessionalQualificationMapper;
 import com.crrc.service.HrEmpProfessionalQualificationService;
+import com.crrc.utils.SystemConstants;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -30,5 +29,13 @@ public class HrEmpProfessionalQualificationServiceImpl extends WorkServiceImpl<H
                 .selectAll(HrEmpProfessionalQualification.class)
                 .eq(HrEmpProfessionalQualification::getUserCode, userCode);
         return hrEmpProfessionalQualificationMapper.selectList(wrapper);
+    }
+
+    public HrEmpProfessionalQualification selectHighestQualification(String userCode){
+        MPJLambdaWrapper<HrEmpProfessionalQualification> wrapper = new MPJLambdaWrapper<HrEmpProfessionalQualification>()
+                .selectAll(HrEmpProfessionalQualification.class)
+                .eq(HrEmpProfessionalQualification::getUserCode, userCode)
+                .eq(HrEmpProfessionalQualification::getIsHighest, SystemConstants.TRUE_FLAG);
+        return hrEmpProfessionalQualificationMapper.selectOne(wrapper);
     }
 }

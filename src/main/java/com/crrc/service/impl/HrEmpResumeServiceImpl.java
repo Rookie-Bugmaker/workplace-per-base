@@ -26,7 +26,8 @@ public class HrEmpResumeServiceImpl extends WorkServiceImpl<HrEmpResumeMapper, H
     public List<HrEmpResume> selectMsg(String userCode){
         MPJLambdaWrapper<HrEmpResume> wrapper = new MPJLambdaWrapper<HrEmpResume>()
                 .selectAll(HrEmpResume.class)
-                .eq(HrEmpResume::getUserCode, userCode);
+                .eq(HrEmpResume::getUserCode, userCode)
+                .orderByAsc(HrEmpResume::getStartDate);
         return hrEmpResumeMapper.selectList(wrapper);
     }
 

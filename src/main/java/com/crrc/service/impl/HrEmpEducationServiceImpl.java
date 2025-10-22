@@ -27,7 +27,8 @@ public class HrEmpEducationServiceImpl extends WorkServiceImpl<HrEmpEducationMap
     public List<HrEmpEducation> selectMsg(String userCode){
         MPJLambdaWrapper<HrEmpEducation> wrapper = new MPJLambdaWrapper<HrEmpEducation>()
                 .selectAll(HrEmpEducation.class)
-                .eq(HrEmpEducation::getUserCode, userCode);
+                .eq(HrEmpEducation::getUserCode, userCode)
+                .orderByAsc(HrEmpEducation::getGraduationDate);
         return hrEmpEducationMapper.selectList(wrapper);
     }
 
