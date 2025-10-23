@@ -109,38 +109,23 @@ public class HrEmpBasicController {
                     : hrEmpBasicService.getAllUser();
 
             for(HrEmpBasic hrEmpBasic : list){
-                // 同步人员分类1，根据基本信息的身份类型判断人员分类1，
-                // 员工基本信息→身份类型→干部  干
-                // 员工基本信息→身份类型→工人  工
-                if(StringUtils.isNotBlank(hrEmpBasic.getIdentityType())) {
-                    String category1 = null;
-                    log.info("当前身份类型{}", hrEmpBasic.getIdentityType());
-                    switch (hrEmpBasic.getIdentityType()) {
-                        // 身份类型 干部
-                        case "1":
-                            // 人员分类1 “干”对应的码值
-                            category1 = "001";
-                            break;
 
-                        // 身份类型 工人
-                        case "2":
-                            // 人员分类1 “工”对应的码值
-                            category1 = "002";
-                            break;
-
-                        default:
-                    }
-                    hrEmpBasic.setCategory1(category1);
-                }
+                // 同步人员分类1
+                String category1 = resolveCategory1(hrEmpBasic);
+                hrEmpBasic.setCategory1(category1);
+                log.info("查询人员分类1完毕");
                 // 同步人员分类4
                 String category4 = resolveCategory4(hrEmpBasic);
                 hrEmpBasic.setCategory4(category4);
+                log.info("查询人员分类4完毕");
                 // 同步人员分类7
                 String category7 = resolveCategory7(hrEmpBasic);
                 hrEmpBasic.setCategory7(category7);
+                log.info("查询人员分类7完毕");
                 // 同步人员分类8
                 String category8 = resolveCategory8(hrEmpBasic);
                 hrEmpBasic.setCategory8(category8);
+                log.info("查询人员分类8完毕");
 
                 // 更新方法
                 log.info("准备执行更新方法，category1:{}，category4:{}，category7:{}，category8:{}",
@@ -158,6 +143,32 @@ public class HrEmpBasicController {
             log.error("同步失败，{}", e.getMessage());
             return new ResponseResult<>(HttpStatus.EXPECTATION_FAILED.value(), "人员分类同步失败" + e.getMessage());
         }
+    }
+
+    private String resolveCategory1(HrEmpBasic hrEmpBasic) {
+        String category1 = null;
+        // 同步人员分类1，根据基本信息的身份类型判断人员分类1，
+        // 员工基本信息→身份类型→干部  干
+        // 员工基本信息→身份类型→工人  工
+        if(StringUtils.isNotBlank(hrEmpBasic.getIdentityType())) {
+            log.info("当前身份类型{}", hrEmpBasic.getIdentityType());
+            switch (hrEmpBasic.getIdentityType()) {
+                // 身份类型 干部
+                case "1":
+                    // 人员分类1 “干”对应的码值
+                    category1 = "001";
+                    break;
+
+                // 身份类型 工人
+                case "2":
+                    // 人员分类1 “工”对应的码值
+                    category1 = "002";
+                    break;
+
+                default:
+            }
+        }
+        return category1;
     }
 
     private String resolveCategory7(HrEmpBasic hrEmpBasic) {
