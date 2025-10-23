@@ -187,23 +187,25 @@ public class HrEmpBasicController {
                               00050	员级 员
                               00060	未聘任专业技术职务
                              */
-                    switch (qualification.getQuaTitleLevel()) {
-                        case "00010":
-                            category7 = "001";
-                            break;
-                        case "00020":
-                            category7 = "002";
-                            break;
-                        case "00030":
-                            category7 = "003";
-                            break;
-                        case "00040":
-                            category7 = "004";
-                            break;
-                        case "00050":
-                            category7 = "005";
-                            break;
-                        default:
+                    if (StringUtils.isNotBlank(qualification.getQuaTitleLevel())) {
+                        switch (qualification.getQuaTitleLevel()) {
+                            case "00010":
+                                category7 = "001";
+                                break;
+                            case "00020":
+                                category7 = "002";
+                                break;
+                            case "00030":
+                                category7 = "003";
+                                break;
+                            case "00040":
+                                category7 = "004";
+                                break;
+                            case "00050":
+                                category7 = "005";
+                                break;
+                            default:
+                        }
                     }
                 }
             }
@@ -214,35 +216,37 @@ public class HrEmpBasicController {
             for (HrEmpSkillLevel skillLevel : skillLevelList) {
                 // 找到目前最高的任职资格，以此为判断标准
                 if (StringUtils.isNotBlank(skillLevel.getIsHighest()) && SystemConstants.TRUE_FLAG.equals(skillLevel.getIsHighest())) {
-                            /*
+                    if (StringUtils.isNotBlank(skillLevel.getSkillLevel())) {
+                                                 /*
                               00010/0020/0030	高级技师、特级技师、首席技师 高
                               00040	技师 师
                               00050	高级工 助
                               00060/70	中级工、初级工 员
                              */
-                    switch (skillLevel.getSkillLevel()) {
-                        case "00010":
-                            category7 = "001";
-                            break;
-                        case "00020":
-                            category7 = "001";
-                            break;
-                        case "00030":
-                            category7 = "001";
-                            break;
-                        case "00040":
-                            category7 = "002";
-                            break;
-                        case "00050":
-                            category7 = "003";
-                            break;
-                        case "00060":
-                            category7 = "004";
-                            break;
-                        case "00070":
-                            category7 = "005";
-                            break;
-                        default:
+                        switch (skillLevel.getSkillLevel()) {
+                            case "00010":
+                                category7 = "001";
+                                break;
+                            case "00020":
+                                category7 = "001";
+                                break;
+                            case "00030":
+                                category7 = "001";
+                                break;
+                            case "00040":
+                                category7 = "002";
+                                break;
+                            case "00050":
+                                category7 = "003";
+                                break;
+                            case "00060":
+                                category7 = "004";
+                                break;
+                            case "00070":
+                                category7 = "005";
+                                break;
+                            default:
+                        }
                     }
                 }
             }
