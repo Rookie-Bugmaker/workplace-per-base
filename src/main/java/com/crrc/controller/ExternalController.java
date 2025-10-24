@@ -10,7 +10,6 @@ import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.handler.MultiTenantHandler;
 import com.crrc.pojo.ResponseResult;
-import com.crrc.pojo.dto.KingDieDTO;
 import com.crrc.pojo.dto.KingDiePersonalOrderDTO;
 import com.crrc.service.impl.*;
 import com.crrc.utils.UpdateWrapperUtils;
@@ -62,29 +61,10 @@ public class ExternalController {
     @Operation(summary = "接收金蝶传递人事令信息")
     @AuditLog(value = "接收金蝶传递人事令信息", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Transactional(rollbackFor = Exception.class)
-    public ResponseResult<Integer> receiveKingDieMsg(@RequestBody KingDieDTO kingDieDTO) {
-
-        // 先变更人员状态
-        if(StringUtils.isNotBlank(kingDieDTO.getUserCode())) {
-            HrEmpBasic empBasic = hrEmpBasicService.getByUserCode(kingDieDTO.getUserCode());
-            if(StringUtils.isNotBlank(kingDieDTO.getStatus())) {
-                empBasic.setStatus(kingDieDTO.getStatus());
-                try{
-                    hrEmpBasicService.updateById(empBasic);
-                } catch (Exception e) {
-                    log.error("人员在岗状态更新失败，{}" ,e.getMessage());
-                }
-            }
-            else {
-                log.warn("未传入人员变更状态或人员状态未发生变更！");
-            }
-        } else {
-            log.warn("未传入档案号！");
-        }
+    public ResponseResult<Integer> receiveKingDieMsg(@RequestBody List<KingDiePersonalOrderDTO> dtoList) {
 
         // @TODO 免登录接口需要手动写入租户Id，测试环境438，生产32，记得切换
         MultiTenantHandler.tenantId.set("438");
-        List<KingDiePersonalOrderDTO> dtoList = kingDieDTO.getDtoList();
         int updateFlag = 0;
         for (KingDiePersonalOrderDTO dto : dtoList) {
             try {
@@ -117,8 +97,23 @@ public class ExternalController {
                         return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "工号不能为空!");
                     }
 
+                    // 如果传入status不为空，就更新status，反之不更新status
+                    if(StringUtils.isNotBlank(basic.getStatus())) {
+                        // 构建只更新status的wrapper
+                        UpdateWrapper<HrEmpBasic> statusWrapper = new UpdateWrapper<>();
+                        statusWrapper.eq("user_code", basic.getUserCode())
+                                .set("status", basic.getStatus());
+
+                        boolean statusUpdateResult = hrEmpBasicService.update(statusWrapper);
+                        if (!statusUpdateResult) {
+                            log.error("更新员工状态失败，工号：{}", basic.getUserCode());
+                            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "更新员工状态失败!");
+                        }
+                    }
+
+                    // 更新其他非空字段（排除id和userCode）
                     UpdateWrapper<HrEmpBasic> updateWrapper = UpdateWrapperUtils
-                            .buildNonNullUpdateWrapper(basic, "id", "userCode")
+                            .buildNonNullUpdateWrapper(basic, "id", "userCode", "status") // 排除status字段，避免重复更新
                             .eq("user_code", basic.getUserCode());
 
                     boolean updateResult = hrEmpBasicService.update(updateWrapper);
