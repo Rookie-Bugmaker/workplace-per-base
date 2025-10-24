@@ -92,6 +92,23 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         return hrEmpBasicMapper.selectList(queryWrapper);
     }
 
+    /**
+     * 根据传入的档案号查询用户信息
+     * @param userCode 用户档案号
+     * @return 用户信息list
+     */
+    public HrEmpBasic getByUserCode(String userCode) {
+        // 构建查询条件
+        MPJLambdaWrapper<HrEmpBasic> queryWrapper = new MPJLambdaWrapper<>();
+        queryWrapper.selectAll(HrEmpBasic.class)
+                .eq(HrEmpBasic::getUserCode, userCode);
+        try{
+            return hrEmpBasicMapper.selectOne(queryWrapper);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
 
     /**
      * 条件查询
@@ -174,9 +191,13 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             log.info("准备开始处理年龄信息");
             resolveAge(result.get(0));
 
-            // 5. 处理人员分类1,4,7,8
+            // 6. 处理人员分类1,4,7,8
             log.info("准备开始处理人员分类信息");
             resolveCategory(result.get(0));
+
+            // 6. 处理人员在岗状态
+            log.info("准备开始处理人员在岗状态信息");
+            resolveStatus(result.get(0));
 
             return result;
         } catch (Exception e) {
@@ -212,6 +233,23 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
 
     /**
+     * 解析人员在岗状态
+     */
+    private void resolveStatus(HrEmpBasicDTO dto) {
+        // 查询的表名
+        String tableName = "person_status";
+        try {
+            if (StringUtils.isNotBlank(dto.getStatus())) {
+                String status = codeInfoService.translateCode(dto.getStatus(), tableName, "per_status");
+                dto.setStatus(status);
+            }
+        } catch (Exception e) {
+            log.warn("人员在岗状态解析失败, {}", e.getMessage());
+        }
+    }
+
+
+    /**
      * 解析人员分类1478
      */
     private void resolveCategory(HrEmpBasicDTO dto) {
@@ -220,11 +258,11 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         String tableName = "person_category";
 
         try {
-            log.info("userCode:{},category1:{}", dto.getUserCode(), dto.getCategory1());
+//            log.info("userCode:{},category1:{}", dto.getUserCode(), dto.getCategory1());
             if (StringUtils.isNotBlank(dto.getCategory1())) {
-                log.info("读取到category1：{}", dto.getCategory1());
+//                log.info("读取到category1：{}", dto.getCategory1());
                 String category1 = codeInfoService.translateCode(dto.getCategory1(), tableName, "category1");
-                log.info("查询到category1：{}", category1);
+//                log.info("查询到category1：{}", category1);
                 dto.setCategory1(category1);
             }
 
@@ -244,7 +282,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             }
 
         } catch (Exception e) {
-            log.warn("人员分类1478解析, orgCode: {}", dto.getDept(), e);
+            log.warn("人员分类1478解析失败, {}", e.getMessage());
         }
     }
 

@@ -10,11 +10,13 @@ import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.handler.MultiTenantHandler;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.dto.KingDieDTO;
 import com.crrc.pojo.dto.KingDiePersonalOrderDTO;
 import com.crrc.service.impl.*;
 import com.crrc.utils.UpdateWrapperUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,9 +62,29 @@ public class ExternalController {
     @Operation(summary = "接收金蝶传递人事令信息")
     @AuditLog(value = "接收金蝶传递人事令信息", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Transactional(rollbackFor = Exception.class)
-    public ResponseResult<Integer> receiveKingDieMsg(@RequestBody List<KingDiePersonalOrderDTO> dtoList) {
+    public ResponseResult<Integer> receiveKingDieMsg(@RequestBody KingDieDTO kingDieDTO) {
+
+        // 先变更人员状态
+        if(StringUtils.isNotBlank(kingDieDTO.getUserCode())) {
+            HrEmpBasic empBasic = hrEmpBasicService.getByUserCode(kingDieDTO.getUserCode());
+            if(StringUtils.isNotBlank(kingDieDTO.getStatus())) {
+                empBasic.setStatus(kingDieDTO.getStatus());
+                try{
+                    hrEmpBasicService.updateById(empBasic);
+                } catch (Exception e) {
+                    log.error("人员在岗状态更新失败，{}" ,e.getMessage());
+                }
+            }
+            else {
+                log.warn("未传入人员变更状态或人员状态未发生变更！");
+            }
+        } else {
+            log.warn("未传入档案号！");
+        }
+
         // @TODO 免登录接口需要手动写入租户Id，测试环境438，生产32，记得切换
         MultiTenantHandler.tenantId.set("438");
+        List<KingDiePersonalOrderDTO> dtoList = kingDieDTO.getDtoList();
         int updateFlag = 0;
         for (KingDiePersonalOrderDTO dto : dtoList) {
             try {
