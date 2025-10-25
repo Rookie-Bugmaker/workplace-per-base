@@ -68,6 +68,62 @@ public class ExternalController {
         int updateFlag = 0;
         for (KingDiePersonalOrderDTO dto : dtoList) {
             try {
+
+
+                // 员工基本信息表 - 按工号更新或新增，先查询，如果没有该档案号数据就新增
+                if (dto.getHrEmpBasic() != null) {
+                    HrEmpBasic basic = dto.getHrEmpBasic();
+                    if (basic.getUserCode() == null) {
+                        return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "工号不能为空!");
+                    }
+
+                    // 先查询是否存在该工号的记录
+                    LambdaQueryWrapper<HrEmpBasic> queryWrapper = new LambdaQueryWrapper<>();
+                    queryWrapper.eq(HrEmpBasic::getUserCode, basic.getUserCode());
+                    HrEmpBasic existingBasic = hrEmpBasicService.getOne(queryWrapper);
+
+                    if (existingBasic == null) {
+                        // 新增逻辑
+                        try {
+                            basic.setId(IdUtil.simpleUUID());
+                            boolean saveResult = hrEmpBasicService.save(basic);
+                            if (!saveResult) {
+                                log.error("新增员工信息失败，工号：{}", basic.getUserCode());
+                                return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "新增员工信息失败!");
+                            }
+                            log.info("新增员工信息成功，工号：{}", basic.getUserCode());
+                        } catch (Exception e) {
+                            log.error("新增员工信息异常，工号：{}，异常信息：{}", basic.getUserCode(), e.getMessage());
+                            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "新增员工信息异常!");
+                        }
+                    } else {
+                        // 原有更新逻辑
+                        // 如果传入status不为空，就更新status，反之不更新status
+                        if(StringUtils.isNotBlank(basic.getStatus())) {
+                            UpdateWrapper<HrEmpBasic> statusWrapper = new UpdateWrapper<>();
+                            statusWrapper.eq("user_code", basic.getUserCode())
+                                    .set("status", basic.getStatus());
+
+                            boolean statusUpdateResult = hrEmpBasicService.update(statusWrapper);
+                            if (!statusUpdateResult) {
+                                log.error("更新员工状态失败，工号：{}", basic.getUserCode());
+                                return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "更新员工状态失败!");
+                            }
+                        }
+
+                        // 更新其他非空字段（排除id和userCode）
+                        UpdateWrapper<HrEmpBasic> updateWrapper = UpdateWrapperUtils
+                                .buildNonNullUpdateWrapper(basic, "id", "userCode", "status") // 排除status字段，避免重复更新
+                                .eq("user_code", basic.getUserCode());
+
+                        boolean updateResult = hrEmpBasicService.update(updateWrapper);
+                        if (!updateResult) {
+                            log.error("更新基本信息失败，工号：{}", basic.getUserCode());
+                            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "更新基本信息失败!");
+                        }
+                    }
+                }
+
                 //任职信息
                 if (dto.getHrEmpAppointments() != null && !dto.getHrEmpAppointments().isEmpty()){
                     for (HrEmpAppointment appointment : dto.getHrEmpAppointments()){
@@ -90,38 +146,7 @@ public class ExternalController {
                     }
                 }
 
-                // 员工基本信息表 - 按工号更新
-                if (dto.getHrEmpBasic() != null) {
-                    HrEmpBasic basic = dto.getHrEmpBasic();
-                    if (basic.getUserCode() == null) {
-                        return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "工号不能为空!");
-                    }
 
-                    // 如果传入status不为空，就更新status，反之不更新status
-                    if(StringUtils.isNotBlank(basic.getStatus())) {
-                        // 构建只更新status的wrapper
-                        UpdateWrapper<HrEmpBasic> statusWrapper = new UpdateWrapper<>();
-                        statusWrapper.eq("user_code", basic.getUserCode())
-                                .set("status", basic.getStatus());
-
-                        boolean statusUpdateResult = hrEmpBasicService.update(statusWrapper);
-                        if (!statusUpdateResult) {
-                            log.error("更新员工状态失败，工号：{}", basic.getUserCode());
-                            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "更新员工状态失败!");
-                        }
-                    }
-
-                    // 更新其他非空字段（排除id和userCode）
-                    UpdateWrapper<HrEmpBasic> updateWrapper = UpdateWrapperUtils
-                            .buildNonNullUpdateWrapper(basic, "id", "userCode", "status") // 排除status字段，避免重复更新
-                            .eq("user_code", basic.getUserCode());
-
-                    boolean updateResult = hrEmpBasicService.update(updateWrapper);
-                    if (!updateResult) {
-                        log.error("更新基本信息失败，工号：{}", basic.getUserCode());
-                        return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "更新基本信息失败!");
-                    }
-                }
 
                 //职业发展通道
                 if (dto.getHrEmpCareerPath() != null && dto.getHrEmpCareerPath().getUserCode() != null) {
