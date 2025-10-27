@@ -44,6 +44,7 @@ public class MigrationController {
         myBatisPlusMigrationService.migrateEntity(HrEmpSalaryStandard.class);
         myBatisPlusMigrationService.migrateEntity(HrEmpSkillLevel.class);
         myBatisPlusMigrationService.migrateEntity(HrEmpSalaryInfo.class);
+        myBatisPlusMigrationService.migrateEntity(PostCatalogInfo.class);
 
 
 
