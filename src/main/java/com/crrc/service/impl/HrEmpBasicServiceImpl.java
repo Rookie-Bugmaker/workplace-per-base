@@ -116,7 +116,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
      * @param page 空白page，在controller层设置好size和pageNo
      * @param dto 查询实体
      * @return 分页list
-     * */
+     */
     public IPage<HrEmpBasicDTO> listData(IPage<HrEmpBasicDTO> page, HrEmpBasicSearchDTO dto) {
         MPJLambdaWrapper<HrEmpBasic> queryWrapper = JoinWrappers.lambda(HrEmpBasic.class)
                 .distinct()
@@ -137,6 +137,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                                 .eq(HrEmpEducation::getIsHighestEducation, SystemConstants.TRUE_FLAG)
                 )
                 .leftJoin(HrEmpAppointment.class, HrEmpAppointment::getUserCode, HrEmpBasic::getUserCode);
+
+        // 确保只要HrEmpBasic表有数据就能显示
+        queryWrapper.isNotNull(HrEmpBasic::getUserCode);  // 确保HrEmpBasic表有数据
 
         buildFuzzyConditions(queryWrapper, dto);
         queryWrapper.orderByAsc(HrEmpBasic::getUserCode);
