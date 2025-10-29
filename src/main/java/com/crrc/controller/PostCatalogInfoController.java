@@ -12,6 +12,7 @@ import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.vo.PostCatalogInfoTreeVO;
 import com.crrc.service.impl.HrOrgCostCenterServiceImpl;
 import com.crrc.service.impl.PostCatalogInfoServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -63,6 +64,14 @@ public class PostCatalogInfoController {
     public ResponseResult<List<PostCatalogInfo>> queryPostCatalogInfo(@Validated @RequestBody(required = false) PostCatalogInfo queryReqVO) {
         queryReqVO = (queryReqVO == null) ? new PostCatalogInfo() : queryReqVO;
         return new ResponseResult<>(HttpStatus.OK.value(), "获取列表成功", postCatalogInfoService.query(queryReqVO));
+    }
+
+    @PostMapping("/queryTree")
+    @Operation(summary = "获取列表")
+    @AuditLog(value = "获取列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象", required = false)
+    public ResponseResult<List<PostCatalogInfoTreeVO>> queryPostCatalogInfoTree() {
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取列表成功", postCatalogInfoService.queryTree());
     }
 
     @GetMapping("/get")
