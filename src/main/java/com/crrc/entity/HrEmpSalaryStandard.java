@@ -55,7 +55,7 @@ public class HrEmpSalaryStandard extends BaseEntity implements Serializable {
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"薪级"}, index = 3)
     @Schema(description = "薪级")
-    private String slaaryLevel;
+    private String salaryLevel;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"执行系数/金额"}, index = 4)

@@ -193,4 +193,9 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
             "，因病因伤长期休假人员 2" +
             " 内退-其他内退人员 3，")
     private String status;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"入伍时间"}, index = 30)
+    @Schema(description = "入伍时间")
+    private LocalDate enlistmentDate;
 }
