@@ -1,6 +1,7 @@
 package com.crrc.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.crrc.annotation.IgnoreTenant;
 import com.crrc.api.WkCoreAPi;
 import com.crrc.entity.*;
 import com.crrc.mapper.HrEmpBasicMapper;
@@ -78,11 +79,21 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
      * @param userCode 档案号
      * @return 部门code
      */
-    public String getDept(String userCode) {
+    @IgnoreTenant
+    public String getDept(String userCode){
         MPJLambdaWrapper<HrEmpBasic> queryWrapper = new MPJLambdaWrapper<>();
         queryWrapper.select(HrEmpBasic::getDept)
                 .eq(HrEmpBasic::getUserCode, userCode);
-        return hrEmpBasicMapper.selectOne(queryWrapper).getDept();
+        try{
+            HrEmpBasic empBasic = hrEmpBasicMapper.selectOne(queryWrapper);
+            if(empBasic == null){
+                return null;
+            } else {
+                return empBasic.getDept();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
 

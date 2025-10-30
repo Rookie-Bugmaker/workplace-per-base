@@ -32,7 +32,6 @@ import com.crrc.utils.MyUtils;
 import com.crrc.utils.RoleUtils;
 import com.crrc.utils.SystemConstants;
 import com.xxl.job.core.handler.annotation.XxlJob;
-import io.seata.common.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -46,6 +45,7 @@ import org.springframework.util.ObjectUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
@@ -104,10 +104,16 @@ public class HrEmpBasicController {
     @AuditLog(value = "获得员工所属部门", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     public ResponseResult<String> getDept(@RequestParam String userCode) {
         try {
-            return new ResponseResult<>(HttpStatus.OK.value(), "获得员工所属部门成功", hrEmpBasicService.getDept(userCode));
+            String dept = hrEmpBasicService.getDept(userCode);
+            if(StringUtils.isNotBlank(dept)){
+                return new ResponseResult<>(HttpStatus.OK.value(), "获得员工所属部门成功", dept);
+            } else {
+                log.warn("查询回的部门为空，默认返回流程与数字化部，档案号为{}", userCode);
+                return new ResponseResult<>(HttpStatus.OK.value(), "查询回的部门为空，使用默认部门流程与数字化部", SystemConstants.DEFAULT_DEPT_CODE);
+            }
         } catch (Exception e) {
             log.error("获得员工所属部门失败{}", e.getMessage(), e);
-            return new ResponseResult<>(HttpStatus.OK.value(), "获得员工所属部门失败，使用默认部门流程与数字化部", hrEmpBasicService.getDept(userCode));
+            return new ResponseResult<>(HttpStatus.OK.value(), "获得员工所属部门失败，使用默认部门流程与数字化部", SystemConstants.DEFAULT_DEPT_CODE);
         }
     }
 
