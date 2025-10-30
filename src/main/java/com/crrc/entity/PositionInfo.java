@@ -35,66 +35,66 @@ public class PositionInfo extends BaseEntity {
     /** 所属组织单元 */
     @Schema(description = "所属组织单元")
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"所属组织单元"}, index = 1)
+    @ExcelProperty(value = {"所属组织单元"}, index = 0)
     private String orgUnit;
 
     /** 工作中心 */
     @Schema(description = "工作中心")
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"工作中心"}, index = 2)
+    @ExcelProperty(value = {"工作中心"}, index = 1)
     private String workCenter;
 
     /** 编码 */
     @Schema(description = "编码")
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"编码"}, index = 3)
+    @ExcelProperty(value = {"编码"}, index = 2)
     private String code;
 
     /** 名称 */
     @Schema(description = "名称")
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"名称"}, index = 4)
+    @ExcelProperty(value = {"名称"}, index = 3)
     private String name;
 
     /** 生效日期 */
     @Schema(description = "生效日期")
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"生效日期"}, index = 5)
+    @ExcelProperty(value = {"生效日期"}, index = 4)
     private Date effectiveDate;
 
     /** 关联职务 */
     @Schema(description = "关联职务")
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"关联职务"}, index = 6)
+    @ExcelProperty(value = {"关联职务"}, index = 5)
     private String relatedPost;
 
     /** 职种 */
     @Schema(description = "职种")
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"职种"}, index = 7)
+    @ExcelProperty(value = {"职种"}, index = 6)
     private String jobType;
 
     /** 部门代码 */
     @Schema(description = "部门代码")
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"部门代码"}, index = 8)
+    @ExcelProperty(value = {"部门代码"}, index = 7)
     private String deptCode;
 
     /** 部门名称 */
     @Schema(description = "部门名称")
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"部门名称"}, index = 9)
+    @ExcelProperty(value = {"部门名称"}, index = 8)
     private String deptName;
 
     /** 上级职位编码 */
     @Schema(description = "上级职位编码")
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"上级职位编码"}, index = 10)
+    @ExcelProperty(value = {"上级职位编码"}, index = 9)
     private String parentPositionCode;
 
     /** 上级职位名称 */
     @Schema(description = "上级职位名称")
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"上级职位名称"}, index = 11)
+    @ExcelProperty(value = {"上级职位名称"}, index = 10)
     private String parentPositionName;
 }
