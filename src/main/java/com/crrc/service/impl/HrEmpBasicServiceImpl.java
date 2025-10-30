@@ -73,6 +73,18 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         return hrEmpBasicMapper.selectList(queryWrapper);
     }
 
+    /**
+     * 通过档案号获取部门code
+     * @param userCode 档案号
+     * @return 部门code
+     */
+    public String getDept(String userCode) {
+        MPJLambdaWrapper<HrEmpBasic> queryWrapper = new MPJLambdaWrapper<>();
+        queryWrapper.select(HrEmpBasic::getDept)
+                .eq(HrEmpBasic::getUserCode, userCode);
+        return hrEmpBasicMapper.selectOne(queryWrapper).getDept();
+    }
+
 
     /**
      * 根据传入的档案号列表查询用户信息列表
