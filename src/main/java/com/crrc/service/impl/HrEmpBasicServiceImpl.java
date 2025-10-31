@@ -184,7 +184,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                         dto.getDept())
                 .like(StringUtils.isNotBlank(dto.getPosition()),
                         HrEmpAppointment::getPosition,
-                        dto.getPosition());
+                        dto.getPosition())
+                .like(StringUtils.isNotBlank(dto.getIsEmployed()),
+                        HrEmpBasic::getIsEmployed,
+                        dto.getIsEmployed());
     }
 
 
