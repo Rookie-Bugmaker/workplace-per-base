@@ -23,6 +23,7 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -52,6 +53,14 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     private final CodeInfoServiceImpl codeInfoService;
 
     private final WkCoreAPi wkCoreApi;
+
+    private static final String TABLE_NAME = "hr_emp_basic";
+
+    private static final String POLITICAL_TYPE_NAME = "BASIC_POLITICAL";
+
+    private static final String EDUCATION_TABLE_NAME = "hr_emp_education";
+
+    private static final String EDUCATION_TYPE_NAME = "EDU_EDU";
 
     public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService) {
         this.hrEmpBasicMapper = hrEmpBasicMapper;
@@ -215,6 +224,11 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             if (subData.isAllUnique()) {
                 mergeSubTableData(result.get(0), subData);
             }
+            // 处理最高学历
+            resolveEducation(result.get(0));
+
+            // 处理政治面貌
+            resolvePolitical(result.get(0));
 
             // 5. 处理年龄
             log.info("准备开始处理年龄信息");
@@ -234,6 +248,16 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             return queryBaseInfoWithJoins(userCode);
         }
 
+    }
+
+    private void resolveEducation(HrEmpBasicDTO hrEmpBasicDTO) {
+        Map<String, String> translateMap = codeInfoService.getTranslateMap(EDUCATION_TABLE_NAME, EDUCATION_TYPE_NAME);
+        hrEmpBasicDTO.setEducationValue(translateMap.getOrDefault(hrEmpBasicDTO.getEducation(), "未知学历"));
+    }
+
+    private void resolvePolitical(HrEmpBasicDTO hrEmpBasicDTO) {
+        Map<String, String> translateMap = codeInfoService.getTranslateMap(TABLE_NAME, POLITICAL_TYPE_NAME);
+        hrEmpBasicDTO.setPoliticalValue(translateMap.getOrDefault(hrEmpBasicDTO.getPolitical(), "未知政治面貌"));
     }
 
 

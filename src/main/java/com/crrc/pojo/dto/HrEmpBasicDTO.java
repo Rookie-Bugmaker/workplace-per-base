@@ -10,10 +10,12 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @NoArgsConstructor
-public class HrEmpBasicDTO extends HrEmpBasic{
+public class HrEmpBasicDTO extends HrEmpBasic {
+
+    private String education;
 
     @Schema(description = "最高学历")
-    private String education;
+    private String educationValue;
 
     @Schema(description = "最高学位")
     private String degree;

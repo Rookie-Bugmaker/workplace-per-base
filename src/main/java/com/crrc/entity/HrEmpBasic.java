@@ -87,9 +87,13 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     private String birthPlace;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"政治面貌"}, index = 9)
-    @Schema(description = "政治面貌")
     private String political;
+
+    @TableField(exist = false)
+    @QueryMethod(method = QueryType.EQ)
+    @Schema(description = "政治面貌")
+    @ExcelProperty(value = {"政治面貌"}, index = 9)
+    private String politicalValue;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"姓名"}, index = 10)
