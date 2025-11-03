@@ -252,12 +252,12 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
     private void resolveEducation(HrEmpBasicDTO hrEmpBasicDTO) {
         Map<String, String> translateMap = codeInfoService.getTranslateMap(EDUCATION_TABLE_NAME, EDUCATION_TYPE_NAME);
-        hrEmpBasicDTO.setEducationValue(translateMap.getOrDefault(hrEmpBasicDTO.getEducation(), "未知学历"));
+        hrEmpBasicDTO.setEducationValue(translateMap.getOrDefault(hrEmpBasicDTO.getEducation(), null));
     }
 
     private void resolvePolitical(HrEmpBasicDTO hrEmpBasicDTO) {
         Map<String, String> translateMap = codeInfoService.getTranslateMap(TABLE_NAME, POLITICAL_TYPE_NAME);
-        hrEmpBasicDTO.setPoliticalValue(translateMap.getOrDefault(hrEmpBasicDTO.getPolitical(), "未知政治面貌"));
+        hrEmpBasicDTO.setPoliticalValue(translateMap.getOrDefault(hrEmpBasicDTO.getPolitical(), null));
     }
 
 
