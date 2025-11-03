@@ -67,11 +67,14 @@ public class CostCenterServiceImpl extends WorkServiceImpl<CostCenterMapper, Cos
         return costCenter;
     }
 
-    public Boolean bundleEmpAndCostCenter(BundleEmpAndCostCenterVO vo) {
-        HrEmpBasic hrEmpBasic = new HrEmpBasic();
-        hrEmpBasic.setId(vo.getEmpBasicId());
-        hrEmpBasic.setCostCenter(vo.getCostCenterId());
-        hrEmpBasicService.updateById(hrEmpBasic);
+    public Boolean bundleEmpAndCostCenter(List<BundleEmpAndCostCenterVO> vo) {
+        vo.forEach(item -> {
+            HrEmpBasic hrEmpBasic = new HrEmpBasic();
+            hrEmpBasic.setId(item.getEmpBasicId());
+            hrEmpBasic.setCostCenter(item.getCostCenterId());
+            hrEmpBasicService.updateById(hrEmpBasic);
+        });
+
         return true;
     }
 
