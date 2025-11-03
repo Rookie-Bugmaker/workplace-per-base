@@ -25,4 +25,9 @@ public class SystemConstants {
      * 流程模板编码，在框架界面中规定
      */
     public static final String PROCESS_TEMPLATE_ALIAS = "userinfo";
+
+    /**
+     * 流程与数字化部部门code
+     */
+    public static final String DEFAULT_DEPT_CODE = "01320103";
 }

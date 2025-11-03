@@ -31,7 +31,7 @@ import com.crrc.service.impl.*;
 import com.crrc.utils.MyUtils;
 import com.crrc.utils.RoleUtils;
 import com.crrc.utils.SystemConstants;
-import io.seata.common.util.StringUtils;
+import com.xxl.job.core.handler.annotation.XxlJob;
 import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -45,6 +45,7 @@ import org.springframework.util.ObjectUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
@@ -98,15 +99,40 @@ public class HrEmpBasicController {
     @Autowired
     private HrEmpSkillLevelServiceImpl hrEmpSkillLevelService;
 
+    @GetMapping("/getDept")
+    @Operation(summary = "获得员工所属部门")
+    @AuditLog(value = "获得员工所属部门", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResult<String> getDept(@RequestParam String userCode) {
+        try {
+            String dept = hrEmpBasicService.getDept(userCode);
+            if(StringUtils.isNotBlank(dept)){
+                return new ResponseResult<>(HttpStatus.OK.value(), "获得员工所属部门成功", dept);
+            } else {
+                log.warn("查询回的部门为空，默认返回流程与数字化部，档案号为{}", userCode);
+                return new ResponseResult<>(HttpStatus.OK.value(), "查询回的部门为空，使用默认部门流程与数字化部", SystemConstants.DEFAULT_DEPT_CODE);
+            }
+        } catch (Exception e) {
+            log.error("获得员工所属部门失败{}", e.getMessage(), e);
+            return new ResponseResult<>(HttpStatus.OK.value(), "获得员工所属部门失败，使用默认部门流程与数字化部", SystemConstants.DEFAULT_DEPT_CODE);
+        }
+    }
+
     @PostMapping("/syncPersonCategory")
     @Operation(summary = "同步人员分类，目前用定时任务每天处理")
     @AuditLog(value = "同步人员分类，目前用定时任务每天处理", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @XxlJob("syncPersonCategory")
     public ResponseResult<String> syncPersonCategory(@RequestBody(required = false) List<HrEmpBasic> userCodeList) {
         try {
             // 如果传参了且非空，就用传参，否则全量更新
             List<HrEmpBasic> list = (userCodeList != null && !userCodeList.isEmpty())
                     ? hrEmpBasicService.getListByUserCode(userCodeList)
                     : hrEmpBasicService.getAllUser();
+
+//            List<HrEmpBasic> list1 = new ArrayList<>();
+//            HrEmpBasic temp = new HrEmpBasic();
+//            temp.setUserCode("013200031192");
+//            List<HrEmpBasic> list2 = hrEmpBasicService.getListByUserCode(list1);
+
 
             for(HrEmpBasic hrEmpBasic : list){
 

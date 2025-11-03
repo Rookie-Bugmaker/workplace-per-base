@@ -1,6 +1,7 @@
 package com.crrc.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.crrc.annotation.IgnoreTenant;
 import com.crrc.api.WkCoreAPi;
 import com.crrc.entity.*;
 import com.crrc.mapper.HrEmpBasicMapper;
@@ -71,6 +72,28 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         MPJLambdaWrapper<HrEmpBasic> queryWrapper = new MPJLambdaWrapper<>();
         queryWrapper.selectAll(HrEmpBasic.class);
         return hrEmpBasicMapper.selectList(queryWrapper);
+    }
+
+    /**
+     * 通过档案号获取部门code
+     * @param userCode 档案号
+     * @return 部门code
+     */
+    @IgnoreTenant
+    public String getDept(String userCode){
+        MPJLambdaWrapper<HrEmpBasic> queryWrapper = new MPJLambdaWrapper<>();
+        queryWrapper.select(HrEmpBasic::getDept)
+                .eq(HrEmpBasic::getUserCode, userCode);
+        try{
+            HrEmpBasic empBasic = hrEmpBasicMapper.selectOne(queryWrapper);
+            if(empBasic == null){
+                return null;
+            } else {
+                return empBasic.getDept();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
 
@@ -161,7 +184,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                         dto.getDept())
                 .like(StringUtils.isNotBlank(dto.getPosition()),
                         HrEmpAppointment::getPosition,
-                        dto.getPosition());
+                        dto.getPosition())
+                .like(StringUtils.isNotBlank(dto.getIsEmployed()),
+                        HrEmpBasic::getIsEmployed,
+                        dto.getIsEmployed());
     }
 
 
