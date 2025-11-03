@@ -113,13 +113,24 @@ public class CostCenterController {
         return new ResponseResult<>(HttpStatus.OK.value(), "更新实体成功", costCenterService.saveOrUpdate(updateReqVO));
     }
 
-    @Transactional
+    @PostMapping("/deleteUserFromCostCenter")
+    @Operation(summary = "删除实体")
+    @AuditLog(value = "删除实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_DELETE)
+    @Parameter(name = "id", description = "主键编号", required = true, example = "1")
+    public ResponseResult<Boolean> deletePositonInfo(@RequestBody BundleEmpAndCostCenterVO vo) {
+        return new ResponseResult<>(HttpStatus.OK.value(), "删除实体成功", costCenterService.removeUserFromCostCenter(vo));
+    }
+
     @GetMapping("/delete")
     @Operation(summary = "删除实体")
     @AuditLog(value = "删除实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_DELETE)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<Boolean> deletePositonInfo(@RequestParam("id") Long id) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "删除实体成功", costCenterService.removeById(id));
+        try {
+            return new ResponseResult<>(HttpStatus.OK.value(), "删除实体成功", costCenterService.removeByIdAndCheck(id));
+        } catch (Exception e) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
     }
 
     @PostMapping("/export")

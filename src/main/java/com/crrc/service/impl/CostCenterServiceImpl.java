@@ -1,5 +1,6 @@
 package com.crrc.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
@@ -16,6 +17,8 @@ import com.crrc.utils.DeptUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.ObjectUtils;
 
 import javax.validation.Valid;
 import java.util.List;
@@ -95,5 +98,28 @@ public class CostCenterServiceImpl extends WorkServiceImpl<CostCenterMapper, Cos
             BeanUtils.copyProperties(basic, hrBasicCostCenterDetailVO);
             return hrBasicCostCenterDetailVO;
         }).collect(Collectors.toList());
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean removeByIdAndCheck(Long id) {
+        HrEmpBasic hrEmpBasic = new HrEmpBasic();
+        hrEmpBasic.setCostCenter(id.toString());
+        List<HrEmpBasic> query = hrEmpBasicService.query(hrEmpBasic);
+        if(!ObjectUtils.isEmpty(query)) {
+            throw new IllegalArgumentException("该成本中心绑定有用户，无法删除");
+        }
+
+        this.removeById(id);
+        return true;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean removeUserFromCostCenter(BundleEmpAndCostCenterVO vo) {
+        LambdaUpdateWrapper<HrEmpBasic> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(HrEmpBasic::getId, vo.getEmpBasicId());
+        updateWrapper.set(HrEmpBasic::getCostCenter, null);
+
+        hrEmpBasicService.update(updateWrapper);
+        return true;
     }
 }
