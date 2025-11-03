@@ -8,7 +8,9 @@ import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.api.WkDataAPi;
 import com.crrc.entity.HrEmpAppointment;
+import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
@@ -33,7 +35,10 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -54,6 +59,8 @@ public class HrEmpAppointmentController {
     private HrEmpAppointmentServiceImpl hrEmpAppointmentService;
     @Autowired
     private CodeInfoServiceImpl codeInfoService;
+    @Autowired
+    private WkDataAPi wkDataAPi;
 
     @GetMapping("/getDetails")
     @Operation(summary = "获得任职信息实体")
@@ -76,6 +83,30 @@ public class HrEmpAppointmentController {
             entity.setPosition(positionName);
         }
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工任职信息表实体成功", list);
+    }
+
+    @PostMapping("/getLatestDetailList")
+    @Operation(summary = "获得任职信息实体")
+    @AuditLog(value = "获得任职信息实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "id", description = "主键编号", required = true, example = "1")
+    public ResponseResult<List<HrEmpAppointment>> getLatestDetailList(@RequestBody List<String> userCodeList) {
+        List<HrEmpAppointment> resultList = userCodeList.stream().map(userCode ->
+            hrEmpAppointmentService.selectLatestMsg(userCode)
+        ).collect(Collectors.toList());
+        Map<String, String> translateMap = codeInfoService.getTranslateMap("hr_emp_appointment", "APPOINTMENT_POSITION");
+        Map<String, String> code2NameMap = wkDataAPi.allOrganization().getData().stream().collect(Collectors.toMap(
+                OrganizationDTO::getOrgCode,
+                OrganizationDTO::getOrgName
+        ));
+        // 回显部门名称、组织单元名称、职位名称
+        for(HrEmpAppointment entity : resultList) {
+            entity.setDept(code2NameMap.getOrDefault(entity.getDept(), null));
+
+            entity.setOrgUnit(code2NameMap.getOrDefault(entity.getOrgUnit(), null));
+
+            entity.setPosition(translateMap.getOrDefault(entity.getPosition(), "未知职位"));
+        }
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工任职信息表实体成功", resultList);
     }
 
     @PostMapping("/page")

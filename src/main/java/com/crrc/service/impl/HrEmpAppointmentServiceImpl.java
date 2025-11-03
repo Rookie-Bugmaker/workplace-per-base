@@ -31,6 +31,14 @@ public class HrEmpAppointmentServiceImpl extends WorkServiceImpl<HrEmpAppointmen
         return hrEmpAppointmentMapper.selectList(wrapper);
     }
 
+    public HrEmpAppointment selectLatestMsg(String userCode){
+        MPJLambdaWrapper<HrEmpAppointment> wrapper = new MPJLambdaWrapper<HrEmpAppointment>()
+                .selectAll(HrEmpAppointment.class)
+                .eq(HrEmpAppointment::getUserCode, userCode)
+                .orderByDesc(HrEmpAppointment::getStartDate);
+        return hrEmpAppointmentMapper.selectList(wrapper).get(0);
+    }
+
     /**
      * 查询个人未结束的任职信息
      * @param userCode 员工档案号
