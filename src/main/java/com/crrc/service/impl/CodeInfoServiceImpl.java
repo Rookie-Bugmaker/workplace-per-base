@@ -1,5 +1,6 @@
 package com.crrc.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.crrc.entity.CodeInfo;
 import com.crrc.mapper.CodeInfoMapper;
 import com.crrc.service.CodeInfoService;
@@ -7,6 +8,10 @@ import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -55,4 +60,22 @@ public class CodeInfoServiceImpl extends WorkServiceImpl<CodeInfoMapper, CodeInf
         }
     }
 
+    /**
+     * 获得指定的表中的指定字段的字典值
+     *
+     * @param tableName 表名
+     * @param type      字段名
+     */
+    Map<String, String> getTranslateMap(String tableName, String type) {
+        LambdaQueryWrapper<CodeInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(CodeInfo::getTableName, tableName);
+        wrapper.eq(CodeInfo::getType, type);
+        List<CodeInfo> codeInfos = this.baseMapper.selectList(wrapper);
+
+        return codeInfos.stream().collect(Collectors.toMap(
+            CodeInfo::getCode,
+            CodeInfo::getCodeValue,
+            (a, b) -> a
+        ));
+    }
 }
