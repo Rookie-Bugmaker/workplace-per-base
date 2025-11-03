@@ -452,6 +452,14 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工基本信息表实体成功", hrEmpBasicService.selectMsg(userCode));
     }
 
+    @PostMapping("/getDetailList")
+    @Operation(summary = "获得员工基本信息表实体")
+    @AuditLog(value = "获得员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "id", description = "主键编号", required = true, example = "1")
+    public ResponseResult<List<HrEmpBasicDTO>> getMsgList(@RequestBody List<String> userCodeList) {
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工基本信息表实体成功", hrEmpBasicService.selectMsgList(userCodeList));
+    }
+
     @PostMapping("/page")
     @Operation(summary = "获取员工基本信息表列表 page")
     @AuditLog(value = "获取员工基本信息表列表 page", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
