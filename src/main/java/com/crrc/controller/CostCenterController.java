@@ -87,11 +87,11 @@ public class CostCenterController {
     }
 
     @Transactional
-    @PostMapping("/queryDetails")
+    @GetMapping("/queryDetails")
     @Operation(summary = "创建实体")
     @AuditLog(value = "创建实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
     @Parameter(name = "createReqVO", description = "需要创建的实体对象", required = true)
-    public ResponseResult<List<HrBasicCostCenterDetailVO>> queryDetails(@RequestBody Long id) {
+    public ResponseResult<List<HrBasicCostCenterDetailVO>> queryDetails(@RequestParam Long id) {
         return new ResponseResult<>(HttpStatus.OK.value(), "创建实体成功", costCenterService.queryDetails(id));
     }
 

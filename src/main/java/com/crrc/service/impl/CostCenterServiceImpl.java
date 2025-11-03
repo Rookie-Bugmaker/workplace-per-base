@@ -9,9 +9,11 @@ import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.mapper.CostCenterMapper;
 import com.crrc.pojo.dto.BundleEmpAndCostCenterVO;
+import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.vo.HrBasicCostCenterDetailVO;
 import com.crrc.service.CostCenterService;
 import com.crrc.utils.DeptUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -82,14 +84,16 @@ public class CostCenterServiceImpl extends WorkServiceImpl<CostCenterMapper, Cos
         CostCenter costCenter = this.getById(id);
         HrEmpBasic hrEmpBasic = new HrEmpBasic();
         hrEmpBasic.setCostCenter(id.toString());
-        List<HrEmpBasic> hrEmpBasicList = hrEmpBasicService.query(hrEmpBasic);
-        List<HrEmpBasic> query = hrEmpBasicService.getListByUserCode(hrEmpBasicList);
-        List<HrBasicCostCenterDetailVO> result = query.stream().map(basic -> {
+        // 根据cost center查询所有的人员信息
+        List<String> userCodeList = hrEmpBasicService.query(hrEmpBasic).stream().map(HrEmpBasic::getUserCode).collect(Collectors.toList());
+        // 根据人员信息查询(带翻译)
+        List<HrEmpBasicDTO> query = hrEmpBasicService.selectMsgList(userCodeList);
+        return query.stream().map(basic -> {
             HrBasicCostCenterDetailVO hrBasicCostCenterDetailVO = new HrBasicCostCenterDetailVO();
             hrBasicCostCenterDetailVO.setCostCenterCode(costCenter.getCode());
             hrBasicCostCenterDetailVO.setCostCenterName(costCenter.getName());
+            BeanUtils.copyProperties(basic, hrBasicCostCenterDetailVO);
             return hrBasicCostCenterDetailVO;
         }).collect(Collectors.toList());
-        return result;
     }
 }
