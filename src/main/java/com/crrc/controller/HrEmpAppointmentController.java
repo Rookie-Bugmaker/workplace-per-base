@@ -104,7 +104,7 @@ public class HrEmpAppointmentController {
 
             entity.setOrgUnit(code2NameMap.getOrDefault(entity.getOrgUnit(), null));
 
-            entity.setPosition(translateMap.getOrDefault(entity.getPosition(), "未知职位"));
+            entity.setPosition(translateMap.getOrDefault(entity.getPosition(), "未知职务"));
         }
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工任职信息表实体成功", resultList);
     }
