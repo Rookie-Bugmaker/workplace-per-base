@@ -90,9 +90,7 @@ public class HrEmpAppointmentController {
     @AuditLog(value = "获得任职信息实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<List<HrEmpAppointment>> getLatestDetailList(@RequestBody List<String> userCodeList) {
-        List<HrEmpAppointment> resultList = userCodeList.stream().map(userCode ->
-            hrEmpAppointmentService.selectLatestMsg(userCode)
-        ).collect(Collectors.toList());
+        List<HrEmpAppointment> resultList = hrEmpAppointmentService.selectLatestMsg(userCodeList);
         Map<String, String> translateMap = codeInfoService.getTranslateMap("hr_emp_appointment", "APPOINTMENT_POSITION");
         Map<String, String> code2NameMap = wkDataAPi.allOrganization().getData().stream().collect(Collectors.toMap(
                 OrganizationDTO::getOrgCode,
