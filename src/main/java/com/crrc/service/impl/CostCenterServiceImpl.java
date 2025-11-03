@@ -6,6 +6,7 @@ import com.crrc.api.WkDataAPi;
 import com.crrc.entity.CostCenter;
 import com.crrc.entity.HrEmpBasic;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
+import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.mapper.CostCenterMapper;
 import com.crrc.pojo.dto.BundleEmpAndCostCenterVO;
 import com.crrc.pojo.vo.HrBasicCostCenterDetailVO;
@@ -27,16 +28,16 @@ public class CostCenterServiceImpl extends WorkServiceImpl<CostCenterMapper, Cos
     private HrEmpBasicServiceImpl hrEmpBasicService;
 
     public void queryVO(Page<CostCenter> page, CostCenter pageReqVO) {
-        Map<String, String> orgCode2Name = wkDataAPi.allOrganization().getData().stream().collect(Collectors.toMap(
-                OrganizationDTO::getOrgCode,
-                OrganizationDTO::getOrgName
+        Map<String, String> orgCode2Name = wkDataAPi.treeOrganization().getData().stream().peek(
+                item -> item.setChildren(null)
+        ).collect(Collectors.toMap(
+                OrganizationTreeDTO::getOrgCode,
+                OrganizationTreeDTO::getOrgName
         ));
 
         this.query(page, pageReqVO);
 
-        page.getRecords().forEach(org -> {
-            org.setCollectionName(orgCode2Name.getOrDefault(org.getCode(), "未知公司"));
-        });
+        page.getRecords().forEach(org -> org.setCollectionName(orgCode2Name.getOrDefault(org.getCollection(), "未知公司")));
     }
 
     public List<CostCenter> queryVO(CostCenter queryReqVO) {

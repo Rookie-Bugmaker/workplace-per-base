@@ -66,7 +66,7 @@ public class CodeInfoServiceImpl extends WorkServiceImpl<CodeInfoMapper, CodeInf
      * @param tableName 表名
      * @param type      字段名
      */
-    Map<String, String> getTranslateMap(String tableName, String type) {
+    public Map<String, String> getTranslateMap(String tableName, String type) {
         LambdaQueryWrapper<CodeInfo> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(CodeInfo::getTableName, tableName);
         wrapper.eq(CodeInfo::getType, type);
