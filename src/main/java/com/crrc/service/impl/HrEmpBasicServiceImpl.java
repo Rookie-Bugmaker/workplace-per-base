@@ -17,6 +17,9 @@ import com.crrc.utils.DeptUtils;
 import com.crrc.utils.SystemConstants;
 import com.github.yulichang.toolkit.JoinWrappers;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
+import io.reactivex.rxjava3.internal.util.LinkedArrayList;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -420,7 +423,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
         // 建立userCode -> SubTableData Map
         Map<String, SubTableData> resultMap = new LinkedHashMap<>();
-        codes.forEach(c -> resultMap.put(c, new SubTableData()));
+        codes.forEach(c -> resultMap.put(c, new SubTableData(new ArrayList<>(), new ArrayList<>(), new ArrayList<>())));
 
         // --- 1) 教育（最高学历）批量查询 ---
 
@@ -434,7 +437,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                         .eq(HrEmpEducation::getIsHighestEducation, SystemConstants.TRUE_FLAG)
                         .in(HrEmpEducation::getUserCode, userCodes)
         );
-        if (eduList != null) {
+            if (eduList != null) {
             eduList.forEach(e -> {
                 SubTableData d = resultMap.get(e.getUserCode());
                 if (d != null) {
@@ -616,6 +619,8 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     /**
      * 子表数据容器（内部使用）
      */
+    @AllArgsConstructor
+    @NoArgsConstructor
     private static class SubTableData {
         List<HrEmpEducation> educationList;
         List<HrEmpSkillLevel> skillLevelList;
