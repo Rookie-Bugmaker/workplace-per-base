@@ -35,7 +35,7 @@ public class CostCenterServiceImpl extends WorkServiceImpl<CostCenterMapper, Cos
         this.query(page, pageReqVO);
 
         page.getRecords().forEach(org -> {
-            org.setOrgName(orgCode2Name.getOrDefault(org.getCode(), "未知公司"));
+            org.setCollectionName(orgCode2Name.getOrDefault(org.getCode(), "未知公司"));
         });
     }
 
@@ -48,7 +48,7 @@ public class CostCenterServiceImpl extends WorkServiceImpl<CostCenterMapper, Cos
         List<CostCenter> query = this.query(queryReqVO);
 
         query.forEach(org -> {
-            org.setOrgName(orgCode2Name.getOrDefault(org.getCode(), "未知公司"));
+            org.setCollectionName(orgCode2Name.getOrDefault(org.getCode(), "未知公司"));
         });
 
         return query;
@@ -61,7 +61,7 @@ public class CostCenterServiceImpl extends WorkServiceImpl<CostCenterMapper, Cos
         ));
 
         CostCenter costCenter = this.getById(id);
-        costCenter.setOrgName(orgCode2Name.getOrDefault(costCenter.getCode(), "未知公司"));
+        costCenter.setCollectionName(orgCode2Name.getOrDefault(costCenter.getCode(), "未知公司"));
 
         return costCenter;
     }

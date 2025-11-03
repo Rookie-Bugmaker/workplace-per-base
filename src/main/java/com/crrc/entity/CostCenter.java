@@ -34,11 +34,10 @@ public class CostCenter extends BaseEntity {
     @QueryMethod(method = QueryType.EQ)
     private String collection;
 
-
     @ExcelProperty(value = {"表集合"}, index = 0)
     @Schema(description = "表集合")
     @TableField(exist = false)
-    private String orgName;
+    private String collectionName;
 
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"成本中心编码"}, index = 1)
