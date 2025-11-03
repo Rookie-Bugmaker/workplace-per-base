@@ -25,9 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.Period;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -410,6 +408,85 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     }
 
     /**
+     * 批量查询子表数据（教育/技能/资格）
+     */
+    private Map<String, SubTableData> querySubTableDataList(List<String> userCodes) {
+        if (userCodes == null || userCodes.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        // 去重保持顺序
+        List<String> codes = userCodes.stream().filter(Objects::nonNull)
+                .distinct().collect(Collectors.toList());
+
+        // 建立userCode -> SubTableData Map
+        Map<String, SubTableData> resultMap = new LinkedHashMap<>();
+        codes.forEach(c -> resultMap.put(c, new SubTableData()));
+
+        // --- 1) 教育（最高学历）批量查询 ---
+
+        List<HrEmpEducation> eduList = hrEmpEducationMapper.selectList(
+                JoinWrappers.lambda(HrEmpEducation.class)
+                        .select(HrEmpEducation::getUserCode,
+                                HrEmpEducation::getSchoolCode,
+                                HrEmpEducation::getEducation,
+                                HrEmpEducation::getDegree,
+                                HrEmpEducation::getMajorCode)
+                        .eq(HrEmpEducation::getIsHighestEducation, SystemConstants.TRUE_FLAG)
+                        .in(HrEmpEducation::getUserCode, userCodes)
+        );
+        if (eduList != null) {
+            eduList.forEach(e -> {
+                SubTableData d = resultMap.get(e.getUserCode());
+                if (d != null) {
+                    d.educationList.add(e);
+                }
+            });
+        }
+
+
+        // --- 2) 技能等级（最高）批量查询 ---
+
+        List<HrEmpSkillLevel> skillList = hrEmpSkillLevelMapper.selectList(
+                JoinWrappers.lambda(HrEmpSkillLevel.class)
+                        .select(HrEmpSkillLevel::getUserCode,
+                                HrEmpSkillLevel::getSkillLevel)
+                        .eq(HrEmpSkillLevel::getIsHighest, SystemConstants.TRUE_FLAG)
+                        .in(HrEmpSkillLevel::getUserCode, userCodes)
+        );
+        if (skillList != null) {
+            skillList.forEach(s -> {
+                SubTableData d = resultMap.get(s.getUserCode());
+                if (d != null) {
+                    d.skillLevelList.add(s);
+                }
+            });
+        }
+
+
+        // --- 3) 职业资格（最高）批量查询 ---
+
+        List<HrEmpProfessionalQualification> quaList = hrEmpProfessionalQualificationMapper.selectList(
+                JoinWrappers.lambda(HrEmpProfessionalQualification.class)
+                        .select(HrEmpProfessionalQualification::getUserCode,
+                                HrEmpProfessionalQualification::getQuaId)
+                        .eq(HrEmpProfessionalQualification::getIsHighest, SystemConstants.TRUE_FLAG)
+                        .in(HrEmpProfessionalQualification::getUserCode, userCodes)
+        );
+        if (quaList != null) {
+            quaList.forEach(q -> {
+                SubTableData d = resultMap.get(q.getUserCode());
+                if (d != null) {
+                    d.qualificationList.add(q);
+                }
+            });
+        }
+
+
+        // 保持与入参顺序一致返回
+        return resultMap;
+    }
+
+    /**
      * 查询子表数据（教育/技能/资格）
      */
     private SubTableData querySubTableData(String userCode) {
@@ -495,6 +572,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                     OrganizationDTO::getOrgName
             ));
 
+            // 查询关联子表数据
+            Map<String, SubTableData> stringSubTableDataMap = querySubTableDataList(userCodeList);
+
             Map<String, String> eduTranslateMap = codeInfoService.getTranslateMap(EDUCATION_TABLE_NAME, EDUCATION_TYPE_NAME);
             Map<String, String> politicalTranslateMap = codeInfoService.getTranslateMap(TABLE_NAME, POLITICAL_TYPE_NAME);
             resultList.forEach(result -> {
@@ -502,7 +582,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 result.setDept(orgCode2Name.getOrDefault(result.getDept(), result.getDept()));
 
                 // 3. 查询关联子表数据
-                SubTableData subData = querySubTableData(result.getUserCode());
+                SubTableData subData = stringSubTableDataMap.get(result.getUserCode());
 
                 // 4. 处理子表数据（当所有子表数据唯一时）
                 if (subData.isAllUnique()) {

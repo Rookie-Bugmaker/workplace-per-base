@@ -44,7 +44,7 @@ public class CostCenter extends BaseEntity {
     @Schema(description = "成本中心编码")
     private String code;
 
-    @QueryMethod(method = QueryType.EQ)
+    @QueryMethod(method = QueryType.LIKE)
     @ExcelProperty(value = {"成本中心名称"}, index = 2)
     @Schema(description = "成本中心名称")
     private String name;
