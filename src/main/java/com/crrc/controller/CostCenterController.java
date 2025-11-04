@@ -1,25 +1,41 @@
 package com.crrc.controller;
 
 import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.EasyExcelFactory;
+import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
+import com.alibaba.excel.annotation.ExcelProperty;
+import com.alibaba.excel.context.AnalysisContext;
+import com.alibaba.excel.converters.Converter;
+import com.alibaba.excel.enums.CellDataTypeEnum;
+import com.alibaba.excel.metadata.CellExtra;
+import com.alibaba.excel.metadata.GlobalConfiguration;
+import com.alibaba.excel.metadata.data.ReadCellData;
+import com.alibaba.excel.metadata.property.ExcelContentProperty;
+import com.alibaba.excel.read.listener.ReadListener;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.annotation.QueryMethod;
 import com.crrc.entity.CostCenter;
 import com.crrc.entity.HrEmpBasic;
-import com.crrc.entity.PositionInfo;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
-import com.crrc.listener.ImportExcelListener;
+import com.crrc.enums.QueryType;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.BundleEmpAndCostCenterVO;
+import com.crrc.pojo.vo.CostCenterImportVO;
 import com.crrc.pojo.vo.HrBasicCostCenterDetailVO;
 import com.crrc.service.impl.CostCenterServiceImpl;
 import com.crrc.service.impl.HrEmpBasicServiceImpl;
-import com.crrc.service.impl.PositionInfoServiceImpl;
+import com.crrc.utils.CostCenterCustomImportListener;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
@@ -33,7 +49,11 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * @author yukun
@@ -44,6 +64,8 @@ import java.util.List;
 public class CostCenterController {
     @Autowired
     private CostCenterServiceImpl costCenterService;
+    @Autowired
+    private HrEmpBasicServiceImpl hrEmpBasicService;
 
     @PostMapping("/page")
     @Operation(summary = "获取列表 page")
@@ -160,15 +182,20 @@ public class CostCenterController {
                 .doWrite(positionInfoList);
     }
 
-    @PostMapping("/import")
+    @PostMapping("/import/{costCenterId}")
     @AuditLog(value = "导入报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
     @Operation(summary = "导入报表")
-    public ResponseResult<Boolean> imports(MultipartFile file) throws IOException {
-        EasyExcel.read(file.getInputStream(), CostCenter.class,
-                        new ImportExcelListener<CostCenter, CostCenterServiceImpl>(costCenterService))
-                .headRowNumber(1)
-                .sheet()
-                .doRead();
-        return new ResponseResult<>(HttpStatus.OK.value(), "导入报表成功");
+    public ResponseResult<Boolean> imports(MultipartFile file, @PathVariable Long costCenterId) throws IOException {
+        try {
+            EasyExcelFactory.read(file.getInputStream(), CostCenterImportVO.class,
+                            new CostCenterCustomImportListener(hrEmpBasicService, costCenterId))
+                    .headRowNumber(1)
+                    .sheet()
+                    .doRead();
+            return new ResponseResult<>(HttpStatus.OK.value(), "导入报表成功");
+        } catch (Exception e) {
+            return new ResponseResult<>(HttpStatus.BAD_GATEWAY.value(), e.getMessage());
+        }
+
     }
 }
