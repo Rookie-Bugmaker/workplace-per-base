@@ -49,10 +49,7 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
@@ -175,6 +172,31 @@ public class CostCenterController {
         List<CostCenter> positionInfoList = costCenterService.query(exportReqVO);
         ExcelTypeEnum typeEnum = "csv".equals(type) ?  ExcelTypeEnum.CSV : ("xls".equals(type) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
         EasyExcel.write(response.getOutputStream(), CostCenter.class)
+                .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
+                .autoCloseStream(true)
+                .excelType(typeEnum)
+                .sheet("报表")
+                .doWrite(positionInfoList);
+    }
+
+    @PostMapping("/download/template")
+    @AuditLog(value = "导出报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
+    @Operation(summary = "导出报表")
+    public void exportCostCenter(@RequestParam(required = false, defaultValue = "xlsx") String type,
+                                 HttpServletResponse response) throws IOException {
+        String contentType = "csv".equals(type) ?  "text/csv;charset=UTF-8" :
+                ("xls".equals(type) ? "application/vnd.ms-excel" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setContentType(contentType);
+        response.setCharacterEncoding("utf-8");
+        // 这里URLEncoder.encode可以防止中文乱码
+        String fileName = URLEncoder.encode("报表-" + new SimpleDateFormat("yyyyMMddhhmmss")
+                        .format(System.currentTimeMillis()), "UTF-8")
+                .replaceAll("\\+", "%20");
+        response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." +type);
+
+        List<CostCenterImportVO> positionInfoList = Collections.singletonList(new CostCenterImportVO("013200012345"));
+        ExcelTypeEnum typeEnum = "csv".equals(type) ?  ExcelTypeEnum.CSV : ("xls".equals(type) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
+        EasyExcel.write(response.getOutputStream(), CostCenterImportVO.class)
                 .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
                 .autoCloseStream(true)
                 .excelType(typeEnum)
