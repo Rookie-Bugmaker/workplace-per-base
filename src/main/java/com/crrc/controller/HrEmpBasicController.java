@@ -98,6 +98,8 @@ public class HrEmpBasicController {
     private HrEmpOtherAppointmentMapper hrEmpOtherAppointmentMapper;
     @Autowired
     private HrEmpSkillLevelServiceImpl hrEmpSkillLevelService;
+    @Autowired
+    private PositionInfoServiceImpl positionInfoServiceImpl;
 
     @GetMapping("/getDept")
     @Operation(summary = "获得员工所属部门")
@@ -415,31 +417,44 @@ public class HrEmpBasicController {
             }
         }
 
-        // TODO: 职位和职种关联后，修改这里的代码
         if(position != null) {
-            // 关联String typeCode = service.queryType(String position);
-            PostCatalogInfo reqVO = new PostCatalogInfo();
-            reqVO.setName(position);
-            List<PostCatalogInfoVO> postCatalogInfoVOS = postCatalogInfoService.queryVO(reqVO);
+            // 查找职位信息
+            LambdaQueryWrapper<HrEmpAppointment> appointmentQueryWrapper = new LambdaQueryWrapper<>();
+            appointmentQueryWrapper.eq(HrEmpAppointment::getUserCode, hrEmpBasic.getUserCode());
+            List<HrEmpAppointment> hrEmpAppointments = hrEmpAppointmentMapper.selectList(appointmentQueryWrapper).stream()
+                    .filter(e -> e.getDutyStatus() != null).collect(Collectors.toList());
 
-            if(!ObjectUtils.isEmpty(postCatalogInfoVOS)) {
-                PostCatalogInfoVO postCatalogInfoVO = postCatalogInfoVOS.get(0);
-                String categoryCode = postCatalogInfoVO.getCategoryCode();
-                // 专业管理、市场营销职类 -> 普
-                if("2".equals(categoryCode) || "3".equals(categoryCode)) {
-                    return "007";
+            if(!ObjectUtils.isEmpty(hrEmpAppointments)) {
+                HrEmpAppointment hrEmpAppointment = hrEmpAppointments.get(0);
+                // 如果超过一条，选择startDate最晚的
+                if (hrEmpAppointments.size() > 1) {
+                    hrEmpAppointment = hrEmpAppointments.stream().reduce((a, b) -> a.getStartDate().isAfter(b.getStartDate()) ? a : b).get();
                 }
-                String groupCode = postCatalogInfoVO.getGroupCode();
-                // 技能操作职类，直接生产操作、辅助生产操作职群 -> 计
-                if("5-01".equals(groupCode) || "5-02".equals(groupCode)) {
-                    return "008";
+                String positionCode = hrEmpAppointment.getPosition();
+
+                PositionInfo positionInfo = new PositionInfo();
+                positionInfo.setCode(positionCode);
+                List<PositionInfo> query = positionInfoServiceImpl.query(positionInfo);
+                if(!ObjectUtils.isEmpty(query)) {
+                    String jobType = query.get(0).getJobType();
+                    if(!"ERROR".equals(jobType) && StringUtils.isNotBlank(jobType)) {
+                        // 专业管理、市场营销职类 -> 普
+                        if(jobType.startsWith("2") || jobType.startsWith("3")) {
+                            return "007";
+                        }
+
+                        // 技能操作职类，直接生产操作、辅助生产操作职群 -> 计
+                        if(jobType.startsWith("5-01") || jobType.startsWith("5-02")) {
+                            return "008";
+                        }
+                        // 技能操作职类，辅助服务职群 -> 辅
+                        if(jobType.startsWith("5-03")) {
+                            return "009";
+                        }
+                        // 其他职类 -> 他
+                        return "010";
+                    }
                 }
-                // 技能操作职类，辅助服务职群 -> 辅
-                if("5-03".equals(groupCode)) {
-                    return "009";
-                }
-                // 其他职类 -> 他
-                return "010";
             }
         }
         return null;
