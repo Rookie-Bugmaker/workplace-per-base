@@ -68,7 +68,7 @@ public class HrCoreTalentController {
     }
 
     @GetMapping("/getTalentDict")
-    public ResponseResult<Map<String, String>> pageHrCoreTalent(String seqCode) {
+    public ResponseResult<Map<String, String>> pageHrCoreTalent(@RequestParam String seqCode) {
         try {
             Map<String, String> map = codeInfoService.getTranslateMap(TABLE_NAME, TALENT_LEVEL_TYPE).entrySet().stream()
                     .filter(entry -> entry.getKey().startsWith(seqCode))

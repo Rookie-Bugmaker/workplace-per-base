@@ -42,7 +42,7 @@ public class HrCoreTalentServiceImpl extends WorkServiceImpl<HrCoreTalentMapper,
         Map<String, String> seqTranslateMap = codeInfoService.getTranslateMap(TABLE_NAME, SEQ_TYPE_NAME);
         records.forEach(item -> {
             item.setSequenceType(seqTranslateMap.getOrDefault(item.getSequenceType(), item.getSequenceType()));
-            item.setTalentLevel(seqTranslateMap.getOrDefault(item.getTalentLevel(), item.getTalentLevel()));
+            item.setTalentLevel(talentTranslateMap.getOrDefault(item.getTalentLevel(), item.getTalentLevel()));
         });
     }
 
