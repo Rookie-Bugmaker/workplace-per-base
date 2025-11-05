@@ -37,6 +37,7 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -199,10 +200,12 @@ public class HrCoreTalentController {
 
         private final HrCoreTalentServiceImpl hrCoreTalentService;
         private final CodeInfoServiceImpl codeInfoService;
+        private final List<HrCoreTalent> dataList;
 
         public CustomHrCoreTalentImportListener(HrCoreTalentServiceImpl hrCoreTalentService, CodeInfoServiceImpl codeInfoService) {
             this.hrCoreTalentService = hrCoreTalentService;
             this.codeInfoService = codeInfoService;
+            this.dataList = new ArrayList<>();
         }
 
         public void onException(Exception exception, AnalysisContext context) throws Exception {
@@ -211,6 +214,19 @@ public class HrCoreTalentController {
 
         @Override
         public void invoke(HrCoreTalent hrCoreTalent, AnalysisContext analysisContext) {
+            dataList.add(hrCoreTalent);
+
+            if(dataList.size() > 800) {
+                flush();
+            }
+        }
+
+        @Override
+        public void doAfterAllAnalysed(AnalysisContext analysisContext) {
+            flush();
+        }
+
+        private void flush() {
             // 获得value -> 码值的Map
             Map<String, String> talentValue2Code = codeInfoService.getTranslateMap(TABLE_NAME, TALENT_LEVEL_TYPE).entrySet()
                     .stream()
@@ -226,40 +242,22 @@ public class HrCoreTalentController {
                             Map.Entry::getKey
                     ));
 
-            // 将value映射到码值
-            if(!sequenceValue2Code.containsKey(hrCoreTalent.getSequenceType())) {
-                throw new RuntimeException("所属序列翻译错误，请检查是否有无误，value：" + hrCoreTalent.getTalentLevel());
-            }
+            dataList.forEach(item -> {
+                // 将value映射到码值
+                if(!sequenceValue2Code.containsKey(item.getSequenceType())) {
+                    throw new RuntimeException("所属序列翻译错误，请检查是否有无误，value：" + item.getTalentLevel());
+                }
 
-            if(!talentValue2Code.containsKey(hrCoreTalent.getTalentLevel())) {
-                throw new RuntimeException("层级翻译错误，请检查是否有无误，value：" + hrCoreTalent.getTalentLevel());
-            }
+                if(!talentValue2Code.containsKey(item.getTalentLevel())) {
+                    throw new RuntimeException("层级翻译错误，请检查是否有无误，value：" + item.getTalentLevel());
+                }
 
-            hrCoreTalent.setSequenceType(sequenceValue2Code.get(hrCoreTalent.getSequenceType()));
-            hrCoreTalent.setTalentLevel(talentValue2Code.get(hrCoreTalent.getTalentLevel()));
+                item.setSequenceType(sequenceValue2Code.get(item.getSequenceType()));
+                item.setTalentLevel(talentValue2Code.get(item.getTalentLevel()));
+            });
+            hrCoreTalentService.saveBatch(dataList);
 
-            hrCoreTalentService.save(hrCoreTalent);
-//            // 查询是否存在
-//            LambdaUpdateWrapper<HrCoreTalent> updateWrapper = new LambdaUpdateWrapper<>();
-//            updateWrapper.eq(HrCoreTalent::getJobNumber, hrCoreTalent.getJobNumber());
-//            updateWrapper.eq(HrCoreTalent::getTalentLevel, hrCoreTalent.getTalentLevel());
-//            updateWrapper.eq(HrCoreTalent::getSequenceType, hrCoreTalent.getSequenceType());
-//            List<HrCoreTalent> hrCoreTalents = hrCoreTalentService.getBaseMapper().selectList(updateWrapper);
-//
-//            // 如果不存在则新增
-//            if(ObjectUtils.isEmpty(hrCoreTalents)) {
-//                hrCoreTalentService.save(hrCoreTalent);
-//                return;
-//            }
-//            // 如果存在全量修改
-//            HrCoreTalent updateEntity = hrCoreTalents.get(0);
-//            BeanUtils.copyProperties(hrCoreTalent, updateEntity);
-//            hrCoreTalentService.update(updateEntity, updateWrapper);
-        }
-
-        @Override
-        public void doAfterAllAnalysed(AnalysisContext analysisContext) {
-
+            dataList.clear();
         }
     }
 
