@@ -26,6 +26,8 @@ public class HrCoreTalentServiceImpl extends WorkServiceImpl<HrCoreTalentMapper,
 
     private static final String TALENT_TYPE_NAME = "TALENT_LEVEL";
 
+    private static final String APPOINTMENT_STATUS_TYPE_NAME = "APPOINTMENT_STATUS";
+
     public void queryVO(Page<HrCoreTalent> page, HrCoreTalent pageReqVO) throws ParseException {
         // 如果有DateStr没有Date，则拼装Date
         initDateTimeQuery(pageReqVO);
@@ -40,9 +42,11 @@ public class HrCoreTalentServiceImpl extends WorkServiceImpl<HrCoreTalentMapper,
     public void translateCode(List<HrCoreTalent> records) {
         Map<String, String> talentTranslateMap = codeInfoService.getTranslateMap(TABLE_NAME, TALENT_TYPE_NAME);
         Map<String, String> seqTranslateMap = codeInfoService.getTranslateMap(TABLE_NAME, SEQ_TYPE_NAME);
+        Map<String, String> appTranslateMap = codeInfoService.getTranslateMap(TABLE_NAME, APPOINTMENT_STATUS_TYPE_NAME);
         records.forEach(item -> {
             item.setSequenceType(seqTranslateMap.getOrDefault(item.getSequenceType(), item.getSequenceType()));
             item.setTalentLevel(talentTranslateMap.getOrDefault(item.getTalentLevel(), item.getTalentLevel()));
+            item.setAppointmentStatus(appTranslateMap.getOrDefault(item.getAppointmentStatus(), item.getAppointmentStatus()));
         });
     }
 

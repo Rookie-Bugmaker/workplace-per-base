@@ -10,7 +10,6 @@ import com.alibaba.excel.metadata.property.ExcelContentProperty;
 import com.alibaba.excel.read.listener.ReadListener;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
@@ -22,12 +21,10 @@ import com.crrc.service.impl.CodeInfoServiceImpl;
 import com.crrc.service.impl.HrCoreTalentServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.ObjectUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -54,14 +51,16 @@ public class HrCoreTalentController {
 
     private static final String TABLE_NAME = "hr_core_talent";
 
-    private static final String SEQ_TYPE = "SEQUENCE_TYPE";
+    private static final String SEQ_TYPE_NAME = "SEQUENCE_TYPE";
 
-    private static final String TALENT_LEVEL_TYPE = "TALENT_LEVEL";
+    private static final String TALENT_TYPE_NAME = "TALENT_LEVEL";
+
+    private static final String APPOINTMENT_STATUS_TYPE_NAME = "APPOINTMENT_STATUS";
 
     @GetMapping("/getSeqDict")
     public ResponseResult<Map<String, String>> pageHrCoreTalent() {
         try {
-            return new ResponseResult<>(HttpStatus.OK.value(), "获取列表 page成功", codeInfoService.getTranslateMap(TABLE_NAME, SEQ_TYPE));
+            return new ResponseResult<>(HttpStatus.OK.value(), "获取列表 page成功", codeInfoService.getTranslateMap(TABLE_NAME, SEQ_TYPE_NAME));
         } catch (Exception e) {
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
@@ -70,7 +69,7 @@ public class HrCoreTalentController {
     @GetMapping("/getTalentDict")
     public ResponseResult<Map<String, String>> pageHrCoreTalent(@RequestParam String seqCode) {
         try {
-            Map<String, String> map = codeInfoService.getTranslateMap(TABLE_NAME, TALENT_LEVEL_TYPE).entrySet().stream()
+            Map<String, String> map = codeInfoService.getTranslateMap(TABLE_NAME, TALENT_TYPE_NAME).entrySet().stream()
                     .filter(entry -> entry.getKey().startsWith(seqCode))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
             return new ResponseResult<>(HttpStatus.OK.value(), "获取列表 page成功", map);
@@ -228,19 +227,27 @@ public class HrCoreTalentController {
 
         private void flush() {
             // 获得value -> 码值的Map
-            Map<String, String> talentValue2Code = codeInfoService.getTranslateMap(TABLE_NAME, TALENT_LEVEL_TYPE).entrySet()
+            Map<String, String> talentValue2Code = codeInfoService.getTranslateMap(TABLE_NAME, TALENT_TYPE_NAME).entrySet()
                     .stream()
                     .collect(Collectors.toMap(
                             Map.Entry::getValue,
                             Map.Entry::getKey
                     ));
 
-            Map<String, String> sequenceValue2Code = codeInfoService.getTranslateMap(TABLE_NAME, SEQ_TYPE).entrySet()
+            Map<String, String> sequenceValue2Code = codeInfoService.getTranslateMap(TABLE_NAME, SEQ_TYPE_NAME).entrySet()
                     .stream()
                     .collect(Collectors.toMap(
                             Map.Entry::getValue,
                             Map.Entry::getKey
                     ));
+
+            Map<String, String> appointmentValue2Code = codeInfoService.getTranslateMap(TABLE_NAME, APPOINTMENT_STATUS_TYPE_NAME).entrySet()
+                    .stream()
+                    .collect(Collectors.toMap(
+                            Map.Entry::getValue,
+                            Map.Entry::getKey
+                    ));
+
 
             dataList.forEach(item -> {
                 // 将value映射到码值
@@ -252,8 +259,13 @@ public class HrCoreTalentController {
                     throw new RuntimeException("层级翻译错误，请检查是否有无误，value：" + item.getTalentLevel());
                 }
 
+                if(!appointmentValue2Code.containsKey(item.getAppointmentStatus())) {
+                    throw new RuntimeException("层级翻译错误，请检查是否有无误，value：" + item.getAppointmentStatus());
+                }
+
                 item.setSequenceType(sequenceValue2Code.get(item.getSequenceType()));
                 item.setTalentLevel(talentValue2Code.get(item.getTalentLevel()));
+                item.setAppointmentStatus(appointmentValue2Code.get(item.getAppointmentStatus()));
             });
             hrCoreTalentService.saveBatch(dataList);
 
