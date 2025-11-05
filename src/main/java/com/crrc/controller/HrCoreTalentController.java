@@ -70,7 +70,7 @@ public class HrCoreTalentController {
     @GetMapping("/getTalentDict")
     public ResponseResult<Map<String, String>> pageHrCoreTalent(String seqCode) {
         try {
-            Map<String, String> map = codeInfoService.getTranslateMap(TABLE_NAME, SEQ_TYPE).entrySet().stream()
+            Map<String, String> map = codeInfoService.getTranslateMap(TABLE_NAME, TALENT_LEVEL_TYPE).entrySet().stream()
                     .filter(entry -> entry.getKey().startsWith(seqCode))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
             return new ResponseResult<>(HttpStatus.OK.value(), "获取列表 page成功", map);
