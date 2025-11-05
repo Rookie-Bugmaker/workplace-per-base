@@ -5,26 +5,49 @@ import com.crrc.entity.HrCoreTalent;
 import com.crrc.mapper.HrCoreTalentMapper;
 import com.crrc.service.HrCoreTalentService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import javax.validation.Valid;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.List;
 
 @Service
 public class HrCoreTalentServiceImpl extends WorkServiceImpl<HrCoreTalentMapper, HrCoreTalent> implements HrCoreTalentService {
     public void queryVO(Page<HrCoreTalent> page, HrCoreTalent pageReqVO) throws ParseException {
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        if(StringUtils.hasText(pageReqVO.getAppointmentStartDateStr())) {
-            pageReqVO.setAppointmentStartDate(simpleDateFormat.parse(pageReqVO.getAppointmentStartDateStr()));
-        }
 
-        if(StringUtils.hasText(pageReqVO.getAppointmentEndDateStr())) {
-            pageReqVO.setAppointmentEndDate(simpleDateFormat.parse(pageReqVO.getAppointmentEndDateStr()));
-        }
+        initDateTimeQuery(pageReqVO);
 
         this.query(page, pageReqVO);
 
-        page.getRecords().forEach(item -> {
+        buildDateTimeStr(page.getRecords());
+    }
+
+    public List<HrCoreTalent> queryList(HrCoreTalent queryReqVO) throws ParseException {
+        initDateTimeQuery(queryReqVO);
+
+        List<HrCoreTalent> records = this.query(queryReqVO);
+
+        buildDateTimeStr(records);
+
+        return records;
+    }
+
+    private void initDateTimeQuery(HrCoreTalent reqVO) throws ParseException {
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        if(StringUtils.hasText(reqVO.getAppointmentStartDateStr())) {
+            reqVO.setAppointmentStartDate(simpleDateFormat.parse(reqVO.getAppointmentStartDateStr()));
+        }
+
+        if(StringUtils.hasText(reqVO.getAppointmentEndDateStr())) {
+            reqVO.setAppointmentEndDate(simpleDateFormat.parse(reqVO.getAppointmentEndDateStr()));
+        }
+    }
+
+    private void buildDateTimeStr(List<HrCoreTalent> records) {
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        records.forEach(item -> {
             if(item.getAppointmentStartDate() != null) {
                 item.setAppointmentStartDateStr(simpleDateFormat.format(item.getAppointmentStartDate()));
             }
@@ -32,7 +55,24 @@ public class HrCoreTalentServiceImpl extends WorkServiceImpl<HrCoreTalentMapper,
             if(item.getAppointmentEndDate() != null) {
                 item.setAppointmentEndDateStr(simpleDateFormat.format(item.getAppointmentEndDate()));
             }
-
         });
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean saveVO(@Valid HrCoreTalent createReqVO) throws ParseException {
+
+        initDateTimeQuery(createReqVO);
+
+        this.save(createReqVO);
+
+        return true;
+    }
+
+    public Boolean saveOrUpdateVO(@Valid HrCoreTalent updateReqVO) throws ParseException {
+        initDateTimeQuery(updateReqVO);
+
+        this.saveOrUpdate(updateReqVO);
+
+        return true;
     }
 }

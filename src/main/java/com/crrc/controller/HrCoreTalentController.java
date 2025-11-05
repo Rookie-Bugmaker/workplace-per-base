@@ -71,8 +71,13 @@ public class HrCoreTalentController {
     @AuditLog(value = "获取列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象", required = false)
     public ResponseResult<List<HrCoreTalent>> queryHrCoreTalent(@Validated @RequestBody(required = false) HrCoreTalent queryReqVO) {
-        queryReqVO = (queryReqVO == null) ? new HrCoreTalent() : queryReqVO;
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取列表成功", hrCoreTalentService.query(queryReqVO));
+        try {
+            queryReqVO = (queryReqVO == null) ? new HrCoreTalent() : queryReqVO;
+            return new ResponseResult<>(HttpStatus.OK.value(), "获取列表成功", hrCoreTalentService.queryList(queryReqVO));
+        } catch (Exception e) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
+
     }
 
     @GetMapping("/get")
@@ -89,7 +94,11 @@ public class HrCoreTalentController {
     @AuditLog(value = "创建实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
     @Parameter(name = "createReqVO", description = "需要创建的实体对象", required = true)
     public ResponseResult<Boolean> createHrCoreTalent(@Valid @RequestBody HrCoreTalent createReqVO) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "创建实体成功", hrCoreTalentService.save(createReqVO));
+        try {
+            return new ResponseResult<>(HttpStatus.OK.value(), "创建实体成功", hrCoreTalentService.saveVO(createReqVO));
+        } catch (Exception e) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
     }
 
     @Transactional
@@ -98,7 +107,11 @@ public class HrCoreTalentController {
     @AuditLog(value = "更新实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
     public ResponseResult<Boolean> updateHrCoreTalent(@Valid @RequestBody HrCoreTalent updateReqVO) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "更新实体成功", hrCoreTalentService.saveOrUpdate(updateReqVO));
+        try {
+            return new ResponseResult<>(HttpStatus.OK.value(), "更新实体成功", hrCoreTalentService.saveOrUpdateVO(updateReqVO));
+        } catch (Exception e) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
     }
 
     @Transactional
