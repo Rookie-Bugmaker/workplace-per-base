@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.entity.HrCoreTalent;
 import com.crrc.mapper.HrCoreTalentMapper;
 import com.crrc.service.HrCoreTalentService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -12,35 +13,60 @@ import javax.validation.Valid;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class HrCoreTalentServiceImpl extends WorkServiceImpl<HrCoreTalentMapper, HrCoreTalent> implements HrCoreTalentService {
-    public void queryVO(Page<HrCoreTalent> page, HrCoreTalent pageReqVO) throws ParseException {
+    @Autowired
+    private CodeInfoServiceImpl codeInfoService;
 
+    private static final String TABLE_NAME = "hr_core_talent";
+
+    private static final String SEQ_TYPE_NAME = "SEQUENCE_TYPE";
+
+    private static final String TALENT_TYPE_NAME = "TALENT_LEVEL";
+
+    public void queryVO(Page<HrCoreTalent> page, HrCoreTalent pageReqVO) throws ParseException {
+        // 如果有DateStr没有Date，则拼装Date
         initDateTimeQuery(pageReqVO);
 
         this.query(page, pageReqVO);
-
+        // 翻译时间
         buildDateTimeStr(page.getRecords());
+        // 翻译码值
+        translateCode(page.getRecords());
+    }
+
+    public void translateCode(List<HrCoreTalent> records) {
+        Map<String, String> talentTranslateMap = codeInfoService.getTranslateMap(TABLE_NAME, TALENT_TYPE_NAME);
+        Map<String, String> seqTranslateMap = codeInfoService.getTranslateMap(TABLE_NAME, SEQ_TYPE_NAME);
+        records.forEach(item -> {
+            item.setSequenceType(seqTranslateMap.getOrDefault(item.getSequenceType(), item.getSequenceType()));
+            item.setTalentLevel(seqTranslateMap.getOrDefault(item.getTalentLevel(), item.getTalentLevel()));
+        });
     }
 
     public List<HrCoreTalent> queryList(HrCoreTalent queryReqVO) throws ParseException {
+        // 如果有DateStr没有Date，则拼装Date
         initDateTimeQuery(queryReqVO);
 
         List<HrCoreTalent> records = this.query(queryReqVO);
-
+        // 翻译时间
         buildDateTimeStr(records);
+
+        // 翻译码值
+        translateCode(records);
 
         return records;
     }
 
     private void initDateTimeQuery(HrCoreTalent reqVO) throws ParseException {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        if(StringUtils.hasText(reqVO.getAppointmentStartDateStr())) {
+        if(StringUtils.hasText(reqVO.getAppointmentStartDateStr()) && reqVO.getAppointmentStartDate() == null) {
             reqVO.setAppointmentStartDate(simpleDateFormat.parse(reqVO.getAppointmentStartDateStr()));
         }
 
-        if(StringUtils.hasText(reqVO.getAppointmentEndDateStr())) {
+        if(StringUtils.hasText(reqVO.getAppointmentEndDateStr())  && reqVO.getAppointmentEndDate() == null) {
             reqVO.setAppointmentEndDate(simpleDateFormat.parse(reqVO.getAppointmentEndDateStr()));
         }
     }

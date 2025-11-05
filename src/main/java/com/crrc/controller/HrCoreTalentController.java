@@ -18,6 +18,7 @@ import com.crrc.entity.HrCoreTalent;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.service.impl.CodeInfoServiceImpl;
 import com.crrc.service.impl.HrCoreTalentServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -38,6 +39,8 @@ import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/hrCoreTalent")
@@ -45,6 +48,8 @@ import java.util.List;
 public class HrCoreTalentController {
     @Autowired
     private HrCoreTalentServiceImpl hrCoreTalentService;
+    @Autowired
+    private CodeInfoServiceImpl codeInfoService;
 
     @PostMapping("/page")
     @Operation(summary = "获取列表 page")
@@ -155,7 +160,7 @@ public class HrCoreTalentController {
     @Operation(summary = "导入报表")
     public ResponseResult<Boolean> imports(MultipartFile file) throws IOException {
         EasyExcel.read(file.getInputStream(), HrCoreTalent.class,
-                        new CustomHrCoreTalentImportListener(hrCoreTalentService))
+                        new CustomHrCoreTalentImportListener(hrCoreTalentService, codeInfoService))
                 .registerConverter(new CustomDateConverter())
                 .headRowNumber(1)
                 .sheet()
@@ -166,21 +171,57 @@ public class HrCoreTalentController {
     public static class CustomHrCoreTalentImportListener implements ReadListener<HrCoreTalent> {
 
         private final HrCoreTalentServiceImpl hrCoreTalentService;
+        private final CodeInfoServiceImpl codeInfoService;
 
-        public CustomHrCoreTalentImportListener(HrCoreTalentServiceImpl hrCoreTalentService) {
+        public CustomHrCoreTalentImportListener(HrCoreTalentServiceImpl hrCoreTalentService, CodeInfoServiceImpl codeInfoService) {
             this.hrCoreTalentService = hrCoreTalentService;
+            this.codeInfoService = codeInfoService;
+        }
+
+        public void onException(Exception exception, AnalysisContext context) throws Exception {
+            throw exception;
         }
 
         @Override
         public void invoke(HrCoreTalent hrCoreTalent, AnalysisContext analysisContext) {
-            // TODO: 待处理码值
+            // 获得value -> 码值的Map
+            Map<String, String> talentValue2Code = codeInfoService.getTranslateMap("hr_core_talent", "TALENT_LEVEL").entrySet()
+                    .stream()
+                    .collect(Collectors.toMap(
+                            Map.Entry::getValue,
+                            Map.Entry::getKey
+                    ));
+
+            Map<String, String> sequenceValue2Code = codeInfoService.getTranslateMap("hr_core_talent", "SEQUENCE_TYPE").entrySet()
+                    .stream()
+                    .collect(Collectors.toMap(
+                            Map.Entry::getValue,
+                            Map.Entry::getKey
+                    ));
+
+            // 将value映射到码值
+            if(!sequenceValue2Code.containsKey(hrCoreTalent.getSequenceType())) {
+                throw new RuntimeException("所属序列翻译错误，请检查是否有无误，value：" + hrCoreTalent.getTalentLevel());
+            }
+
+            if(!talentValue2Code.containsKey(hrCoreTalent.getTalentLevel())) {
+                throw new RuntimeException("层级翻译错误，请检查是否有无误，value：" + hrCoreTalent.getTalentLevel());
+            }
+
+            hrCoreTalent.setSequenceType(sequenceValue2Code.get(hrCoreTalent.getSequenceType()));
+            hrCoreTalent.setTalentLevel(talentValue2Code.get(hrCoreTalent.getTalentLevel()));
+
+            // 查询是否存在
             LambdaUpdateWrapper<HrCoreTalent> updateWrapper = new LambdaUpdateWrapper<>();
             updateWrapper.eq(HrCoreTalent::getJobNumber, hrCoreTalent.getJobNumber());
             List<HrCoreTalent> hrCoreTalents = hrCoreTalentService.getBaseMapper().selectList(updateWrapper);
+
+            // 如果不存在则新增
             if(ObjectUtils.isEmpty(hrCoreTalents)) {
                 hrCoreTalentService.save(hrCoreTalent);
                 return;
             }
+            // 如果存在全量修改
             HrCoreTalent updateEntity = hrCoreTalents.get(0);
             BeanUtils.copyProperties(hrCoreTalent, updateEntity);
             hrCoreTalentService.update(updateEntity, updateWrapper);
