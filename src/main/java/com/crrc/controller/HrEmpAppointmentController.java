@@ -35,7 +35,6 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -78,9 +77,26 @@ public class HrEmpAppointmentController {
             String orgName = DeptUtils.getDeptNameByCode(orgId);
             entity.setOrgUnit(orgName);
 
+            // 处理职位名称
             String position = entity.getPosition();
             String positionName = codeInfoService.translateCode(position, "hr_emp_appointment", "APPOINTMENT_POSITION");
             entity.setPosition(positionName);
+
+            // 处理变动事件 changeEvent
+            String changeEventOrg = entity.getChangeEvent();
+            String changeEvent = codeInfoService.translateCode(changeEventOrg, "hr_emp_appointment", "APPOINTMENT_CHANGE_EVENT");
+            entity.setChangeEvent(changeEvent);
+
+            // 处理变动类型 changeType
+            String changeTypeOrg = entity.getChangeType();
+            String changeType = codeInfoService.translateCode(changeTypeOrg, "hr_emp_appointment", "APPOINTMENT_CHANGE_TYPE");
+            entity.setChangeType(changeType);
+
+            // 处理变动原因 changeReason
+            String changeReasonOrg = entity.getChangeReason();
+            String changeReason = codeInfoService.translateCode(changeReasonOrg, "hr_emp_appointment", "APPOINTMENT_CHANGE_REASON");
+            entity.setChangeReason(changeReason);
+
         }
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工任职信息表实体成功", list);
     }

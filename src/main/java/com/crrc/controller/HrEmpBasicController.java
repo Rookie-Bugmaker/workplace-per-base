@@ -139,19 +139,19 @@ public class HrEmpBasicController {
                 // 同步人员分类1
                 String category1 = resolveCategory1(hrEmpBasic);
                 hrEmpBasic.setCategory1(category1);
-                log.info("查询人员分类1完毕");
+                log.info("userCode:{},查询人员分类1完毕,值为{}", hrEmpBasic.getUserCode(), category1);
                 // 同步人员分类4
                 String category4 = resolveCategory4(hrEmpBasic);
                 hrEmpBasic.setCategory4(category4);
-                log.info("查询人员分类4完毕");
+                log.info("userCode:{},查询人员分类4完毕,值为{}", hrEmpBasic.getUserCode(), category4);
                 // 同步人员分类7
                 String category7 = resolveCategory7(hrEmpBasic);
                 hrEmpBasic.setCategory7(category7);
-                log.info("查询人员分类7完毕");
+                log.info("userCode:{},查询人员分类7完毕,值为{}", hrEmpBasic.getUserCode(), category7);
                 // 同步人员分类8
                 String category8 = resolveCategory8(hrEmpBasic);
                 hrEmpBasic.setCategory8(category8);
-                log.info("查询人员分类8完毕");
+                log.info("userCode:{},查询人员分类8完毕,值为{}", hrEmpBasic.getUserCode(), category8);
 
                 // 更新方法
                 log.info("准备执行更新方法，category1:{}，category4:{}，category7:{}，category8:{}",
@@ -163,6 +163,7 @@ public class HrEmpBasicController {
                         .set(HrEmpBasic::getCategory7, hrEmpBasic.getCategory7())
                         .set(HrEmpBasic::getCategory8, hrEmpBasic.getCategory8());
                 hrEmpBasicService.update(null, wrapper);
+                log.info("userCode:{},更新成功", hrEmpBasic.getUserCode());
             }
             return new ResponseResult<>(HttpStatus.OK.value(), "人员分类同步成功");
         } catch (Exception e) {
