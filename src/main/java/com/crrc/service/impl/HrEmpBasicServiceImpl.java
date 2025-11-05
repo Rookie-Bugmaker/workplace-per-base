@@ -384,6 +384,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
         try {
             String deptName = DeptUtils.getDeptNameByCode(dto.getDept());
+            dto.setOrgCode(dto.getDept());
             dto.setDept(deptName);
         } catch (Exception e) {
             log.warn("部门名称查询失败, orgCode: {}", dto.getDept(), e);
