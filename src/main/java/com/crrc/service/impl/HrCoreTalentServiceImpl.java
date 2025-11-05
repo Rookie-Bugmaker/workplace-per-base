@@ -12,6 +12,7 @@ import org.springframework.util.StringUtils;
 import javax.validation.Valid;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -103,5 +104,12 @@ public class HrCoreTalentServiceImpl extends WorkServiceImpl<HrCoreTalentMapper,
         this.saveOrUpdate(updateReqVO);
 
         return true;
+    }
+
+    public HrCoreTalent getVOById(Long id) {
+        HrCoreTalent talent = this.getById(id);
+        buildDateTimeStr(Collections.singletonList(talent));
+        translateCode(Collections.singletonList(talent));
+        return talent;
     }
 }
