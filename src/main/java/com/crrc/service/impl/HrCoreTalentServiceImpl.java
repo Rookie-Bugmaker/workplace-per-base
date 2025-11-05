@@ -86,9 +86,8 @@ public class HrCoreTalentServiceImpl extends WorkServiceImpl<HrCoreTalentMapper,
 
     @Transactional(rollbackFor = Exception.class)
     public Boolean saveVO(@Valid HrCoreTalent createReqVO) throws ParseException {
-
+        // 如果有DateStr没有Date，则拼装Date
         initDateTimeQuery(createReqVO);
-
         this.save(createReqVO);
 
         return true;

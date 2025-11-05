@@ -51,6 +51,33 @@ public class HrCoreTalentController {
     @Autowired
     private CodeInfoServiceImpl codeInfoService;
 
+    private static final String TABLE_NAME = "hr_core_talent";
+
+    private static final String SEQ_TYPE = "SEQUENCE_TYPE";
+
+    private static final String TALENT_LEVEL_TYPE = "TALENT_LEVEL";
+
+    @GetMapping("/getSeqDict")
+    public ResponseResult<Map<String, String>> pageHrCoreTalent() {
+        try {
+            return new ResponseResult<>(HttpStatus.OK.value(), "获取列表 page成功", codeInfoService.getTranslateMap(TABLE_NAME, SEQ_TYPE));
+        } catch (Exception e) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
+    }
+
+    @GetMapping("/getTalentDict")
+    public ResponseResult<Map<String, String>> pageHrCoreTalent(String seqCode) {
+        try {
+            Map<String, String> map = codeInfoService.getTranslateMap(TABLE_NAME, SEQ_TYPE).entrySet().stream()
+                    .filter(entry -> entry.getKey().startsWith(seqCode))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            return new ResponseResult<>(HttpStatus.OK.value(), "获取列表 page成功", map);
+        } catch (Exception e) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
+    }
+
     @PostMapping("/page")
     @Operation(summary = "获取列表 page")
     @AuditLog(value = "获取列表 page", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
@@ -185,14 +212,14 @@ public class HrCoreTalentController {
         @Override
         public void invoke(HrCoreTalent hrCoreTalent, AnalysisContext analysisContext) {
             // 获得value -> 码值的Map
-            Map<String, String> talentValue2Code = codeInfoService.getTranslateMap("hr_core_talent", "TALENT_LEVEL").entrySet()
+            Map<String, String> talentValue2Code = codeInfoService.getTranslateMap(TABLE_NAME, TALENT_LEVEL_TYPE).entrySet()
                     .stream()
                     .collect(Collectors.toMap(
                             Map.Entry::getValue,
                             Map.Entry::getKey
                     ));
 
-            Map<String, String> sequenceValue2Code = codeInfoService.getTranslateMap("hr_core_talent", "SEQUENCE_TYPE").entrySet()
+            Map<String, String> sequenceValue2Code = codeInfoService.getTranslateMap(TABLE_NAME, SEQ_TYPE).entrySet()
                     .stream()
                     .collect(Collectors.toMap(
                             Map.Entry::getValue,
@@ -211,20 +238,23 @@ public class HrCoreTalentController {
             hrCoreTalent.setSequenceType(sequenceValue2Code.get(hrCoreTalent.getSequenceType()));
             hrCoreTalent.setTalentLevel(talentValue2Code.get(hrCoreTalent.getTalentLevel()));
 
-            // 查询是否存在
-            LambdaUpdateWrapper<HrCoreTalent> updateWrapper = new LambdaUpdateWrapper<>();
-            updateWrapper.eq(HrCoreTalent::getJobNumber, hrCoreTalent.getJobNumber());
-            List<HrCoreTalent> hrCoreTalents = hrCoreTalentService.getBaseMapper().selectList(updateWrapper);
-
-            // 如果不存在则新增
-            if(ObjectUtils.isEmpty(hrCoreTalents)) {
-                hrCoreTalentService.save(hrCoreTalent);
-                return;
-            }
-            // 如果存在全量修改
-            HrCoreTalent updateEntity = hrCoreTalents.get(0);
-            BeanUtils.copyProperties(hrCoreTalent, updateEntity);
-            hrCoreTalentService.update(updateEntity, updateWrapper);
+            hrCoreTalentService.save(hrCoreTalent);
+//            // 查询是否存在
+//            LambdaUpdateWrapper<HrCoreTalent> updateWrapper = new LambdaUpdateWrapper<>();
+//            updateWrapper.eq(HrCoreTalent::getJobNumber, hrCoreTalent.getJobNumber());
+//            updateWrapper.eq(HrCoreTalent::getTalentLevel, hrCoreTalent.getTalentLevel());
+//            updateWrapper.eq(HrCoreTalent::getSequenceType, hrCoreTalent.getSequenceType());
+//            List<HrCoreTalent> hrCoreTalents = hrCoreTalentService.getBaseMapper().selectList(updateWrapper);
+//
+//            // 如果不存在则新增
+//            if(ObjectUtils.isEmpty(hrCoreTalents)) {
+//                hrCoreTalentService.save(hrCoreTalent);
+//                return;
+//            }
+//            // 如果存在全量修改
+//            HrCoreTalent updateEntity = hrCoreTalents.get(0);
+//            BeanUtils.copyProperties(hrCoreTalent, updateEntity);
+//            hrCoreTalentService.update(updateEntity, updateWrapper);
         }
 
         @Override
