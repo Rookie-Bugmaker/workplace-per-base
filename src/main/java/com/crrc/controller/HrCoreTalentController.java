@@ -17,6 +17,7 @@ import com.crrc.entity.HrCoreTalent;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.vo.MapVO;
 import com.crrc.service.impl.CodeInfoServiceImpl;
 import com.crrc.service.impl.HrCoreTalentServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -58,29 +59,33 @@ public class HrCoreTalentController {
     private static final String APPOINTMENT_STATUS_TYPE_NAME = "APPOINTMENT_STATUS";
 
     @GetMapping("/getSeqDict")
-    public ResponseResult<Map<String, String>> getSeqDict() {
+    public ResponseResult<List<MapVO<String, String>>> getSeqDict() {
         try {
-            return new ResponseResult<>(HttpStatus.OK.value(), "获取列表 page成功", codeInfoService.getTranslateMap(TABLE_NAME, SEQ_TYPE_NAME));
+            List<MapVO<String, String>> result = codeInfoService.getTranslateMap(TABLE_NAME, SEQ_TYPE_NAME).entrySet()
+                    .stream().map(e -> new MapVO<>(e.getKey(), e.getValue())).collect(Collectors.toList());
+            return new ResponseResult<>(HttpStatus.OK.value(), "获取列表 page成功", result);
         } catch (Exception e) {
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
     }
 
     @GetMapping("/getAppointmentDict")
-    public ResponseResult<Map<String, String>> getAppointmentDict() {
+    public ResponseResult<List<MapVO<String, String>>> getAppointmentDict() {
         try {
-            return new ResponseResult<>(HttpStatus.OK.value(), "获取列表 page成功", codeInfoService.getTranslateMap(TABLE_NAME, APPOINTMENT_STATUS_TYPE_NAME));
+            List<MapVO<String, String>> result = codeInfoService.getTranslateMap(TABLE_NAME, APPOINTMENT_STATUS_TYPE_NAME)
+                    .entrySet().stream().map(e -> new MapVO<>(e.getKey(), e.getValue())).collect(Collectors.toList());
+            return new ResponseResult<>(HttpStatus.OK.value(), "获取列表 page成功", result);
         } catch (Exception e) {
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
     }
 
     @GetMapping("/getTalentDict")
-    public ResponseResult<Map<String, String>> getTalentDict(@RequestParam String seqCode) {
+    public ResponseResult<List<MapVO<String, String>>> getTalentDict(@RequestParam String seqCode) {
         try {
-            Map<String, String> map = codeInfoService.getTranslateMap(TABLE_NAME, TALENT_TYPE_NAME).entrySet().stream()
+            List<MapVO<String, String>> map = codeInfoService.getTranslateMap(TABLE_NAME, TALENT_TYPE_NAME).entrySet().stream()
                     .filter(entry -> entry.getKey().startsWith(seqCode))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                    .map(e -> new MapVO<>(e.getKey(), e.getValue())).collect(Collectors.toList());
             return new ResponseResult<>(HttpStatus.OK.value(), "获取列表 page成功", map);
         } catch (Exception e) {
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
