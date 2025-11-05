@@ -12,6 +12,7 @@ import org.springframework.util.StringUtils;
 import javax.validation.Valid;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -25,6 +26,8 @@ public class HrCoreTalentServiceImpl extends WorkServiceImpl<HrCoreTalentMapper,
     private static final String SEQ_TYPE_NAME = "SEQUENCE_TYPE";
 
     private static final String TALENT_TYPE_NAME = "TALENT_LEVEL";
+
+    private static final String APPOINTMENT_STATUS_TYPE_NAME = "APPOINTMENT_STATUS";
 
     public void queryVO(Page<HrCoreTalent> page, HrCoreTalent pageReqVO) throws ParseException {
         // 如果有DateStr没有Date，则拼装Date
@@ -40,9 +43,11 @@ public class HrCoreTalentServiceImpl extends WorkServiceImpl<HrCoreTalentMapper,
     public void translateCode(List<HrCoreTalent> records) {
         Map<String, String> talentTranslateMap = codeInfoService.getTranslateMap(TABLE_NAME, TALENT_TYPE_NAME);
         Map<String, String> seqTranslateMap = codeInfoService.getTranslateMap(TABLE_NAME, SEQ_TYPE_NAME);
+        Map<String, String> appTranslateMap = codeInfoService.getTranslateMap(TABLE_NAME, APPOINTMENT_STATUS_TYPE_NAME);
         records.forEach(item -> {
             item.setSequenceType(seqTranslateMap.getOrDefault(item.getSequenceType(), item.getSequenceType()));
-            item.setTalentLevel(seqTranslateMap.getOrDefault(item.getTalentLevel(), item.getTalentLevel()));
+            item.setTalentLevel(talentTranslateMap.getOrDefault(item.getTalentLevel(), item.getTalentLevel()));
+            item.setAppointmentStatus(appTranslateMap.getOrDefault(item.getAppointmentStatus(), item.getAppointmentStatus()));
         });
     }
 
@@ -86,9 +91,8 @@ public class HrCoreTalentServiceImpl extends WorkServiceImpl<HrCoreTalentMapper,
 
     @Transactional(rollbackFor = Exception.class)
     public Boolean saveVO(@Valid HrCoreTalent createReqVO) throws ParseException {
-
+        // 如果有DateStr没有Date，则拼装Date
         initDateTimeQuery(createReqVO);
-
         this.save(createReqVO);
 
         return true;
@@ -100,5 +104,12 @@ public class HrCoreTalentServiceImpl extends WorkServiceImpl<HrCoreTalentMapper,
         this.saveOrUpdate(updateReqVO);
 
         return true;
+    }
+
+    public HrCoreTalent getVOById(Long id) {
+        HrCoreTalent talent = this.getById(id);
+        buildDateTimeStr(Collections.singletonList(talent));
+        translateCode(Collections.singletonList(talent));
+        return talent;
     }
 }

@@ -42,6 +42,10 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     @TableField(exist = false)
     private Long orgId;
 
+    @Schema(description = "所属部门编码", example = "0132")
+    @TableField(exist = false)
+    private String orgCode;
+
     @TableLogic(value = "0")
     @Schema(description = "删除", example = "false")
     private Integer deleted;
