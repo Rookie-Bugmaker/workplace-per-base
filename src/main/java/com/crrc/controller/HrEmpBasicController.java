@@ -27,6 +27,7 @@ import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
 import com.crrc.pojo.vo.PostCatalogInfoVO;
+import com.crrc.service.CodeInfoService;
 import com.crrc.service.impl.*;
 import com.crrc.utils.MyUtils;
 import com.crrc.utils.RoleUtils;
@@ -100,6 +101,8 @@ public class HrEmpBasicController {
     private HrEmpSkillLevelServiceImpl hrEmpSkillLevelService;
     @Autowired
     private PositionInfoServiceImpl positionInfoServiceImpl;
+    @Autowired
+    private CodeInfoService codeInfoService;
 
     @GetMapping("/getDept")
     @Operation(summary = "获得员工所属部门")
@@ -135,6 +138,7 @@ public class HrEmpBasicController {
 //            temp.setUserCode("013200031192");
 //            List<HrEmpBasic> list2 = hrEmpBasicService.getListByUserCode(list1);
 
+            Map<String, String> position2ValueMap = codeInfoService.getTranslateMap("hr_emp_appointment", "APPOINTMENT_POSITION");
 
             for(HrEmpBasic hrEmpBasic : list){
 
@@ -143,7 +147,7 @@ public class HrEmpBasicController {
                 hrEmpBasic.setCategory1(category1);
                 log.info("userCode:{},查询人员分类1完毕,值为{}", hrEmpBasic.getUserCode(), category1);
                 // 同步人员分类4
-                String category4 = resolveCategory4(hrEmpBasic);
+                String category4 = resolveCategory4(hrEmpBasic, position2ValueMap);
                 hrEmpBasic.setCategory4(category4);
                 log.info("userCode:{},查询人员分类4完毕,值为{}", hrEmpBasic.getUserCode(), category4);
                 // 同步人员分类7
@@ -353,7 +357,7 @@ public class HrEmpBasicController {
         return null;
     }
 
-    private String resolveCategory4(HrEmpBasic hrEmpBasic) {
+    private String resolveCategory4(HrEmpBasic hrEmpBasic, Map<String, String> position2ValueMap) {
         // 同步人员分类4，根据基本信息的身份类型判断人员分类4
         LambdaQueryWrapper<HrEmpCareerPath> pathQueryWrapper = new LambdaQueryWrapper<>();
         pathQueryWrapper.eq(HrEmpCareerPath::getUserCode, hrEmpBasic.getUserCode());
@@ -395,9 +399,8 @@ public class HrEmpBasicController {
                 if(hrEmpCareerPaths.size() > 1) {
                     hrEmpResume = hrEmpResumes.stream().reduce((a, b) -> a.getStartDate().isAfter(b.getStartDate()) ? a : b).get();
                 }
-                position = hrEmpResume.getPosition();
+                position = position2ValueMap.getOrDefault(hrEmpResume.getPosition(), hrEmpResume.getPosition());
                 // 岗位名称“协理（临时）” -> 二
-                // TODO: 目前没有编码，增加编码后修改这里
                 if("协理（临时）".equals(position)) {
                     return "003";
                 }
@@ -407,7 +410,7 @@ public class HrEmpBasicController {
                 }
                 // 岗位名称“级经理” -> 干业
                 // 匹配 一级经理等等
-                if(position != null && position.contains("级经理")) {
+                if(position != null && position.contains("  ")) {
                     return "005";
                 }
                 // 岗位名称“级业务经理” -> 人业
@@ -437,7 +440,7 @@ public class HrEmpBasicController {
                 List<PositionInfo> query = positionInfoServiceImpl.query(positionInfo);
                 if(!ObjectUtils.isEmpty(query)) {
                     String jobType = query.get(0).getJobType();
-                    if(!"ERROR".equals(jobType) && StringUtils.isNotBlank(jobType)) {
+                    if(StringUtils.isNotBlank(jobType) && !jobType.contains("ERROR")) {
                         // 专业管理、市场营销职类 -> 普
                         if(jobType.startsWith("2") || jobType.startsWith("3")) {
                             return "007";
