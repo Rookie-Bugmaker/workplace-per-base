@@ -32,6 +32,12 @@ public class HrCoreTalent extends BaseEntity {
     private String jobNumber;
 
     @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty("员工姓名")
+    @Schema(description = "员工姓名")
+    @TableField(exist = false)
+    private String name;
+
+    @QueryMethod(method = QueryType.EQ)
     @ExcelProperty("所属序列")
     @Schema(description = "所属序列")
     private String sequenceType;

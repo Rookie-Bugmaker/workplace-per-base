@@ -2,6 +2,7 @@ package com.crrc.service.impl;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.entity.HrCoreTalent;
+import com.crrc.entity.HrEmpBasic;
 import com.crrc.mapper.HrCoreTalentMapper;
 import com.crrc.service.HrCoreTalentService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,8 @@ import java.util.Map;
 public class HrCoreTalentServiceImpl extends WorkServiceImpl<HrCoreTalentMapper, HrCoreTalent> implements HrCoreTalentService {
     @Autowired
     private CodeInfoServiceImpl codeInfoService;
+    @Autowired
+    private HrEmpBasicServiceImpl hrEmpBasicService;
 
     private static final String TABLE_NAME = "hr_core_talent";
 
@@ -48,6 +51,13 @@ public class HrCoreTalentServiceImpl extends WorkServiceImpl<HrCoreTalentMapper,
             item.setSequenceType(seqTranslateMap.getOrDefault(item.getSequenceType(), item.getSequenceType()));
             item.setTalentLevel(talentTranslateMap.getOrDefault(item.getTalentLevel(), item.getTalentLevel()));
             item.setAppointmentStatus(appTranslateMap.getOrDefault(item.getAppointmentStatus(), item.getAppointmentStatus()));
+            // 联表查询姓名
+            if(org.apache.commons.lang3.StringUtils.isNotBlank(item.getJobNumber())) {
+                HrEmpBasic hrEmpBasic = hrEmpBasicService.getByUserCode(item.getJobNumber());
+                if(hrEmpBasic != null) {
+                    item.setName(hrEmpBasic.getName());
+                }
+            }
         });
     }
 
