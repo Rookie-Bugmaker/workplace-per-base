@@ -91,9 +91,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     }
 
     /**
-     * 通过档案号获取部门code
+     * 通过档案号获取部门Code
      * @param userCode 档案号
-     * @return 部门code
+     * @return 部门Code
      */
     @IgnoreTenant
     public String getDept(String userCode){
