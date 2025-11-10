@@ -6,26 +6,30 @@ import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.alibaba.fastjson.JSON;
+import com.baomidou.mybatisplus.core.assist.ISqlRunner;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
 import com.crrc.api.WkWorkflowApi;
+import com.crrc.entity.HrEmpBasic;
 import com.crrc.entity.HrEmpRewards;
+import com.crrc.entity.LoginUser;
 import com.crrc.entity.dto.response.ResultData;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
+import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mongodb.HrEmpRewardsChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.UpdateListDTO;
 import com.crrc.service.impl.HrEmpRewardsServiceImpl;
-import com.crrc.utils.RoleUtils;
-import com.crrc.utils.SystemConstants;
-import com.crrc.utils.UpdateListUtil;
+import com.crrc.utils.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -36,7 +40,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.crrc.entity.dto.ProcessInstanceVo;
 import com.crrc.entity.dto.StartProcessInstanceDTO;
-import com.crrc.utils.MyUtils;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
@@ -70,6 +73,8 @@ public class HrEmpRewardsController {
     private WkWorkflowApi wkWorkflowApi;
 
     private final UpdateListUtil<HrEmpRewards, String> updateUtil;
+    @Autowired
+    private HrEmpBasicMapper hrEmpBasicMapper;
 
     public HrEmpRewardsController(HrEmpRewardsServiceImpl service) {
         this.updateUtil = new UpdateListUtil<>(
@@ -225,6 +230,27 @@ public class HrEmpRewardsController {
             instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
 
             Map<String, Object> formData = new HashMap<>();
+            LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
+            if(loginUser == null || loginUser.getUser() == null) {
+                log.error("获取登录用户信息失败，用户为空");
+                throw new IllegalArgumentException("获取登录用户信息失败，用户为空");
+            }
+
+            if(StringUtils.isBlank(loginUser.getUser().getJobNo())) {
+                log.error("获取用户工号失败，工号为空");
+                throw new IllegalArgumentException("获取用户工号失败，工号为空");
+            }
+
+            LambdaQueryWrapper<HrEmpBasic> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(HrEmpBasic::getUserCode, loginUser.getUser().getJobNo());
+            String dept = hrEmpBasicMapper.selectOne(wrapper).getDept();
+            Optional<Long> deptId = DeptUtils.getDeptIdByCode(dept);
+            if(!deptId.isPresent()) {
+                log.error("获取用户部门失败，部门查询错误，工号:" + loginUser.getUser().getJobNo());
+                throw new IllegalArgumentException("获取用户部门失败，部门查询错误");
+            }
+
+            formData.put("deptId", deptId.get());
             formData.put("type", "rewards");
             formData.put("roleCode", "hrsc_audit");
             formData.put("EmployeeRewards", MyUtils.convertToMapList(changeReqVO.getList()));

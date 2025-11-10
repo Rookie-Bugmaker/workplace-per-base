@@ -4,6 +4,7 @@ package com.crrc.controller;
 import cn.hutool.core.util.IdUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.baomidou.mybatisplus.core.assist.ISqlRunner;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.crrc.api.WkWorkflowApi;
 import com.crrc.entity.*;
@@ -19,15 +20,14 @@ import com.crrc.entity.dto.response.ResultData;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
+import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mongodb.HrEmpEduChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpEducationDTO;
 import com.crrc.service.impl.HrEmpEducationServiceImpl;
 import com.crrc.service.impl.HrEmpMajorInfoServiceImpl;
 import com.crrc.service.impl.HrEmpSchoolInfoServiceImpl;
-import com.crrc.utils.MyUtils;
-import com.crrc.utils.RoleUtils;
-import com.crrc.utils.SystemConstants;
+import com.crrc.utils.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -75,6 +75,8 @@ public class HrEmpEducationController {
     private MongoTemplate mongoTemplate;
     @Autowired
     private WkWorkflowApi wkWorkflowApi;
+    @Autowired
+    private HrEmpBasicMapper hrEmpBasicMapper;
 
 
     @GetMapping("/getSchoolInfo")
@@ -378,6 +380,27 @@ public class HrEmpEducationController {
             instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
             // 封装业务表单数据，20250924上线暂时没用，如果之后需要修改审批流分支，需使用该数据
             Map<String, Object> formData = new HashMap<>();
+            LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
+            if(loginUser == null || loginUser.getUser() == null) {
+                log.error("获取登录用户信息失败，用户为空");
+                throw new IllegalArgumentException("获取登录用户信息失败，用户为空");
+            }
+
+            if(StringUtils.isBlank(loginUser.getUser().getJobNo())) {
+                log.error("获取用户工号失败，工号为空");
+                throw new IllegalArgumentException("获取用户工号失败，工号为空");
+            }
+
+            LambdaQueryWrapper<HrEmpBasic> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(HrEmpBasic::getUserCode, loginUser.getUser().getJobNo());
+            String dept = hrEmpBasicMapper.selectOne(wrapper).getDept();
+            Optional<Long> deptId = DeptUtils.getDeptIdByCode(dept);
+            if(!deptId.isPresent()) {
+                log.error("获取用户部门失败，部门查询错误，工号:" + loginUser.getUser().getJobNo());
+                throw new IllegalArgumentException("获取用户部门失败，部门查询错误");
+            }
+
+            formData.put("deptId", deptId.get());
             formData.put("type","edu");
             formData.put("roleCode", "hrsc_audit");
             formData.put("Edu",MyUtils.convertToMapList(changeReqVO));
