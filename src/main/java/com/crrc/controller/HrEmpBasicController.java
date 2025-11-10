@@ -29,9 +29,7 @@ import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
 import com.crrc.pojo.vo.PostCatalogInfoVO;
 import com.crrc.service.CodeInfoService;
 import com.crrc.service.impl.*;
-import com.crrc.utils.MyUtils;
-import com.crrc.utils.RoleUtils;
-import com.crrc.utils.SystemConstants;
+import com.crrc.utils.*;
 import com.xxl.job.core.handler.annotation.XxlJob;
 import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
@@ -559,7 +557,6 @@ public class HrEmpBasicController {
             mongoTemplate.save(changeRequest);
             log.info("流程测试changeRequest" + changeRequest);
 
-
             // 4. 启动审批流程
             // 封装数据，提交审批流
             StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
@@ -571,8 +568,28 @@ public class HrEmpBasicController {
             instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
             // 封装业务表单数据，20250924上线暂时没用，如果之后需要修改审批流分支，需使用该数据
             Map<String, Object> formData = new HashMap<>();
+            LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
+            if(loginUser == null || loginUser.getUser() == null) {
+                log.error("获取登录用户信息失败，用户为空");
+                throw new IllegalArgumentException("获取登录用户信息失败，用户为空");
+            }
+
+            if(StringUtils.isBlank(loginUser.getUser().getJobNo())) {
+                log.error("获取用户工号失败，工号为空");
+                throw new IllegalArgumentException("获取用户工号失败，工号为空");
+            }
+
+            String dept = hrEmpBasicService.getDept(loginUser.getUser().getJobNo());
+            Optional<Long> deptId = DeptUtils.getDeptIdByCode(dept);
+            if(!deptId.isPresent()) {
+                log.error("获取用户部门失败，部门查询错误，工号:" + loginUser.getUser().getJobNo());
+                throw new IllegalArgumentException("获取用户部门失败，部门查询错误");
+            }
+
+            formData.put("deptId", deptId.get());
             formData.put("type","basic");
             formData.put("roleCode", "hrsc_audit");
+
             formData.put("Basic",MyUtils.convertToMapList(changeReqVO));
             instanceDTO.setFormData(formData);
             log.info("流程测试instanceDTO" + instanceDTO);
