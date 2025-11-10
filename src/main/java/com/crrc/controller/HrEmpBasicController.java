@@ -399,6 +399,7 @@ public class HrEmpBasicController {
                 if(hrEmpCareerPaths.size() > 1) {
                     hrEmpResume = hrEmpResumes.stream().reduce((a, b) -> a.getStartDate().isAfter(b.getStartDate()) ? a : b).get();
                 }
+                // 获取职位名称（从码值到汉字）
                 position = position2ValueMap.getOrDefault(hrEmpResume.getPosition(), hrEmpResume.getPosition());
                 // 岗位名称“协理（临时）” -> 二
                 if("协理（临时）".equals(position)) {
