@@ -304,13 +304,12 @@ public class HrEmpBasicController {
             if("待岗".equals(dutyStatus) || "201".equals(dutyStatus)) {
                 return "001";
             }
-            // TODO: 现在劳和伤判断逻辑一样，应该需要修改
-            // 任职信息→在岗状态→因病因伤长期休假人员 -> 劳
-            if("因病因伤长期休假人员".equals(dutyStatus) || "206".equals(dutyStatus)) {
+            // 任职信息→在岗状态→因病长期休假人员 -> 劳
+            if("因病长期休假".equals(dutyStatus) || "302".equals(dutyStatus)) {
                 return "003";
             }
-            // 任职信息→在岗状态→因病因伤长期休假人员 -> 伤
-            if("因病因伤长期休假人员".equals(dutyStatus) || "206".equals(dutyStatus)) {
+            // 任职信息→在岗状态→因伤长期休假人员 -> 伤
+            if("因伤长期休假".equals(dutyStatus) || "303".equals(dutyStatus)) {
                 return "005";
             }
             // 任职信息→在岗状态→在岗 -> 现
