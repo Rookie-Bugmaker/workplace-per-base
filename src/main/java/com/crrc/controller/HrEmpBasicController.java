@@ -529,7 +529,7 @@ public class HrEmpBasicController {
     @Operation(summary = "提交员工信息变更申请")
     public ResponseResult<String> submitChange(@Valid @RequestBody HrEmpBasicDTO changeReqVO) {
         try {
-            boolean flag = RoleUtils.check("人力资源部-招聘管理专员");
+                boolean flag = RoleUtils.check("人力资源部-招聘管理专员");
             if (flag) {
                 log.info("权限校验通过，用户拥有'人力资源部-招聘管理专员'角色，直接进行更新");
                 try{
@@ -572,7 +572,7 @@ public class HrEmpBasicController {
             // 封装业务表单数据，20250924上线暂时没用，如果之后需要修改审批流分支，需使用该数据
             Map<String, Object> formData = new HashMap<>();
             formData.put("type","basic");
-            formData.put("roleCode", "wmrz_audit");
+            formData.put("roleCode", "hrsc_audit");
             formData.put("Basic",MyUtils.convertToMapList(changeReqVO));
             instanceDTO.setFormData(formData);
             log.info("流程测试instanceDTO" + instanceDTO);

@@ -226,7 +226,7 @@ public class HrEmpRewardsController {
 
             Map<String, Object> formData = new HashMap<>();
             formData.put("type", "rewards");
-            formData.put("roleCode", "wmrz_audit");
+            formData.put("roleCode", "hrsc_audit");
             formData.put("EmployeeRewards", MyUtils.convertToMapList(changeReqVO.getList()));
             instanceDTO.setFormData(formData);
 

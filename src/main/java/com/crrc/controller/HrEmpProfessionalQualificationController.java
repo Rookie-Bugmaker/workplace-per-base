@@ -227,7 +227,7 @@ public class HrEmpProfessionalQualificationController {
 
             Map<String, Object> formData = new HashMap<>();
             formData.put("type", "professional");
-            formData.put("roleCode", "wmrz_audit");
+            formData.put("roleCode", "hrsc_audit");
             formData.put("ProfessionalQualifications", MyUtils.convertToMapList(changeReqVO.getList()));
             instanceDTO.setFormData(formData);
 

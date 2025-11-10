@@ -282,7 +282,7 @@ public class HrEmpFamMemberController {
 
             Map<String, Object> formData = new HashMap<>();
             formData.put("type", "family");
-            formData.put("roleCode", "wmrz_audit");
+            formData.put("roleCode", "hrsc_audit");
             formData.put("FamilyMembers", MyUtils.convertToMapList(changeReqVO.getList()));
             instanceDTO.setFormData(formData);
             log.info("流程测试instanceDTO" + instanceDTO);
