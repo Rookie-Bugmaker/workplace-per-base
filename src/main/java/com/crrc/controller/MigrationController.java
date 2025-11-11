@@ -47,8 +47,10 @@ public class MigrationController {
 
 
 
+
         //基础数据表全量同步 无逻辑
         myBatisPlusMigrationService.migrateInfoTable(HrOrgCostCenter.class);
+        myBatisPlusMigrationService.migrateInfoTable(PostCatalogInfo.class);
 
 
         //教育经历特殊处理

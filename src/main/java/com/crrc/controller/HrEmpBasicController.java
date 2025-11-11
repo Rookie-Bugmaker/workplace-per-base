@@ -27,11 +27,10 @@ import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
 import com.crrc.pojo.vo.PostCatalogInfoVO;
+import com.crrc.service.CodeInfoService;
 import com.crrc.service.impl.*;
-import com.crrc.utils.MyUtils;
-import com.crrc.utils.RoleUtils;
-import com.crrc.utils.SystemConstants;
-import io.seata.common.util.StringUtils;
+import com.crrc.utils.*;
+import com.xxl.job.core.handler.annotation.XxlJob;
 import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -45,6 +44,7 @@ import org.springframework.util.ObjectUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
@@ -95,10 +95,35 @@ public class HrEmpBasicController {
     private HrEmpAppointmentMapper hrEmpAppointmentMapper;
     @Autowired
     private HrEmpOtherAppointmentMapper hrEmpOtherAppointmentMapper;
+    @Autowired
+    private HrEmpSkillLevelServiceImpl hrEmpSkillLevelService;
+    @Autowired
+    private PositionInfoServiceImpl positionInfoServiceImpl;
+    @Autowired
+    private CodeInfoService codeInfoService;
+
+    @GetMapping("/getDept")
+    @Operation(summary = "获得员工所属部门")
+    @AuditLog(value = "获得员工所属部门", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResult<String> getDept(@RequestParam String userCode) {
+        try {
+            String dept = hrEmpBasicService.getDept(userCode);
+            if(StringUtils.isNotBlank(dept)){
+                return new ResponseResult<>(HttpStatus.OK.value(), "获得员工所属部门成功", dept);
+            } else {
+                log.warn("查询回的部门为空，默认返回流程与数字化部，档案号为{}", userCode);
+                return new ResponseResult<>(HttpStatus.OK.value(), "查询回的部门为空，使用默认部门流程与数字化部", SystemConstants.DEFAULT_DEPT_CODE);
+            }
+        } catch (Exception e) {
+            log.error("获得员工所属部门失败{}", e.getMessage(), e);
+            return new ResponseResult<>(HttpStatus.OK.value(), "获得员工所属部门失败，使用默认部门流程与数字化部", SystemConstants.DEFAULT_DEPT_CODE);
+        }
+    }
 
     @PostMapping("/syncPersonCategory")
     @Operation(summary = "同步人员分类，目前用定时任务每天处理")
     @AuditLog(value = "同步人员分类，目前用定时任务每天处理", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @XxlJob("syncPersonCategory")
     public ResponseResult<String> syncPersonCategory(@RequestBody(required = false) List<HrEmpBasic> userCodeList) {
         try {
             // 如果传参了且非空，就用传参，否则全量更新
@@ -106,74 +131,31 @@ public class HrEmpBasicController {
                     ? hrEmpBasicService.getListByUserCode(userCodeList)
                     : hrEmpBasicService.getAllUser();
 
+//            List<HrEmpBasic> list1 = new ArrayList<>();
+//            HrEmpBasic temp = new HrEmpBasic();
+//            temp.setUserCode("013200031192");
+//            List<HrEmpBasic> list2 = hrEmpBasicService.getListByUserCode(list1);
+
+            Map<String, String> position2ValueMap = codeInfoService.getTranslateMap("hr_emp_appointment", "APPOINTMENT_POSITION");
+
             for(HrEmpBasic hrEmpBasic : list){
-                // 同步人员分类1，根据基本信息的身份类型判断人员分类1，
-                // 员工基本信息→身份类型→干部  干
-                // 员工基本信息→身份类型→工人  工
-                if(StringUtils.isNotBlank(hrEmpBasic.getIdentityType())) {
-                    String category1 = null;
-                    log.info("当前身份类型{}", hrEmpBasic.getIdentityType());
-                    switch (hrEmpBasic.getIdentityType()) {
-                        // 身份类型 干部
-                        case "1":
-                            // 人员分类1 “干”对应的码值
-                            category1 = "001";
-                            break;
 
-                        // 身份类型 工人
-                        case "2":
-                            // 人员分类1 “工”对应的码值
-                            category1 = "002";
-                            break;
-
-                        default:
-                    }
-                    hrEmpBasic.setCategory1(category1);
-                }
+                // 同步人员分类1
+                String category1 = resolveCategory1(hrEmpBasic);
+                hrEmpBasic.setCategory1(category1);
+                log.info("userCode:{},查询人员分类1完毕,值为{}", hrEmpBasic.getUserCode(), category1);
                 // 同步人员分类4
-                String category4 = resolveCategory4(hrEmpBasic);
+                String category4 = resolveCategory4(hrEmpBasic, position2ValueMap);
                 hrEmpBasic.setCategory4(category4);
+                log.info("userCode:{},查询人员分类4完毕,值为{}", hrEmpBasic.getUserCode(), category4);
                 // 同步人员分类7
-                String category7 = null;
-                // 获取专业职务任职资格列表
-                List<HrEmpProfessionalQualification> qualificationList = hrEmpProfessionalQualificationService.selectMsg(hrEmpBasic.getUserCode());
-                if(!qualificationList.isEmpty()) {
-                    for(HrEmpProfessionalQualification qualification:qualificationList){
-                        // 找到目前最高的任职资格，以此为判断标准
-                        if(StringUtils.isNotBlank(qualification.getIsHighest())  && SystemConstants.TRUE_FLAG.equals(qualification.getIsHighest())) {
-                            /*
-                              00010	正高级 正
-                              00020	高级 高
-                              00030	中级 师
-                              00040	助理级 助
-                              00050	员级 员
-                              00060	未聘任专业技术职务
-                             */
-                            switch(qualification.getQuaTitleLevel()) {
-                                case "00010":
-                                    category7 = "001";
-                                    break;
-                                case "00020":
-                                    category7 = "002";
-                                    break;
-                                case "00030":
-                                    category7 = "003";
-                                    break;
-                                case "00040":
-                                    category7 = "004";
-                                    break;
-                                case "00050":
-                                    category7 = "005";
-                                    break;
-                                default:
-                            }
-                        }
-                    }
-                }
+                String category7 = resolveCategory7(hrEmpBasic);
                 hrEmpBasic.setCategory7(category7);
+                log.info("userCode:{},查询人员分类7完毕,值为{}", hrEmpBasic.getUserCode(), category7);
                 // 同步人员分类8
                 String category8 = resolveCategory8(hrEmpBasic);
                 hrEmpBasic.setCategory8(category8);
+                log.info("userCode:{},查询人员分类8完毕,值为{}", hrEmpBasic.getUserCode(), category8);
 
                 // 更新方法
                 log.info("准备执行更新方法，category1:{}，category4:{}，category7:{}，category8:{}",
@@ -185,12 +167,122 @@ public class HrEmpBasicController {
                         .set(HrEmpBasic::getCategory7, hrEmpBasic.getCategory7())
                         .set(HrEmpBasic::getCategory8, hrEmpBasic.getCategory8());
                 hrEmpBasicService.update(null, wrapper);
+                log.info("userCode:{},更新成功", hrEmpBasic.getUserCode());
             }
             return new ResponseResult<>(HttpStatus.OK.value(), "人员分类同步成功");
         } catch (Exception e) {
             log.error("同步失败，{}", e.getMessage());
             return new ResponseResult<>(HttpStatus.EXPECTATION_FAILED.value(), "人员分类同步失败" + e.getMessage());
         }
+    }
+
+    private String resolveCategory1(HrEmpBasic hrEmpBasic) {
+        String category1 = null;
+        // 同步人员分类1，根据基本信息的身份类型判断人员分类1，
+        // 员工基本信息→身份类型→干部  干
+        // 员工基本信息→身份类型→工人  工
+        if(StringUtils.isNotBlank(hrEmpBasic.getIdentityType())) {
+            log.info("当前身份类型{}", hrEmpBasic.getIdentityType());
+            switch (hrEmpBasic.getIdentityType()) {
+                // 身份类型 干部
+                case "1":
+                    // 人员分类1 “干”对应的码值
+                    category1 = "001";
+                    break;
+
+                // 身份类型 工人
+                case "2":
+                    // 人员分类1 “工”对应的码值
+                    category1 = "002";
+                    break;
+
+                default:
+            }
+        }
+        return category1;
+    }
+
+    private String resolveCategory7(HrEmpBasic hrEmpBasic) {
+        String category7 = null;
+        // 获取专业职务任职资格列表
+        List<HrEmpProfessionalQualification> qualificationList = hrEmpProfessionalQualificationService.selectMsg(hrEmpBasic.getUserCode());
+        if (!qualificationList.isEmpty()) {
+            for (HrEmpProfessionalQualification qualification : qualificationList) {
+                // 找到目前最高的任职资格，以此为判断标准
+                if (StringUtils.isNotBlank(qualification.getIsHighest()) && SystemConstants.TRUE_FLAG.equals(qualification.getIsHighest())) {
+                            /*
+                              00010	正高级 正
+                              00020	高级 高
+                              00030	中级 师
+                              00040	助理级 助
+                              00050	员级 员
+                              00060	未聘任专业技术职务
+                             */
+                    if (StringUtils.isNotBlank(qualification.getQuaTitleLevel())) {
+                        switch (qualification.getQuaTitleLevel()) {
+                            case "00010":
+                                category7 = "001";
+                                break;
+                            case "00020":
+                                category7 = "002";
+                                break;
+                            case "00030":
+                                category7 = "003";
+                                break;
+                            case "00040":
+                                category7 = "004";
+                                break;
+                            case "00050":
+                                category7 = "005";
+                                break;
+                            default:
+                        }
+                    }
+                }
+            }
+        }
+        // 职业技能等级
+        List<HrEmpSkillLevel> skillLevelList = hrEmpSkillLevelService.selectMsg(hrEmpBasic.getUserCode());
+        if (!skillLevelList.isEmpty()) {
+            for (HrEmpSkillLevel skillLevel : skillLevelList) {
+                // 找到目前最高的任职资格，以此为判断标准
+                if (StringUtils.isNotBlank(skillLevel.getIsHighest()) && SystemConstants.TRUE_FLAG.equals(skillLevel.getIsHighest())) {
+                    if (StringUtils.isNotBlank(skillLevel.getSkillLevel())) {
+                                                 /*
+                              00010/0020/0030	高级技师、特级技师、首席技师 高
+                              00040	技师 师
+                              00050	高级工 助
+                              00060/70	中级工、初级工 员
+                             */
+                        switch (skillLevel.getSkillLevel()) {
+                            case "00010":
+                                category7 = "001";
+                                break;
+                            case "00020":
+                                category7 = "001";
+                                break;
+                            case "00030":
+                                category7 = "001";
+                                break;
+                            case "00040":
+                                category7 = "002";
+                                break;
+                            case "00050":
+                                category7 = "003";
+                                break;
+                            case "00060":
+                                category7 = "004";
+                                break;
+                            case "00070":
+                                category7 = "005";
+                                break;
+                            default:
+                        }
+                    }
+                }
+            }
+        }
+        return category7;
     }
 
     private String resolveCategory8(HrEmpBasic hrEmpBasic) {
@@ -210,13 +302,12 @@ public class HrEmpBasicController {
             if("待岗".equals(dutyStatus) || "201".equals(dutyStatus)) {
                 return "001";
             }
-            // TODO: 现在劳和伤判断逻辑一样，应该需要修改
-            // 任职信息→在岗状态→因病因伤长期休假人员 -> 劳
-            if("因病因伤长期休假人员".equals(dutyStatus) || "206".equals(dutyStatus)) {
+            // 任职信息→在岗状态→因病长期休假人员 -> 劳
+            if("因病长期休假".equals(dutyStatus) || "302".equals(dutyStatus)) {
                 return "003";
             }
-            // 任职信息→在岗状态→因病因伤长期休假人员 -> 伤
-            if("因病因伤长期休假人员".equals(dutyStatus) || "206".equals(dutyStatus)) {
+            // 任职信息→在岗状态→因伤长期休假人员 -> 伤
+            if("因伤长期休假".equals(dutyStatus) || "303".equals(dutyStatus)) {
                 return "005";
             }
             // 任职信息→在岗状态→在岗 -> 现
@@ -263,7 +354,7 @@ public class HrEmpBasicController {
         return null;
     }
 
-    private String resolveCategory4(HrEmpBasic hrEmpBasic) {
+    private String resolveCategory4(HrEmpBasic hrEmpBasic, Map<String, String> position2ValueMap) {
         // 同步人员分类4，根据基本信息的身份类型判断人员分类4
         LambdaQueryWrapper<HrEmpCareerPath> pathQueryWrapper = new LambdaQueryWrapper<>();
         pathQueryWrapper.eq(HrEmpCareerPath::getUserCode, hrEmpBasic.getUserCode());
@@ -305,9 +396,9 @@ public class HrEmpBasicController {
                 if(hrEmpCareerPaths.size() > 1) {
                     hrEmpResume = hrEmpResumes.stream().reduce((a, b) -> a.getStartDate().isAfter(b.getStartDate()) ? a : b).get();
                 }
-                position = hrEmpResume.getPosition();
+                // 获取职位名称（从码值到汉字）
+                position = position2ValueMap.getOrDefault(hrEmpResume.getPosition(), hrEmpResume.getPosition());
                 // 岗位名称“协理（临时）” -> 二
-                // TODO: 目前没有编码，增加编码后修改这里
                 if("协理（临时）".equals(position)) {
                     return "003";
                 }
@@ -317,7 +408,7 @@ public class HrEmpBasicController {
                 }
                 // 岗位名称“级经理” -> 干业
                 // 匹配 一级经理等等
-                if(position != null && position.contains("级经理")) {
+                if(position != null && position.contains("  ")) {
                     return "005";
                 }
                 // 岗位名称“级业务经理” -> 人业
@@ -327,31 +418,44 @@ public class HrEmpBasicController {
             }
         }
 
-        // TODO: 职位和职种关联后，修改这里的代码
         if(position != null) {
-            // 关联String typeCode = service.queryType(String position);
-            PostCatalogInfo reqVO = new PostCatalogInfo();
-            reqVO.setName(position);
-            List<PostCatalogInfoVO> postCatalogInfoVOS = postCatalogInfoService.queryVO(reqVO);
+            // 查找职位信息
+            LambdaQueryWrapper<HrEmpAppointment> appointmentQueryWrapper = new LambdaQueryWrapper<>();
+            appointmentQueryWrapper.eq(HrEmpAppointment::getUserCode, hrEmpBasic.getUserCode());
+            List<HrEmpAppointment> hrEmpAppointments = hrEmpAppointmentMapper.selectList(appointmentQueryWrapper).stream()
+                    .filter(e -> e.getDutyStatus() != null).collect(Collectors.toList());
 
-            if(!ObjectUtils.isEmpty(postCatalogInfoVOS)) {
-                PostCatalogInfoVO postCatalogInfoVO = postCatalogInfoVOS.get(0);
-                String categoryCode = postCatalogInfoVO.getCategoryCode();
-                // 专业管理、市场营销职类 -> 普
-                if("2".equals(categoryCode) || "3".equals(categoryCode)) {
-                    return "007";
+            if(!ObjectUtils.isEmpty(hrEmpAppointments)) {
+                HrEmpAppointment hrEmpAppointment = hrEmpAppointments.get(0);
+                // 如果超过一条，选择startDate最晚的
+                if (hrEmpAppointments.size() > 1) {
+                    hrEmpAppointment = hrEmpAppointments.stream().reduce((a, b) -> a.getStartDate().isAfter(b.getStartDate()) ? a : b).get();
                 }
-                String groupCode = postCatalogInfoVO.getGroupCode();
-                // 技能操作职类，直接生产操作、辅助生产操作职群 -> 计
-                if("5-01".equals(groupCode) || "5-02".equals(groupCode)) {
-                    return "008";
+                String positionCode = hrEmpAppointment.getPosition();
+
+                PositionInfo positionInfo = new PositionInfo();
+                positionInfo.setCode(positionCode);
+                List<PositionInfo> query = positionInfoServiceImpl.query(positionInfo);
+                if(!ObjectUtils.isEmpty(query)) {
+                    String jobType = query.get(0).getJobType();
+                    if(StringUtils.isNotBlank(jobType) && !jobType.contains("ERROR")) {
+                        // 专业管理、市场营销职类 -> 普
+                        if(jobType.startsWith("2") || jobType.startsWith("3")) {
+                            return "007";
+                        }
+
+                        // 技能操作职类，直接生产操作、辅助生产操作职群 -> 计
+                        if(jobType.startsWith("5-01") || jobType.startsWith("5-02")) {
+                            return "008";
+                        }
+                        // 技能操作职类，辅助服务职群 -> 辅
+                        if(jobType.startsWith("5-03")) {
+                            return "009";
+                        }
+                        // 其他职类 -> 他
+                        return "010";
+                    }
                 }
-                // 技能操作职类，辅助服务职群 -> 辅
-                if("5-03".equals(groupCode)) {
-                    return "009";
-                }
-                // 其他职类 -> 他
-                return "010";
             }
         }
         return null;
@@ -363,6 +467,14 @@ public class HrEmpBasicController {
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<List<HrEmpBasicDTO>> getMsg(@RequestParam String userCode) {
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工基本信息表实体成功", hrEmpBasicService.selectMsg(userCode));
+    }
+
+    @PostMapping("/getDetailList")
+    @Operation(summary = "获得员工基本信息表实体")
+    @AuditLog(value = "获得员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "id", description = "主键编号", required = true, example = "1")
+    public ResponseResult<List<HrEmpBasicDTO>> getMsgList(@RequestBody List<String> userCodeList) {
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工基本信息表实体成功", hrEmpBasicService.selectMsgList(userCodeList));
     }
 
     @PostMapping("/page")
@@ -415,7 +527,7 @@ public class HrEmpBasicController {
     @Operation(summary = "提交员工信息变更申请")
     public ResponseResult<String> submitChange(@Valid @RequestBody HrEmpBasicDTO changeReqVO) {
         try {
-            boolean flag = RoleUtils.check("人力资源部-招聘管理专员");
+                boolean flag = RoleUtils.check("人力资源部-招聘管理专员");
             if (flag) {
                 log.info("权限校验通过，用户拥有'人力资源部-招聘管理专员'角色，直接进行更新");
                 try{
@@ -445,7 +557,6 @@ public class HrEmpBasicController {
             mongoTemplate.save(changeRequest);
             log.info("流程测试changeRequest" + changeRequest);
 
-
             // 4. 启动审批流程
             // 封装数据，提交审批流
             StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
@@ -457,8 +568,28 @@ public class HrEmpBasicController {
             instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
             // 封装业务表单数据，20250924上线暂时没用，如果之后需要修改审批流分支，需使用该数据
             Map<String, Object> formData = new HashMap<>();
+            LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
+            if(loginUser == null || loginUser.getUser() == null) {
+                log.error("获取登录用户信息失败，用户为空");
+                throw new IllegalArgumentException("获取登录用户信息失败，用户为空");
+            }
+
+            if(StringUtils.isBlank(loginUser.getUser().getJobNo())) {
+                log.error("获取用户工号失败，工号为空");
+                throw new IllegalArgumentException("获取用户工号失败，工号为空");
+            }
+
+            String dept = hrEmpBasicService.getDept(loginUser.getUser().getJobNo());
+            Optional<Long> deptId = DeptUtils.getDeptIdByCode(dept);
+            if(!deptId.isPresent()) {
+                log.error("获取用户部门失败，部门查询错误，工号:" + loginUser.getUser().getJobNo());
+                throw new IllegalArgumentException("获取用户部门失败，部门查询错误");
+            }
+
+            formData.put("deptId", deptId.get());
             formData.put("type","basic");
-            formData.put("roleCode", "wmrz_audit");
+            formData.put("roleCode", "hrsc_audit");
+
             formData.put("Basic",MyUtils.convertToMapList(changeReqVO));
             instanceDTO.setFormData(formData);
             log.info("流程测试instanceDTO" + instanceDTO);

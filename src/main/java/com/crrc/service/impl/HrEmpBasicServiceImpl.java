@@ -1,8 +1,11 @@
 package com.crrc.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.crrc.annotation.IgnoreTenant;
 import com.crrc.api.WkCoreAPi;
+import com.crrc.api.WkDataAPi;
 import com.crrc.entity.*;
+import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mapper.HrEmpEducationMapper;
 import com.crrc.mapper.HrEmpProfessionalQualificationMapper;
@@ -14,14 +17,18 @@ import com.crrc.utils.DeptUtils;
 import com.crrc.utils.SystemConstants;
 import com.github.yulichang.toolkit.JoinWrappers;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
+import io.reactivex.rxjava3.internal.util.LinkedArrayList;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.Period;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -52,7 +59,16 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
     private final WkCoreAPi wkCoreApi;
 
-    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService) {
+    private static final String TABLE_NAME = "hr_emp_basic";
+
+    private static final String POLITICAL_TYPE_NAME = "BASIC_POLITICAL";
+
+    private static final String EDUCATION_TABLE_NAME = "hr_emp_education";
+
+    private static final String EDUCATION_TYPE_NAME = "EDU_EDU";
+    private final WkDataAPi wkDataAPi;
+
+    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataAPi) {
         this.hrEmpBasicMapper = hrEmpBasicMapper;
         this.hrEmpEducationMapper = hrEmpEducationMapper;
         this.hrEmpSchoolInfoService = hrEmpSchoolInfoService;
@@ -61,6 +77,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         this.hrEmpSkillLevelMapper = hrEmpSkillLevelMapper;
         this.codeInfoService = codeInfoService;
         this.wkCoreApi = wkCoreApi;
+        this.wkDataAPi = wkDataAPi;
     }
 
     /**
@@ -71,6 +88,28 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         MPJLambdaWrapper<HrEmpBasic> queryWrapper = new MPJLambdaWrapper<>();
         queryWrapper.selectAll(HrEmpBasic.class);
         return hrEmpBasicMapper.selectList(queryWrapper);
+    }
+
+    /**
+     * 通过档案号获取部门Code
+     * @param userCode 档案号
+     * @return 部门Code
+     */
+    @IgnoreTenant
+    public String getDept(String userCode){
+        MPJLambdaWrapper<HrEmpBasic> queryWrapper = new MPJLambdaWrapper<>();
+        queryWrapper.select(HrEmpBasic::getDept)
+                .eq(HrEmpBasic::getUserCode, userCode);
+        try{
+            HrEmpBasic empBasic = hrEmpBasicMapper.selectOne(queryWrapper);
+            if(empBasic == null){
+                return null;
+            } else {
+                return empBasic.getDept();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
 
@@ -92,6 +131,23 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         return hrEmpBasicMapper.selectList(queryWrapper);
     }
 
+    /**
+     * 根据传入的档案号查询用户信息
+     * @param userCode 用户档案号
+     * @return 用户信息list
+     */
+    public HrEmpBasic getByUserCode(String userCode) {
+        // 构建查询条件
+        MPJLambdaWrapper<HrEmpBasic> queryWrapper = new MPJLambdaWrapper<>();
+        queryWrapper.selectAll(HrEmpBasic.class)
+                .eq(HrEmpBasic::getUserCode, userCode);
+        try{
+            return hrEmpBasicMapper.selectOne(queryWrapper);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
 
     /**
      * 条件查询
@@ -99,7 +155,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
      * @param page 空白page，在controller层设置好size和pageNo
      * @param dto 查询实体
      * @return 分页list
-     * */
+     */
     public IPage<HrEmpBasicDTO> listData(IPage<HrEmpBasicDTO> page, HrEmpBasicSearchDTO dto) {
         MPJLambdaWrapper<HrEmpBasic> queryWrapper = JoinWrappers.lambda(HrEmpBasic.class)
                 .distinct()
@@ -121,6 +177,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 )
                 .leftJoin(HrEmpAppointment.class, HrEmpAppointment::getUserCode, HrEmpBasic::getUserCode);
 
+        // 确保只要HrEmpBasic表有数据就能显示
+        queryWrapper.isNotNull(HrEmpBasic::getUserCode);  // 确保HrEmpBasic表有数据
+
         buildFuzzyConditions(queryWrapper, dto);
         queryWrapper.orderByAsc(HrEmpBasic::getUserCode);
         return hrEmpBasicMapper.selectJoinPage(page, HrEmpBasicDTO.class, queryWrapper);
@@ -141,7 +200,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                         dto.getDept())
                 .like(StringUtils.isNotBlank(dto.getPosition()),
                         HrEmpAppointment::getPosition,
-                        dto.getPosition());
+                        dto.getPosition())
+                .like(StringUtils.isNotBlank(dto.getIsEmployed()),
+                        HrEmpBasic::getIsEmployed,
+                        dto.getIsEmployed());
     }
 
 
@@ -155,6 +217,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         try{
             // 1. 主表及左连接表查询
             List<HrEmpBasicDTO> result = queryBaseInfoWithJoins(userCode);
+
             if (result.isEmpty()) {
                 return Collections.emptyList();
             }
@@ -169,14 +232,23 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             if (subData.isAllUnique()) {
                 mergeSubTableData(result.get(0), subData);
             }
+            // 处理最高学历
+            resolveEducation(result.get(0));
+
+            // 处理政治面貌
+            resolvePolitical(result.get(0));
 
             // 5. 处理年龄
             log.info("准备开始处理年龄信息");
             resolveAge(result.get(0));
 
-            // 5. 处理人员分类1,4,7,8
+            // 6. 处理人员分类1,4,7,8
             log.info("准备开始处理人员分类信息");
             resolveCategory(result.get(0));
+
+            // 6. 处理人员在岗状态
+            log.info("准备开始处理人员在岗状态信息");
+            resolveStatus(result.get(0));
 
             return result;
         } catch (Exception e) {
@@ -184,6 +256,16 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             return queryBaseInfoWithJoins(userCode);
         }
 
+    }
+
+    private void resolveEducation(HrEmpBasicDTO hrEmpBasicDTO) {
+        Map<String, String> translateMap = codeInfoService.getTranslateMap(EDUCATION_TABLE_NAME, EDUCATION_TYPE_NAME);
+        hrEmpBasicDTO.setEducationValue(translateMap.getOrDefault(hrEmpBasicDTO.getEducation(), null));
+    }
+
+    private void resolvePolitical(HrEmpBasicDTO hrEmpBasicDTO) {
+        Map<String, String> translateMap = codeInfoService.getTranslateMap(TABLE_NAME, POLITICAL_TYPE_NAME);
+        hrEmpBasicDTO.setPoliticalValue(translateMap.getOrDefault(hrEmpBasicDTO.getPolitical(), null));
     }
 
 
@@ -210,6 +292,50 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         return hrEmpBasicMapper.selectJoinList(HrEmpBasicDTO.class, wrapper);
     }
 
+    /**
+     * 一次连接/一次 SQL，把多个 userCode 的联表信息查出来
+     */
+    public List<HrEmpBasicDTO> queryBaseInfoListWithJoins(List<String> userCodeList) {
+        if (userCodeList == null || userCodeList.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        MPJLambdaWrapper<HrEmpBasic> wrapper = JoinWrappers.lambda(HrEmpBasic.class)
+                .selectAll(HrEmpBasic.class)
+                // 证书信息（如一人多证，可能带来多行；见下方“去重/聚合策略”）
+                .select(HrEmpCertificate::getCertiId, HrEmpCertificate::getCertiType)
+                .leftJoin(HrEmpCertificate.class, HrEmpCertificate::getUserCode, HrEmpBasic::getUserCode)
+                // 户籍信息（通常一对一）
+                .select(HrEmpHouseHold::getHouseHoldType, HrEmpHouseHold::getHouseHoldLocation, HrEmpHouseHold::getHouseHoldLocationDetail)
+                .leftJoin(HrEmpHouseHold.class, HrEmpHouseHold::getUserCode, HrEmpBasic::getUserCode)
+                // 联系信息（通常一对一）
+                .select(HrEmpCommunication::getMobilePhone, HrEmpCommunication::getPersonalEmail, HrEmpCommunication::getAddress, HrEmpCommunication::getWorkEmail)
+                .leftJoin(HrEmpCommunication.class, HrEmpCommunication::getUserCode, HrEmpBasic::getUserCode)
+                // 健康信息（通常一对一）
+                .select(HrEmpHealth::getHealthStatus)
+                .leftJoin(HrEmpHealth.class, HrEmpHealth::getUserCode, HrEmpBasic::getUserCode)
+                .in(HrEmpBasic::getUserCode, userCodeList);
+
+        return hrEmpBasicMapper.selectJoinList(HrEmpBasicDTO.class, wrapper);
+    }
+
+
+    /**
+     * 解析人员在岗状态
+     */
+    private void resolveStatus(HrEmpBasicDTO dto) {
+        // 查询的表名
+        String tableName = "person_status";
+        try {
+            if (StringUtils.isNotBlank(dto.getStatus())) {
+                String status = codeInfoService.translateCode(dto.getStatus(), tableName, "per_status");
+                dto.setStatus(status);
+            }
+        } catch (Exception e) {
+            log.warn("人员在岗状态解析失败, {}", e.getMessage());
+        }
+    }
+
 
     /**
      * 解析人员分类1478
@@ -220,11 +346,11 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         String tableName = "person_category";
 
         try {
-            log.info("userCode:{},category1:{}", dto.getUserCode(), dto.getCategory1());
+//            log.info("userCode:{},category1:{}", dto.getUserCode(), dto.getCategory1());
             if (StringUtils.isNotBlank(dto.getCategory1())) {
-                log.info("读取到category1：{}", dto.getCategory1());
+//                log.info("读取到category1：{}", dto.getCategory1());
                 String category1 = codeInfoService.translateCode(dto.getCategory1(), tableName, "category1");
-                log.info("查询到category1：{}", category1);
+//                log.info("查询到category1：{}", category1);
                 dto.setCategory1(category1);
             }
 
@@ -244,7 +370,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             }
 
         } catch (Exception e) {
-            log.warn("人员分类1478解析, orgCode: {}", dto.getDept(), e);
+            log.warn("人员分类1478解析失败, {}", e.getMessage());
         }
     }
 
@@ -258,6 +384,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
         try {
             String deptName = DeptUtils.getDeptNameByCode(dto.getDept());
+            dto.setOrgCode(dto.getDept());
             dto.setDept(deptName);
         } catch (Exception e) {
             log.warn("部门名称查询失败, orgCode: {}", dto.getDept(), e);
@@ -282,6 +409,85 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             log.error("年龄计算异常，档案号：{}", dto.getUserCode(), e);
             dto.setAge(null);
         }
+    }
+
+    /**
+     * 批量查询子表数据（教育/技能/资格）
+     */
+    private Map<String, SubTableData> querySubTableDataList(List<String> userCodes) {
+        if (userCodes == null || userCodes.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        // 去重保持顺序
+        List<String> codes = userCodes.stream().filter(Objects::nonNull)
+                .distinct().collect(Collectors.toList());
+
+        // 建立userCode -> SubTableData Map
+        Map<String, SubTableData> resultMap = new LinkedHashMap<>();
+        codes.forEach(c -> resultMap.put(c, new SubTableData(new ArrayList<>(), new ArrayList<>(), new ArrayList<>())));
+
+        // --- 1) 教育（最高学历）批量查询 ---
+
+        List<HrEmpEducation> eduList = hrEmpEducationMapper.selectList(
+                JoinWrappers.lambda(HrEmpEducation.class)
+                        .select(HrEmpEducation::getUserCode,
+                                HrEmpEducation::getSchoolCode,
+                                HrEmpEducation::getEducation,
+                                HrEmpEducation::getDegree,
+                                HrEmpEducation::getMajorCode)
+                        .eq(HrEmpEducation::getIsHighestEducation, SystemConstants.TRUE_FLAG)
+                        .in(HrEmpEducation::getUserCode, userCodes)
+        );
+            if (eduList != null) {
+            eduList.forEach(e -> {
+                SubTableData d = resultMap.get(e.getUserCode());
+                if (d != null) {
+                    d.educationList.add(e);
+                }
+            });
+        }
+
+
+        // --- 2) 技能等级（最高）批量查询 ---
+
+        List<HrEmpSkillLevel> skillList = hrEmpSkillLevelMapper.selectList(
+                JoinWrappers.lambda(HrEmpSkillLevel.class)
+                        .select(HrEmpSkillLevel::getUserCode,
+                                HrEmpSkillLevel::getSkillLevel)
+                        .eq(HrEmpSkillLevel::getIsHighest, SystemConstants.TRUE_FLAG)
+                        .in(HrEmpSkillLevel::getUserCode, userCodes)
+        );
+        if (skillList != null) {
+            skillList.forEach(s -> {
+                SubTableData d = resultMap.get(s.getUserCode());
+                if (d != null) {
+                    d.skillLevelList.add(s);
+                }
+            });
+        }
+
+
+        // --- 3) 职业资格（最高）批量查询 ---
+
+        List<HrEmpProfessionalQualification> quaList = hrEmpProfessionalQualificationMapper.selectList(
+                JoinWrappers.lambda(HrEmpProfessionalQualification.class)
+                        .select(HrEmpProfessionalQualification::getUserCode,
+                                HrEmpProfessionalQualification::getQuaId)
+                        .eq(HrEmpProfessionalQualification::getIsHighest, SystemConstants.TRUE_FLAG)
+                        .in(HrEmpProfessionalQualification::getUserCode, userCodes)
+        );
+        if (quaList != null) {
+            quaList.forEach(q -> {
+                SubTableData d = resultMap.get(q.getUserCode());
+                if (d != null) {
+                    d.qualificationList.add(q);
+                }
+            });
+        }
+
+
+        // 保持与入参顺序一致返回
+        return resultMap;
     }
 
     /**
@@ -357,9 +563,65 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         edu.setMajor(major != null ? major.getMajor() : "未知专业");
     }
 
+    public List<HrEmpBasicDTO> selectMsgList(List<String> userCodeList) {
+        try {
+            // 1. 主表及左连接表查询
+            List<HrEmpBasicDTO> resultList = queryBaseInfoListWithJoins(userCodeList);
+            if (ObjectUtils.isEmpty(resultList)) {
+                return Collections.emptyList();
+            }
+
+            Map<String, String> orgCode2Name = wkDataAPi.allOrganization().getData().stream().collect(Collectors.toMap(
+                    OrganizationDTO::getOrgCode,
+                    OrganizationDTO::getOrgName
+            ));
+
+            // 查询关联子表数据
+            Map<String, SubTableData> stringSubTableDataMap = querySubTableDataList(userCodeList);
+
+            Map<String, String> eduTranslateMap = codeInfoService.getTranslateMap(EDUCATION_TABLE_NAME, EDUCATION_TYPE_NAME);
+            Map<String, String> politicalTranslateMap = codeInfoService.getTranslateMap(TABLE_NAME, POLITICAL_TYPE_NAME);
+            resultList.forEach(result -> {
+                // 2. 部门名称转换
+                result.setDept(orgCode2Name.getOrDefault(result.getDept(), result.getDept()));
+
+                // 3. 查询关联子表数据
+                SubTableData subData = stringSubTableDataMap.get(result.getUserCode());
+
+                // 4. 处理子表数据（当所有子表数据唯一时）
+                if (subData.isAllUnique()) {
+                    mergeSubTableData(result, subData);
+                }
+                // 处理最高学历
+                result.setEducationValue(eduTranslateMap.getOrDefault(result.getEducation(), result.getEducation()));
+
+                // 处理政治面貌
+                result.setPoliticalValue(politicalTranslateMap.getOrDefault(result.getPolitical(), result.getPolitical()));
+
+                // 5. 处理年龄
+                log.info("准备开始处理年龄信息");
+                resolveAge(result);
+
+                // 6. 处理人员分类1,4,7,8
+                log.info("准备开始处理人员分类信息");
+                resolveCategory(result);
+
+                // 6. 处理人员在岗状态
+                log.info("准备开始处理人员在岗状态信息");
+                resolveStatus(result);
+            });
+            return resultList;
+        } catch (Exception e) {
+            log.warn("查询异常,{}", e.getMessage());
+            return queryBaseInfoListWithJoins(userCodeList);
+        }
+    }
+
     /**
      * 子表数据容器（内部使用）
      */
+    @AllArgsConstructor
+    @NoArgsConstructor
     private static class SubTableData {
         List<HrEmpEducation> educationList;
         List<HrEmpSkillLevel> skillLevelList;

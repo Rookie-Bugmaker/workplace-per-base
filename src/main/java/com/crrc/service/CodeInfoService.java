@@ -3,6 +3,8 @@ package com.crrc.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.crrc.entity.CodeInfo;
 
+import java.util.Map;
+
 /**
  * <p>
  * 字典表 服务类
@@ -22,4 +24,12 @@ public interface CodeInfoService extends IService<CodeInfo> {
      * @return 字典value值
      */
     String translateCode(String dictCode, String tableName, String type);
+
+    /**
+     * 获得指定的表中的指定字段的字典值
+     *
+     * @param tableName 表名
+     * @param type      字段名
+     */
+    Map<String, String> getTranslateMap(String tableName, String type);
 }

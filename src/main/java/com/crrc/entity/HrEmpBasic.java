@@ -42,6 +42,10 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     @TableField(exist = false)
     private Long orgId;
 
+    @Schema(description = "所属部门编码", example = "0132")
+    @TableField(exist = false)
+    private String orgCode;
+
     @TableLogic(value = "0")
     @Schema(description = "删除", example = "false")
     private Integer deleted;
@@ -87,9 +91,13 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     private String birthPlace;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"政治面貌"}, index = 9)
-    @Schema(description = "政治面貌")
     private String political;
+
+    @TableField(exist = false)
+    @QueryMethod(method = QueryType.EQ)
+    @Schema(description = "政治面貌")
+    @ExcelProperty(value = {"政治面貌"}, index = 9)
+    private String politicalValue;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"姓名"}, index = 10)
@@ -186,4 +194,46 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     @ExcelProperty(value = {"人员分类8"}, index = 28)
     @Schema(description = "人员分类8")
     private String category8;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"人员在职状态"}, index = 29)
+    @Schema(description = "人员在岗状态，在岗 1" +
+            "，因病因伤长期休假人员 2" +
+            " 内退-其他内退人员 3，")
+    private String status;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"入伍时间"}, index = 30)
+    @Schema(description = "入伍时间")
+    private LocalDate enlistmentDate;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"曾用名"}, index = 31)
+    @Schema(description = "曾用名")
+    private String formerName;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"提中干时间"}, index = 32)
+    @Schema(description = "提中干时间")
+    private LocalDate promotionTime;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"死亡时间"}, index = 33)
+    @Schema(description = "死亡时间")
+    private LocalDate deathTime;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"工龄间断时间"}, index = 34)
+    @Schema(description = "工龄间断时间")
+    private String serviceBreakTime;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"是否离职标记"}, index = 35)
+    @Schema(description = "是否离职标记，0为离职，1为在职")
+    private String isEmployed;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"人员类别"}, index = 36)
+    @Schema(description = "人员类别：校社京博工挂他临")
+    private String empType;
 }

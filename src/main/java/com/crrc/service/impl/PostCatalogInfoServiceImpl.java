@@ -4,10 +4,13 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.entity.PostCatalogInfo;
 import com.crrc.mapper.PostCatalogInfoMapper;
+import com.crrc.pojo.vo.PostCatalogInfoTreeVO;
 import com.crrc.pojo.vo.PostCatalogInfoVO;
 import com.crrc.service.PostCatalogInfoService;
+import com.crrc.utils.TreeUtils;
 import com.crrc.utils.WrapperUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -68,4 +71,19 @@ public class PostCatalogInfoServiceImpl extends WorkServiceImpl<PostCatalogInfoM
         return this.baseMapper.selectList(queryWrapper);
     }
 
+    public List<PostCatalogInfoTreeVO> queryTree() {
+        List<PostCatalogInfo> postCatalogInfoList = this.query(new PostCatalogInfo());
+        List<PostCatalogInfoTreeVO> fullList = postCatalogInfoList.stream().map(item -> {
+            PostCatalogInfoTreeVO postCatalogInfoTreeVO = new PostCatalogInfoTreeVO();
+            BeanUtils.copyProperties(item, postCatalogInfoTreeVO);
+            return postCatalogInfoTreeVO;
+        }).collect(Collectors.toList());
+
+        return TreeUtils.buildCascadeList(
+                fullList,
+                PostCatalogInfoTreeVO::getId,
+                PostCatalogInfoTreeVO::getParentId,
+                PostCatalogInfoTreeVO::setChildren
+        );
+    }
 }

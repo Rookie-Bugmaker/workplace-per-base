@@ -59,7 +59,7 @@ public class HrEmpCareerPath extends BaseEntity implements Serializable {
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"职业发展层级"}, index = 5)
-    @Schema(description = "职业发展层级")
+    @Schema(description = "职业发展层级 20205/10/30 应人力要求字段作废")
     private String hierarchy;
     
     @QueryMethod(method = QueryType.EQ)
