@@ -40,7 +40,7 @@ public class FileServiceImpl {
 
     public String preview(String fileId){
 
-         String result = minIoUtils.getFileOnline(fileId);
+         String result = minIoUtils.previewOnline(fileId);
         if (StringUtils.isBlank(result)){
             return null;
         }else {
