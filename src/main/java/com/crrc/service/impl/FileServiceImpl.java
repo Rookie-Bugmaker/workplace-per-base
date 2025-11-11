@@ -28,6 +28,16 @@ public class FileServiceImpl {
         return fileId;
     }
 
+    public String upload(MultipartFile file) throws Exception {
+        String fileId;
+        try {
+            fileId = minIoUtils.upload(file);
+        } catch (Exception e) {
+            throw new Exception(e.getMessage());
+        }
+        return fileId;
+    }
+
     public String preview(String fileId){
 
          String result = minIoUtils.getFileOnline(fileId);

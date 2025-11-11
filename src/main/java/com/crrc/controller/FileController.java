@@ -35,16 +35,15 @@ public class FileController {
     @AuditLog(value = "上传文件", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
     @Operation(summary = "上传文件")
     public ResponseResult<List<FileDownloadDTO>> uploadTemplate(@RequestParam MultipartFile file) {
-        String templateId;
         try {
-            templateId = fileService.uploadTemplate(file);
+            String fileID = fileService.uploadTemplate(file);
+            FileDownloadDTO fileDownloadDTO = new FileDownloadDTO();
+            fileDownloadDTO.setFileHeaderId(fileID);
+            return new ResponseResult<>(HttpStatus.OK.value(), "文件上传成功", Collections.singletonList(fileDownloadDTO));
         } catch (Exception e) {
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "文件上传失败，错误信息：" + e.getMessage());
         }
-        FileDownloadDTO fileDownloadDTO = new FileDownloadDTO();
-        fileDownloadDTO.setFileHeaderId(templateId);
 
-        return new ResponseResult<>(HttpStatus.OK.value(), "文件上传成功", Collections.singletonList(fileDownloadDTO));
     }
 
     @PostMapping("/preview")
