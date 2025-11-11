@@ -1,28 +1,28 @@
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: workplace-per-base
+  name: workplace-human-resource
   namespace: human-resource
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: workplace-per-base
+      app: workplace-human-resource
       version: v1
   template:
     metadata:
       labels:
-        app: workplace-per-base
+        app: workplace-human-resource
         version: v1
     spec:
       volumes:
-        - name: vol-workplace-per-base-config
+        - name: vol-workplace-human-resource-config
           configMap:
-            name: workplace-per-base-config
+            name: workplace-human-resource-config
             defaultMode: 420
       containers:
-        - name: container-workplace-per-base
-          image: swr.ckgf-global-1.cccar.com.cn/work_place/workplace-per-base-test:0.0.1
+        - name: container-workplace-human-resource
+          image: swr.ckgf-global-1.cccar.com.cn/work_place/workplace-human-resource-test:0.0.1
           resources:
             limits:
               cpu: '4'
@@ -31,7 +31,7 @@ spec:
               cpu: '2'
               memory: 2Gi
           volumeMounts:
-            - name: vol-workplace-per-base-config
+            - name: vol-workplace-human-resource-config
               readOnly: true
               mountPath: /home/workplace/application.yml
               subPath: application.yml
