@@ -1,5 +1,5 @@
 # 基于哪个镜像部署,镜像名称:版本
-FROM 10.151.129.200:180/public/openjdk:8u275
+FROM swr.ckgf-global-1.cccar.com.cn/cloud_base/jdk:1.8.0_201
 # 镜像创建者
 MAINTAINER 谭永强
 # 拷贝文件夹下的文件到镜像中的app.jar
