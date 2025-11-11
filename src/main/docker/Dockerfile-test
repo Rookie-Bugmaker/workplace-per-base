@@ -1,12 +1,15 @@
-# 基于哪个镜像部署,镜像名称:版本
 FROM swr.ckgf-global-1.cccar.com.cn/cloud_base/jdk:1.8.0_201
-# 镜像创建者
-MAINTAINER 谭永强
-# 拷贝文件夹下的文件到镜像中的app.jar
-ADD @project.artifactId@-@project.version@-@env@.jar app.jar
-# 设置时区
-RUN /bin/cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo 'Asia/Shanghai' >/etc/timezone
-# jvm参数设置
-ENV JAVA_OPTS="-Xmx3700m -Xms3700m -Duser.timezone=GMT+8"
-# 配置容器启动后执行的命令
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app.jar"]
+
+ENV TZ="Asia/Shanghai" \
+    SPRING_OUTPUT_ANSI_ENABLED=ALWAYS \
+    IBIZ_SLEEP=0 \
+    JAVA_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
+
+WORKDIR /home/workplace/
+
+ADD *.jar /home/workplace/workplace-per-base.jar
+
+EXPOSE 8864
+
+CMD java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -Duser.timezone=Asia/Shanghai -Djava.security.egd=file:/dev/./urandom -jar workplace-per-base.jar
+
