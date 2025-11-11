@@ -17,14 +17,12 @@ import com.crrc.utils.DeptUtils;
 import com.crrc.utils.SystemConstants;
 import com.github.yulichang.toolkit.JoinWrappers;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
-import io.reactivex.rxjava3.internal.util.LinkedArrayList;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.Period;
@@ -325,10 +323,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
      */
     private void resolveStatus(HrEmpBasicDTO dto) {
         // 查询的表名
-        String tableName = "person_status";
+        String tableName = "hr_emp_appointment";
         try {
             if (StringUtils.isNotBlank(dto.getStatus())) {
-                String status = codeInfoService.translateCode(dto.getStatus(), tableName, "per_status");
+                String status = codeInfoService.translateCode(dto.getStatus(), tableName, "APPOINTMENT_DUTY_STATUS");
                 dto.setStatus(status);
             }
         } catch (Exception e) {

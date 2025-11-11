@@ -196,10 +196,8 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     private String category8;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"人员在职状态"}, index = 29)
-    @Schema(description = "人员在岗状态，在岗 1" +
-            "，因病因伤长期休假人员 2" +
-            " 内退-其他内退人员 3，")
+    @ExcelProperty(value = {"人员在岗状态"}, index = 29)
+    @Schema(description = "人员在岗状态，和任职信息中的在岗状态实际上相同，这里仅仅用于存储并展示")
     private String status;
 
     @QueryMethod(method = QueryType.EQ)
