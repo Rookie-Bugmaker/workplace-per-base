@@ -13,4 +13,5 @@ import java.util.List;
 public class FileDownloadDTO {
     private String fileId;
     private List<String> idList;
+    private String fileHeaderId;
 }

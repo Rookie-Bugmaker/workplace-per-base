@@ -16,6 +16,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author why
@@ -31,14 +34,17 @@ public class FileController {
     @PostMapping("/upload")
     @AuditLog(value = "上传文件", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
     @Operation(summary = "上传文件")
-    public ResponseResult<String> uploadTemplate(@RequestParam MultipartFile file) {
+    public ResponseResult<List<FileDownloadDTO>> uploadTemplate(@RequestParam MultipartFile file) {
         String templateId;
         try {
             templateId = fileService.uploadTemplate(file);
         } catch (Exception e) {
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "文件上传失败，错误信息：" + e.getMessage());
         }
-        return new ResponseResult<>(HttpStatus.OK.value(), "导入模板信息报表成功",templateId);
+        FileDownloadDTO fileDownloadDTO = new FileDownloadDTO();
+        fileDownloadDTO.setFileHeaderId(templateId);
+
+        return new ResponseResult<>(HttpStatus.OK.value(), "文件上传成功", Collections.singletonList(fileDownloadDTO));
     }
 
     @PostMapping("/preview")
