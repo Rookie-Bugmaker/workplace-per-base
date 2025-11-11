@@ -527,7 +527,11 @@ public class HrEmpBasicController {
     @Operation(summary = "提交员工信息变更申请")
     public ResponseResult<String> submitChange(@Valid @RequestBody HrEmpBasicDTO changeReqVO) {
         try {
-                boolean flag = RoleUtils.check("人力资源部-招聘管理专员");
+            // 防止dept被误修改
+            changeReqVO.setDept(null);
+            changeReqVO.setOrgCode(null);
+
+            boolean flag = RoleUtils.check("人力资源部-招聘管理专员");
             if (flag) {
                 log.info("权限校验通过，用户拥有'人力资源部-招聘管理专员'角色，直接进行更新");
                 try{
