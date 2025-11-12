@@ -3,7 +3,10 @@ package com.crrc.utils;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author yukun
@@ -136,5 +139,45 @@ public final class TreeUtils {
         }
 
         return roots;
+    }
+
+    /**
+     * 展平树节点
+     * @param root 需要展平的根
+     * @param childrenGetter 获取树节点中儿子列表的方法
+     * @param containRoot 是否包含root
+     * @return 展平后的树节点，包含root
+     * @param <T>
+     */
+    public static <T> List<T> flattenTree(T root, Function<T, List<T>> childrenGetter, Boolean containRoot) {
+        if(childrenGetter.apply(root) == null || childrenGetter.apply(root).isEmpty()) {
+            return containRoot ? Collections.singletonList(root) : Collections.emptyList();
+        }
+
+        return Stream.concat(
+                containRoot ? Stream.of(root) : Stream.empty(),
+                childrenGetter.apply(root).stream()
+        ).collect(Collectors.toList());
+    }
+
+    /**
+     * 查询树是否匹配某个Predicate
+     * @param root 查询的树根
+     * @param matcher Predicate条件
+     * @param childrenGetter children的Get方法
+     * @return 是否包含Predicate
+     */
+    public static <T> Boolean containsBFS(T root, Predicate<T> matcher, Function<T, List<T>> childrenGetter) {
+        if(childrenGetter.apply(root) == null || matcher == null) return false;
+        Queue<T> q = new ArrayDeque<>();
+        q.offer(root);
+        while(!q.isEmpty()) {
+            T node = q.poll();
+            if(matcher.test(node)) return true;
+            for(T c : childrenGetter.apply(node)) {
+                q.offer(c);
+            }
+        }
+        return false;
     }
 }

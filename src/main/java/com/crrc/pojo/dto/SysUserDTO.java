@@ -1,6 +1,10 @@
 package com.crrc.pojo.dto;
 
+import com.crrc.entity.dto.mainData.OrganizationDTO;
+import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import lombok.Data;
+
+import java.util.List;
 
 /**
  * 用户信息
@@ -44,5 +48,9 @@ public class SysUserDTO {
      */
     private String roleCode;
 
+    /**
+     * 部门列表
+     */
+    List<OrganizationDTO> deptList;
 
 }

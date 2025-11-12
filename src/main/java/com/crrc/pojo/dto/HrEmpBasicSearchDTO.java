@@ -5,6 +5,8 @@ import com.crrc.enums.QueryType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+import java.util.Set;
+
 /**
  * 员工信息列表查询封装实体
  */
@@ -22,6 +24,10 @@ public class HrEmpBasicSearchDTO {
     @QueryMethod(method = QueryType.EQ)
     @Schema(description = "部门")
     private String dept;
+
+    @QueryMethod(method = QueryType.EQ)
+    @Schema(description = "部门集合")
+    private Set<String> deptSet;
 
     @QueryMethod(method = QueryType.EQ)
     @Schema(description = "职位")

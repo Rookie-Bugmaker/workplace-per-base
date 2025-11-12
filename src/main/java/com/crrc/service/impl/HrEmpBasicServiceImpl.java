@@ -4,17 +4,19 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.crrc.annotation.IgnoreTenant;
 import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
+import com.crrc.client.SysServerClient;
+import com.crrc.common.ResultData;
 import com.crrc.entity.*;
+import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
+import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mapper.HrEmpEducationMapper;
 import com.crrc.mapper.HrEmpProfessionalQualificationMapper;
 import com.crrc.mapper.HrEmpSkillLevelMapper;
-import com.crrc.pojo.dto.HrEmpBasicDTO;
-import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
+import com.crrc.pojo.dto.*;
 import com.crrc.service.HrEmpBasicService;
-import com.crrc.utils.DeptUtils;
-import com.crrc.utils.SystemConstants;
+import com.crrc.utils.*;
 import com.github.yulichang.toolkit.JoinWrappers;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.AllArgsConstructor;
@@ -22,6 +24,7 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -65,8 +68,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
     private static final String EDUCATION_TYPE_NAME = "EDU_EDU";
     private final WkDataAPi wkDataAPi;
+    private final SysServerClient sysServerClient;
 
-    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataAPi) {
+    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataAPi, @Qualifier("com.crrc.client.SysServerClient") SysServerClient sysServerClient) {
         this.hrEmpBasicMapper = hrEmpBasicMapper;
         this.hrEmpEducationMapper = hrEmpEducationMapper;
         this.hrEmpSchoolInfoService = hrEmpSchoolInfoService;
@@ -76,6 +80,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         this.codeInfoService = codeInfoService;
         this.wkCoreApi = wkCoreApi;
         this.wkDataAPi = wkDataAPi;
+        this.sysServerClient = sysServerClient;
     }
 
     /**
@@ -178,9 +183,53 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         // 确保只要HrEmpBasic表有数据就能显示
         queryWrapper.isNotNull(HrEmpBasic::getUserCode);  // 确保HrEmpBasic表有数据
 
+        // 先判断大权限
+        if(RoleUtils.check("员工基本信息公司级管理员")) {
+            // 不查部门，查询公司
+            dto.setDept(null);
+            // 根据员工获取部门编码
+            // 获得员工登录信息
+            LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
+            if(loginUser == null) {
+                throw new IllegalArgumentException("获取员工登录信息失败");
+            }
+            if(loginUser.getUser() == null || StringUtils.isBlank(loginUser.getUser().getJobNo())) {
+                throw new IllegalArgumentException("获取员工工号失败");
+            }
+            // 获取员工工号
+            String jobNo = loginUser.getUser().getJobNo();
+            List<HrEmpBasicDTO> hrEmpBasicDTOS = this.selectMsg(jobNo);
+            if(ObjectUtils.isEmpty(hrEmpBasicDTOS)) {
+                throw new IllegalArgumentException("获取员工信息失败，员工不存在，userCode:" + jobNo);
+            }
+
+            String orgCode = hrEmpBasicDTOS.get(0).getOrgCode();
+            // 根据部门编码获取公司编码
+            ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
+            if(listResponseResultDTO == null || ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+                throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败" + orgCode);
+            }
+            List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+            List<OrganizationTreeDTO> childrenOrgList = findParentAndFlattenList(data, orgCode);
+            if(childrenOrgList == null || childrenOrgList.isEmpty()) {
+                throw new IllegalArgumentException("获取公司失败，公司匹配错误，orgCode:" + orgCode);
+            }
+
+            dto.setDeptSet(childrenOrgList.stream().map(OrganizationTreeDTO::getOrgCode).collect(Collectors.toSet()));
+        }
+
         buildFuzzyConditions(queryWrapper, dto);
         queryWrapper.orderByAsc(HrEmpBasic::getUserCode);
         return hrEmpBasicMapper.selectJoinPage(page, HrEmpBasicDTO.class, queryWrapper);
+    }
+
+    private List<OrganizationTreeDTO> findParentAndFlattenList(List<OrganizationTreeDTO> data, String orgCode) {
+        for(OrganizationTreeDTO root : data) {
+            if (TreeUtils.containsBFS(root, n -> StringUtils.equals(orgCode, n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
+                return TreeUtils.flattenTree(root, OrganizationTreeDTO::getChildren, true);
+            }
+        }
+        return Collections.emptyList();
     }
 
 
@@ -201,7 +250,11 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                         dto.getPosition())
                 .like(StringUtils.isNotBlank(dto.getIsEmployed()),
                         HrEmpBasic::getIsEmployed,
-                        dto.getIsEmployed());
+                        dto.getIsEmployed())
+                .in(ObjectUtils.isNotEmpty(dto.getDeptSet()),
+                        HrEmpBasic::getDept,
+                        dto.getDeptSet()
+                );
     }
 
 
