@@ -226,7 +226,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     private List<OrganizationTreeDTO> findParentAndFlattenList(List<OrganizationTreeDTO> data, String orgCode) {
         for(OrganizationTreeDTO root : data) {
             if (TreeUtils.containsBFS(root, n -> StringUtils.equals(orgCode, n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
-                return TreeUtils.flattenTree(root, OrganizationTreeDTO::getChildren, true);
+                return TreeUtils.flattenDescendants(root, OrganizationTreeDTO::getChildren, true);
             }
         }
         return Collections.emptyList();

@@ -142,22 +142,38 @@ public final class TreeUtils {
     }
 
     /**
-     * 展平树节点
+     * 级联展平树节点，前序DFS
      * @param root 需要展平的根
      * @param childrenGetter 获取树节点中儿子列表的方法
      * @param containRoot 是否包含root
-     * @return 展平后的树节点，包含root
-     * @param <T>
+     * @return 展平后的树节点，根据containRoot判断是否包含root
      */
-    public static <T> List<T> flattenTree(T root, Function<T, List<T>> childrenGetter, Boolean containRoot) {
+    public static <T> List<T> flattenDescendants(T root, Function<T, List<T>> childrenGetter, Boolean containRoot) {
+        List<T> out = new ArrayList<>(containRoot ? Collections.singletonList(root) : Collections.emptyList());
         if(childrenGetter.apply(root) == null || childrenGetter.apply(root).isEmpty()) {
-            return containRoot ? Collections.singletonList(root) : Collections.emptyList();
+            return out;
         }
 
-        return Stream.concat(
-                containRoot ? Stream.of(root) : Stream.empty(),
-                childrenGetter.apply(root).stream()
-        ).collect(Collectors.toList());
+        Deque<T> stack = new ArrayDeque<>();
+        // 先把第一层儿子入栈（倒序以保持原 children 顺序）
+        List<T> first = childrenGetter.apply(root);
+        for (int i = first.size() - 1; i >= 0; i--) {
+            stack.push(first.get(i));
+        }
+
+        while (!stack.isEmpty()) {
+            T cur = stack.pop();
+            out.add(cur);
+            if (childrenGetter.apply(cur) != null) {
+                List<T> apply = childrenGetter.apply(cur);
+                // 同理：倒序压栈，保持遍历顺序与 children 列表一致
+                for (int i = apply.size() - 1; i >= 0; i--) {
+                    stack.push(apply.get(i));
+                }
+            }
+        }
+
+        return out;
     }
 
     /**
