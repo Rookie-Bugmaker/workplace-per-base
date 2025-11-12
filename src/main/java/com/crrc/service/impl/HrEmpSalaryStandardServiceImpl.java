@@ -1,8 +1,6 @@
 package com.crrc.service.impl;
 
-import com.crrc.entity.HrEmpEducation;
 import com.crrc.entity.HrEmpSalaryStandard;
-import com.crrc.mapper.HrEmpEducationMapper;
 import com.crrc.mapper.HrEmpSalaryStandardMapper;
 import com.crrc.service.HrEmpSalaryStandardService;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
@@ -25,10 +23,16 @@ public class HrEmpSalaryStandardServiceImpl extends WorkServiceImpl<HrEmpSalaryS
     @Autowired
     private HrEmpSalaryStandardMapper hrEmpSalaryStandardMapper;
 
-    public List<HrEmpSalaryStandard> selectMsg(String userCode){
+    public List<HrEmpSalaryStandard> selectMsg(String userCode) {
         MPJLambdaWrapper<HrEmpSalaryStandard> wrapper = new MPJLambdaWrapper<HrEmpSalaryStandard>()
                 .selectAll(HrEmpSalaryStandard.class)
-                .eq(HrEmpSalaryStandard::getUserCode, userCode);
+                .eq(HrEmpSalaryStandard::getUserCode, userCode)
+                // 添加条件：薪档,薪级,执行系数/金额同时未null时，不进行查询
+                .not(innerWrapper -> innerWrapper
+                        .isNull(HrEmpSalaryStandard::getSalaryGrade)
+                        .isNull(HrEmpSalaryStandard::getSalaryLevel)
+                        .isNull(HrEmpSalaryStandard::getCoefficient)
+                );
         return hrEmpSalaryStandardMapper.selectList(wrapper);
     }
 }
