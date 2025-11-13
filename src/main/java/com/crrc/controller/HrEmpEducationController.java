@@ -144,7 +144,7 @@ public class HrEmpEducationController {
                 }
                 hrEmpEducation.setSchoolName(finalName);
             } else if(StringUtils.isBlank(hrEmpEducation.getSchoolName())) {
-                hrEmpEducation.setSchoolName("未知院校");
+                hrEmpEducation.setSchoolName(hrEmpEducation.getSchoolName());
             }
 
             log.info("处理后 - schoolName: {}", hrEmpEducation.getSchoolName());
