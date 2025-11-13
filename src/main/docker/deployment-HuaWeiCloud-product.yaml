@@ -45,6 +45,19 @@ spec:
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
           imagePullPolicy: Always
+
+          readinessProbe:
+            httpGet:
+              path: /hrEmpBasic/isAvailable
+              port: 8864
+              host: ''
+              scheme: HTTP
+            initialDelaySeconds: 40
+            timeoutSeconds: 5
+            periodSeconds: 20
+            successThreshold: 1
+            failureThreshold: 30
+
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
       dnsPolicy: ClusterFirst
