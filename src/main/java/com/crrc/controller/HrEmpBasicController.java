@@ -26,6 +26,7 @@ import com.crrc.mongodb.HrEmpBasicChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
+import com.crrc.pojo.vo.MapVO;
 import com.crrc.pojo.vo.PostCatalogInfoVO;
 import com.crrc.service.CodeInfoService;
 import com.crrc.service.impl.*;
@@ -772,6 +773,19 @@ public class HrEmpBasicController {
                 .sheet()
                 .doRead();
         return new ResponseResult<>(HttpStatus.OK.value(), "导入员工基本信息表报表成功");
+    }
+
+    @GetMapping("/getDutyStatusDict")
+    @AuditLog(value = "获取所有在岗状态", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
+    @Operation(summary = "获取所有在岗状态")
+    public ResponseResult<List<MapVO<String, String>>> getDutyStatusDict()  {
+        try {
+            List<MapVO<String, String>> result = codeInfoService.getTranslateMap("hr_emp_appointment", "APPOINTMENT_DUTY_STATUS").entrySet()
+                    .stream().map(e -> new MapVO<>(e.getKey(), e.getValue())).collect(Collectors.toList());
+            return new ResponseResult<>(HttpStatus.OK.value(), "获取字典成功", result);
+        } catch (Exception e) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
     }
 
 }
