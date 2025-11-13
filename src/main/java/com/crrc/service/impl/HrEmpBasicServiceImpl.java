@@ -6,6 +6,7 @@ import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
 import com.crrc.client.SysServerClient;
 import com.crrc.entity.*;
+import com.crrc.entity.dto.DictItemReqDTO;
 import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
@@ -23,6 +24,7 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
@@ -69,10 +71,15 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
     private static final String DEGREE_TYPE_NAME = "EDU_DEGREE";
 
+    private static final String COMPANY_MANAGER_DICT_CODE = "human_resource_company_manager";
+
     private final WkDataAPi wkDataAPi;
     private final SysServerClient sysServerClient;
 
-    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataAPi, @Qualifier("com.crrc.client.SysServerClient") SysServerClient sysServerClient) {
+    private final DictTypeUtils dictTypeUtils;
+
+    @Autowired
+    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataAPi, @Qualifier("com.crrc.client.SysServerClient") SysServerClient sysServerClient, DictTypeUtils dictTypeUtils) {
         this.hrEmpBasicMapper = hrEmpBasicMapper;
         this.hrEmpEducationMapper = hrEmpEducationMapper;
         this.hrEmpSchoolInfoService = hrEmpSchoolInfoService;
@@ -83,6 +90,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         this.wkCoreApi = wkCoreApi;
         this.wkDataAPi = wkDataAPi;
         this.sysServerClient = sysServerClient;
+        this.dictTypeUtils = dictTypeUtils;
     }
 
     /**
@@ -189,6 +197,13 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         if(RoleUtils.check("员工基本信息公司级管理员")) {
             // 不查部门，查询公司
             dto.setDept(null);
+            // 先去字典中判断是否为子公司的公司级管理员
+            Map<String, String> jobNo2CompanyCode = dictTypeUtils.getDict(COMPANY_MANAGER_DICT_CODE).stream().collect(Collectors.toMap(
+                    DictItemReqDTO::getItemName,
+                    DictItemReqDTO::getItemCode
+            ));
+
+
             // 根据员工获取部门编码
             // 获得员工登录信息
             LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
@@ -200,18 +215,27 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             }
             // 获取员工工号
             String jobNo = loginUser.getUser().getJobNo();
-            List<HrEmpBasicDTO> hrEmpBasicDTOS = this.selectMsg(jobNo);
-            if(ObjectUtils.isEmpty(hrEmpBasicDTOS)) {
-                throw new IllegalArgumentException("获取员工信息失败，员工不存在，userCode:" + jobNo);
+            String orgCode;
+            // 如果在字典中配置了，则不需要进行后续查询
+            if(jobNo2CompanyCode.containsKey(jobNo)) {
+                orgCode = jobNo2CompanyCode.get(jobNo);
+            }
+            // 如果没有配置，则从basic里查询出员工的部门
+            else {
+                List<HrEmpBasicDTO> hrEmpBasicDTOS = this.selectMsg(jobNo);
+                if(ObjectUtils.isEmpty(hrEmpBasicDTOS)) {
+                    throw new IllegalArgumentException("获取员工信息失败，员工不存在，userCode:" + jobNo);
+                }
+                orgCode = hrEmpBasicDTOS.get(0).getOrgCode();
             }
 
-            String orgCode = hrEmpBasicDTOS.get(0).getOrgCode();
-            // 根据部门编码获取公司编码
+            // 获取所有的组织数据
             ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
             if(listResponseResultDTO == null || ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
-                throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败" + orgCode);
+                throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
             }
             List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+            // 根据orgCode匹配公司及其下级部门能否有匹配项，如果包含，则获得其展平后的List（包含所有部门Code）
             List<OrganizationTreeDTO> childrenOrgList = findParentAndFlattenList(data, orgCode);
             if(childrenOrgList == null || childrenOrgList.isEmpty()) {
                 throw new IllegalArgumentException("获取公司失败，公司匹配错误，orgCode:" + orgCode);
@@ -225,6 +249,12 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         return hrEmpBasicMapper.selectJoinPage(page, HrEmpBasicDTO.class, queryWrapper);
     }
 
+    /**
+     * 根据树型组织数据列表（公司列表），判断公司是否包含orgCode，并返回该公司展平后的列表
+     * @param data 树型组织数据列表
+     * @param orgCode 需要判断的orgCode
+     * @return 包含orgCode的公司展平后的列表
+     */
     private List<OrganizationTreeDTO> findParentAndFlattenList(List<OrganizationTreeDTO> data, String orgCode) {
         for(OrganizationTreeDTO root : data) {
             if (TreeUtils.containsBFS(root, n -> StringUtils.equals(orgCode, n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
