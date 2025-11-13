@@ -134,17 +134,16 @@ public class HrEmpEducationController {
                     hrEmpEducation.getSchoolName());
 
             // 修改判断逻辑
+            // 查询教育信息的schoolCode,如果schoolCode不为空，那么开始schoolName的处理
             if(StringUtils.isNotBlank(hrEmpEducation.getSchoolCode())) {
+                // 根据schoolCode查询schoolName
                 HrEmpSchoolInfo hrEmpSchoolInfo = hrEmpSchoolInfoService.selectByCode(hrEmpEducation.getSchoolCode());
                 log.info("查询结果: {}", hrEmpSchoolInfo);  // 打印整个对象
-
-                String finalName = "未知院校";
+                // 如果查询结果不为空，那么根据查询结果设置schoolName
                 if(hrEmpSchoolInfo != null && StringUtils.isNotBlank(hrEmpSchoolInfo.getSchoolName())) {
-                    finalName = hrEmpSchoolInfo.getSchoolName();
+                    hrEmpEducation.setSchoolName(hrEmpSchoolInfo.getSchoolName());
                 }
-                hrEmpEducation.setSchoolName(finalName);
-            } else if(StringUtils.isBlank(hrEmpEducation.getSchoolName())) {
-                hrEmpEducation.setSchoolName(hrEmpEducation.getSchoolName());
+                // 否则不处理，使用未处理的schoolName
             }
 
             log.info("处理后 - schoolName: {}", hrEmpEducation.getSchoolName());
