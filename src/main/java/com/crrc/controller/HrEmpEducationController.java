@@ -4,7 +4,6 @@ package com.crrc.controller;
 import cn.hutool.core.util.IdUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
-import com.baomidou.mybatisplus.core.assist.ISqlRunner;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.crrc.api.WkWorkflowApi;
 import com.crrc.entity.*;
@@ -361,6 +360,23 @@ public class HrEmpEducationController {
             changeRequest.setId(IdUtil.simpleUUID());
             changeRequest.setUserCode(changeReqVO.getUserCode());
             changeRequest.setOriginalData(originalData);
+            // 在保存时刷写专业名称
+            for(HrEmpEducation hrEmpEducation : changeReqVO.getList()) {
+                // 专业部分
+                if("001".equals(hrEmpEducation.getEducation()) || "002".equals(hrEmpEducation.getEducation())
+                        || "003".equals(hrEmpEducation.getEducation()) || "004".equals(hrEmpEducation.getEducation())) {
+                    if(StringUtils.isNotBlank(hrEmpEducation.getMajorCode())) {
+                        // 大专及以上学历,且学历编码不为空，进行学历回写
+                        HrEmpMajorInfo hrEmpMajorInfo = hrEmpMajorInfoService.selectByCode(hrEmpEducation.getMajorCode());
+                        hrEmpEducation.setMajor(hrEmpMajorInfo.getMajor());
+                    } else {
+                        hrEmpEducation.setMajor("未知专业");
+                    }
+                }else{
+                    // 其它学历，将专业置空
+                    hrEmpEducation.setMajor(null);
+                }
+            }
             changeRequest.setChangedData(changeReqVO.getList());
 
             log.info("等待保存的教育经历变更数据：{}", JSON.toJSONString(changeReqVO.getList(), SerializerFeature.PrettyFormat));
