@@ -36,4 +36,8 @@ public class HrEmpBasicSearchDTO {
     @QueryMethod(method = QueryType.EQ)
     @Schema(description = "是否离职标记，0为离职，1为在职")
     private String isEmployed;
+
+    @QueryMethod(method = QueryType.EQ)
+    @Schema(description = "在岗状态")
+    private String dutyStatus;
 }
