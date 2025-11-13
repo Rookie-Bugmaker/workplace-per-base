@@ -199,8 +199,8 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             dto.setDept(null);
             // 先去字典中判断是否为子公司的公司级管理员
             Map<String, String> jobNo2CompanyCode = dictTypeUtils.getDict(COMPANY_MANAGER_DICT_CODE).stream().collect(Collectors.toMap(
-                    DictItemReqDTO::getItemName,
-                    DictItemReqDTO::getItemCode
+                    DictItemReqDTO::getItemCode,
+                    DictItemReqDTO::getItemName
             ));
 
 
