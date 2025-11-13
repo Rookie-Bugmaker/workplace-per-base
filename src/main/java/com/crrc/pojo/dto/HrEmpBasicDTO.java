@@ -12,13 +12,17 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class HrEmpBasicDTO extends HrEmpBasic {
 
+    @Schema(description = "最高学历码值")
     private String education;
 
     @Schema(description = "最高学历")
     private String educationValue;
 
-    @Schema(description = "最高学位")
+    @Schema(description = "最高学位码值")
     private String degree;
+
+    @Schema(description = "最高学位")
+    private String degreeValue;
 
     @Schema(description = "所学专业")
     private String major;

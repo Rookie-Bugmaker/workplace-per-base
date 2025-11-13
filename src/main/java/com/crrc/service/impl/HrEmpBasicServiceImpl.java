@@ -5,7 +5,6 @@ import com.crrc.annotation.IgnoreTenant;
 import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
 import com.crrc.client.SysServerClient;
-import com.crrc.common.ResultData;
 import com.crrc.entity.*;
 import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
@@ -67,6 +66,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     private static final String EDUCATION_TABLE_NAME = "hr_emp_education";
 
     private static final String EDUCATION_TYPE_NAME = "EDU_EDU";
+
+    private static final String DEGREE_TYPE_NAME = "EDU_DEGREE";
+
     private final WkDataAPi wkDataAPi;
     private final SysServerClient sysServerClient;
 
@@ -286,6 +288,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             // 处理最高学历
             resolveEducation(result.get(0));
 
+            // 处理最高学位
+            resolveDegree(result.get(0));
+
             // 处理政治面貌
             resolvePolitical(result.get(0));
 
@@ -312,6 +317,11 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     private void resolveEducation(HrEmpBasicDTO hrEmpBasicDTO) {
         Map<String, String> translateMap = codeInfoService.getTranslateMap(EDUCATION_TABLE_NAME, EDUCATION_TYPE_NAME);
         hrEmpBasicDTO.setEducationValue(translateMap.getOrDefault(hrEmpBasicDTO.getEducation(), null));
+    }
+
+    private void resolveDegree(HrEmpBasicDTO hrEmpBasicDTO) {
+        Map<String, String> translateMap = codeInfoService.getTranslateMap(EDUCATION_TABLE_NAME, DEGREE_TYPE_NAME);
+        hrEmpBasicDTO.setDegreeValue(translateMap.getOrDefault(hrEmpBasicDTO.getDegree(), null));
     }
 
     private void resolvePolitical(HrEmpBasicDTO hrEmpBasicDTO) {
