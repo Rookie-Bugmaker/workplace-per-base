@@ -11,6 +11,7 @@ import com.crrc.enums.OperateType;
 import com.crrc.handler.MultiTenantHandler;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.KingDiePersonalOrderDTO;
+import com.crrc.service.CategoryRecordService;
 import com.crrc.service.impl.*;
 import com.crrc.utils.UpdateWrapperUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,12 +20,16 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 免登录方法集合
@@ -56,6 +61,10 @@ public class ExternalController {
     private HrEmpSkillLevelServiceImpl hrEmpSkillLevelService;
     @Autowired
     private HrEmpSalaryInfoServiceImpl hrEmpSalaryInfoService;
+    @Autowired
+    private HrEmpBasicController hrEmpBasicController;
+    @Autowired
+    private CategoryRecordService categoryRecordService;
 
     @PostMapping("/receiveKingDieMsg")
     @Operation(summary = "接收金蝶传递人事令信息")
@@ -125,7 +134,17 @@ public class ExternalController {
                 }
 
                 //任职信息
-                if (dto.getHrEmpAppointments() != null && !dto.getHrEmpAppointments().isEmpty()){
+                if (dto.getHrEmpAppointments() != null && !dto.getHrEmpAppointments().isEmpty()) {
+                    // 更新之前任职信息的结束时间
+                    // 选择出所有任职信息的结束时间为空的数据
+                    List<HrEmpAppointment> undoneList = hrEmpAppointmentService.selectUndoneApp(dto.getHrEmpAppointments().get(0).getUserCode());
+                    if (ObjectUtils.isEmpty(undoneList)) {
+                        for (HrEmpAppointment temp : undoneList) {
+                            temp.setEndDate(dto.getHrEmpAppointments().get(0).getStartDate());
+                        }
+                        hrEmpAppointmentService.updateBatchById(undoneList);
+                    }
+                    // 保存新的任职信息
                     for (HrEmpAppointment appointment : dto.getHrEmpAppointments()){
                         if (appointment.getUserCode() != null) {
                             appointment.setId(IdUtil.simpleUUID());
@@ -135,14 +154,6 @@ public class ExternalController {
                                 return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "保存任职信息失败!");
                             }
                         }
-                    }
-                    //更新之前任职信息的结束时间
-                    List<HrEmpAppointment> undoneList = hrEmpAppointmentService.selectUndoneApp(dto.getHrEmpAppointments().get(0).getUserCode());
-                    if (undoneList != null) {
-                        for (HrEmpAppointment temp : undoneList) {
-                            temp.setEndDate(dto.getHrEmpAppointments().get(0).getStartDate());
-                        }
-                        hrEmpAppointmentService.updateBatchById(undoneList);
                     }
                 }
 
@@ -289,6 +300,40 @@ public class ExternalController {
                 MultiTenantHandler.tenantId.remove();
             }
         }
+
+        List<HrEmpBasic> userList = dtoList.stream().map(KingDiePersonalOrderDTO::getHrEmpBasic).collect(Collectors.toList());
+        // 统计之前的人员分类1、4、7、8
+        List<HrEmpBasic> categoryInfoList = hrEmpBasicService.getCategoryInfo(userList);
+        Map<String, CategoryRecord> categoryRecordMap = categoryInfoList.stream().collect(Collectors.toMap(
+                HrEmpBasic::getUserCode,
+                item -> new CategoryRecord(
+                        0,
+                        item.getUserCode(),
+                        item.getCategory1(),
+                        item.getCategory4(),
+                        item.getCategory7(),
+                        item.getCategory8(),
+                        null,
+                        null,
+                        null,
+                        null
+                )
+        ));
+
+        hrEmpBasicController.syncPersonCategory(userList);
+        // 统计之后的人员分类1、4、7、8
+        List<HrEmpBasic> categoryInfoNewList = hrEmpBasicService.getCategoryInfo(userList);
+        categoryInfoNewList.forEach(item -> {
+            CategoryRecord categoryRecord = categoryRecordMap.get(item.getUserCode());
+            categoryRecord.setNewCategory1(item.getCategory1());
+            categoryRecord.setNewCategory4(item.getCategory4());
+            categoryRecord.setNewCategory7(item.getCategory7());
+            categoryRecord.setNewCategory8(item.getCategory8());
+        });
+
+        categoryRecordService.saveBatch(new ArrayList<>(categoryRecordMap.values()));
+
         return new ResponseResult<>(HttpStatus.OK.value(), "人事令下达成功，信息已变更！ 变更数量： " + updateFlag);
     }
+
 }

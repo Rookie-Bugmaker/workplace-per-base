@@ -1,5 +1,6 @@
 package com.crrc.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.crrc.annotation.IgnoreTenant;
 import com.crrc.api.WkCoreAPi;
@@ -91,6 +92,13 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         this.wkDataAPi = wkDataAPi;
         this.sysServerClient = sysServerClient;
         this.dictTypeUtils = dictTypeUtils;
+    }
+
+    public List<HrEmpBasic> getCategoryInfo(List<HrEmpBasic> hrEmpBasicList) {
+        Set<String> userCodeSet = hrEmpBasicList.stream().map(HrEmpBasic::getUserCode).collect(Collectors.toSet());
+        LambdaQueryWrapper<HrEmpBasic> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(HrEmpBasic::getUserCode, userCodeSet);
+        return hrEmpBasicMapper.selectList(wrapper);
     }
 
     /**
