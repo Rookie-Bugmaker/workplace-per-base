@@ -102,6 +102,12 @@ public class HrEmpBasicController {
     @Autowired
     private CodeInfoService codeInfoService;
 
+    @GetMapping("/isAvailable")
+    @Operation(summary = "就绪探针")
+    public ResponseResult<String> isAvailable() {
+        return new ResponseResult<>(HttpStatus.OK.value(), "OK", "OK");
+    }
+
     @GetMapping("/getDept")
     @Operation(summary = "获得员工所属部门")
     @AuditLog(value = "获得员工所属部门", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
