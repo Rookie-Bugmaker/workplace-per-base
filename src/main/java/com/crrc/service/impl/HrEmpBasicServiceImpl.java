@@ -439,7 +439,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
      */
     private void resolveStatus(HrEmpBasicDTO dto) {
         // 查询的表名
-        String tableName = "person_status";
+        String tableName = "hr_emp_basic";
         try {
             if (StringUtils.isNotBlank(dto.getStatus())) {
                 String status = codeInfoService.translateCode(dto.getStatus(), tableName, "per_status");
