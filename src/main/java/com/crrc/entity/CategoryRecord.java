@@ -47,9 +47,16 @@ public class CategoryRecord extends BaseEntity {
 
     private String newCategory8;
 
+    /**
+     * 根据userCode，旧人员分类1478，新人员分类1478获得一个日志记录实体
+     * @param userCode 记录的userCode
+     * @param oldRecord 包含旧人员分类1478记录的HrEmpBasic实体
+     * @param newRecord 包含新人员分类1478记录的HrEmpBasic实体
+     * @return 创建的日志记录实体
+     */
     public static CategoryRecord of(String userCode, HrEmpBasic oldRecord, HrEmpBasic newRecord) {
         CategoryRecord categoryRecord = new CategoryRecord();
-        categoryRecord.userCode = oldRecord.getUserCode();
+        categoryRecord.userCode = userCode;
         categoryRecord.oldCategory1 = oldRecord.getCategory1();
         categoryRecord.oldCategory4 = oldRecord.getCategory4();
         categoryRecord.oldCategory7 = oldRecord.getCategory7();

@@ -321,7 +321,7 @@ public class HrEmpBasicController {
             if("在岗".equals(dutyStatus) || "101".equals(dutyStatus)) {
                 return "006";
             }
-            // 任职信息→在岗状态→859内退人员&“三类精算”内退人员&新增精算内退人员&其他内退人员
+            // 任职信息→在岗状态→859内退人员&“三类精算”内退人员&新增精算内退人员&其他内退人员 -> 养
             if("859内退人员".equals(dutyStatus) || "“三类精算”内退人员".equals(dutyStatus) || "新增精算内退人员".equals(dutyStatus) || "其他内退人员".equals(dutyStatus)
             || "202".equals(dutyStatus) || "203".equals(dutyStatus) || "204".equals(dutyStatus) || "205".equals(dutyStatus)) {
                 return "007";
@@ -344,16 +344,16 @@ public class HrEmpBasicController {
             }
             String appointmentType = hrEmpOtherAppointment.getOtherAppointmentType();
             // 其他任职信息→其他任职类型→借调 -> 借
-            // TODO: 暂时没有借调、外派和助勤的code
-            if("借调".equals(appointmentType)) {
+            // TODO: 确认借调、外派、助勤的code
+            if("022".equals(appointmentType) || "借调".equals(appointmentType)) {
                 return "002";
             }
             // 其他任职信息→其他任职类型→外派 -> 派
-            if("外派".equals(appointmentType)) {
+            if("028".equals(appointmentType) || "外派".equals(appointmentType)) {
                 return "004";
             }
             // 其他任职信息→其他任职类型→助勤 -> 助
-            if("助勤".equals(appointmentType)) {
+            if("031".equals(appointmentType) || "助勤".equals(appointmentType)) {
                 return "008";
             }
         }
