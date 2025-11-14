@@ -293,6 +293,35 @@ public class HrEmpBasicController {
     }
 
     private String resolveCategory8(HrEmpBasic hrEmpBasic) {
+        // 先判断借调、外派、助勤
+        // 查找duty_status不为空的其他任职信息
+        LambdaQueryWrapper<HrEmpOtherAppointment> otherAppQueryWrapper = new LambdaQueryWrapper<>();
+        otherAppQueryWrapper.eq(HrEmpOtherAppointment::getUserCode, hrEmpBasic.getUserCode());
+        List<HrEmpOtherAppointment> hrEmpOtherAppointments = hrEmpOtherAppointmentMapper.selectList(otherAppQueryWrapper).stream()
+                .filter(e -> e.getDutyStatus() != null).collect(Collectors.toList());
+        if(!ObjectUtils.isEmpty(hrEmpOtherAppointments)) {
+            HrEmpOtherAppointment hrEmpOtherAppointment = hrEmpOtherAppointments.get(0);
+            // 如果超过一条，选择startDate最晚的
+            if (hrEmpOtherAppointments.size() > 1) {
+                hrEmpOtherAppointment = hrEmpOtherAppointments.stream().reduce(
+                        (a, b) -> a.getStartDate().isAfter(b.getStartDate()) ? a : b
+                ).get();
+            }
+            String appointmentType = hrEmpOtherAppointment.getOtherAppointmentType();
+            // 其他任职信息→其他任职类型→借调开始 -> 借
+            if("022".equals(appointmentType) || "借调开始".equals(appointmentType)) {
+                return "002";
+            }
+            // 其他任职信息→其他任职类型→外派开始 -> 派
+            if("028".equals(appointmentType) || "外派开始".equals(appointmentType)) {
+                return "004";
+            }
+            // 其他任职信息→其他任职类型→助勤开始 -> 助
+            if("031".equals(appointmentType) || "助勤开始".equals(appointmentType)) {
+                return "008";
+            }
+        }
+
         LambdaQueryWrapper<HrEmpAppointment> appointmentQueryWrapper = new LambdaQueryWrapper<>();
         appointmentQueryWrapper.eq(HrEmpAppointment::getUserCode, hrEmpBasic.getUserCode());
         // 查找duty_status不为空的任职信息
@@ -325,36 +354,6 @@ public class HrEmpBasicController {
             if("859内退人员".equals(dutyStatus) || "“三类精算”内退人员".equals(dutyStatus) || "新增精算内退人员".equals(dutyStatus) || "其他内退人员".equals(dutyStatus)
             || "202".equals(dutyStatus) || "203".equals(dutyStatus) || "204".equals(dutyStatus) || "205".equals(dutyStatus)) {
                 return "007";
-            }
-
-        }
-
-        // 查找duty_status不为空的其他任职信息
-        LambdaQueryWrapper<HrEmpOtherAppointment> otherAppQueryWrapper = new LambdaQueryWrapper<>();
-        otherAppQueryWrapper.eq(HrEmpOtherAppointment::getUserCode, hrEmpBasic.getUserCode());
-        List<HrEmpOtherAppointment> hrEmpOtherAppointments = hrEmpOtherAppointmentMapper.selectList(otherAppQueryWrapper).stream()
-                .filter(e -> e.getDutyStatus() != null).collect(Collectors.toList());
-        if(!ObjectUtils.isEmpty(hrEmpOtherAppointments)) {
-            HrEmpOtherAppointment hrEmpOtherAppointment = hrEmpOtherAppointments.get(0);
-            // 如果超过一条，选择startDate最晚的
-            if (hrEmpOtherAppointments.size() > 1) {
-                hrEmpOtherAppointment = hrEmpOtherAppointments.stream().reduce(
-                        (a, b) -> a.getStartDate().isAfter(b.getStartDate()) ? a : b
-                ).get();
-            }
-            String appointmentType = hrEmpOtherAppointment.getOtherAppointmentType();
-            // 其他任职信息→其他任职类型→借调 -> 借
-            // TODO: 确认借调、外派、助勤的code
-            if("022".equals(appointmentType) || "借调".equals(appointmentType)) {
-                return "002";
-            }
-            // 其他任职信息→其他任职类型→外派 -> 派
-            if("028".equals(appointmentType) || "外派".equals(appointmentType)) {
-                return "004";
-            }
-            // 其他任职信息→其他任职类型→助勤 -> 助
-            if("031".equals(appointmentType) || "助勤".equals(appointmentType)) {
-                return "008";
             }
         }
         // 全都匹配不上，返回空
