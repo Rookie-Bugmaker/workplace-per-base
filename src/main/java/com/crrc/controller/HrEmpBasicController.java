@@ -300,6 +300,7 @@ public class HrEmpBasicController {
         List<HrEmpOtherAppointment> hrEmpOtherAppointments = hrEmpOtherAppointmentMapper.selectList(otherAppQueryWrapper).stream()
                 .filter(e -> e.getDutyStatus() != null).collect(Collectors.toList());
         if(!ObjectUtils.isEmpty(hrEmpOtherAppointments)) {
+            log.info("开始判断其他任职信息(借、派、助)");
             HrEmpOtherAppointment hrEmpOtherAppointment = hrEmpOtherAppointments.get(0);
             // 如果超过一条，选择startDate最晚的
             if (hrEmpOtherAppointments.size() > 1) {
@@ -320,6 +321,7 @@ public class HrEmpBasicController {
             if("031".equals(appointmentType) || "助勤开始".equals(appointmentType)) {
                 return "008";
             }
+            log.info("其他任职信息(借、派、助)均不匹配");
         }
 
         LambdaQueryWrapper<HrEmpAppointment> appointmentQueryWrapper = new LambdaQueryWrapper<>();
@@ -328,6 +330,7 @@ public class HrEmpBasicController {
         List<HrEmpAppointment> hrEmpAppointments = hrEmpAppointmentMapper.selectList(appointmentQueryWrapper).stream()
                 .filter(e -> e.getDutyStatus() != null).collect(Collectors.toList());
         if(!ObjectUtils.isEmpty(hrEmpAppointments)) {
+            log.info("开始判断任职信息(待、劳、伤、现、养)");
             HrEmpAppointment hrEmpAppointment = hrEmpAppointments.get(0);
             // 如果超过一条，选择startDate最晚的
             if(hrEmpAppointments.size() > 1) {
@@ -355,6 +358,7 @@ public class HrEmpBasicController {
             || "202".equals(dutyStatus) || "203".equals(dutyStatus) || "204".equals(dutyStatus) || "205".equals(dutyStatus)) {
                 return "007";
             }
+            log.info("任职信息(待、劳、伤、现、养)均不匹配");
         }
         // 全都匹配不上，返回空
         return null;
