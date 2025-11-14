@@ -300,40 +300,38 @@ public class ExternalController {
                 MultiTenantHandler.tenantId.remove();
             }
         }
+        // 设置租户id
+        MultiTenantHandler.tenantId.set("438");
+        try {
+            List<HrEmpBasic> userList = dtoList.stream().map(KingDiePersonalOrderDTO::getHrEmpBasic).collect(Collectors.toList());
+            // 统计之前的人员分类1、4、7、8
+            List<HrEmpBasic> categoryInfoList = hrEmpBasicService.getCategoryInfo(userList);
+            Map<String, HrEmpBasic> hrEmpBasicMap = categoryInfoList.stream().collect(Collectors.toMap(
+                    HrEmpBasic::getUserCode,
+                    hrEmpBasic -> hrEmpBasic
+            ));
 
-        List<HrEmpBasic> userList = dtoList.stream().map(KingDiePersonalOrderDTO::getHrEmpBasic).collect(Collectors.toList());
-        // 统计之前的人员分类1、4、7、8
-        List<HrEmpBasic> categoryInfoList = hrEmpBasicService.getCategoryInfo(userList);
-        Map<String, CategoryRecord> categoryRecordMap = categoryInfoList.stream().collect(Collectors.toMap(
-                HrEmpBasic::getUserCode,
-                item -> new CategoryRecord(
-                        0,
-                        item.getUserCode(),
-                        item.getCategory1(),
-                        item.getCategory4(),
-                        item.getCategory7(),
-                        item.getCategory8(),
-                        null,
-                        null,
-                        null,
-                        null
-                )
-        ));
+            log.info("旧人员分类统计完毕，数量：{}", hrEmpBasicMap.size());
+            hrEmpBasicController.syncPersonCategory(userList);
+            // 统计之后的人员分类1、4、7、8
+            List<HrEmpBasic> categoryInfoNewList = hrEmpBasicService.getCategoryInfo(userList);
+            List<CategoryRecord> categoryRecordList = new ArrayList<>();
+            categoryInfoNewList.forEach(newRecord -> {
+                HrEmpBasic oldRecord = hrEmpBasicMap.get(newRecord.getUserCode());
+                categoryRecordList.add(CategoryRecord.of(newRecord.getUserCode(), oldRecord, newRecord));
+            });
+            log.info("新人员分类统计完毕，数量：{}", categoryRecordList.size());
 
-        log.info("旧人员分类统计完毕，数量：{}", categoryRecordMap.size());
-        hrEmpBasicController.syncPersonCategory(userList);
-        // 统计之后的人员分类1、4、7、8
-        List<HrEmpBasic> categoryInfoNewList = hrEmpBasicService.getCategoryInfo(userList);
-        categoryInfoNewList.forEach(item -> {
-            CategoryRecord categoryRecord = categoryRecordMap.get(item.getUserCode());
-            categoryRecord.setNewCategory1(item.getCategory1());
-            categoryRecord.setNewCategory4(item.getCategory4());
-            categoryRecord.setNewCategory7(item.getCategory7());
-            categoryRecord.setNewCategory8(item.getCategory8());
-        });
-        log.info("新人员分类统计完毕，数量：{}", categoryRecordMap.size());
-        categoryRecordService.saveBatch(new ArrayList<>(categoryRecordMap.values()));
-        log.info("日志保存完毕");
+            categoryRecordService.saveBatch(categoryRecordList);
+
+            log.info("日志保存完毕");
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw new RuntimeException("处理人事令信息异常：" + e.getMessage());
+        } finally {
+            MultiTenantHandler.tenantId.remove();
+        }
+
         return new ResponseResult<>(HttpStatus.OK.value(), "人事令下达成功，信息已变更！ 变更数量： " + updateFlag);
     }
 

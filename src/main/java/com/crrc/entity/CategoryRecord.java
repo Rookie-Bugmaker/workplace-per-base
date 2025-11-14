@@ -1,6 +1,8 @@
 package com.crrc.entity;
 
 import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -14,9 +16,15 @@ import lombok.experimental.Accessors;
 @TableName("category_record")
 @Schema(description = "字典表")
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
 public class CategoryRecord extends BaseEntity {
+    private CategoryRecord(String userCode, String oldCategory1, String oldCategory4, String oldCategory7) {
+
+    }
+
+    @TableId(type = IdType.AUTO)
+    private Long id;
+
     @TableLogic(value = "0")
     @Schema(description = "删除", example = "false")
     private Integer deleted;
@@ -38,4 +46,19 @@ public class CategoryRecord extends BaseEntity {
     private String newCategory7;
 
     private String newCategory8;
+
+    public static CategoryRecord of(String userCode, HrEmpBasic oldRecord, HrEmpBasic newRecord) {
+        CategoryRecord categoryRecord = new CategoryRecord();
+        categoryRecord.userCode = oldRecord.getUserCode();
+        categoryRecord.oldCategory1 = oldRecord.getCategory1();
+        categoryRecord.oldCategory4 = oldRecord.getCategory4();
+        categoryRecord.oldCategory7 = oldRecord.getCategory7();
+        categoryRecord.oldCategory8 = oldRecord.getCategory8();
+
+        categoryRecord.newCategory1 = newRecord.getCategory1();
+        categoryRecord.newCategory4 = newRecord.getCategory4();
+        categoryRecord.newCategory7 = newRecord.getCategory7();
+        categoryRecord.newCategory8 = newRecord.getCategory8();
+        return categoryRecord;
+    }
 }
