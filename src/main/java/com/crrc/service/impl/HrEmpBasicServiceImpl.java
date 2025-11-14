@@ -291,13 +291,25 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 .like(StringUtils.isNotBlank(dto.getIsEmployed()),
                         HrEmpBasic::getIsEmployed,
                         dto.getIsEmployed())
-                .eq(StringUtils.isNotBlank(dto.getDutyStatus()),
-                        HrEmpBasic::getStatus,
-                        dto.getDutyStatus())
                 .in(ObjectUtils.isNotEmpty(dto.getDeptSet()),
                         HrEmpBasic::getDept,
                         dto.getDeptSet()
                 );
+
+        Set<String> category8StatusSet = new HashSet<>(Arrays.asList(
+                "002",
+                "004",
+                "008"
+        ));
+        // 判断dto中的dutyStatus字段，如果是002、004、008（借、派、助），则从人员分类8中筛选
+        if(StringUtils.isNotBlank(dto.getDutyStatus()) && category8StatusSet.contains(dto.getDutyStatus())) {
+            wrapper.eq(HrEmpBasic::getCategory8, dto.getDutyStatus());
+        }
+        // 否则从在岗状态中筛选
+        if(StringUtils.isNotBlank(dto.getDutyStatus()) && !category8StatusSet.contains(dto.getDutyStatus())) {
+            wrapper.eq(HrEmpBasic::getStatus, dto.getDutyStatus());
+        }
+
     }
 
 
@@ -427,10 +439,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
      */
     private void resolveStatus(HrEmpBasicDTO dto) {
         // 查询的表名
-        String tableName = "hr_emp_appointment";
+        String tableName = "person_status";
         try {
             if (StringUtils.isNotBlank(dto.getStatus())) {
-                String status = codeInfoService.translateCode(dto.getStatus(), tableName, "APPOINTMENT_DUTY_STATUS");
+                String status = codeInfoService.translateCode(dto.getStatus(), tableName, "per_status");
                 dto.setStatus(status);
             }
         } catch (Exception e) {

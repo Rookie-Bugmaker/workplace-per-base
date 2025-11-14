@@ -783,7 +783,8 @@ public class HrEmpBasicController {
     @Operation(summary = "获取所有在岗状态")
     public ResponseResult<List<MapVO<String, String>>> getDutyStatusDict()  {
         try {
-            List<MapVO<String, String>> result = codeInfoService.getTranslateMap("hr_emp_appointment", "APPOINTMENT_DUTY_STATUS").entrySet()
+            // 获取包含在岗状态和人员分类8 助、派、借三个状态的字典
+            List<MapVO<String, String>> result = codeInfoService.getTranslateMap("hr_emp_basic", "per_status").entrySet()
                     .stream().map(e -> new MapVO<>(e.getKey(), e.getValue())).collect(Collectors.toList());
             return new ResponseResult<>(HttpStatus.OK.value(), "获取字典成功", result);
         } catch (Exception e) {
