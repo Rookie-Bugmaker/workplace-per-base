@@ -320,6 +320,7 @@ public class ExternalController {
                 )
         ));
 
+        log.info("旧人员分类统计完毕，数量：{}", categoryRecordMap.size());
         hrEmpBasicController.syncPersonCategory(userList);
         // 统计之后的人员分类1、4、7、8
         List<HrEmpBasic> categoryInfoNewList = hrEmpBasicService.getCategoryInfo(userList);
@@ -330,9 +331,9 @@ public class ExternalController {
             categoryRecord.setNewCategory7(item.getCategory7());
             categoryRecord.setNewCategory8(item.getCategory8());
         });
-
+        log.info("新人员分类统计完毕，数量：{}", categoryRecordMap.size());
         categoryRecordService.saveBatch(new ArrayList<>(categoryRecordMap.values()));
-
+        log.info("日志保存完毕");
         return new ResponseResult<>(HttpStatus.OK.value(), "人事令下达成功，信息已变更！ 变更数量： " + updateFlag);
     }
 
