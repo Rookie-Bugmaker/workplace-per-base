@@ -138,7 +138,7 @@ public class ExternalController {
                     // 更新之前任职信息的结束时间
                     // 选择出所有任职信息的结束时间为空的数据
                     List<HrEmpAppointment> undoneList = hrEmpAppointmentService.selectUndoneApp(dto.getHrEmpAppointments().get(0).getUserCode());
-                    if (ObjectUtils.isEmpty(undoneList)) {
+                    if (!ObjectUtils.isEmpty(undoneList)) {
                         for (HrEmpAppointment temp : undoneList) {
                             temp.setEndDate(dto.getHrEmpAppointments().get(0).getStartDate());
                         }
@@ -173,7 +173,7 @@ public class ExternalController {
                 if (dto.getHrEmpOtherAppointments() != null && !dto.getHrEmpOtherAppointments().isEmpty()){
                     //更新之前任职信息的结束时间
                     List<HrEmpOtherAppointment> undoneList = hrEmpOtherAppointmentService.selectUndoneApp(dto.getHrEmpOtherAppointments().get(0).getUserCode());
-                    if (undoneList != null) {
+                    if (!ObjectUtils.isEmpty(undoneList)) {
                         for (HrEmpOtherAppointment temp : undoneList) {
                             temp.setEndDate(dto.getHrEmpOtherAppointments().get(0).getStartDate());
                         }
