@@ -171,6 +171,15 @@ public class ExternalController {
 
                 //其他任职信息
                 if (dto.getHrEmpOtherAppointments() != null && !dto.getHrEmpOtherAppointments().isEmpty()){
+                    //更新之前任职信息的结束时间
+                    List<HrEmpOtherAppointment> undoneList = hrEmpOtherAppointmentService.selectUndoneApp(dto.getHrEmpOtherAppointments().get(0).getUserCode());
+                    if (undoneList != null) {
+                        for (HrEmpOtherAppointment temp : undoneList) {
+                            temp.setEndDate(dto.getHrEmpOtherAppointments().get(0).getStartDate());
+                        }
+                        hrEmpOtherAppointmentService.updateBatchById(undoneList);
+                    }
+
                     for (HrEmpOtherAppointment otherApp : dto.getHrEmpOtherAppointments()){
                         if (otherApp.getUserCode() != null) {
                             otherApp.setId(IdUtil.simpleUUID());
@@ -181,15 +190,6 @@ public class ExternalController {
                             }
                         }
                     }
-                    //更新之前任职信息的结束时间
-                    List<HrEmpOtherAppointment> undoneList = hrEmpOtherAppointmentService.selectUndoneApp(dto.getHrEmpOtherAppointments().get(0).getUserCode());
-                    if (undoneList != null) {
-                        for (HrEmpOtherAppointment temp : undoneList) {
-                            temp.setEndDate(dto.getHrEmpOtherAppointments().get(0).getStartDate());
-                        }
-                        hrEmpOtherAppointmentService.updateBatchById(undoneList);
-                    }
-
                 }
 
 
@@ -215,7 +215,23 @@ public class ExternalController {
 
                 //员工履历信息表
                 if (dto.getHrEmpResumes() != null && !dto.getHrEmpResumes().isEmpty()){
-                    for (HrEmpResume resume : dto.getHrEmpResumes()){
+                    // 获取工号
+                    HrEmpResume hrEmpResume = dto.getHrEmpResumes().get(0);
+                    // 选择所有该工号，结束时间为null的数据
+                    LambdaQueryWrapper<HrEmpResume> queryWrapper = new LambdaQueryWrapper<>();
+                    queryWrapper.isNull(HrEmpResume::getEndDate);
+                    queryWrapper.eq(HrEmpResume::getUserCode, hrEmpResume.getUserCode());
+                    List<HrEmpResume> hrEmpResumeList = hrEmpResumeService.getBaseMapper().selectList(queryWrapper);
+                    if(!ObjectUtils.isEmpty(hrEmpResumeList)) {
+                        // 设置结束时间为下一履历的开始时间
+                        hrEmpResumeList.forEach(
+                            item -> item.setEndDate(hrEmpResume.getStartDate())
+                        );
+                    }
+
+                    hrEmpResumeService.saveOrUpdateBatch(hrEmpResumeList);
+
+                    for (HrEmpResume resume : dto.getHrEmpResumes()) {
                         if (resume.getUserCode() != null) {
                             resume.setId(IdUtil.simpleUUID());
                             boolean saveResult = hrEmpResumeService.save(resume);
