@@ -3,6 +3,8 @@ package com.crrc.client;
 import com.crrc.client.fallback.SysServerClientFallback;
 import com.crrc.common.PaginationGrid;
 import com.crrc.common.ResultData;
+import com.crrc.entity.dto.DeptDTO;
+import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.pojo.dto.*;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
@@ -69,4 +71,20 @@ public interface SysServerClient {
      */
     @PostMapping(value = "/org/person/findById?language=zh-CN", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
     ResultData<SysEmployeeDTO> findDeptListByPersonId(@RequestBody DeptListQueryDTO deptListQueryDTO);
+
+    /**
+     * 根据部门id获取部门信息
+     * @param id 部门id
+     * @return 信息
+     */
+    @GetMapping("/sys/dept/get")
+    ResultData<DeptDTO> findDeptByDeptId(@RequestParam("id") Long id);
+
+    /**
+     * 根据工号查询详细人员信息
+     * @param jobNo 工号，即userCode
+     * @return 详细人员信息
+     */
+    @PostMapping("/org/person/findByJobNo")
+    ResultData<SysDeptPersonDTO> findByJobNo(@RequestParam("jobNo") String jobNo);
 }
