@@ -97,13 +97,22 @@ public class HrEmpFlowableController {
             DeptDTO deptDTO = pageByDeptId.getResult();
 
             log.info("部门信息查询完毕: {}", deptDTO.getOrgCode());
-            log.info("公司编码:, {}", deptDTO.getParentOrgCode());
-            if(code2AuditList.containsKey(deptDTO.getOrgCode()) || code2AuditList.containsKey(deptDTO.getParentOrgCode())) {
+            log.info("公司编码:, {}", deptDTO.getCompanyId());
+
+            Optional<CompanyDTO> first = sysServerClient.pageCompany(1, 10000).getResult().getRows().stream().filter(e -> e.getId().equals(deptDTO.getCompanyId())).findFirst();
+            String companyCode = "";
+            if(first.isPresent()) {
+                companyCode = first.get().getOrgCode();
+                log.info("公司查询成功，编码: {}", companyCode);
+            } else {
+                log.info("公司查询失败，编码:, {}", deptDTO.getCompanyId());
+            }
+            if(code2AuditList.containsKey(deptDTO.getOrgCode()) || code2AuditList.containsKey(companyCode)) {
                 log.info("开始查询个人信息，组装审批人");
                 List<String> userCodeList = code2AuditList.getOrDefault(deptDTO.getOrgCode(), new ArrayList<>());
                 log.info("部门编码查询到审批人数量:, {}", code2AuditList.get(deptDTO.getOrgCode()).size());
-                userCodeList.addAll(code2AuditList.getOrDefault(deptDTO.getParentOrgCode(), new ArrayList<>()));
-                log.info("公司编码查询到审批人数量:, {}", code2AuditList.get(deptDTO.getParentOrgCode()).size());
+                userCodeList.addAll(code2AuditList.getOrDefault(companyCode, new ArrayList<>()));
+                log.info("公司编码查询到审批人数量:, {}", code2AuditList.get(companyCode).size());
                 List<String> userCodeDistinctList = userCodeList.stream().distinct().collect(Collectors.toList());
                 for (String userCode : userCodeDistinctList) {
                     ResultData<SysDeptPersonDTO> byUserCode = sysServerClient.findByUserCode(userCode);
