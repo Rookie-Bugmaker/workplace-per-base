@@ -82,7 +82,10 @@ public class HrEmpAppointmentController {
         Set<String> cadreSet = new HashSet<>(Arrays.asList(
                 "004", // 中
                 "005", // 干业
-                "006" // 人业
+                "006", // 人业
+                "中",
+                "干业",
+                "人业"
         ));
 
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", cadreSet.contains(basicList.get(0).getCategory4()));
