@@ -110,9 +110,9 @@ public class HrEmpFlowableController {
             if(code2AuditList.containsKey(deptDTO.getOrgCode()) || code2AuditList.containsKey(companyCode)) {
                 log.info("开始查询个人信息，组装审批人");
                 List<String> userCodeList = code2AuditList.getOrDefault(deptDTO.getOrgCode(), new ArrayList<>());
-                log.info("部门编码查询到审批人数量:, {}", code2AuditList.get(deptDTO.getOrgCode()).size());
+                log.info("部门编码查询到审批人:, {}", code2AuditList.getOrDefault(deptDTO.getOrgCode(), new ArrayList<>()));
                 userCodeList.addAll(code2AuditList.getOrDefault(companyCode, new ArrayList<>()));
-                log.info("公司编码查询到审批人数量:, {}", code2AuditList.get(companyCode).size());
+                log.info("公司编码查询到审批人:, {}", code2AuditList.getOrDefault(companyCode, new ArrayList<>()));
                 List<String> userCodeDistinctList = userCodeList.stream().distinct().collect(Collectors.toList());
                 for (String userCode : userCodeDistinctList) {
                     ResultData<SysDeptPersonDTO> byUserCode = sysServerClient.findByUserCode(userCode);
