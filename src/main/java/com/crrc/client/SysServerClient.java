@@ -77,7 +77,7 @@ public interface SysServerClient {
      * @param id 部门id
      * @return 信息
      */
-    @GetMapping("/sys/dept/get")
+    @GetMapping("/dept/get")
     ResultData<DeptDTO> findDeptByDeptId(@RequestParam("id") Long id);
 
     /**
