@@ -131,6 +131,7 @@ public class HrEmpFlowableController {
         } else {
             Optional<CompanyDTO> companyDTO = companyDTOResultData.getResult().getRows().stream().filter(e -> companyId.equals(e.getId())).findFirst();
             if(companyDTO.isPresent()) {
+                log.info("公司信息查询完毕, {}", companyDTO.get().getOrgCode());
                 String orgCode = companyDTO.get().getOrgCode();
                 if(code2AuditList.containsKey(orgCode)) {
                     log.info("开始查询个人信息，组装审批人");
@@ -154,6 +155,7 @@ public class HrEmpFlowableController {
                     }
                 }
             }
+            log.info("公司信息查询失败, {}", companyId);
         }
 
         if(ObjectUtils.isEmpty(result)) {
