@@ -80,9 +80,9 @@ public class HrEmpFlowableController {
         log.info("开始查询字典审批人");
         List<DictItemReqDTO> humanResourceAuditConfig = dictTypeUtils.getDict("human_resource_audit_config");
         Map<String, List<String>> code2AuditList = humanResourceAuditConfig.stream().collect(Collectors.groupingBy(
-                DictItemReqDTO::getItemCode,
+                DictItemReqDTO::getItemName,
                 Collectors.mapping(
-                        DictItemReqDTO::getItemName,
+                        DictItemReqDTO::getItemCode,
                         Collectors.toList()
                 )
         ));
