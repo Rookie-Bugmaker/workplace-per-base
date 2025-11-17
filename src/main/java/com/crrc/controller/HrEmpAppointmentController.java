@@ -92,13 +92,12 @@ public class HrEmpAppointmentController {
     }
 
     @GetMapping("/getCadrePosition")
-    @Operation(summary = "检查是否中干")
-    @AuditLog(value = "检查是否中干", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Operation(summary = "获取最新的中干任职信息")
+    @AuditLog(value = "获取最新的中干任职信息", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "userCode", description = "档案号", required = true, example = "013200012345")
-    public ResponseResult<HrEmpAppointment> getCadrePosition(@RequestParam String userCode) {
-
-        HrEmpAppointment hrEmpAppointment = hrEmpAppointmentService.selectLatestMsg(Collections.singletonList(userCode)).get(0);
-        return new ResponseResult<>(HttpStatus.OK.value(), "OK", hrEmpAppointment);
+    public ResponseResult<List<HrEmpAppointment>> getCadrePosition(@RequestParam String userCode) {
+        // 获取最新的中干任职信息
+        return new ResponseResult<>(HttpStatus.OK.value(), "OK", hrEmpAppointmentService.selectLatestMsg(Collections.singletonList(userCode)));
     }
 
     @GetMapping("/getDetails")
