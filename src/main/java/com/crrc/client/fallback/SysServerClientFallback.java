@@ -3,6 +3,7 @@ package com.crrc.client.fallback;
 import com.crrc.client.SysServerClient;
 import com.crrc.common.PaginationGrid;
 import com.crrc.common.ResultData;
+import com.crrc.entity.dto.CompanyDTO;
 import com.crrc.entity.dto.DeptDTO;
 import com.crrc.pojo.dto.*;
 import org.springframework.stereotype.Component;
@@ -52,6 +53,11 @@ public class SysServerClientFallback implements SysServerClient {
 
     @Override
     public ResultData<SysDeptPersonDTO> findByJobNo(String jobNo) {
+        return ResultData.fallback();
+    }
+
+    @Override
+    public ResultData<PaginationGrid<CompanyDTO>> pageCompany(Integer pageNo, Integer pageSize) {
         return ResultData.fallback();
     }
 

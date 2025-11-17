@@ -3,6 +3,7 @@ package com.crrc.client;
 import com.crrc.client.fallback.SysServerClientFallback;
 import com.crrc.common.PaginationGrid;
 import com.crrc.common.ResultData;
+import com.crrc.entity.dto.CompanyDTO;
 import com.crrc.entity.dto.DeptDTO;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.pojo.dto.*;
@@ -87,4 +88,7 @@ public interface SysServerClient {
      */
     @PostMapping("/org/person/findByJobNo")
     ResultData<SysDeptPersonDTO> findByJobNo(@RequestParam("jobNo") String jobNo);
+
+    @GetMapping("/company/page")
+    ResultData<PaginationGrid<CompanyDTO>> pageCompany(@RequestParam("pageNo") Integer pageNo, @RequestParam("pageSize") Integer pageSize);
 }

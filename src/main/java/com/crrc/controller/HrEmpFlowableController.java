@@ -5,6 +5,7 @@ import com.crrc.api.WkDataAPi;
 import com.crrc.client.SysServerClient;
 import com.crrc.common.PaginationGrid;
 import com.crrc.common.ResultData;
+import com.crrc.entity.dto.CompanyDTO;
 import com.crrc.entity.dto.DeptDTO;
 import com.crrc.entity.dto.DictItemReqDTO;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
@@ -88,35 +89,70 @@ public class HrEmpFlowableController {
 
         log.info("字典审批人查询完毕: size: {} {}", humanResourceAuditConfig.size(), humanResourceAuditConfig);
 
-        // 根据deptId和companyId查orgCode
+        // 根据deptId查orgCode
         ResultData<DeptDTO> pageByDeptId = sysServerClient.findDeptByDeptId(deptId);
         if(pageByDeptId == null || pageByDeptId.getResult() == null) {
             log.error("未查询到部门信息:{}", deptId);
+        } else {
+            DeptDTO deptDTO = pageByDeptId.getResult();
+
+            log.info("部门信息查询完毕: {}", deptDTO.getOrgCode());
+
+            if(code2AuditList.containsKey(deptDTO.getOrgCode())) {
+                log.info("开始查询个人信息，组装审批人");
+                List<String> userCodeList = code2AuditList.get(deptDTO.getOrgCode());
+                for (String userCode : userCodeList) {
+                    ResultData<SysDeptPersonDTO> byUserCode = sysServerClient.findByUserCode(userCode);
+                    if (byUserCode == null || byUserCode.getResult() == null || byUserCode.getResult().getPersonId() == null) {
+                        log.error("工号查询个人详细信息失败:{}", userCode);
+                        continue;
+                    }
+
+                    Long personId = byUserCode.getResult().getPersonId();
+                    ResultData<List<SysUserDTO>> byPersonIds = sysServerClient.findByPersonIds(Collections.singletonList(personId));
+                    if (byPersonIds == null || ObjectUtils.isEmpty(byPersonIds.getResult())) {
+                        log.error("人员id查询个人详细信息失败:{}", personId);
+                        continue;
+                    }
+
+                    result.addAll(byPersonIds.getResult());
+                    log.info("个人信息审批人: {}", byPersonIds.getResult().get(0).getUserName());
+                }
+            }
         }
 
-        DeptDTO deptDTO = pageByDeptId.getResult();
+        // 根据companyId查orgCode
+        ResultData<PaginationGrid<CompanyDTO>> companyDTOResultData = sysServerClient.pageCompany(1, 10000);
+        log.info("开始查询公司信息");
+        if(companyDTOResultData == null || companyDTOResultData.getResult() == null || ObjectUtils.isEmpty(companyDTOResultData.getResult().getRows())) {
+            log.error("未查询到公司信息:{}", companyId);
+        } else if(companyDTOResultData.getResult().getRows().size() != companyDTOResultData.getResult().getTotal()) {
+            log.error("公司数量异常，未能查全");
+        } else {
+            Optional<CompanyDTO> companyDTO = companyDTOResultData.getResult().getRows().stream().filter(e -> companyId.equals(e.getId())).findFirst();
+            if(companyDTO.isPresent()) {
+                String orgCode = companyDTO.get().getOrgCode();
+                if(code2AuditList.containsKey(orgCode)) {
+                    log.info("开始查询个人信息，组装审批人");
+                    List<String> userCodeList = code2AuditList.get(orgCode);
+                    for (String userCode : userCodeList) {
+                        ResultData<SysDeptPersonDTO> byUserCode = sysServerClient.findByUserCode(userCode);
+                        if (byUserCode == null || byUserCode.getResult() == null || byUserCode.getResult().getPersonId() == null) {
+                            log.error("工号查询个人详细信息失败:{}", userCode);
+                            continue;
+                        }
 
-        log.info("部门信息查询完毕: {}", deptDTO.getOrgCode());
+                        Long personId = byUserCode.getResult().getPersonId();
+                        ResultData<List<SysUserDTO>> byPersonIds = sysServerClient.findByPersonIds(Collections.singletonList(personId));
+                        if (byPersonIds == null || ObjectUtils.isEmpty(byPersonIds.getResult())) {
+                            log.error("人员id查询个人详细信息失败:{}", personId);
+                            continue;
+                        }
 
-        if(code2AuditList.containsKey(deptDTO.getOrgCode())) {
-            log.info("开始查询个人信息，组装审批人");
-            List<String> userCodeList = code2AuditList.get(deptDTO.getOrgCode());
-            for (String userCode : userCodeList) {
-                ResultData<SysDeptPersonDTO> byUserCode = sysServerClient.findByUserCode(userCode);
-                if (byUserCode == null || byUserCode.getResult() == null || byUserCode.getResult().getPersonId() == null) {
-                    log.error("工号查询个人详细信息失败:{}", userCode);
-                    continue;
+                        result.addAll(byPersonIds.getResult());
+                        log.info("个人信息审批人: {}", byPersonIds.getResult().get(0).getUserName());
+                    }
                 }
-
-                Long personId = byUserCode.getResult().getPersonId();
-                ResultData<List<SysUserDTO>> byPersonIds = sysServerClient.findByPersonIds(Collections.singletonList(personId));
-                if (byPersonIds == null || ObjectUtils.isEmpty(byPersonIds.getResult())) {
-                    log.error("人员id查询个人详细信息失败:{}", personId);
-                    continue;
-                }
-
-                result.addAll(byPersonIds.getResult());
-                log.info("个人信息审批人: {}", byPersonIds.getResult().get(0).getUserName());
             }
         }
 
