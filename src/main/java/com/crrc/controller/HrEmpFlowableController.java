@@ -97,11 +97,15 @@ public class HrEmpFlowableController {
             DeptDTO deptDTO = pageByDeptId.getResult();
 
             log.info("部门信息查询完毕: {}", deptDTO.getOrgCode());
-
-            if(code2AuditList.containsKey(deptDTO.getOrgCode())) {
+            log.info("公司编码:, {}", deptDTO.getParentOrgCode());
+            if(code2AuditList.containsKey(deptDTO.getOrgCode()) || code2AuditList.containsKey(deptDTO.getParentOrgCode())) {
                 log.info("开始查询个人信息，组装审批人");
-                List<String> userCodeList = code2AuditList.get(deptDTO.getOrgCode());
-                for (String userCode : userCodeList) {
+                List<String> userCodeList = code2AuditList.getOrDefault(deptDTO.getOrgCode(), new ArrayList<>());
+                log.info("部门编码查询到审批人数量:, {}", code2AuditList.get(deptDTO.getOrgCode()).size());
+                userCodeList.addAll(code2AuditList.getOrDefault(deptDTO.getParentOrgCode(), new ArrayList<>()));
+                log.info("公司编码查询到审批人数量:, {}", code2AuditList.get(deptDTO.getParentOrgCode()).size());
+                List<String> userCodeDistinctList = userCodeList.stream().distinct().collect(Collectors.toList());
+                for (String userCode : userCodeDistinctList) {
                     ResultData<SysDeptPersonDTO> byUserCode = sysServerClient.findByUserCode(userCode);
                     if (byUserCode == null || byUserCode.getResult() == null || byUserCode.getResult().getPersonId() == null) {
                         log.error("工号查询个人详细信息失败:{}", userCode);
@@ -119,43 +123,6 @@ public class HrEmpFlowableController {
                     log.info("个人信息审批人: {}", byPersonIds.getResult().get(0).getUserName());
                 }
             }
-        }
-
-        // 根据companyId查orgCode
-        ResultData<PaginationGrid<CompanyDTO>> companyDTOResultData = sysServerClient.pageCompany(1, 10000);
-        log.info("开始查询公司信息");
-        if(companyDTOResultData == null || companyDTOResultData.getResult() == null || ObjectUtils.isEmpty(companyDTOResultData.getResult().getRows())) {
-            log.error("未查询到公司信息:{}", companyId);
-        } else if(companyDTOResultData.getResult().getRows().size() != companyDTOResultData.getResult().getTotal()) {
-            log.error("公司数量异常，未能查全");
-        } else {
-            Optional<CompanyDTO> companyDTO = companyDTOResultData.getResult().getRows().stream().filter(e -> companyId.equals(e.getId())).findFirst();
-            if(companyDTO.isPresent()) {
-                log.info("公司信息查询完毕, {}", companyDTO.get().getOrgCode());
-                String orgCode = companyDTO.get().getOrgCode();
-                if(code2AuditList.containsKey(orgCode)) {
-                    log.info("开始查询个人信息，组装审批人");
-                    List<String> userCodeList = code2AuditList.get(orgCode);
-                    for (String userCode : userCodeList) {
-                        ResultData<SysDeptPersonDTO> byUserCode = sysServerClient.findByUserCode(userCode);
-                        if (byUserCode == null || byUserCode.getResult() == null || byUserCode.getResult().getPersonId() == null) {
-                            log.error("工号查询个人详细信息失败:{}", userCode);
-                            continue;
-                        }
-
-                        Long personId = byUserCode.getResult().getPersonId();
-                        ResultData<List<SysUserDTO>> byPersonIds = sysServerClient.findByPersonIds(Collections.singletonList(personId));
-                        if (byPersonIds == null || ObjectUtils.isEmpty(byPersonIds.getResult())) {
-                            log.error("人员id查询个人详细信息失败:{}", personId);
-                            continue;
-                        }
-
-                        result.addAll(byPersonIds.getResult());
-                        log.info("个人信息审批人: {}", byPersonIds.getResult().get(0).getUserName());
-                    }
-                }
-            }
-            log.info("公司信息查询失败, {}", companyId);
         }
 
         if(ObjectUtils.isEmpty(result)) {
