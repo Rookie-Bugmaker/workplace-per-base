@@ -68,9 +68,9 @@ public class HrEmpAppointmentController {
     private HrEmpBasicMapper hrEmpBasicMapper;
 
     @GetMapping("/isCadre")
-    @Operation(summary = "获得任职信息实体")
-    @AuditLog(value = "获得任职信息实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    @Parameter(name = "id", description = "主键编号", required = true, example = "1")
+    @Operation(summary = "检查是否中干")
+    @AuditLog(value = "检查是否中干", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "userCode", description = "档案号", required = true, example = "013200012345")
     public ResponseResult<Boolean> isCadre(@RequestParam String userCode) {
         LambdaQueryWrapper<HrEmpBasic> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(HrEmpBasic::getUserCode, userCode);
@@ -88,6 +88,15 @@ public class HrEmpAppointmentController {
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", cadreSet.contains(basicList.get(0).getCategory4()));
     }
 
+    @GetMapping("/getCadrePosition")
+    @Operation(summary = "检查是否中干")
+    @AuditLog(value = "检查是否中干", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "userCode", description = "档案号", required = true, example = "013200012345")
+    public ResponseResult<HrEmpAppointment> getCadrePosition(@RequestParam String userCode) {
+
+        HrEmpAppointment hrEmpAppointment = hrEmpAppointmentService.selectLatestMsg(Collections.singletonList(userCode)).get(0);
+        return new ResponseResult<>(HttpStatus.OK.value(), "OK", hrEmpAppointment);
+    }
 
     @GetMapping("/getDetails")
     @Operation(summary = "获得任职信息实体")
