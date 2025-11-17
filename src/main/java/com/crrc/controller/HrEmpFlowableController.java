@@ -76,6 +76,7 @@ public class HrEmpFlowableController {
             result.addAll(userByRoleCodeAndCompanyId.getResult());
         }
         // 查询字典中配置的审批人
+        log.info("开始查询字典审批人");
         List<DictItemReqDTO> humanResourceAuditConfig = dictTypeUtils.getDict("human_resource_audit_config");
         Map<String, List<String>> code2AuditList = humanResourceAuditConfig.stream().collect(Collectors.groupingBy(
                 DictItemReqDTO::getItemCode,
@@ -85,6 +86,8 @@ public class HrEmpFlowableController {
                 )
         ));
 
+        log.info("字典审批人查询完毕: size: {} {}", humanResourceAuditConfig.size(), humanResourceAuditConfig);
+
         // 根据deptId和companyId查orgCode
         ResultData<DeptDTO> pageByDeptId = sysServerClient.findDeptByDeptId(deptId);
         if(pageByDeptId == null || pageByDeptId.getResult() == null) {
@@ -93,7 +96,10 @@ public class HrEmpFlowableController {
 
         DeptDTO deptDTO = pageByDeptId.getResult();
 
+        log.info("部门信息查询完毕: {}", deptDTO.getOrgCode());
+
         if(code2AuditList.containsKey(deptDTO.getOrgCode())) {
+            log.info("开始查询个人信息，组装审批人");
             List<String> userCodeList = code2AuditList.get(deptDTO.getOrgCode());
             for (String userCode : userCodeList) {
                 ResultData<SysDeptPersonDTO> byUserCode = sysServerClient.findByUserCode(userCode);
@@ -110,10 +116,12 @@ public class HrEmpFlowableController {
                 }
 
                 result.addAll(byPersonIds.getResult());
+                log.info("个人信息审批人: {}", byPersonIds.getResult().get(0).getUserName());
             }
         }
 
         if(ObjectUtils.isEmpty(result)) {
+            log.info("未查到审批人数据");
             return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "未查到审批人数据!");
         }
 
