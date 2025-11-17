@@ -93,7 +93,6 @@ public class HrEmpFlowableController {
 
         DeptDTO deptDTO = pageByDeptId.getResult();
 
-
         if(code2AuditList.containsKey(deptDTO.getOrgCode())) {
             List<String> userCodeList = code2AuditList.get(deptDTO.getOrgCode());
             for (String userCode : userCodeList) {
