@@ -618,6 +618,7 @@ public class HrEmpBasicController {
             return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交", changeRequest.getId());
         } catch (Exception e) {
             log.error("提交变更申请失败: {}", e.getMessage());
+            log.error("详细信息", e);
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "提交失败");
         }
     }
