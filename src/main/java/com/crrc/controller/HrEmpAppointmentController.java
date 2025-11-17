@@ -5,15 +5,18 @@ import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
 import com.crrc.api.WkDataAPi;
 import com.crrc.entity.HrEmpAppointment;
+import com.crrc.entity.HrEmpBasic;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
+import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.service.impl.CodeInfoServiceImpl;
 import com.crrc.service.impl.HrEmpAppointmentServiceImpl;
@@ -27,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.ObjectUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -36,8 +40,7 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -61,6 +64,30 @@ public class HrEmpAppointmentController {
     private CodeInfoServiceImpl codeInfoService;
     @Autowired
     private WkDataAPi wkDataAPi;
+    @Autowired
+    private HrEmpBasicMapper hrEmpBasicMapper;
+
+    @GetMapping("/isCadre")
+    @Operation(summary = "获得任职信息实体")
+    @AuditLog(value = "获得任职信息实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "id", description = "主键编号", required = true, example = "1")
+    public ResponseResult<Boolean> isCadre(@RequestParam String userCode) {
+        LambdaQueryWrapper<HrEmpBasic> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(HrEmpBasic::getUserCode, userCode);
+        List<HrEmpBasic> basicList = hrEmpBasicMapper.selectList(queryWrapper);
+        if(ObjectUtils.isEmpty(basicList)) {
+            return new ResponseResult<>(HttpStatus.OK.value(), "OK", false);
+        }
+
+        Set<String> cadreSet = new HashSet<>(Arrays.asList(
+                "004", // 中
+                "005", // 干业
+                "006" // 人业
+        ));
+
+        return new ResponseResult<>(HttpStatus.OK.value(), "OK", cadreSet.contains(basicList.get(0).getCategory4()));
+    }
+
 
     @GetMapping("/getDetails")
     @Operation(summary = "获得任职信息实体")
