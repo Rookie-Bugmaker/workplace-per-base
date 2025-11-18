@@ -107,6 +107,8 @@ public class HrEmpBasicController {
     private UserProfileImageClient userProfileImageClient;
     @Autowired
     private MinIOUtils minIOUtils;
+    @Autowired
+    private PictureErrorServiceImpl pictureErrorServiceImpl;
 
     @GetMapping("/isAvailable")
     @Operation(summary = "就绪探针")
@@ -115,6 +117,7 @@ public class HrEmpBasicController {
     }
 
     @PostMapping("/syncPicture")
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult<Boolean> syncPicture(@RequestBody List<HrEmpBasic> userCodeList) {
         List<HrEmpBasic> list = (userCodeList != null && !userCodeList.isEmpty())
                 ? hrEmpBasicService.getListByUserCode(userCodeList)
@@ -122,36 +125,43 @@ public class HrEmpBasicController {
 
         List<String> uuidList = list.stream().map(HrEmpBasic::getUserCode).collect(Collectors.toList());
 
-        ImageReqDTO imageReqDTO = new ImageReqDTO();
-        imageReqDTO.setUuidList(uuidList);
-        ResponseData<List<UserImageDTO>> personImageByUserCode = userProfileImageClient.getPersonImageByUserCode(imageReqDTO);
-        if(personImageByUserCode == null || ObjectUtils.isEmpty(personImageByUserCode.getData()) || personImageByUserCode.getData().size() != list.size()) {
-            log.error("同步用户图片失败: {}", list);
-            throw new IllegalArgumentException("获取图片失败");
-        }
+        // 分批请求
+        List<List<String>> partition = ListUtils.partition(uuidList, 10);
+        for(List<String> sliceUuidList : partition) {
+            ImageReqDTO imageReqDTO = new ImageReqDTO();
+            imageReqDTO.setUuidList(sliceUuidList);
+            ResponseData<List<UserImageDTO>> personImageByUserCode = userProfileImageClient.getPersonImageByUserCode(imageReqDTO);
 
-        List<UserImageDTO> data = personImageByUserCode.getData();
-        data.forEach(userImageDTO -> {
-            String imageUri = userImageDTO.getImageUri();
-
-            try {
-                // 获取数据流
-                byte[] bytes = ImageUtils.downloadImage(imageUri);
-                // 转为MultipartFile
-                ByteArrayMultipartFile image = new ByteArrayMultipartFile(bytes, "image", "image.jpg", "image/jpeg");
-                // 上传到minIO
-                String profilePicture = minIOUtils.saveFile(image);
-                HrEmpBasic userInfo = hrEmpBasicService.getByUserCode(userImageDTO.getUuid());
-                userInfo.setProfilePicture(profilePicture);
-                // 更新数据
-                hrEmpBasicService.updateById(userInfo);
-            } catch (Exception e) {
-                log.error("上传错误", e);
-                throw new IllegalArgumentException(e.getMessage());
+            if(personImageByUserCode == null || ObjectUtils.isEmpty(personImageByUserCode.getData())) {
+                log.error("同步用户图片失败: {}", list);
+                // throw new IllegalArgumentException("获取图片失败");
             }
 
-        });
+            List<UserImageDTO> data = personImageByUserCode.getData();
+            data.forEach(userImageDTO -> {
+                String imageUri = userImageDTO.getImageUri();
 
+                try {
+                    // 获取数据流
+                    byte[] bytes = ImageUtils.downloadImage(imageUri);
+                    // 转为MultipartFile
+                    ByteArrayMultipartFile image = new ByteArrayMultipartFile(bytes, "image", "image.jpg", "image/jpeg");
+                    // 上传到minIO
+                    String profilePicture = minIOUtils.saveFile(image);
+                    HrEmpBasic userInfo = hrEmpBasicService.getByUserCode(userImageDTO.getUuid());
+                    userInfo.setProfilePicture(profilePicture);
+                    // 更新数据
+                    hrEmpBasicService.updateById(userInfo);
+                } catch (Exception e) {
+                    log.error("上传错误", e);
+                    log.error("用户图片同步失败: {}", userImageDTO.getUuid());
+                    PictureError pictureError = new PictureError();
+                    pictureError.setUserCode(userImageDTO.getUuid());
+                    pictureErrorServiceImpl.save(pictureError);
+                    // throw new IllegalArgumentException(e.getMessage());
+                }
+            });
+        }
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
     }
 
