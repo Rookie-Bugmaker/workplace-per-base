@@ -2,7 +2,7 @@ kind: Deployment
 apiVersion: apps/v1
 metadata:
   name: workplace-per-base
-  namespace: human-resource
+  namespace: hmr
 spec:
   replicas: 4
   selector:
@@ -22,19 +22,19 @@ spec:
             defaultMode: 420
       containers:
         - name: container-workplace-per-base
-          image: swr.ckgf-global-1.cccar.com.cn/work_place/workplace-per-base-product:5.0.0
+          image: swr.ckgf-global-1.cccar.com.cn/work_place/workplace-per-base-product:1.0.0
           resources:
             limits:
               cpu: '4'
-              memory: 8Gi
+              memory: 4Gi
             requests:
               cpu: '4'
-              memory: 4Gi
+              memory: 2Gi
           volumeMounts:
             - name: vol-workplace-per-base-config
               readOnly: true
-              mountPath: /home/workplace/application.yml
-              subPath: application.yml
+              mountPath: /home/workplace/bootstrap.yml
+              subPath: bootstrap.yml
           lifecycle:
             preStop:
               exec:
