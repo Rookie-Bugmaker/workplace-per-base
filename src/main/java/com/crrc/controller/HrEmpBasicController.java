@@ -145,9 +145,8 @@ public class HrEmpBasicController {
 
             List<UserImageDTO> data = personImageByUserCode.getData();
             data.forEach(userImageDTO -> {
-                String imageUri = userImageDTO.getImageUri();
-
                 try {
+                    String imageUri = userImageDTO.getImageUri();
                     // 获取数据流
                     byte[] bytes = ImageUtils.downloadImage(imageUri);
                     // 转为MultipartFile
