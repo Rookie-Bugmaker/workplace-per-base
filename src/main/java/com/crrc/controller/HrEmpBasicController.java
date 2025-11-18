@@ -11,6 +11,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
 import com.crrc.api.WkWorkflowApi;
+import com.crrc.client.UserProfileImageClient;
 import com.crrc.entity.*;
 import com.crrc.entity.dto.ProcessInstanceVo;
 import com.crrc.entity.dto.StartProcessInstanceDTO;
@@ -24,10 +25,10 @@ import com.crrc.mapper.HrEmpOtherAppointmentMapper;
 import com.crrc.mapper.HrEmpResumeMapper;
 import com.crrc.mongodb.HrEmpBasicChangeRequest;
 import com.crrc.pojo.ResponseResult;
-import com.crrc.pojo.dto.HrEmpBasicDTO;
-import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
+import com.crrc.pojo.dto.*;
 import com.crrc.pojo.vo.MapVO;
-import com.crrc.pojo.vo.PostCatalogInfoVO;
+import io.minio.MinioClient;
+import org.springframework.core.io.Resource;
 import com.crrc.service.CodeInfoService;
 import com.crrc.service.impl.*;
 import com.crrc.utils.*;
@@ -102,11 +103,63 @@ public class HrEmpBasicController {
     private PositionInfoServiceImpl positionInfoServiceImpl;
     @Autowired
     private CodeInfoService codeInfoService;
+    @Autowired
+    private UserProfileImageClient userProfileImageClient;
+    @Autowired
+    private MinIOUtils minIOUtils;
 
     @GetMapping("/isAvailable")
     @Operation(summary = "就绪探针")
     public ResponseResult<String> isAvailable() {
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", "OK");
+    }
+
+    @PostMapping("/syncPicture")
+    public ResponseResult<Boolean> syncPicture(@RequestBody List<HrEmpBasic> userCodeList) {
+        List<HrEmpBasic> list = (userCodeList != null && !userCodeList.isEmpty())
+                ? hrEmpBasicService.getListByUserCode(userCodeList)
+                : hrEmpBasicService.getAllUser();
+
+        List<String> uuidList = list.stream().map(HrEmpBasic::getUserCode).collect(Collectors.toList());
+
+        ImageReqDTO imageReqDTO = new ImageReqDTO();
+        imageReqDTO.setUuidList(uuidList);
+        ResponseData<List<UserImageDTO>> personImageByUserCode = userProfileImageClient.getPersonImageByUserCode(imageReqDTO);
+        if(personImageByUserCode == null || ObjectUtils.isEmpty(personImageByUserCode.getData()) || personImageByUserCode.getData().size() != list.size()) {
+            log.error("同步用户图片失败: {}", list);
+            throw new IllegalArgumentException("获取图片失败");
+        }
+
+        List<UserImageDTO> data = personImageByUserCode.getData();
+        data.forEach(userImageDTO -> {
+            String imageUri = userImageDTO.getImageUri();
+
+            try {
+                // 获取数据流
+                byte[] bytes = ImageUtils.downloadImage(imageUri);
+                // 转为MultipartFile
+                ByteArrayMultipartFile image = new ByteArrayMultipartFile(bytes, "image", "image.jpg", "image/jpeg");
+                // 上传到minIO
+                String profilePicture = minIOUtils.saveFile(image);
+                HrEmpBasic userInfo = hrEmpBasicService.getByUserCode(userImageDTO.getUuid());
+                userInfo.setProfilePicture(profilePicture);
+                // 更新数据
+                hrEmpBasicService.updateById(userInfo);
+            } catch (Exception e) {
+                log.error("上传错误", e);
+                throw new IllegalArgumentException(e.getMessage());
+            }
+
+        });
+
+        return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
+    }
+
+    @GetMapping("/download")
+    @Operation(summary = "图片下载")
+    @AuditLog(value = "图片下载", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public void downloadPicture(@RequestParam String fileId, HttpServletResponse response) {
+        minIOUtils.getFile(fileId, response);
     }
 
     @GetMapping("/getDept")

@@ -239,4 +239,9 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     @ExcelProperty(value = {"附件挂载Id"}, index = 37)
     @Schema(description = "附件挂载Id")
     private String fileHeaderId;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"用户图片的文件id"}, index = 38)
+    @Schema(description = "用户图片的文件id")
+    private String profilePicture;
 }
