@@ -4,7 +4,6 @@ package com.crrc.controller;
 import cn.hutool.core.util.IdUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
-import com.baomidou.mybatisplus.core.assist.ISqlRunner;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.crrc.api.WkWorkflowApi;
 import com.crrc.entity.*;
@@ -135,17 +134,16 @@ public class HrEmpEducationController {
                     hrEmpEducation.getSchoolName());
 
             // 修改判断逻辑
+            // 查询教育信息的schoolCode,如果schoolCode不为空，那么开始schoolName的处理
             if(StringUtils.isNotBlank(hrEmpEducation.getSchoolCode())) {
+                // 根据schoolCode查询schoolName
                 HrEmpSchoolInfo hrEmpSchoolInfo = hrEmpSchoolInfoService.selectByCode(hrEmpEducation.getSchoolCode());
                 log.info("查询结果: {}", hrEmpSchoolInfo);  // 打印整个对象
-
-                String finalName = "未知院校";
+                // 如果查询结果不为空，那么根据查询结果设置schoolName
                 if(hrEmpSchoolInfo != null && StringUtils.isNotBlank(hrEmpSchoolInfo.getSchoolName())) {
-                    finalName = hrEmpSchoolInfo.getSchoolName();
+                    hrEmpEducation.setSchoolName(hrEmpSchoolInfo.getSchoolName());
                 }
-                hrEmpEducation.setSchoolName(finalName);
-            } else if(StringUtils.isBlank(hrEmpEducation.getSchoolName())) {
-                hrEmpEducation.setSchoolName("未知院校");
+                // 否则不处理，使用未处理的schoolName
             }
 
             log.info("处理后 - schoolName: {}", hrEmpEducation.getSchoolName());
@@ -156,7 +154,12 @@ public class HrEmpEducationController {
                 if(StringUtils.isNotBlank(hrEmpEducation.getMajorCode())) {
                     // 大专及以上学历,且学历编码不为空，进行学历回写
                     HrEmpMajorInfo hrEmpMajorInfo = hrEmpMajorInfoService.selectByCode(hrEmpEducation.getMajorCode());
-                    hrEmpEducation.setMajor(hrEmpMajorInfo.getMajor());
+                    if(hrEmpMajorInfo == null) {
+                        log.info("专业查询失败");
+                        hrEmpEducation.setMajor("未知专业");
+                    } else {
+                        hrEmpEducation.setMajor(hrEmpMajorInfo.getMajor());
+                    }
                 } else {
                     hrEmpEducation.setMajor("未知专业");
                 }
@@ -361,6 +364,23 @@ public class HrEmpEducationController {
             changeRequest.setId(IdUtil.simpleUUID());
             changeRequest.setUserCode(changeReqVO.getUserCode());
             changeRequest.setOriginalData(originalData);
+            // 在保存时刷写专业名称
+            for(HrEmpEducation hrEmpEducation : changeReqVO.getList()) {
+                // 专业部分
+                if("001".equals(hrEmpEducation.getEducation()) || "002".equals(hrEmpEducation.getEducation())
+                        || "003".equals(hrEmpEducation.getEducation()) || "004".equals(hrEmpEducation.getEducation())) {
+                    if(StringUtils.isNotBlank(hrEmpEducation.getMajorCode())) {
+                        // 大专及以上学历,且学历编码不为空，进行学历回写
+                        HrEmpMajorInfo hrEmpMajorInfo = hrEmpMajorInfoService.selectByCode(hrEmpEducation.getMajorCode());
+                        hrEmpEducation.setMajor(hrEmpMajorInfo.getMajor());
+                    } else {
+                        hrEmpEducation.setMajor("未知专业");
+                    }
+                }else{
+                    // 其它学历，将专业置空
+                    hrEmpEducation.setMajor(null);
+                }
+            }
             changeRequest.setChangedData(changeReqVO.getList());
 
             log.info("等待保存的教育经历变更数据：{}", JSON.toJSONString(changeReqVO.getList(), SerializerFeature.PrettyFormat));
@@ -416,7 +436,7 @@ public class HrEmpEducationController {
             log.info("流程测试success");
             return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交", changeRequest.getId());
         } catch (Exception e) {
-            log.error("提交变更申请失败: {}", e.getMessage());
+            log.error("提交变更申请失败: {}", e.getMessage(), e);
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "提交失败");
         }
     }

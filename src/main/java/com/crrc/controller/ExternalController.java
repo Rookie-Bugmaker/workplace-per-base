@@ -11,6 +11,7 @@ import com.crrc.enums.OperateType;
 import com.crrc.handler.MultiTenantHandler;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.KingDiePersonalOrderDTO;
+import com.crrc.service.CategoryRecordService;
 import com.crrc.service.impl.*;
 import com.crrc.utils.UpdateWrapperUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,12 +20,16 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 免登录方法集合
@@ -56,6 +61,10 @@ public class ExternalController {
     private HrEmpSkillLevelServiceImpl hrEmpSkillLevelService;
     @Autowired
     private HrEmpSalaryInfoServiceImpl hrEmpSalaryInfoService;
+    @Autowired
+    private HrEmpBasicController hrEmpBasicController;
+    @Autowired
+    private CategoryRecordService categoryRecordService;
 
     @PostMapping("/receiveKingDieMsg")
     @Operation(summary = "接收金蝶传递人事令信息")
@@ -125,7 +134,17 @@ public class ExternalController {
                 }
 
                 //任职信息
-                if (dto.getHrEmpAppointments() != null && !dto.getHrEmpAppointments().isEmpty()){
+                if (dto.getHrEmpAppointments() != null && !dto.getHrEmpAppointments().isEmpty()) {
+                    // 更新之前任职信息的结束时间
+                    // 选择出所有任职信息的结束时间为空的数据
+                    List<HrEmpAppointment> undoneList = hrEmpAppointmentService.selectUndoneApp(dto.getHrEmpAppointments().get(0).getUserCode());
+                    if (!ObjectUtils.isEmpty(undoneList)) {
+                        for (HrEmpAppointment temp : undoneList) {
+                            temp.setEndDate(dto.getHrEmpAppointments().get(0).getStartDate());
+                        }
+                        hrEmpAppointmentService.updateBatchById(undoneList);
+                    }
+                    // 保存新的任职信息
                     for (HrEmpAppointment appointment : dto.getHrEmpAppointments()){
                         if (appointment.getUserCode() != null) {
                             appointment.setId(IdUtil.simpleUUID());
@@ -135,14 +154,6 @@ public class ExternalController {
                                 return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "保存任职信息失败!");
                             }
                         }
-                    }
-                    //更新之前任职信息的结束时间
-                    List<HrEmpAppointment> undoneList = hrEmpAppointmentService.selectUndoneApp(dto.getHrEmpAppointments().get(0).getUserCode());
-                    if (undoneList != null) {
-                        for (HrEmpAppointment temp : undoneList) {
-                            temp.setEndDate(dto.getHrEmpAppointments().get(0).getStartDate());
-                        }
-                        hrEmpAppointmentService.updateBatchById(undoneList);
                     }
                 }
 
@@ -160,6 +171,15 @@ public class ExternalController {
 
                 //其他任职信息
                 if (dto.getHrEmpOtherAppointments() != null && !dto.getHrEmpOtherAppointments().isEmpty()){
+                    //更新之前任职信息的结束时间
+                    List<HrEmpOtherAppointment> undoneList = hrEmpOtherAppointmentService.selectUndoneApp(dto.getHrEmpOtherAppointments().get(0).getUserCode());
+                    if (!ObjectUtils.isEmpty(undoneList)) {
+                        for (HrEmpOtherAppointment temp : undoneList) {
+                            temp.setEndDate(dto.getHrEmpOtherAppointments().get(0).getStartDate());
+                        }
+                        hrEmpOtherAppointmentService.updateBatchById(undoneList);
+                    }
+
                     for (HrEmpOtherAppointment otherApp : dto.getHrEmpOtherAppointments()){
                         if (otherApp.getUserCode() != null) {
                             otherApp.setId(IdUtil.simpleUUID());
@@ -170,15 +190,6 @@ public class ExternalController {
                             }
                         }
                     }
-                    //更新之前任职信息的结束时间
-                    List<HrEmpOtherAppointment> undoneList = hrEmpOtherAppointmentService.selectUndoneApp(dto.getHrEmpOtherAppointments().get(0).getUserCode());
-                    if (undoneList != null) {
-                        for (HrEmpOtherAppointment temp : undoneList) {
-                            temp.setEndDate(dto.getHrEmpOtherAppointments().get(0).getStartDate());
-                        }
-                        hrEmpOtherAppointmentService.updateBatchById(undoneList);
-                    }
-
                 }
 
 
@@ -204,7 +215,23 @@ public class ExternalController {
 
                 //员工履历信息表
                 if (dto.getHrEmpResumes() != null && !dto.getHrEmpResumes().isEmpty()){
-                    for (HrEmpResume resume : dto.getHrEmpResumes()){
+                    // 获取工号
+                    HrEmpResume hrEmpResume = dto.getHrEmpResumes().get(0);
+                    // 选择所有该工号，结束时间为null的数据
+                    LambdaQueryWrapper<HrEmpResume> queryWrapper = new LambdaQueryWrapper<>();
+                    queryWrapper.isNull(HrEmpResume::getEndDate);
+                    queryWrapper.eq(HrEmpResume::getUserCode, hrEmpResume.getUserCode());
+                    List<HrEmpResume> hrEmpResumeList = hrEmpResumeService.getBaseMapper().selectList(queryWrapper);
+                    if(!ObjectUtils.isEmpty(hrEmpResumeList)) {
+                        // 设置结束时间为下一履历的开始时间
+                        hrEmpResumeList.forEach(
+                            item -> item.setEndDate(hrEmpResume.getStartDate())
+                        );
+                    }
+
+                    hrEmpResumeService.saveOrUpdateBatch(hrEmpResumeList);
+
+                    for (HrEmpResume resume : dto.getHrEmpResumes()) {
                         if (resume.getUserCode() != null) {
                             resume.setId(IdUtil.simpleUUID());
                             boolean saveResult = hrEmpResumeService.save(resume);
@@ -289,6 +316,39 @@ public class ExternalController {
                 MultiTenantHandler.tenantId.remove();
             }
         }
+        // 设置租户id
+        MultiTenantHandler.tenantId.set("438");
+        try {
+            List<HrEmpBasic> userList = dtoList.stream().map(KingDiePersonalOrderDTO::getHrEmpBasic).collect(Collectors.toList());
+            // 统计之前的人员分类1、4、7、8
+            List<HrEmpBasic> categoryInfoList = hrEmpBasicService.getCategoryInfo(userList);
+            Map<String, HrEmpBasic> hrEmpBasicMap = categoryInfoList.stream().collect(Collectors.toMap(
+                    HrEmpBasic::getUserCode,
+                    hrEmpBasic -> hrEmpBasic
+            ));
+
+            log.info("旧人员分类统计完毕，数量：{}", hrEmpBasicMap.size());
+            hrEmpBasicController.syncPersonCategory(userList);
+            // 统计之后的人员分类1、4、7、8
+            List<HrEmpBasic> categoryInfoNewList = hrEmpBasicService.getCategoryInfo(userList);
+            List<CategoryRecord> categoryRecordList = new ArrayList<>();
+            categoryInfoNewList.forEach(newRecord -> {
+                HrEmpBasic oldRecord = hrEmpBasicMap.get(newRecord.getUserCode());
+                categoryRecordList.add(CategoryRecord.of(newRecord.getUserCode(), oldRecord, newRecord));
+            });
+            log.info("新人员分类统计完毕，数量：{}", categoryRecordList.size());
+
+            categoryRecordService.saveBatch(categoryRecordList);
+
+            log.info("日志保存完毕");
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw new RuntimeException("处理人事令信息异常：" + e.getMessage());
+        } finally {
+            MultiTenantHandler.tenantId.remove();
+        }
+
         return new ResponseResult<>(HttpStatus.OK.value(), "人事令下达成功，信息已变更！ 变更数量： " + updateFlag);
     }
+
 }

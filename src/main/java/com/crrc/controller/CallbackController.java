@@ -686,6 +686,9 @@ public class CallbackController {
         if (!basics.isEmpty()) {
             HrEmpBasic temp = basics.get(0);
             temp.setIsUpdating(isUpdating);
+            // 防止dept被误修改
+            temp.setDept(null);
+            temp.setOrgCode(null);
             hrEmpBasicService.updateById(temp);
         }
     }

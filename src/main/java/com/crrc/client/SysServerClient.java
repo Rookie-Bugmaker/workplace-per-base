@@ -3,10 +3,12 @@ package com.crrc.client;
 import com.crrc.client.fallback.SysServerClientFallback;
 import com.crrc.common.PaginationGrid;
 import com.crrc.common.ResultData;
-import com.crrc.pojo.dto.SysDeptPersonDTO;
-import com.crrc.pojo.dto.SysUserDTO;
-import com.crrc.pojo.dto.SysUserRequestDTO;
+import com.crrc.entity.dto.CompanyDTO;
+import com.crrc.entity.dto.DeptDTO;
+import com.crrc.entity.dto.mainData.OrganizationDTO;
+import com.crrc.pojo.dto.*;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -55,8 +57,38 @@ public interface SysServerClient {
     @PostMapping("/user/findUserByRoleCodeAndCompanyId")
     ResultData<List<SysUserDTO>> findUserByRoleCodeAndCompanyId(@RequestBody SysUserRequestDTO sysUserRequestDTO);
 
+    /**
+     * 根据人员工号查询人员基本信息
+     * @param jobNo
+     * @return
+     */
+    @PostMapping("/org/person/findByJobNo")
+    ResultData<SysDeptPersonDTO> findByUserCode(@RequestParam("jobNo") String jobNo);
 
+    /**
+     * 根据personId获取人员部门列表
+     * @param deptListQueryDTO 员工id
+     * @return List<OrganizationDTO>包裹在SysUserDTO中
+     */
+    @PostMapping(value = "/org/person/findById?language=zh-CN", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    ResultData<SysEmployeeDTO> findDeptListByPersonId(@RequestBody DeptListQueryDTO deptListQueryDTO);
 
+    /**
+     * 根据部门id获取部门信息
+     * @param id 部门id
+     * @return 信息
+     */
+    @GetMapping("/dept/get")
+    ResultData<DeptDTO> findDeptByDeptId(@RequestParam("id") Long id);
 
+    /**
+     * 根据工号查询详细人员信息
+     * @param jobNo 工号，即userCode
+     * @return 详细人员信息
+     */
+    @PostMapping("/org/person/findByJobNo")
+    ResultData<SysDeptPersonDTO> findByJobNo(@RequestParam("jobNo") String jobNo);
 
+    @GetMapping("/company/page")
+    ResultData<PaginationGrid<CompanyDTO>> pageCompany(@RequestParam("pageNo") Integer pageNo, @RequestParam("pageSize") Integer pageSize);
 }

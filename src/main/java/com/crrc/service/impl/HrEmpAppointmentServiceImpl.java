@@ -3,12 +3,15 @@ package com.crrc.service.impl;
 import com.crrc.entity.HrEmpAppointment;
 import com.crrc.mapper.HrEmpAppointmentMapper;
 import com.crrc.service.HrEmpAppointmentService;
+import com.crrc.utils.DeptUtils;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -25,6 +28,8 @@ public class HrEmpAppointmentServiceImpl extends WorkServiceImpl<HrEmpAppointmen
 
     @Autowired
     private HrEmpAppointmentMapper hrEmpAppointmentMapper;
+    @Autowired
+    private CodeInfoServiceImpl codeInfoService;
 
     public List<HrEmpAppointment> selectMsg(String userCode){
         MPJLambdaWrapper<HrEmpAppointment> wrapper = new MPJLambdaWrapper<HrEmpAppointment>()
@@ -51,9 +56,76 @@ public class HrEmpAppointmentServiceImpl extends WorkServiceImpl<HrEmpAppointmen
                 .orderByAsc("(t.start_date is null)")
                 .orderByDesc("t.start_date")
                 .orderByDesc("t.id");  // 并列时间时用主键稳定排序
+        List<HrEmpAppointment> hrEmpAppointments = hrEmpAppointmentMapper.selectList(w);
+        // 回显码值，当数据为数字开头的时候才会进行转写，否则直接返回
+        for(HrEmpAppointment entity : hrEmpAppointments) {
+            String deptCode = entity.getDept();
+            String deptName = DeptUtils.getDeptNameByCode(deptCode);
+            entity.setDept(deptName);
 
-        return hrEmpAppointmentMapper.selectList(w);
+            // 处理组织单元
+            String orgId = entity.getOrgUnit();
+            String orgName = DeptUtils.getDeptNameByCode(orgId);
+            entity.setOrgUnit(orgName);
 
+            // 处理组织
+            String orgOriginal = entity.getOrg();
+            if (StringUtils.isNotBlank(orgOriginal)) {
+                String org = orgOriginal.matches("^\\d.*") ?
+                        codeInfoService.translateCode(orgOriginal, "hr_emp_appointment", "APPOINTMENT_ORG") : orgOriginal;
+                entity.setOrg(org);
+            }
+
+            // 处理职位名称
+            String position = entity.getPosition();
+            if (StringUtils.isNotBlank(position)) {
+                String positionName = position.matches("^\\d.*") ?
+                        codeInfoService.translateCode(position, "hr_emp_appointment", "APPOINTMENT_POSITION") : position;
+                entity.setPosition(positionName);
+            }
+
+            // 处理变动事件 changeEvent
+            String changeEventOriginal = entity.getChangeEvent();
+            if (StringUtils.isNotBlank(changeEventOriginal)) {
+                String changeEvent = changeEventOriginal.matches("^\\d.*") ?
+                        codeInfoService.translateCode(changeEventOriginal, "hr_emp_appointment", "APPOINTMENT_CHANGE_EVENT") : changeEventOriginal;
+                entity.setChangeEvent(changeEvent);
+            }
+
+            // 处理变动类型 changeType
+            String changeTypeOriginal = entity.getChangeType();
+            if (StringUtils.isNotBlank(changeTypeOriginal)) {
+                String changeType = changeTypeOriginal.matches("^\\d.*") ?
+                        codeInfoService.translateCode(changeTypeOriginal, "hr_emp_appointment", "APPOINTMENT_CHANGE_TYPE") : changeTypeOriginal;
+                entity.setChangeType(changeType);
+            }
+
+            // 处理变动原因 changeReason
+            String changeReasonOriginal = entity.getChangeReason();
+            if (StringUtils.isNotBlank(changeReasonOriginal)) {
+                String changeReason = changeReasonOriginal.matches("^\\d.*") ?
+                        codeInfoService.translateCode(changeReasonOriginal, "hr_emp_appointment", "APPOINTMENT_CHANGE_REASON") : changeReasonOriginal;
+                entity.setChangeReason(changeReason);
+            }
+
+            // 处理在岗状态 dutyStatus
+            String dutyStatusOriginal = entity.getDutyStatus();
+            if (StringUtils.isNotBlank(dutyStatusOriginal)) {
+                String dutyStatus = dutyStatusOriginal.matches("^\\d.*") ?
+                        codeInfoService.translateCode(dutyStatusOriginal, "hr_emp_appointment", "APPOINTMENT_DUTY_STATUS") : dutyStatusOriginal;
+                entity.setDutyStatus(dutyStatus);
+            }
+
+            // 处理职务类别 positionCategory
+            String positionCategoryOriginal = entity.getPositionCategory();
+            if (StringUtils.isNotBlank(positionCategoryOriginal)) {
+                String positionCategory = positionCategoryOriginal.matches("^\\d.*") ?
+                        codeInfoService.translateCode(positionCategoryOriginal, "hr_emp_appointment", "APPOINTMENT_POSITION_CATEGORY") : positionCategoryOriginal;
+                entity.setPositionCategory(positionCategory);
+            }
+
+        }
+        return hrEmpAppointments;
     }
 
     /**

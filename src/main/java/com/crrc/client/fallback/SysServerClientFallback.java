@@ -3,9 +3,9 @@ package com.crrc.client.fallback;
 import com.crrc.client.SysServerClient;
 import com.crrc.common.PaginationGrid;
 import com.crrc.common.ResultData;
-import com.crrc.pojo.dto.SysDeptPersonDTO;
-import com.crrc.pojo.dto.SysUserDTO;
-import com.crrc.pojo.dto.SysUserRequestDTO;
+import com.crrc.entity.dto.CompanyDTO;
+import com.crrc.entity.dto.DeptDTO;
+import com.crrc.pojo.dto.*;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -33,6 +33,31 @@ public class SysServerClientFallback implements SysServerClient {
 
     @Override
     public ResultData<List<SysUserDTO>> findUserByRoleCodeAndCompanyId(SysUserRequestDTO sysUserRequestDTO) {
+        return ResultData.fallback();
+    }
+
+    @Override
+    public ResultData<SysDeptPersonDTO> findByUserCode(String jobNo) {
+        return ResultData.fallback();
+    }
+
+    @Override
+    public ResultData<SysEmployeeDTO> findDeptListByPersonId(DeptListQueryDTO deptListQueryDTO) {
+        return ResultData.fallback();
+    }
+
+    @Override
+    public ResultData<DeptDTO> findDeptByDeptId(Long id) {
+        return ResultData.fallback();
+    }
+
+    @Override
+    public ResultData<SysDeptPersonDTO> findByJobNo(String jobNo) {
+        return ResultData.fallback();
+    }
+
+    @Override
+    public ResultData<PaginationGrid<CompanyDTO>> pageCompany(Integer pageNo, Integer pageSize) {
         return ResultData.fallback();
     }
 

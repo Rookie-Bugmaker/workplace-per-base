@@ -1,20 +1,23 @@
 package com.crrc.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.crrc.annotation.IgnoreTenant;
 import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
+import com.crrc.client.SysServerClient;
 import com.crrc.entity.*;
+import com.crrc.entity.dto.DictItemReqDTO;
+import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
+import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mapper.HrEmpEducationMapper;
 import com.crrc.mapper.HrEmpProfessionalQualificationMapper;
 import com.crrc.mapper.HrEmpSkillLevelMapper;
-import com.crrc.pojo.dto.HrEmpBasicDTO;
-import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
+import com.crrc.pojo.dto.*;
 import com.crrc.service.HrEmpBasicService;
-import com.crrc.utils.DeptUtils;
-import com.crrc.utils.SystemConstants;
+import com.crrc.utils.*;
 import com.github.yulichang.toolkit.JoinWrappers;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.AllArgsConstructor;
@@ -22,6 +25,8 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -64,9 +69,18 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     private static final String EDUCATION_TABLE_NAME = "hr_emp_education";
 
     private static final String EDUCATION_TYPE_NAME = "EDU_EDU";
-    private final WkDataAPi wkDataAPi;
 
-    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataAPi) {
+    private static final String DEGREE_TYPE_NAME = "EDU_DEGREE";
+
+    private static final String COMPANY_MANAGER_DICT_CODE = "human_resource_company_manager";
+
+    private final WkDataAPi wkDataAPi;
+    private final SysServerClient sysServerClient;
+
+    private final DictTypeUtils dictTypeUtils;
+
+    @Autowired
+    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataAPi, @Qualifier("com.crrc.client.SysServerClient") SysServerClient sysServerClient, DictTypeUtils dictTypeUtils) {
         this.hrEmpBasicMapper = hrEmpBasicMapper;
         this.hrEmpEducationMapper = hrEmpEducationMapper;
         this.hrEmpSchoolInfoService = hrEmpSchoolInfoService;
@@ -76,6 +90,15 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         this.codeInfoService = codeInfoService;
         this.wkCoreApi = wkCoreApi;
         this.wkDataAPi = wkDataAPi;
+        this.sysServerClient = sysServerClient;
+        this.dictTypeUtils = dictTypeUtils;
+    }
+
+    public List<HrEmpBasic> getCategoryInfo(List<HrEmpBasic> hrEmpBasicList) {
+        Set<String> userCodeSet = hrEmpBasicList.stream().map(HrEmpBasic::getUserCode).collect(Collectors.toSet());
+        LambdaQueryWrapper<HrEmpBasic> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(HrEmpBasic::getUserCode, userCodeSet);
+        return hrEmpBasicMapper.selectList(wrapper);
     }
 
     /**
@@ -178,9 +201,75 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         // 确保只要HrEmpBasic表有数据就能显示
         queryWrapper.isNotNull(HrEmpBasic::getUserCode);  // 确保HrEmpBasic表有数据
 
+        // 先判断大权限
+        if(RoleUtils.check("员工基本信息公司级管理员")) {
+            // 不查部门，查询公司
+            dto.setDept(null);
+            // 先去字典中判断是否为子公司的公司级管理员
+            Map<String, String> jobNo2CompanyCode = dictTypeUtils.getDict(COMPANY_MANAGER_DICT_CODE).stream().collect(Collectors.toMap(
+                    DictItemReqDTO::getItemCode,
+                    DictItemReqDTO::getItemName
+            ));
+
+
+            // 根据员工获取部门编码
+            // 获得员工登录信息
+            LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
+            if(loginUser == null) {
+                throw new IllegalArgumentException("获取员工登录信息失败");
+            }
+            if(loginUser.getUser() == null || StringUtils.isBlank(loginUser.getUser().getJobNo())) {
+                throw new IllegalArgumentException("获取员工工号失败");
+            }
+            // 获取员工工号
+            String jobNo = loginUser.getUser().getJobNo();
+            String orgCode;
+            // 如果在字典中配置了，则不需要进行后续查询
+            if(jobNo2CompanyCode.containsKey(jobNo)) {
+                orgCode = jobNo2CompanyCode.get(jobNo);
+            }
+            // 如果没有配置，则从basic里查询出员工的部门
+            else {
+                List<HrEmpBasicDTO> hrEmpBasicDTOS = this.selectMsg(jobNo);
+                if(ObjectUtils.isEmpty(hrEmpBasicDTOS)) {
+                    throw new IllegalArgumentException("获取员工信息失败，员工不存在，userCode:" + jobNo);
+                }
+                orgCode = hrEmpBasicDTOS.get(0).getOrgCode();
+            }
+
+            // 获取所有的组织数据
+            ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
+            if(listResponseResultDTO == null || ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+                throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
+            }
+            List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+            // 根据orgCode匹配公司及其下级部门能否有匹配项，如果包含，则获得其展平后的List（包含所有部门Code）
+            List<OrganizationTreeDTO> childrenOrgList = findParentAndFlattenList(data, orgCode);
+            if(childrenOrgList == null || childrenOrgList.isEmpty()) {
+                throw new IllegalArgumentException("获取公司失败，公司匹配错误，orgCode:" + orgCode);
+            }
+
+            dto.setDeptSet(childrenOrgList.stream().map(OrganizationTreeDTO::getOrgCode).collect(Collectors.toSet()));
+        }
+
         buildFuzzyConditions(queryWrapper, dto);
         queryWrapper.orderByAsc(HrEmpBasic::getUserCode);
         return hrEmpBasicMapper.selectJoinPage(page, HrEmpBasicDTO.class, queryWrapper);
+    }
+
+    /**
+     * 根据树型组织数据列表（公司列表），判断公司是否包含orgCode，并返回该公司展平后的列表
+     * @param data 树型组织数据列表
+     * @param orgCode 需要判断的orgCode
+     * @return 包含orgCode的公司展平后的列表
+     */
+    private List<OrganizationTreeDTO> findParentAndFlattenList(List<OrganizationTreeDTO> data, String orgCode) {
+        for(OrganizationTreeDTO root : data) {
+            if (TreeUtils.containsBFS(root, n -> StringUtils.equals(orgCode, n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
+                return TreeUtils.flattenDescendants(root, OrganizationTreeDTO::getChildren, true);
+            }
+        }
+        return Collections.emptyList();
     }
 
 
@@ -201,7 +290,26 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                         dto.getPosition())
                 .like(StringUtils.isNotBlank(dto.getIsEmployed()),
                         HrEmpBasic::getIsEmployed,
-                        dto.getIsEmployed());
+                        dto.getIsEmployed())
+                .in(ObjectUtils.isNotEmpty(dto.getDeptSet()),
+                        HrEmpBasic::getDept,
+                        dto.getDeptSet()
+                );
+
+        Set<String> category8StatusSet = new HashSet<>(Arrays.asList(
+                "002",
+                "004",
+                "008"
+        ));
+        // 判断dto中的dutyStatus字段，如果是002、004、008（借、派、助），则从人员分类8中筛选
+        if(StringUtils.isNotBlank(dto.getDutyStatus()) && category8StatusSet.contains(dto.getDutyStatus())) {
+            wrapper.eq(HrEmpBasic::getCategory8, dto.getDutyStatus());
+        }
+        // 否则从在岗状态中筛选
+        if(StringUtils.isNotBlank(dto.getDutyStatus()) && !category8StatusSet.contains(dto.getDutyStatus())) {
+            wrapper.eq(HrEmpBasic::getStatus, dto.getDutyStatus());
+        }
+
     }
 
 
@@ -233,6 +341,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             // 处理最高学历
             resolveEducation(result.get(0));
 
+            // 处理最高学位
+            resolveDegree(result.get(0));
+
             // 处理政治面貌
             resolvePolitical(result.get(0));
 
@@ -259,6 +370,11 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     private void resolveEducation(HrEmpBasicDTO hrEmpBasicDTO) {
         Map<String, String> translateMap = codeInfoService.getTranslateMap(EDUCATION_TABLE_NAME, EDUCATION_TYPE_NAME);
         hrEmpBasicDTO.setEducationValue(translateMap.getOrDefault(hrEmpBasicDTO.getEducation(), null));
+    }
+
+    private void resolveDegree(HrEmpBasicDTO hrEmpBasicDTO) {
+        Map<String, String> translateMap = codeInfoService.getTranslateMap(EDUCATION_TABLE_NAME, DEGREE_TYPE_NAME);
+        hrEmpBasicDTO.setDegreeValue(translateMap.getOrDefault(hrEmpBasicDTO.getDegree(), null));
     }
 
     private void resolvePolitical(HrEmpBasicDTO hrEmpBasicDTO) {
@@ -323,10 +439,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
      */
     private void resolveStatus(HrEmpBasicDTO dto) {
         // 查询的表名
-        String tableName = "hr_emp_appointment";
+        String tableName = "hr_emp_basic";
         try {
             if (StringUtils.isNotBlank(dto.getStatus())) {
-                String status = codeInfoService.translateCode(dto.getStatus(), tableName, "APPOINTMENT_DUTY_STATUS");
+                String status = codeInfoService.translateCode(dto.getStatus(), tableName, "per_status");
                 dto.setStatus(status);
             }
         } catch (Exception e) {

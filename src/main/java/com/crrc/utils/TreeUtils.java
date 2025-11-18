@@ -3,7 +3,10 @@ package com.crrc.utils;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author yukun
@@ -136,5 +139,61 @@ public final class TreeUtils {
         }
 
         return roots;
+    }
+
+    /**
+     * 级联展平树节点，前序DFS
+     * @param root 需要展平的根
+     * @param childrenGetter 获取树节点中儿子列表的方法
+     * @param containRoot 是否包含root
+     * @return 展平后的树节点，根据containRoot判断是否包含root
+     */
+    public static <T> List<T> flattenDescendants(T root, Function<T, List<T>> childrenGetter, Boolean containRoot) {
+        List<T> out = new ArrayList<>(containRoot ? Collections.singletonList(root) : Collections.emptyList());
+        if(childrenGetter.apply(root) == null || childrenGetter.apply(root).isEmpty()) {
+            return out;
+        }
+
+        Deque<T> stack = new ArrayDeque<>();
+        // 先把第一层儿子入栈（倒序以保持原 children 顺序）
+        List<T> first = childrenGetter.apply(root);
+        for (int i = first.size() - 1; i >= 0; i--) {
+            stack.push(first.get(i));
+        }
+
+        while (!stack.isEmpty()) {
+            T cur = stack.pop();
+            out.add(cur);
+            if (childrenGetter.apply(cur) != null) {
+                List<T> apply = childrenGetter.apply(cur);
+                // 同理：倒序压栈，保持遍历顺序与 children 列表一致
+                for (int i = apply.size() - 1; i >= 0; i--) {
+                    stack.push(apply.get(i));
+                }
+            }
+        }
+
+        return out;
+    }
+
+    /**
+     * 查询树是否匹配某个Predicate
+     * @param root 查询的树根
+     * @param matcher Predicate条件
+     * @param childrenGetter children的Get方法
+     * @return 是否包含Predicate
+     */
+    public static <T> Boolean containsBFS(T root, Predicate<T> matcher, Function<T, List<T>> childrenGetter) {
+        if(childrenGetter.apply(root) == null || matcher == null) return false;
+        Queue<T> q = new ArrayDeque<>();
+        q.offer(root);
+        while(!q.isEmpty()) {
+            T node = q.poll();
+            if(matcher.test(node)) return true;
+            for(T c : childrenGetter.apply(node)) {
+                q.offer(c);
+            }
+        }
+        return false;
     }
 }
