@@ -123,6 +123,8 @@ public class HrEmpBasicController {
                 ? hrEmpBasicService.getListByUserCode(userCodeList)
                 : hrEmpBasicService.getAllUser();
 
+        list = list.stream().filter(e -> e.getUserCode() != null).collect(Collectors.toList());
+
         List<String> uuidList = list.stream().map(HrEmpBasic::getUserCode).collect(Collectors.toList());
 
         // 分批请求
