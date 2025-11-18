@@ -108,14 +108,21 @@ public class HrEmpAppointmentController {
         List<HrEmpAppointment> list = hrEmpAppointmentService.selectMsg(userCode);
         // 回显码值，当数据为数字开头的时候才会进行转写，否则直接返回
         for(HrEmpAppointment entity : list) {
-            String deptCode = entity.getDept();
-            String deptName = DeptUtils.getDeptNameByCode(deptCode);
-            entity.setDept(deptName);
+            // 处理组织
+            String originDeptCode = entity.getDept();
+            if (StringUtils.isNotBlank(originDeptCode)) {
+                String deptCode = originDeptCode.matches("^\\d.*") ?
+                        codeInfoService.translateCode(originDeptCode, "hr_emp_appointment", "APPOINTMENT_ORG") : originDeptCode;
+                entity.setDept(deptCode);
+            }
 
             // 处理组织单元
-            String orgId = entity.getOrgUnit();
-            String orgName = DeptUtils.getDeptNameByCode(orgId);
-            entity.setOrgUnit(orgName);
+            String originOrgUnit = entity.getOrgUnit();
+            if (StringUtils.isNotBlank(originOrgUnit)) {
+                String orgUnit = originOrgUnit.matches("^\\d.*") ?
+                        codeInfoService.translateCode(originOrgUnit, "hr_emp_appointment", "APPOINTMENT_ORG") : originOrgUnit;
+                entity.setOrgUnit(orgUnit);
+            }
 
             // 处理组织
             String orgOriginal = entity.getOrg();
