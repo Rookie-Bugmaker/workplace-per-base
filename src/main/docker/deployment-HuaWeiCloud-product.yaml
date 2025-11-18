@@ -4,7 +4,7 @@ metadata:
   name: workplace-per-base
   namespace: human-resource
 spec:
-  replicas: 1
+  replicas: 4
   selector:
     matchLabels:
       app: workplace-per-base
@@ -26,10 +26,10 @@ spec:
           resources:
             limits:
               cpu: '4'
-              memory: 4Gi
+              memory: 8Gi
             requests:
               cpu: '4'
-              memory: 2Gi
+              memory: 4Gi
           volumeMounts:
             - name: vol-workplace-per-base-config
               readOnly: true
