@@ -133,7 +133,13 @@ public class HrEmpBasicController {
             ResponseData<List<UserImageDTO>> personImageByUserCode = userProfileImageClient.getPersonImageByUserCode(imageReqDTO);
 
             if(personImageByUserCode == null || ObjectUtils.isEmpty(personImageByUserCode.getData())) {
-                log.error("同步用户图片失败: {}", list);
+                log.error("同步用户图片失败: {}", sliceUuidList);
+                sliceUuidList.forEach(userCode -> {
+                    PictureError pictureError = new PictureError();
+                    pictureError.setUserCode(userCode);
+                    pictureErrorServiceImpl.save(pictureError);
+                });
+
                 // throw new IllegalArgumentException("获取图片失败");
             }
 
