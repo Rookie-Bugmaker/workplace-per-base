@@ -63,7 +63,7 @@ public class SysServerClientFallback implements SysServerClient {
     }
 
     @Override
-    public ResultData<List<DeptDTO>> listDeptVO(DeptqueryDTO dto) {
+    public ResultData<List<DeptDTO>> listDeptVO(DeptReqDTO dto) {
         return ResultData.fallback();
     }
 

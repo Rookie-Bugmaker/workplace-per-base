@@ -10,6 +10,7 @@ import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
+import com.crrc.pojo.dto.DeptReqDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -35,7 +36,7 @@ public class CommonController {
     @Operation(summary = "获取全量部门信息")
     @AuditLog(value = "获取全量部门信息", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     public ResponseResultDTO<List<DeptDTO>> getDeptList() {
-        ResultData<List<DeptDTO>> deptDTOResultData = sysServerClient.listDeptVO(new DeptqueryDTO());
+        ResultData<List<DeptDTO>> deptDTOResultData = sysServerClient.listDeptVO(new DeptReqDTO());
         if(deptDTOResultData == null || deptDTOResultData.getResult() == null) {
             return new ResponseResultDTO<>(HttpStatus.BAD_REQUEST.value(), "获取部门错误，框架接口出错", null);
         }

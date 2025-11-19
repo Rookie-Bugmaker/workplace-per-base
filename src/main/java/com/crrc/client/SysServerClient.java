@@ -105,5 +105,5 @@ public interface SysServerClient {
      * @return 部门VO
      */
     @GetMapping("/sys/dept/list_vo")
-    ResultData<List<DeptDTO>> listDeptVO(@RequestBody DeptqueryDTO dto);
+    ResultData<List<DeptDTO>> listDeptVO(@RequestBody DeptReqDTO dto);
 }
