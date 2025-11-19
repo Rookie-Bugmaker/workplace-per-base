@@ -5,6 +5,7 @@ import com.crrc.common.PaginationGrid;
 import com.crrc.common.ResultData;
 import com.crrc.entity.dto.CompanyDTO;
 import com.crrc.entity.dto.DeptDTO;
+import com.crrc.entity.dto.DeptqueryDTO;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.pojo.dto.*;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -89,6 +90,20 @@ public interface SysServerClient {
     @PostMapping("/org/person/findByJobNo")
     ResultData<SysDeptPersonDTO> findByJobNo(@RequestParam("jobNo") String jobNo);
 
+    /**
+     * 查询公司列表
+     * @param pageNo 页码
+     * @param pageSize 大小
+     * @return 查询到的公司
+     */
     @GetMapping("/company/page")
     ResultData<PaginationGrid<CompanyDTO>> pageCompany(@RequestParam("pageNo") Integer pageNo, @RequestParam("pageSize") Integer pageSize);
+
+    /**
+     * 查询部门列表（基于框架）
+     * @param dto 查询dto
+     * @return 部门VO
+     */
+    @GetMapping("/sys/dept/list_vo")
+    ResultData<List<DeptDTO>> listDeptVO(@RequestBody DeptqueryDTO dto);
 }
