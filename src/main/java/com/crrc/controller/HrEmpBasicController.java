@@ -27,11 +27,10 @@ import com.crrc.mongodb.HrEmpBasicChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.*;
 import com.crrc.pojo.vo.MapVO;
-import io.minio.MinioClient;
-import org.springframework.core.io.Resource;
 import com.crrc.service.CodeInfoService;
 import com.crrc.service.impl.*;
 import com.crrc.utils.*;
+import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import com.xxl.job.core.handler.annotation.XxlJob;
 import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
@@ -155,21 +154,135 @@ public class HrEmpBasicController {
                     ByteArrayMultipartFile image = new ByteArrayMultipartFile(bytes, "image", "image.jpg", "image/jpeg");
                     // 上传到minIO
                     String profilePicture = minIOUtils.saveFile(image);
-                    HrEmpBasic userInfo = hrEmpBasicService.getByUserCode(userImageDTO.getUuid());
+                    HrEmpBasic userInfo = hrEmpBasicService.getByUserCode(userImageDTO.getUserCode());
                     userInfo.setProfilePicture(profilePicture);
                     // 更新数据
                     hrEmpBasicService.updateById(userInfo);
                 } catch (Exception e) {
                     log.error("上传错误", e);
-                    log.error("用户图片同步失败: {}", userImageDTO.getUuid());
+                    log.error("用户图片同步失败: {}", userImageDTO.getUserCode());
                     PictureError pictureError = new PictureError();
-                    pictureError.setUserCode(userImageDTO.getUuid());
+                    pictureError.setUserCode(userImageDTO.getUserCode());
                     pictureErrorServiceImpl.save(pictureError);
                     // throw new IllegalArgumentException(e.getMessage());
                 }
             });
         }
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
+    }
+
+    @GetMapping("/upload")
+    @Operation(summary = "图片上传")
+    @AuditLog(value = "图片上传", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResult<String> uploadPicture(@RequestBody UserImageDTO userImageDTO) {
+        if(StringUtils.isBlank(userImageDTO.getUserCode())) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "未传入档案号");
+        }
+        if(ObjectUtils.isEmpty(userImageDTO.getImageFile())) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "未传入图片");
+        }
+        // 上传到minIO
+        String profilePicture = minIOUtils.saveFile(userImageDTO.getImageFile());
+
+        boolean flag = RoleUtils.check("人力资源部-招聘管理专员");
+        if (flag) {
+            log.info("权限校验通过，用户拥有'人力资源部-招聘管理专员'角色，直接进行更新");
+            try{
+                // 构建更新条件
+                MPJLambdaWrapper<HrEmpBasic> updateWrapper = new MPJLambdaWrapper<>();
+                updateWrapper.eq(HrEmpBasic::getUserCode, userImageDTO.getUserCode());
+
+                // 构建更新实体
+                HrEmpBasic updateEntity = new HrEmpBasic();
+                updateEntity.setProfilePicture(profilePicture);
+
+                // 执行更新
+                boolean updateResult = hrEmpBasicService.update(updateEntity, updateWrapper);
+
+                if(updateResult) {
+                    return new ResponseResult<>(HttpStatus.OK.value(), "直接更新成功!");
+                } else {
+                    return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "更新失败");
+                }
+            } catch (Exception e){
+                log.warn("权限校验成功，但直接更新失败，尝试走审批流", e);
+            }
+        }
+        log.warn("权限校验失败，用户缺少'人力资源部-招聘管理专员'角色");
+
+        try{
+        // 1. 获取当前数据快照
+        HrEmpBasicDTO changeReqVO = new HrEmpBasicDTO();
+        changeReqVO.setUserCode(userImageDTO.getUserCode());
+        changeReqVO.setProfilePicture(profilePicture);
+
+        HrEmpBasic original = hrEmpBasicService.getByUserCode(userImageDTO.getUserCode());
+        HrEmpBasicDTO originalData = new HrEmpBasicDTO();
+        originalData.setUserCode(userImageDTO.getUserCode());
+        originalData.setProfilePicture(original.getProfilePicture());
+
+        // 2. 创建变更申请文档
+        HrEmpBasicChangeRequest changeRequest = new HrEmpBasicChangeRequest();
+        changeRequest.setId(IdUtil.simpleUUID());
+        changeRequest.setUserCode(userImageDTO.getUserCode());
+        changeRequest.setOriginalData(originalData);
+        changeRequest.setChangedData(changeReqVO);
+        changeRequest.setWfId(changeReqVO.getWfId());
+
+        // 3. 保存到MongoDB
+        mongoTemplate.save(changeRequest);
+        log.info("流程测试changeRequest" + changeRequest);
+
+        // 4. 启动审批流程
+        // 封装数据，提交审批流
+        StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
+        String bizCode = "PIC-" + System.currentTimeMillis();
+        instanceDTO.setBizCode(bizCode);
+        // 封装数据主键，存在MongoDB里面的生成的simpleUUID
+        instanceDTO.setBizId("pic_" + changeRequest.getId());
+        // 封装业务模板编码
+        instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
+        // 封装业务表单数据，20250924上线暂时没用，如果之后需要修改审批流分支，需使用该数据
+        Map<String, Object> formData = new HashMap<>();
+        LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
+        if(loginUser == null || loginUser.getUser() == null) {
+            log.error("获取登录用户信息失败，用户为空");
+            throw new IllegalArgumentException("获取登录用户信息失败，用户为空");
+        }
+
+        if(StringUtils.isBlank(loginUser.getUser().getJobNo())) {
+            log.error("获取用户工号失败，工号为空");
+            throw new IllegalArgumentException("获取用户工号失败，工号为空");
+        }
+
+        String dept = hrEmpBasicService.getDept(loginUser.getUser().getJobNo());
+        Optional<Long> deptId = DeptUtils.getDeptIdByCode(dept);
+        if(!deptId.isPresent()) {
+            log.error("获取用户部门失败，部门查询错误，工号:" + loginUser.getUser().getJobNo());
+            throw new IllegalArgumentException("获取用户部门失败，部门查询错误");
+        }
+
+        formData.put("deptId", deptId.get());
+        formData.put("type","pic");
+        formData.put("roleCode", "hrsc_audit");
+
+        formData.put("Pic",MyUtils.convertToMapList(changeReqVO));
+        instanceDTO.setFormData(formData);
+        log.info("流程测试instanceDTO" + instanceDTO);
+        // 返回流程实例id
+        ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
+        log.info("流程测试processInstanceVo" + processInstanceVo);
+
+        // 5. 更新流程实例ID
+        changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
+        mongoTemplate.save(changeRequest);
+        log.info("流程测试success");
+        return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交", changeRequest.getId());
+    } catch (Exception e) {
+        log.error("提交变更申请失败: {}", e.getMessage());
+        log.error("详细信息", e);
+        return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "提交失败");
+    }
     }
 
     @GetMapping("/download")
