@@ -211,78 +211,78 @@ public class HrEmpBasicController {
         log.warn("权限校验失败，用户缺少'人力资源部-招聘管理专员'角色");
 
         try{
-        // 1. 获取当前数据快照
-        HrEmpBasicDTO changeReqVO = new HrEmpBasicDTO();
-        changeReqVO.setUserCode(userImageDTO.getUserCode());
-        changeReqVO.setProfilePicture(profilePicture);
+            // 1. 获取当前数据快照
+            HrEmpBasicDTO changeReqVO = new HrEmpBasicDTO();
+            changeReqVO.setUserCode(userImageDTO.getUserCode());
+            changeReqVO.setProfilePicture(profilePicture);
 
-        HrEmpBasic original = hrEmpBasicService.getByUserCode(userImageDTO.getUserCode());
-        HrEmpBasicDTO originalData = new HrEmpBasicDTO();
-        originalData.setUserCode(userImageDTO.getUserCode());
-        originalData.setProfilePicture(original.getProfilePicture());
+            HrEmpBasic original = hrEmpBasicService.getByUserCode(userImageDTO.getUserCode());
+            HrEmpBasicDTO originalData = new HrEmpBasicDTO();
+            originalData.setUserCode(userImageDTO.getUserCode());
+            originalData.setProfilePicture(original.getProfilePicture());
 
-        // 2. 创建变更申请文档
-        HrEmpBasicChangeRequest changeRequest = new HrEmpBasicChangeRequest();
-        changeRequest.setId(IdUtil.simpleUUID());
-        changeRequest.setUserCode(userImageDTO.getUserCode());
-        changeRequest.setOriginalData(originalData);
-        changeRequest.setChangedData(changeReqVO);
-        changeRequest.setWfId(changeReqVO.getWfId());
+            // 2. 创建变更申请文档
+            HrEmpBasicChangeRequest changeRequest = new HrEmpBasicChangeRequest();
+            changeRequest.setId(IdUtil.simpleUUID());
+            changeRequest.setUserCode(userImageDTO.getUserCode());
+            changeRequest.setOriginalData(originalData);
+            changeRequest.setChangedData(changeReqVO);
+            changeRequest.setWfId(changeReqVO.getWfId());
 
-        // 3. 保存到MongoDB
-        mongoTemplate.save(changeRequest);
-        log.info("流程测试changeRequest" + changeRequest);
+            // 3. 保存到MongoDB
+            mongoTemplate.save(changeRequest);
+            log.info("流程测试changeRequest" + changeRequest);
 
-        // 4. 启动审批流程
-        // 封装数据，提交审批流
-        StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
-        String bizCode = "PIC-" + System.currentTimeMillis();
-        instanceDTO.setBizCode(bizCode);
-        // 封装数据主键，存在MongoDB里面的生成的simpleUUID
-        instanceDTO.setBizId("pic_" + changeRequest.getId());
-        // 封装业务模板编码
-        instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
-        // 封装业务表单数据，20250924上线暂时没用，如果之后需要修改审批流分支，需使用该数据
-        Map<String, Object> formData = new HashMap<>();
-        LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
-        if(loginUser == null || loginUser.getUser() == null) {
-            log.error("获取登录用户信息失败，用户为空");
-            throw new IllegalArgumentException("获取登录用户信息失败，用户为空");
+            // 4. 启动审批流程
+            // 封装数据，提交审批流
+            StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
+            String bizCode = "PIC-" + System.currentTimeMillis();
+            instanceDTO.setBizCode(bizCode);
+            // 封装数据主键，存在MongoDB里面的生成的simpleUUID
+            instanceDTO.setBizId("pic_" + changeRequest.getId());
+            // 封装业务模板编码
+            instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
+            // 封装业务表单数据，20250924上线暂时没用，如果之后需要修改审批流分支，需使用该数据
+            Map<String, Object> formData = new HashMap<>();
+            LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
+            if(loginUser == null || loginUser.getUser() == null) {
+                log.error("获取登录用户信息失败，用户为空");
+                throw new IllegalArgumentException("获取登录用户信息失败，用户为空");
+            }
+
+            if(StringUtils.isBlank(loginUser.getUser().getJobNo())) {
+                log.error("获取用户工号失败，工号为空");
+                throw new IllegalArgumentException("获取用户工号失败，工号为空");
+            }
+
+            String dept = hrEmpBasicService.getDept(loginUser.getUser().getJobNo());
+            Optional<Long> deptId = DeptUtils.getDeptIdByCode(dept);
+            if(!deptId.isPresent()) {
+                log.error("获取用户部门失败，部门查询错误，工号:" + loginUser.getUser().getJobNo());
+                throw new IllegalArgumentException("获取用户部门失败，部门查询错误");
+            }
+
+            formData.put("deptId", deptId.get());
+            formData.put("type","pic");
+            formData.put("roleCode", "hrsc_audit");
+
+            formData.put("Pic",MyUtils.convertToMapList(changeReqVO));
+            instanceDTO.setFormData(formData);
+            log.info("流程测试instanceDTO" + instanceDTO);
+            // 返回流程实例id
+            ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
+            log.info("流程测试processInstanceVo" + processInstanceVo);
+
+            // 5. 更新流程实例ID
+            changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
+            mongoTemplate.save(changeRequest);
+            log.info("流程测试success");
+            return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交", changeRequest.getId());
+        } catch (Exception e) {
+            log.error("提交变更申请失败: {}", e.getMessage());
+            log.error("详细信息", e);
+            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "提交失败");
         }
-
-        if(StringUtils.isBlank(loginUser.getUser().getJobNo())) {
-            log.error("获取用户工号失败，工号为空");
-            throw new IllegalArgumentException("获取用户工号失败，工号为空");
-        }
-
-        String dept = hrEmpBasicService.getDept(loginUser.getUser().getJobNo());
-        Optional<Long> deptId = DeptUtils.getDeptIdByCode(dept);
-        if(!deptId.isPresent()) {
-            log.error("获取用户部门失败，部门查询错误，工号:" + loginUser.getUser().getJobNo());
-            throw new IllegalArgumentException("获取用户部门失败，部门查询错误");
-        }
-
-        formData.put("deptId", deptId.get());
-        formData.put("type","pic");
-        formData.put("roleCode", "hrsc_audit");
-
-        formData.put("Pic",MyUtils.convertToMapList(changeReqVO));
-        instanceDTO.setFormData(formData);
-        log.info("流程测试instanceDTO" + instanceDTO);
-        // 返回流程实例id
-        ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
-        log.info("流程测试processInstanceVo" + processInstanceVo);
-
-        // 5. 更新流程实例ID
-        changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
-        mongoTemplate.save(changeRequest);
-        log.info("流程测试success");
-        return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交", changeRequest.getId());
-    } catch (Exception e) {
-        log.error("提交变更申请失败: {}", e.getMessage());
-        log.error("详细信息", e);
-        return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "提交失败");
-    }
     }
 
     @GetMapping("/download")
