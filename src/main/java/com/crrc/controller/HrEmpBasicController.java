@@ -175,8 +175,9 @@ public class HrEmpBasicController {
     @GetMapping("/download")
     @Operation(summary = "图片下载")
     @AuditLog(value = "图片下载", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    public void downloadPicture(@RequestParam String fileId, HttpServletResponse response) {
-        minIOUtils.getFile(fileId, response);
+    public ResponseResult<String> downloadPicture(@RequestParam String fileId) {
+        return new ResponseResult<>(HttpStatus.OK.value(), "OK", minIOUtils.getFileUrl(fileId));
+
     }
 
     @GetMapping("/getDept")
