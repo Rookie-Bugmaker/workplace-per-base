@@ -1,19 +1,24 @@
 package com.crrc.pojo.dto;
 
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
 
 @Data
 public class UserImageDTO {
     /**
      * 图片的路径
      */
-    String imageUri;
+    private String imageUri;
     /**
      * 人员姓名
      */
-    String name;
+    private String name;
     /**
      * 工号
      */
-    String uuid;
+    private String userCode;
+    /**
+     * 图片
+     */
+    private MultipartFile imageFile;
 }
