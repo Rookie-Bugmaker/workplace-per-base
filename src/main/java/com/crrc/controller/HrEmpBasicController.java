@@ -171,18 +171,18 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
     }
 
-    @GetMapping("/upload")
+    @PostMapping("/upload/{userCode}")
     @Operation(summary = "图片上传")
     @AuditLog(value = "图片上传", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    public ResponseResult<String> uploadPicture(@RequestBody UserImageDTO userImageDTO) {
-        if(StringUtils.isBlank(userImageDTO.getUserCode())) {
+    public ResponseResult<String> uploadPicture(@PathVariable String userCode, MultipartFile imageFile) {
+        if(StringUtils.isBlank(userCode)) {
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "未传入档案号");
         }
-        if(ObjectUtils.isEmpty(userImageDTO.getImageFile())) {
+        if(ObjectUtils.isEmpty(imageFile)) {
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "未传入图片");
         }
         // 上传到minIO
-        String profilePicture = minIOUtils.saveFile(userImageDTO.getImageFile());
+        String profilePicture = minIOUtils.saveFile(imageFile);
 
         boolean flag = RoleUtils.check("人力资源部-招聘管理专员");
         if (flag) {
@@ -190,7 +190,7 @@ public class HrEmpBasicController {
             try{
                 // 构建更新条件
                 MPJLambdaWrapper<HrEmpBasic> updateWrapper = new MPJLambdaWrapper<>();
-                updateWrapper.eq(HrEmpBasic::getUserCode, userImageDTO.getUserCode());
+                updateWrapper.eq(HrEmpBasic::getUserCode, userCode);
 
                 // 构建更新实体
                 HrEmpBasic updateEntity = new HrEmpBasic();
@@ -213,18 +213,18 @@ public class HrEmpBasicController {
         try{
             // 1. 获取当前数据快照
             HrEmpBasicDTO changeReqVO = new HrEmpBasicDTO();
-            changeReqVO.setUserCode(userImageDTO.getUserCode());
+            changeReqVO.setUserCode(userCode);
             changeReqVO.setProfilePicture(profilePicture);
 
-            HrEmpBasic original = hrEmpBasicService.getByUserCode(userImageDTO.getUserCode());
+            HrEmpBasic original = hrEmpBasicService.getByUserCode(userCode);
             HrEmpBasicDTO originalData = new HrEmpBasicDTO();
-            originalData.setUserCode(userImageDTO.getUserCode());
+            originalData.setUserCode(userCode);
             originalData.setProfilePicture(original.getProfilePicture());
 
             // 2. 创建变更申请文档
             HrEmpBasicChangeRequest changeRequest = new HrEmpBasicChangeRequest();
             changeRequest.setId(IdUtil.simpleUUID());
-            changeRequest.setUserCode(userImageDTO.getUserCode());
+            changeRequest.setUserCode(userCode);
             changeRequest.setOriginalData(originalData);
             changeRequest.setChangedData(changeReqVO);
             changeRequest.setWfId(changeReqVO.getWfId());
