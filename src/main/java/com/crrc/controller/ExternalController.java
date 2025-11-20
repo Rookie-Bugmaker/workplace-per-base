@@ -73,12 +73,10 @@ public class ExternalController {
     public ResponseResult<Integer> receiveKingDieMsg(@RequestBody List<KingDiePersonalOrderDTO> dtoList) {
 
         // @TODO 免登录接口需要手动写入租户Id，测试环境438，生产32，记得切换
-        MultiTenantHandler.tenantId.set("438");
         int updateFlag = 0;
         for (KingDiePersonalOrderDTO dto : dtoList) {
             try {
-
-
+                MultiTenantHandler.tenantId.set("438");
                 // 员工基本信息表 - 按工号更新或新增，先查询，如果没有该档案号数据就新增
                 if (dto.getHrEmpBasic() != null) {
                     HrEmpBasic basic = dto.getHrEmpBasic();
