@@ -30,15 +30,23 @@ public class HrEmpProfessionalQualificationServiceImpl extends WorkServiceImpl<H
     @Autowired
     private CodeInfoService codeInfoService;
 
+    private static final String TABLE_NAME = "hr_emp_pro_qualification";
+
+    /**
+     * 查询用户的专业职务任职资格信息
+     * @param userCode 需要查询的档案号
+     * @return 查询结果
+     */
     public List<HrEmpProfessionalQualification> selectMsg(String userCode){
         MPJLambdaWrapper<HrEmpProfessionalQualification> wrapper = new MPJLambdaWrapper<HrEmpProfessionalQualification>()
                 .selectAll(HrEmpProfessionalQualification.class)
                 .eq(HrEmpProfessionalQualification::getUserCode, userCode);
         List<HrEmpProfessionalQualification> hrEmpProfessionalQualifications = hrEmpProfessionalQualificationMapper.selectList(wrapper);
         if(!ObjectUtils.isEmpty(hrEmpProfessionalQualifications)) {
-            Map<String, String> qidTranslateMap = codeInfoService.getTranslateMap("hr_emp_pro_qualification", "QUA_ID");
-            Map<String, String> qlevelTranslateMap = codeInfoService.getTranslateMap("hr_emp_pro_qualification", "QUA_LEVEL");
-            Map<String, String> qpathTranslateMap = codeInfoService.getTranslateMap("hr_emp_pro_qualification", "QUA_PATH");
+            // 拼装翻译Map
+            Map<String, String> qidTranslateMap = codeInfoService.getTranslateMap(TABLE_NAME, "QUA_ID");
+            Map<String, String> qlevelTranslateMap = codeInfoService.getTranslateMap(TABLE_NAME, "QUA_LEVEL");
+            Map<String, String> qpathTranslateMap = codeInfoService.getTranslateMap(TABLE_NAME, "QUA_PATH");
             Map<String, String> booleanTranslateMap = new HashMap<>();
             booleanTranslateMap.put("1", "是");
             booleanTranslateMap.put("0", "否");
