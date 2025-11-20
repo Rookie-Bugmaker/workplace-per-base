@@ -668,13 +668,18 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
      * 补充教育明细信息（院校名称+专业名称）
      */
     private void enrichEducationInfo(HrEmpEducation edu) {
-        // 院校名称
-        HrEmpSchoolInfo school = hrEmpSchoolInfoService.selectByCode(edu.getSchoolCode());
-        edu.setSchoolName(school != null ? school.getSchoolName() : "未知院校");
+        try {
+            // 院校名称
+            HrEmpSchoolInfo school = hrEmpSchoolInfoService.selectByCode(edu.getSchoolCode());
+            edu.setSchoolName(school != null ? school.getSchoolName() : "未知院校");
 
-        // 专业名称
-        HrEmpMajorInfo major = hrEmpMajorInfoService.selectByCode(edu.getMajorCode());
-        edu.setMajor(major != null ? major.getMajor() : "未知专业");
+            // 专业名称
+            HrEmpMajorInfo major = hrEmpMajorInfoService.selectByCode(edu.getMajorCode());
+            edu.setMajor(major != null ? major.getMajor() : "未知专业");
+        } catch (Exception e) {
+            log.error("教育明细信息查询错误: {}", e.getMessage(), e);
+        }
+
     }
 
     public List<HrEmpBasicDTO> selectMsgList(List<String> userCodeList) {
