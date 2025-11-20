@@ -646,11 +646,12 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         if (!data.educationList.isEmpty()) {
             HrEmpEducation edu = data.educationList.get(0);
             // 补充院校/专业名称
-            enrichEducationInfo(edu);
-            dto.setSchoolName(edu.getSchoolName());
-            dto.setEducation(edu.getEducation());
-            dto.setDegree(edu.getDegree());
-            dto.setMajor(edu.getMajor());
+            if(enrichEducationInfo(edu)) {
+                dto.setSchoolName(edu.getSchoolName());
+                dto.setEducation(edu.getEducation());
+                dto.setDegree(edu.getDegree());
+                dto.setMajor(edu.getMajor());
+            }
         }
 
         // 处理技能等级
@@ -666,8 +667,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
     /**
      * 补充教育明细信息（院校名称+专业名称）
+     * @return 是否执行成功
      */
-    private void enrichEducationInfo(HrEmpEducation edu) {
+    private boolean enrichEducationInfo(HrEmpEducation edu) {
         try {
             // 院校名称
             HrEmpSchoolInfo school = hrEmpSchoolInfoService.selectByCode(edu.getSchoolCode());
@@ -676,8 +678,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             // 专业名称
             HrEmpMajorInfo major = hrEmpMajorInfoService.selectByCode(edu.getMajorCode());
             edu.setMajor(major != null ? major.getMajor() : "未知专业");
+            return true;
         } catch (Exception e) {
             log.error("教育明细信息查询错误: {}", e.getMessage(), e);
+            return false;
         }
 
     }
