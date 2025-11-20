@@ -361,7 +361,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
             return result;
         } catch (Exception e) {
-            log.warn("查询异常,{}", e.getMessage());
+            log.warn("查询异常,{}", e.getMessage(), e);
             return queryBaseInfoWithJoins(userCode);
         }
 
