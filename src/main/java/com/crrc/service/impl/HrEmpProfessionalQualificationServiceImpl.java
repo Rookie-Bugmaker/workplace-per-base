@@ -2,13 +2,17 @@ package com.crrc.service.impl;
 
 import com.crrc.entity.HrEmpProfessionalQualification;
 import com.crrc.mapper.HrEmpProfessionalQualificationMapper;
+import com.crrc.service.CodeInfoService;
 import com.crrc.service.HrEmpProfessionalQualificationService;
 import com.crrc.utils.SystemConstants;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * <p>
@@ -23,12 +27,32 @@ public class HrEmpProfessionalQualificationServiceImpl extends WorkServiceImpl<H
 
     @Autowired
     private HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper;
+    @Autowired
+    private CodeInfoService codeInfoService;
 
     public List<HrEmpProfessionalQualification> selectMsg(String userCode){
         MPJLambdaWrapper<HrEmpProfessionalQualification> wrapper = new MPJLambdaWrapper<HrEmpProfessionalQualification>()
                 .selectAll(HrEmpProfessionalQualification.class)
                 .eq(HrEmpProfessionalQualification::getUserCode, userCode);
-        return hrEmpProfessionalQualificationMapper.selectList(wrapper);
+        List<HrEmpProfessionalQualification> hrEmpProfessionalQualifications = hrEmpProfessionalQualificationMapper.selectList(wrapper);
+        if(!ObjectUtils.isEmpty(hrEmpProfessionalQualifications)) {
+            Map<String, String> qidTranslateMap = codeInfoService.getTranslateMap("hr_emp_pro_qualification", "QUA_ID");
+            Map<String, String> qlevelTranslateMap = codeInfoService.getTranslateMap("hr_emp_pro_qualification", "QUA_LEVEL");
+            Map<String, String> qpathTranslateMap = codeInfoService.getTranslateMap("hr_emp_pro_qualification", "QUA_PATH");
+            Map<String, String> booleanTranslateMap = new HashMap<>();
+            booleanTranslateMap.put("1", "是");
+            booleanTranslateMap.put("0", "否");
+            // 翻译各个字段
+            hrEmpProfessionalQualifications.forEach(qua -> {
+                qua.setQuaIdValue(qidTranslateMap.getOrDefault(qua.getQuaId(), qua.getQuaId()));
+                qua.setQuaTitleLevelValue(qlevelTranslateMap.getOrDefault(qua.getQuaTitleLevel(), qua.getQuaTitleLevel()));
+                qua.setQuaPathValue(qpathTranslateMap.getOrDefault(qua.getQuaPath(), qua.getQuaPath()));
+                qua.setIsHighestValue(booleanTranslateMap.getOrDefault(qua.getIsHighest(), qua.getIsHighest()));
+                qua.setIsAppointedValue(booleanTranslateMap.getOrDefault(qua.getIsAppointed(), qua.getIsAppointed()));
+            });
+
+        }
+        return hrEmpProfessionalQualifications;
     }
 
     public HrEmpProfessionalQualification selectHighestQualification(String userCode){
