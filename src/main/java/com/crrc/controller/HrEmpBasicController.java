@@ -377,12 +377,14 @@ public class HrEmpBasicController {
             switch (hrEmpBasic.getIdentityType()) {
                 // 身份类型 干部
                 case "1":
+                case "干部":
                     // 人员分类1 “干”对应的码值
                     category1 = "001";
                     break;
 
                 // 身份类型 工人
                 case "2":
+                case "工人":
                     // 人员分类1 “工”对应的码值
                     category1 = "002";
                     break;
