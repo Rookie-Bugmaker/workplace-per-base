@@ -400,36 +400,32 @@ public class HrEmpBasicController {
         if (!qualificationList.isEmpty()) {
             for (HrEmpProfessionalQualification qualification : qualificationList) {
                 // 找到目前最高的任职资格，以此为判断标准
-                if (StringUtils.isNotBlank(qualification.getIsHighest()) && SystemConstants.TRUE_FLAG.equals(qualification.getIsHighest())) {
-                            /*
-                              00010	正高级 正
-                              00020	高级 高
-                              00030	中级 师
-                              00040	助理级 助
-                              00050	员级 员
-                              00060	未聘任专业技术职务
-                             */
-                    if (StringUtils.isNotBlank(qualification.getQuaTitleLevel())) {
+                if (StringUtils.isNotBlank(qualification.getIsHighest()) && SystemConstants.TRUE_FLAG.equals(qualification.getIsHighest()) && StringUtils.isNotBlank(qualification.getQuaTitleLevel())) {
                         switch (qualification.getQuaTitleLevel()) {
                             case "00010":
+                            case "正高级":
                                 category7 = "001";
                                 break;
                             case "00020":
+                            case "高级":
                                 category7 = "002";
                                 break;
                             case "00030":
+                            case "中级":
                                 category7 = "003";
                                 break;
                             case "00040":
+                            case "助理级":
                                 category7 = "004";
                                 break;
                             case "00050":
+                            case "员级":
                                 category7 = "005";
                                 break;
                             default:
                         }
                     }
-                }
+
             }
         }
         // 职业技能等级
