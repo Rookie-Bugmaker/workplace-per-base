@@ -443,24 +443,31 @@ public class HrEmpBasicController {
                              */
                         switch (skillLevel.getSkillLevel()) {
                             case "00010":
+                            case "首席技师":
                                 category7 = "001";
                                 break;
                             case "00020":
+                            case "特级技师":
                                 category7 = "001";
                                 break;
                             case "00030":
+                            case "高级技师":
                                 category7 = "001";
                                 break;
                             case "00040":
+                            case "技师":
                                 category7 = "002";
                                 break;
                             case "00050":
+                            case "高级工":
                                 category7 = "003";
                                 break;
                             case "00060":
+                            case "中级工":
                                 category7 = "004";
                                 break;
                             case "00070":
+                            case "初级工":
                                 category7 = "005";
                                 break;
                             default:
