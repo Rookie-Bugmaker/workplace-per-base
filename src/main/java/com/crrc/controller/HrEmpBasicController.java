@@ -357,7 +357,7 @@ public class HrEmpBasicController {
                         .set(HrEmpBasic::getCategory4, hrEmpBasic.getCategory4())
                         .set(HrEmpBasic::getCategory7, hrEmpBasic.getCategory7())
                         .set(HrEmpBasic::getCategory8, hrEmpBasic.getCategory8());
-                hrEmpBasicService.update(null, wrapper);
+                hrEmpBasicService.update(wrapper);
                 log.info("userCode:{},更新成功", hrEmpBasic.getUserCode());
             }
             return new ResponseResult<>(HttpStatus.OK.value(), "人员分类同步成功");
@@ -396,7 +396,7 @@ public class HrEmpBasicController {
             return category1;
         } catch (Exception e) {
             log.error("人员分类1同步失败: {}", e.getMessage(), e);
-            return null;
+            return hrEmpBasic.getCategory1();
         }
     }
 
@@ -490,13 +490,12 @@ public class HrEmpBasicController {
             return category7;
         } catch (Exception e) {
             log.error("人员分类7同步失败: {}", e.getMessage(), e);
-            return null;
+            return hrEmpBasic.getCategory7();
         }
     }
 
     private String resolveCategory8(HrEmpBasic hrEmpBasic) {
         try {
-
             // 先判断借调、外派、助勤
             // 查找duty_status不为空的其他任职信息
             LambdaQueryWrapper<HrEmpOtherAppointment> otherAppQueryWrapper = new LambdaQueryWrapper<>();
@@ -538,7 +537,7 @@ public class HrEmpBasicController {
                 HrEmpAppointment hrEmpAppointment = hrEmpAppointments.get(0);
                 // 如果超过一条，选择startDate最晚的
                 if (hrEmpAppointments.size() > 1) {
-                    hrEmpAppointment = hrEmpAppointments.stream().reduce((a, b) -> a.getStartDate().isAfter(b.getStartDate()) ? a : b).get();
+                    hrEmpAppointment = hrEmpAppointments.stream().filter(e -> e.getStartDate() != null).reduce((a, b) -> a.getStartDate().isAfter(b.getStartDate()) ? a : b).get();
                 }
                 String dutyStatus = hrEmpAppointment.getDutyStatus();
                 // 任职信息→在岗状态→待岗 -> 待
@@ -568,7 +567,7 @@ public class HrEmpBasicController {
             return null;
         } catch (Exception e) {
             log.error("人员分类8同步错误: {}", e.getMessage(), e);
-            return null;
+            return hrEmpBasic.getCategory8();
         }
     }
 
@@ -680,7 +679,7 @@ public class HrEmpBasicController {
             return null;
         } catch (Exception e) {
             log.error("人员分类4同步失败: {}", e.getMessage(), e);
-            return null;
+            return hrEmpBasic.getCategory4();
         }
     }
 
