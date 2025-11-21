@@ -26,6 +26,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -267,6 +269,14 @@ public class ExternalController {
                 //薪资标准
                 if (dto.getHrEmpSalaryStandard() != null && dto.getHrEmpSalaryStandard().getUserCode() != null) {
                     dto.getHrEmpSalaryStandard().setId(IdUtil.simpleUUID());
+                    String coefficient = dto.getHrEmpSalaryStandard().getCoefficient();
+                    try {
+                        BigDecimal coefficientBigDecimal = BigDecimal.valueOf(Long.parseLong(coefficient));
+                        BigDecimal divide = coefficientBigDecimal.divide(BigDecimal.valueOf(100), 3, RoundingMode.HALF_UP);
+                        dto.getHrEmpSalaryStandard().setCoefficient(divide.stripTrailingZeros().toPlainString());
+                    } catch (Exception e) {
+                        log.error("处理coefficient出现错误{}", e.getMessage(), e);
+                    }
                     boolean saveResult = hrEmpSalaryStandardService.save(dto.getHrEmpSalaryStandard());
                     if (!saveResult) {
                         log.error("保存薪资标准失败，工号：{}", dto.getHrEmpBasic().getUserCode());
