@@ -229,11 +229,11 @@ public class ExternalController {
                     // 将其他的isHighest置为0
                     if("1".equals(hrEmpProfessionalQualification.getIsHighest())) {
                         List<HrEmpProfessionalQualification> hrEmpProfessionalQualifications = hrEmpProfessionalQualificationService.selectMsg(hrEmpProfessionalQualification.getUserCode());
-                        Optional<HrEmpProfessionalQualification> first = hrEmpProfessionalQualifications.stream().filter(e -> "是".equals(e.getIsHighest()) || "1".equals(e.getIsHighest())).findFirst();
-                        if(first.isPresent()) {
-                            first.get().setIsHighest("0");
-                            hrEmpProfessionalQualificationService.save(first.get());
-                        }
+                        List<HrEmpProfessionalQualification> list = hrEmpProfessionalQualifications.stream().filter(e -> "是".equals(e.getIsHighest()) || "1".equals(e.getIsHighest())).collect(Collectors.toList());
+                        list.forEach(item -> {
+                            item.setIsHighest("0");
+                            hrEmpProfessionalQualificationService.updateById(item);
+                        });
                     }
                     // 如果存在
                     boolean saveResult = hrEmpProfessionalQualificationService.save(dto.getHrEmpProfessionalQualification());
