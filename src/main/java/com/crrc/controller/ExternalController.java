@@ -28,9 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -219,6 +217,23 @@ public class ExternalController {
                 //员工专业职务任职资格表
                 if (dto.getHrEmpProfessionalQualification() != null && dto.getHrEmpProfessionalQualification().getUserCode() != null) {
                     dto.getHrEmpProfessionalQualification().setId(IdUtil.simpleUUID());
+                    Map<String, String> booleanTranslateMap = new HashMap<>();
+                    booleanTranslateMap.put("1", "是");
+                    booleanTranslateMap.put("0", "否");
+                    // 处理isHighest
+                    HrEmpProfessionalQualification hrEmpProfessionalQualification = dto.getHrEmpProfessionalQualification();
+                    String highest = booleanTranslateMap.getOrDefault(hrEmpProfessionalQualification.getIsHighest(), hrEmpProfessionalQualification.getIsHighest());
+                    hrEmpProfessionalQualification.setIsHighest(highest);
+                    // 将其他的isHighest置为0
+                    if("1".equals(hrEmpProfessionalQualification.getIsHighest())) {
+                        List<HrEmpProfessionalQualification> hrEmpProfessionalQualifications = hrEmpProfessionalQualificationService.selectMsg(hrEmpProfessionalQualification.getUserCode());
+                        Optional<HrEmpProfessionalQualification> first = hrEmpProfessionalQualifications.stream().filter(e -> "是".equals(e.getIsHighest()) || "1".equals(e.getIsHighest())).findFirst();
+                                                if(first.isPresent()) {
+                            first.get().setIsHighest("0");
+                            hrEmpProfessionalQualificationService.save(first.get());
+                        }
+                    }
+                    // 如果存在
                     boolean saveResult = hrEmpProfessionalQualificationService.save(dto.getHrEmpProfessionalQualification());
                     if (!saveResult) {
                         log.error("保存专业职务任职资格失败，工号：{}", dto.getHrEmpBasic().getUserCode());
