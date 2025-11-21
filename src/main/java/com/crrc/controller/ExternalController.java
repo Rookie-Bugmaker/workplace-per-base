@@ -223,12 +223,14 @@ public class ExternalController {
                     // 处理isHighest
                     HrEmpProfessionalQualification hrEmpProfessionalQualification = dto.getHrEmpProfessionalQualification();
                     String highest = booleanTranslateMap.getOrDefault(hrEmpProfessionalQualification.getIsHighest(), hrEmpProfessionalQualification.getIsHighest());
+                    String appointed = booleanTranslateMap.getOrDefault(hrEmpProfessionalQualification.getIsAppointed(), hrEmpProfessionalQualification.getIsAppointed());
                     hrEmpProfessionalQualification.setIsHighest(highest);
+                    hrEmpProfessionalQualification.setIsAppointed(appointed);
                     // 将其他的isHighest置为0
                     if("1".equals(hrEmpProfessionalQualification.getIsHighest())) {
                         List<HrEmpProfessionalQualification> hrEmpProfessionalQualifications = hrEmpProfessionalQualificationService.selectMsg(hrEmpProfessionalQualification.getUserCode());
                         Optional<HrEmpProfessionalQualification> first = hrEmpProfessionalQualifications.stream().filter(e -> "是".equals(e.getIsHighest()) || "1".equals(e.getIsHighest())).findFirst();
-                                                if(first.isPresent()) {
+                        if(first.isPresent()) {
                             first.get().setIsHighest("0");
                             hrEmpProfessionalQualificationService.save(first.get());
                         }
