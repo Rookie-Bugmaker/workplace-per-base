@@ -83,7 +83,10 @@ public class MyBatisPlusMigrationService {
                     querySql = String.format(
                             "WITH ranked_data AS (" +
                                     "    SELECT *, " +
-                                    "           ROW_NUMBER() OVER (PARTITION BY user_code ORDER BY create_time DESC) AS group_rank " +
+                                    // 先取create_time有值的
+                                    "           ROW_NUMBER() OVER " +
+                                    "(PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END, create_time DESC) " +
+                                    "AS group_rank " +
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND user_code IS NOT NULL" +
                                     ") " +
