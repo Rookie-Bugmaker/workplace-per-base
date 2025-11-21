@@ -362,7 +362,7 @@ public class HrEmpBasicController {
             }
             return new ResponseResult<>(HttpStatus.OK.value(), "人员分类同步成功");
         } catch (Exception e) {
-            log.error("同步失败，{}", e.getMessage());
+            log.error("同步失败，{}", e.getMessage(), e);
             return new ResponseResult<>(HttpStatus.EXPECTATION_FAILED.value(), "人员分类同步失败" + e.getMessage());
         }
     }
@@ -403,33 +403,36 @@ public class HrEmpBasicController {
             for (HrEmpProfessionalQualification qualification : qualificationList) {
                 // 找到目前最高的任职资格，以此为判断标准
                 if (StringUtils.isNotBlank(qualification.getIsHighest()) && SystemConstants.TRUE_FLAG.equals(qualification.getIsHighest()) && StringUtils.isNotBlank(qualification.getQuaTitleLevel())) {
-                        switch (qualification.getQuaTitleLevel()) {
-                            case "00010":
-                            case "正高级":
-                                category7 = "001";
-                                break;
-                            case "00020":
-                            case "高级":
-                                category7 = "002";
-                                break;
-                            case "00030":
-                            case "中级":
-                                category7 = "003";
-                                break;
-                            case "00040":
-                            case "助理级":
-                                category7 = "004";
-                                break;
-                            case "00050":
-                            case "员级":
-                                category7 = "005";
-                                break;
-                            default:
-                        }
+                    switch (qualification.getQuaTitleLevel()) {
+                        case "00010":
+                        case "正高级":
+                            category7 = "001";
+                            break;
+                        case "00020":
+                        case "高级":
+                            category7 = "002";
+                            break;
+                        case "00030":
+                        case "中级":
+                            category7 = "003";
+                            break;
+                        case "00040":
+                        case "助理级":
+                            category7 = "004";
+                            break;
+                        case "00050":
+                        case "员级":
+                            category7 = "005";
+                            break;
+                        default:
                     }
-
+                }
             }
         }
+        if(category7 != null) {
+            return category7;
+        }
+
         // 职业技能等级
         List<HrEmpSkillLevel> skillLevelList = hrEmpSkillLevelService.selectMsg(hrEmpBasic.getUserCode());
         if (!skillLevelList.isEmpty()) {
