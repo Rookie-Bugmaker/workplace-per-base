@@ -218,8 +218,8 @@ public class ExternalController {
                 if (dto.getHrEmpProfessionalQualification() != null && dto.getHrEmpProfessionalQualification().getUserCode() != null) {
                     dto.getHrEmpProfessionalQualification().setId(IdUtil.simpleUUID());
                     Map<String, String> booleanTranslateMap = new HashMap<>();
-                    booleanTranslateMap.put("1", "是");
-                    booleanTranslateMap.put("0", "否");
+                    booleanTranslateMap.put("是", "1");
+                    booleanTranslateMap.put("否", "0");
                     // 处理isHighest
                     HrEmpProfessionalQualification hrEmpProfessionalQualification = dto.getHrEmpProfessionalQualification();
                     String highest = booleanTranslateMap.getOrDefault(hrEmpProfessionalQualification.getIsHighest(), hrEmpProfessionalQualification.getIsHighest());
