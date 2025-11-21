@@ -94,7 +94,8 @@ public class MyBatisPlusMigrationService {
                                     "WHERE group_rank = 1 " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
-                            "v_"+tableName);
+                            // 不从视图取值
+                            tableName);
                     batchData = openGaussJdbcTemplate.queryForList(querySql, batchSize);
                 } else {
                     // 后续查询
