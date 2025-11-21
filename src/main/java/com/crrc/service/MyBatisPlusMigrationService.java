@@ -94,15 +94,17 @@ public class MyBatisPlusMigrationService {
                                     "WHERE group_rank = 1 " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
-                            // 不从视图取值
-                            tableName);
+                            "v_" + tableName);
                     batchData = openGaussJdbcTemplate.queryForList(querySql, batchSize);
                 } else {
                     // 后续查询
                     querySql = String.format(
                             "WITH ranked_data AS (" +
                                     "    SELECT *, " +
-                                    "           ROW_NUMBER() OVER (PARTITION BY user_code ORDER BY create_time DESC) AS group_rank " +
+                                    // 先取create_time有值的
+                                    "           ROW_NUMBER() OVER " +
+                                    "(PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END, create_time DESC) " +
+                                    "AS group_rank " +
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND user_code IS NOT NULL AND user_code > ?" +
                                     ") " +
@@ -110,7 +112,7 @@ public class MyBatisPlusMigrationService {
                                     "WHERE group_rank = 1 " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
-                            "v_"+tableName);
+                            "v_" + tableName);
                     batchData = openGaussJdbcTemplate.queryForList(querySql, lastUserCode, batchSize);
                 }
 
