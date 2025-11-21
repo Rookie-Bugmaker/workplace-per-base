@@ -132,6 +132,9 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"身份类型"}, index = 16)
     @Schema(description = "身份类型")
+    /**
+     * 001 干 002 工 一定要按001、002、003...顺序增加， 否则TSDA会出错
+     */
     private String identityType;
     
     @QueryMethod(method = QueryType.EQ)
