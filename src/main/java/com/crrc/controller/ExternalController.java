@@ -118,9 +118,22 @@ public class ExternalController {
                             }
                         }
 
+                        // 如果没有提中干时间，且传入了提中干时间，那么更新提中干时间
+                        if(existingBasic.getPromotionTime() == null && basic.getPromotionTime() != null) {
+                            UpdateWrapper<HrEmpBasic> promotionTimeUpdate = new UpdateWrapper<>();
+                            promotionTimeUpdate.eq("user_code", basic.getUserCode())
+                                    .set("promotion_time", basic.getPromotionTime());
+
+                            boolean promotionTimeUpdateResult = hrEmpBasicService.update(promotionTimeUpdate);
+                            if (!promotionTimeUpdateResult) {
+                                log.error("更新员工提中干时间失败，工号：{}", basic.getUserCode());
+                                return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "更新员工提中干时间失败!");
+                            }
+                        }
+
                         // 更新其他非空字段（排除id和userCode）
                         UpdateWrapper<HrEmpBasic> updateWrapper = UpdateWrapperUtils
-                                .buildNonNullUpdateWrapper(basic, "id", "userCode", "status") // 排除status字段，避免重复更新
+                                .buildNonNullUpdateWrapper(basic, "id", "userCode", "status", "promotionTime") // 排除status和提中干时间字段，避免重复更新
                                 .eq("user_code", basic.getUserCode());
 
                         boolean updateResult = hrEmpBasicService.update(updateWrapper);
