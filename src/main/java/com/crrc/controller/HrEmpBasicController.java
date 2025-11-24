@@ -36,6 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -107,7 +108,7 @@ public class HrEmpBasicController {
     @Autowired
     private MinIOUtils minIOUtils;
     @Autowired
-    private PictureErrorServiceImpl pictureErrorServiceImpl;
+    private PictureErrorServiceImpl pictureErrorService;
 
     @GetMapping("/isAvailable")
     @Operation(summary = "就绪探针")
@@ -118,16 +119,18 @@ public class HrEmpBasicController {
     @PostMapping("/syncPicture")
     @Transactional(rollbackFor = Exception.class)
     public ResponseResult<Boolean> syncPicture(@RequestBody List<HrEmpBasic> userCodeList) {
-        List<HrEmpBasic> list = (userCodeList != null && !userCodeList.isEmpty())
-                ? hrEmpBasicService.getListByUserCode(userCodeList)
-                : hrEmpBasicService.getAllUser();
+        List<PictureError> pictureErrors = pictureErrorService.getBaseMapper().selectList(new LambdaQueryWrapper<>());
+        List<String> list;
+        if(userCodeList == null || userCodeList.isEmpty()) {
+            list = pictureErrors.stream().map(PictureError::getUserCode).collect(Collectors.toList());
+        } else {
+            list = userCodeList.stream().map(HrEmpBasic::getUserCode).collect(Collectors.toList());
+        }
 
-        list = list.stream().filter(e -> e.getUserCode() != null).collect(Collectors.toList());
-
-        List<String> uuidList = list.stream().map(HrEmpBasic::getUserCode).collect(Collectors.toList());
+        List<String> uuidList = list;
 
         // 分批请求
-        List<List<String>> partition = ListUtils.partition(uuidList, 10);
+        List<List<String>> partition = ListUtils.partition(uuidList, 3);
         for(List<String> sliceUuidList : partition) {
             ImageReqDTO imageReqDTO = new ImageReqDTO();
             imageReqDTO.setUuidList(sliceUuidList);
@@ -138,7 +141,7 @@ public class HrEmpBasicController {
                 sliceUuidList.forEach(userCode -> {
                     PictureError pictureError = new PictureError();
                     pictureError.setUserCode(userCode);
-                    pictureErrorServiceImpl.save(pictureError);
+                    pictureErrorService.save(pictureError);
                 });
 
                 // throw new IllegalArgumentException("获取图片失败");
@@ -163,7 +166,7 @@ public class HrEmpBasicController {
                     log.error("用户图片同步失败: {}", userImageDTO.getUserCode());
                     PictureError pictureError = new PictureError();
                     pictureError.setUserCode(userImageDTO.getUserCode());
-                    pictureErrorServiceImpl.save(pictureError);
+                    pictureErrorService.save(pictureError);
                     // throw new IllegalArgumentException(e.getMessage());
                 }
             });
