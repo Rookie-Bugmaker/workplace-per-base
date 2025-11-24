@@ -120,29 +120,27 @@ public class HrEmpBasicController {
     @Transactional(rollbackFor = Exception.class)
     public ResponseResult<Boolean> syncPicture(@RequestBody List<HrEmpBasic> userCodeList) {
         List<PictureError> pictureErrors = pictureErrorService.getBaseMapper().selectList(new LambdaQueryWrapper<>());
-        List<String> list;
+        List<String> uuidList;
         if(userCodeList == null || userCodeList.isEmpty()) {
-            list = pictureErrors.stream().map(PictureError::getUserCode).collect(Collectors.toList());
+            uuidList = pictureErrors.stream().map(PictureError::getUserCode).collect(Collectors.toList());
         } else {
-            list = userCodeList.stream().map(HrEmpBasic::getUserCode).collect(Collectors.toList());
+            uuidList = userCodeList.stream().map(HrEmpBasic::getUserCode).collect(Collectors.toList());
         }
 
-        List<String> uuidList = list;
-
         // 分批请求
-        List<List<String>> partition = ListUtils.partition(uuidList, 3);
-        for(List<String> sliceUuidList : partition) {
+        // List<List<String>> partition = ListUtils.partition(uuidList, 1);
+        for(String uuid : uuidList) {
             ImageReqDTO imageReqDTO = new ImageReqDTO();
-            imageReqDTO.setUuidList(sliceUuidList);
+            imageReqDTO.setUuidList(Collections.singletonList(uuid));
             ResponseData<List<UserImageDTO>> personImageByUserCode = userProfileImageClient.getPersonImageByUserCode(imageReqDTO);
 
             if(personImageByUserCode == null || ObjectUtils.isEmpty(personImageByUserCode.getData())) {
-                log.error("同步用户图片失败: {}", sliceUuidList);
-                sliceUuidList.forEach(userCode -> {
-                    PictureError pictureError = new PictureError();
-                    pictureError.setUserCode(userCode);
-                    pictureErrorService.save(pictureError);
-                });
+                log.error("同步用户图片失败: {}", uuid);
+
+                PictureError pictureError = new PictureError();
+                pictureError.setUserCode(uuid);
+                pictureErrorService.save(pictureError);
+
 
                 // throw new IllegalArgumentException("获取图片失败");
             }
@@ -163,9 +161,9 @@ public class HrEmpBasicController {
                     hrEmpBasicService.updateById(userInfo);
                 } catch (Exception e) {
                     log.error("上传错误", e);
-                    log.error("用户图片同步失败: {}", userImageDTO.getUserCode());
+                    log.error("用户图片同步失败: {}", userImageDTO.getUserCode() == null ? uuid : userImageDTO.getUserCode());
                     PictureError pictureError = new PictureError();
-                    pictureError.setUserCode(userImageDTO.getUserCode());
+                    pictureError.setUserCode(userImageDTO.getUserCode() == null ? uuid : userImageDTO.getUserCode());
                     pictureErrorService.save(pictureError);
                     // throw new IllegalArgumentException(e.getMessage());
                 }
