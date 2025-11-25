@@ -21,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.*;
@@ -397,17 +398,17 @@ public class ExternalController {
      */
     @IgnoreTenant
     @GetMapping("/getAttendanceImage")
-    public ResponseResult<String> getAttendanceImage(@RequestParam String userCode) {
+    public ResponseEntity<String> getAttendanceImage(@RequestParam String userCode) {
         LambdaQueryWrapper<HrEmpBasic> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(HrEmpBasic::getUserCode, userCode);
         HrEmpBasic hrEmpBasic = hrEmpBasicService.getBaseMapper().selectOne(queryWrapper);
         String fileUrl = minIOUtils.getFileUrl(hrEmpBasic.getAttendanceImageId());
         if(StringUtils.isNotBlank(fileUrl) && fileUrl.startsWith("http")) {
             log.info("getAttendanceImage OK:{}", new ResponseResult<>(HttpStatus.OK.value(), "OK", fileUrl));
-            return new ResponseResult<>(HttpStatus.OK.value(), "OK", fileUrl);
+            return new ResponseEntity<>(fileUrl, HttpStatus.OK);
         }
         log.info("getAttendanceImage ERROR:{}", new ResponseResult<>(HttpStatus.OK.value(), "OK", fileUrl));
-        return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "ERROR");
+        return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
 
     @GetMapping("/file/download")
