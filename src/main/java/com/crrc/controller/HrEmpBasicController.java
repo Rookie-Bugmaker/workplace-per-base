@@ -704,7 +704,11 @@ public class HrEmpBasicController {
         queryWrapper.eq(HrEmpBasic::getUserCode, userCode);
         HrEmpBasic hrEmpBasic = hrEmpBasicService.getBaseMapper().selectOne(queryWrapper);
         String fileUrl = minIOUtils.getFileUrl(hrEmpBasic.getAttendanceImageId());
-        return new ResponseResult<>(HttpStatus.OK.value(), "OK", fileUrl);
+        if(StringUtils.isNotBlank(fileUrl) && fileUrl.startsWith("http")) {
+            return new ResponseResult<>(HttpStatus.OK.value(), "OK", fileUrl);
+        }
+
+        return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "ERROR");
     }
 
     @PostMapping("/getDetailList")
