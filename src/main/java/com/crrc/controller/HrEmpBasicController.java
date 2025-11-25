@@ -692,6 +692,19 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工基本信息表实体成功", hrEmpBasicService.selectMsg(userCode));
     }
 
+    /**
+     * 使用用户名获得用户人脸识别的图片
+     * @param userCode 用户档案号
+     * @param resp Spring自动拼装HttpServletResponse，用于返回
+     */
+    @GetMapping("/getAttendanceImage")
+    public void getAttendanceImage(@RequestParam String userCode, HttpServletResponse resp) {
+        LambdaQueryWrapper<HrEmpBasic> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(HrEmpBasic::getUserCode, userCode);
+        HrEmpBasic hrEmpBasic = hrEmpBasicService.getBaseMapper().selectOne(queryWrapper);
+        minIOUtils.getFile(hrEmpBasic.getAttendanceImageId(), resp);
+    }
+
     @PostMapping("/getDetailList")
     @Operation(summary = "获得员工基本信息表实体")
     @AuditLog(value = "获得员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
