@@ -118,61 +118,63 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", "OK");
     }
 
-//    @PostMapping("/syncPicture")
-//    @Transactional(rollbackFor = Exception.class)
-//    public ResponseResult<Boolean> syncPicture(@RequestBody List<HrEmpBasic> userCodeList) {
-//        List<PictureError> pictureErrors = pictureErrorService.getBaseMapper().selectList(new LambdaQueryWrapper<>());
-//        List<String> uuidList;
-//        if(userCodeList == null || userCodeList.isEmpty()) {
-//            uuidList = pictureErrors.stream().map(PictureError::getUserCode).collect(Collectors.toList());
-//        } else {
-//            uuidList = userCodeList.stream().map(HrEmpBasic::getUserCode).collect(Collectors.toList());
-//        }
-//
-//        // 分批请求
-//        // List<List<String>> partition = ListUtils.partition(uuidList, 1);
-//        for(String uuid : uuidList) {
-//            ImageReqDTO imageReqDTO = new ImageReqDTO();
-//            imageReqDTO.setUuidList(Collections.singletonList(uuid));
-//            ResponseData<List<UserImageDTO>> personImageByUserCode = userProfileImageClient.getPersonImageByUserCode(imageReqDTO);
-//
-//            if(personImageByUserCode == null || ObjectUtils.isEmpty(personImageByUserCode.getData())) {
-//                log.error("同步用户图片失败: {}", uuid);
-//
-//                PictureError pictureError = new PictureError();
-//                pictureError.setUserCode(uuid);
-//                pictureErrorService.save(pictureError);
-//
-//
-//                // throw new IllegalArgumentException("获取图片失败");
-//            }
-//
-//            List<UserImageDTO> data = personImageByUserCode.getData();
-//            data.forEach(userImageDTO -> {
-//                try {
-//                    String imageUri = userImageDTO.getImageUri();
-//                    // 获取数据流
-//                    byte[] bytes = ImageUtils.downloadImage(imageUri);
-//                    // 转为MultipartFile
-//                    ByteArrayMultipartFile image = new ByteArrayMultipartFile(bytes, "image", "image.jpg", "image/jpeg");
-//                    // 上传到minIO
-//                    String profilePicture = minIOUtils.saveFile(image);
-//                    HrEmpBasic userInfo = hrEmpBasicService.getByUserCode(userImageDTO.getUserCode());
-//                    userInfo.setProfilePicture(profilePicture);
-//                    // 更新数据
-//                    hrEmpBasicService.updateById(userInfo);
-//                } catch (Exception e) {
-//                    log.error("上传错误", e);
-//                    log.error("用户图片同步失败: {}", userImageDTO.getUserCode() == null ? uuid : userImageDTO.getUserCode());
-//                    PictureError pictureError = new PictureError();
-//                    pictureError.setUserCode(userImageDTO.getUserCode() == null ? uuid : userImageDTO.getUserCode());
-//                    pictureErrorService.save(pictureError);
-//                    // throw new IllegalArgumentException(e.getMessage());
-//                }
-//            });
-//        }
-//        return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
-//    }
+    @PostMapping("/syncPicture")
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseResult<Boolean> syncPicture(@RequestBody List<HrEmpBasic> userCodeList) {
+        LambdaQueryWrapper<HrEmpBasic> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.isNull(HrEmpBasic::getProfilePicture);
+        queryWrapper.isNull(HrEmpBasic::getAttendanceImageId);
+        List<HrEmpBasic> hrEmpBasicList = hrEmpBasicService.getBaseMapper().selectList(queryWrapper);
+
+        List<String> uuidList = hrEmpBasicList.stream().map(HrEmpBasic::getUserCode).collect(Collectors.toList());
+        if(uuidList.isEmpty()) {
+            return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
+        }
+
+        // 分批请求
+        // List<List<String>> partition = ListUtils.partition(uuidList, 1);
+        for(String uuid : uuidList) {
+            ImageReqDTO imageReqDTO = new ImageReqDTO();
+            imageReqDTO.setUuidList(Collections.singletonList(uuid));
+            ResponseData<List<UserImageDTO>> personImageByUserCode = userProfileImageClient.getPersonImageByUserCode(imageReqDTO);
+
+            if(personImageByUserCode == null || ObjectUtils.isEmpty(personImageByUserCode.getData())) {
+                log.error("同步用户图片失败: {}", uuid);
+
+                PictureError pictureError = new PictureError();
+                pictureError.setUserCode(uuid);
+                pictureErrorService.save(pictureError);
+
+
+                // throw new IllegalArgumentException("获取图片失败");
+            }
+
+            List<UserImageDTO> data = personImageByUserCode.getData();
+            data.forEach(userImageDTO -> {
+                try {
+                    String imageUri = userImageDTO.getImageUri();
+                    // 获取数据流
+                    byte[] bytes = ImageUtils.downloadImage(imageUri);
+                    // 转为MultipartFile
+                    ByteArrayMultipartFile image = new ByteArrayMultipartFile(bytes, "image", "image.jpg", "image/jpeg");
+                    // 上传到minIO
+                    String profilePicture = minIOUtils.saveFile(image);
+                    HrEmpBasic userInfo = hrEmpBasicService.getByUserCode(userImageDTO.getUserCode());
+                    userInfo.setProfilePicture(profilePicture);
+                    // 更新数据
+                    hrEmpBasicService.updateById(userInfo);
+                } catch (Exception e) {
+                    log.error("上传错误", e);
+                    log.error("用户图片同步失败: {}", userImageDTO.getUserCode() == null ? uuid : userImageDTO.getUserCode());
+                    PictureError pictureError = new PictureError();
+                    pictureError.setUserCode(userImageDTO.getUserCode() == null ? uuid : userImageDTO.getUserCode());
+                    pictureErrorService.save(pictureError);
+                    // throw new IllegalArgumentException(e.getMessage());
+                }
+            });
+        }
+        return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
+    }
 
     @PostMapping("/upload/{userCode}")
     @Operation(summary = "图片上传")
@@ -293,6 +295,14 @@ public class HrEmpBasicController {
     @AuditLog(value = "图片下载", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     public ResponseResult<String> downloadPicture(@RequestParam String fileId) {
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", minIOUtils.getFileUrl(fileId));
+    }
+
+    @GetMapping("/downloadPictureByUrl")
+    @Operation(summary = "图片下载")
+    @AuditLog(value = "图片下载", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResult<String> downloadPictureByUrl(@RequestParam String url) throws IOException {
+        PresignedDownloader.download(url);
+        return new ResponseResult<>(HttpStatus.OK.value(), "OK");
     }
 
     @GetMapping("/getDept")
