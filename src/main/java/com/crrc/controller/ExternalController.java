@@ -13,6 +13,7 @@ import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.KingDiePersonalOrderDTO;
 import com.crrc.service.CategoryRecordService;
 import com.crrc.service.impl.*;
+import com.crrc.utils.MinIOUtils;
 import com.crrc.utils.UpdateWrapperUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.slf4j.Slf4j;
@@ -21,11 +22,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
@@ -65,6 +64,8 @@ public class ExternalController {
     private HrEmpBasicController hrEmpBasicController;
     @Autowired
     private CategoryRecordService categoryRecordService;
+    @Autowired
+    private MinIOUtils minIOUtils;
 
     @PostMapping("/receiveKingDieMsg")
     @Operation(summary = "接收金蝶传递人事令信息")
@@ -389,4 +390,30 @@ public class ExternalController {
         return new ResponseResult<>(HttpStatus.OK.value(), "人事令下达成功，信息已变更！ 变更数量： " + updateFlag);
     }
 
+    /**
+     * 使用用户名获得用户人脸识别的图片url
+     * @param userCode 用户档案号
+     */
+    @GetMapping("/getAttendanceImage")
+    public ResponseResult<String> getAttendanceImage(@RequestParam String userCode) {
+        LambdaQueryWrapper<HrEmpBasic> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(HrEmpBasic::getUserCode, userCode);
+        HrEmpBasic hrEmpBasic = hrEmpBasicService.getBaseMapper().selectOne(queryWrapper);
+        String fileUrl = minIOUtils.getFileUrl(hrEmpBasic.getAttendanceImageId());
+        if(StringUtils.isNotBlank(fileUrl) && fileUrl.startsWith("http")) {
+            return new ResponseResult<>(HttpStatus.OK.value(), "OK", fileUrl);
+        }
+
+        return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "ERROR");
+    }
+
+    @GetMapping("/file/download")
+    @Operation(summary = "图片下载")
+    @AuditLog(value = "图片下载", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public void downloadPicture(@RequestParam String userCode, HttpServletResponse response) {
+        LambdaQueryWrapper<HrEmpBasic> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(HrEmpBasic::getUserCode, userCode);
+        HrEmpBasic hrEmpBasic = hrEmpBasicService.getBaseMapper().selectOne(queryWrapper);
+        minIOUtils.getFile(hrEmpBasic.getAttendanceImageId(), response);
+    }
 }

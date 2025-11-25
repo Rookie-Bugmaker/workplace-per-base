@@ -295,16 +295,6 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", minIOUtils.getFileUrl(fileId));
     }
 
-    @GetMapping("/file/download")
-    @Operation(summary = "图片下载")
-    @AuditLog(value = "图片下载", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    public void downloadPicture(@RequestParam String userCode, HttpServletResponse response) {
-        LambdaQueryWrapper<HrEmpBasic> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(HrEmpBasic::getUserCode, userCode);
-        HrEmpBasic hrEmpBasic = hrEmpBasicService.getBaseMapper().selectOne(queryWrapper);
-        minIOUtils.getFile(hrEmpBasic.getAttendanceImageId(), response);
-    }
-
     @GetMapping("/getDept")
     @Operation(summary = "获得员工所属部门")
     @AuditLog(value = "获得员工所属部门", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
@@ -701,23 +691,6 @@ public class HrEmpBasicController {
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<List<HrEmpBasicDTO>> getMsg(@RequestParam String userCode) {
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工基本信息表实体成功", hrEmpBasicService.selectMsg(userCode));
-    }
-
-    /**
-     * 使用用户名获得用户人脸识别的图片url
-     * @param userCode 用户档案号
-     */
-    @GetMapping("/getAttendanceImage")
-    public ResponseResult<String> getAttendanceImage(@RequestParam String userCode) {
-        LambdaQueryWrapper<HrEmpBasic> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(HrEmpBasic::getUserCode, userCode);
-        HrEmpBasic hrEmpBasic = hrEmpBasicService.getBaseMapper().selectOne(queryWrapper);
-        String fileUrl = minIOUtils.getFileUrl(hrEmpBasic.getAttendanceImageId());
-        if(StringUtils.isNotBlank(fileUrl) && fileUrl.startsWith("http")) {
-            return new ResponseResult<>(HttpStatus.OK.value(), "OK", fileUrl);
-        }
-
-        return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "ERROR");
     }
 
     @PostMapping("/getDetailList")
