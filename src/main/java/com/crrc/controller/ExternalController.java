@@ -5,6 +5,7 @@ import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.crrc.annotation.AuditLog;
+import com.crrc.annotation.IgnoreTenant;
 import com.crrc.entity.*;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
@@ -394,6 +395,7 @@ public class ExternalController {
      * 使用用户名获得用户人脸识别的图片url
      * @param userCode 用户档案号
      */
+    @IgnoreTenant
     @GetMapping("/getAttendanceImage")
     public ResponseResult<String> getAttendanceImage(@RequestParam String userCode) {
         LambdaQueryWrapper<HrEmpBasic> queryWrapper = new LambdaQueryWrapper<>();
@@ -410,6 +412,7 @@ public class ExternalController {
     @GetMapping("/file/download")
     @Operation(summary = "图片下载")
     @AuditLog(value = "图片下载", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @IgnoreTenant
     public void downloadPicture(@RequestParam String userCode, HttpServletResponse response) {
         LambdaQueryWrapper<HrEmpBasic> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(HrEmpBasic::getUserCode, userCode);
