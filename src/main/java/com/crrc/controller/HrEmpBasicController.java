@@ -293,7 +293,16 @@ public class HrEmpBasicController {
     @AuditLog(value = "图片下载", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     public ResponseResult<String> downloadPicture(@RequestParam String fileId) {
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", minIOUtils.getFileUrl(fileId));
+    }
 
+    @GetMapping("/file/download")
+    @Operation(summary = "图片下载")
+    @AuditLog(value = "图片下载", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public void downloadPicture(@RequestParam String userCode, HttpServletResponse response) {
+        LambdaQueryWrapper<HrEmpBasic> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(HrEmpBasic::getUserCode, userCode);
+        HrEmpBasic hrEmpBasic = hrEmpBasicService.getBaseMapper().selectOne(queryWrapper);
+        minIOUtils.getFile(hrEmpBasic.getAttendanceImageId(), response);
     }
 
     @GetMapping("/getDept")
