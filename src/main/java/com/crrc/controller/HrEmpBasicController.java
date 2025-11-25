@@ -16,6 +16,7 @@ import com.crrc.entity.*;
 import com.crrc.entity.dto.ProcessInstanceVo;
 import com.crrc.entity.dto.StartProcessInstanceDTO;
 import com.crrc.entity.dto.response.ResultData;
+import com.crrc.entity.filedata.vo.FileDataStream;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
@@ -51,6 +52,7 @@ import org.apache.commons.lang3.StringUtils;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -693,16 +695,16 @@ public class HrEmpBasicController {
     }
 
     /**
-     * 使用用户名获得用户人脸识别的图片
+     * 使用用户名获得用户人脸识别的图片url
      * @param userCode 用户档案号
-     * @param resp Spring自动拼装HttpServletResponse，用于返回
      */
     @GetMapping("/getAttendanceImage")
-    public void getAttendanceImage(@RequestParam String userCode, HttpServletResponse resp) {
+    public ResponseResult<String> getAttendanceImage(@RequestParam String userCode) {
         LambdaQueryWrapper<HrEmpBasic> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(HrEmpBasic::getUserCode, userCode);
         HrEmpBasic hrEmpBasic = hrEmpBasicService.getBaseMapper().selectOne(queryWrapper);
-        minIOUtils.getFile(hrEmpBasic.getAttendanceImageId(), resp);
+        String fileUrl = minIOUtils.getFileUrl(hrEmpBasic.getAttendanceImageId());
+        return new ResponseResult<>(HttpStatus.OK.value(), "OK", fileUrl);
     }
 
     @PostMapping("/getDetailList")
