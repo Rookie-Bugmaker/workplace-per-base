@@ -403,9 +403,10 @@ public class ExternalController {
         HrEmpBasic hrEmpBasic = hrEmpBasicService.getBaseMapper().selectOne(queryWrapper);
         String fileUrl = minIOUtils.getFileUrl(hrEmpBasic.getAttendanceImageId());
         if(StringUtils.isNotBlank(fileUrl) && fileUrl.startsWith("http")) {
+            log.info("getAttendanceImage OK:{}", new ResponseResult<>(HttpStatus.OK.value(), "OK", fileUrl));
             return new ResponseResult<>(HttpStatus.OK.value(), "OK", fileUrl);
         }
-
+        log.info("getAttendanceImage ERROR:{}", new ResponseResult<>(HttpStatus.OK.value(), "OK", fileUrl));
         return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "ERROR");
     }
 
