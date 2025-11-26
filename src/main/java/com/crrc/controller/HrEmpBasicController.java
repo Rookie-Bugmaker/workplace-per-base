@@ -141,7 +141,7 @@ public class HrEmpBasicController {
 
             List<UserImageDTO> data = personImageByUserCode.getData();
 
-            data.stream().filter(e -> StringUtils.isNotBlank(e.getUserCode())).forEach(userImageDTO -> {
+            data.stream().filter(e -> StringUtils.isNotBlank(e.getImageUri())).forEach(userImageDTO -> {
                 try {
                     String imageUri = userImageDTO.getImageUri();
                     // 获取数据流
@@ -150,7 +150,7 @@ public class HrEmpBasicController {
                     ByteArrayMultipartFile image = new ByteArrayMultipartFile(bytes, "image", "image.jpg", "image/jpeg");
                     // 上传到minIO
                     String profilePicture = minIOUtils.saveFile(image);
-                    HrEmpBasic userInfo = hrEmpBasicService.getByUserCode(userImageDTO.getUserCode());
+                    HrEmpBasic userInfo = hrEmpBasicService.getByUserCode(userImageDTO.getCode());
                     userInfo.setProfilePicture(profilePicture);
                     // 更新数据
                     hrEmpBasicService.updateById(userInfo);

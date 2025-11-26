@@ -16,7 +16,7 @@ public class UserImageDTO {
     /**
      * 工号
      */
-    private String userCode;
+    private String code;
     /**
      * 图片
      */
