@@ -153,7 +153,7 @@ public class HrEmpBasicController {
 
             List<UserImageDTO> data = personImageByUserCode.getData();
 
-            data = data.stream().filter(e -> StringUtils.isBlank(e.getUserCode())).collect(Collectors.toList());
+            data = data.stream().filter(e -> StringUtils.isNotBlank(e.getUserCode())).collect(Collectors.toList());
             Set<String> successSet = data.stream().map(UserImageDTO::getUserCode).collect(Collectors.toSet());
             if(data.size() != uuidList.size()) {
                 List<String> collect = uuidList.stream().filter(item -> !successSet.contains(item)).collect(Collectors.toList());
