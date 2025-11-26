@@ -154,6 +154,7 @@ public class HrEmpBasicController {
                     userInfo.setProfilePicture(profilePicture);
                     // 更新数据
                     hrEmpBasicService.updateById(userInfo);
+                    log.info("save by id: {}, profilePicture: {}", userInfo.getId(), profilePicture);
                 } catch (Exception e) {
                     log.info("download or upload error: {}, {}", userImageDTO, uuidList, e);
                 }
