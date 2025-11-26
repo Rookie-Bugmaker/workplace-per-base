@@ -297,14 +297,6 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", minIOUtils.getFileUrl(fileId));
     }
 
-    @GetMapping("/downloadPictureByUrl")
-    @Operation(summary = "图片下载")
-    @AuditLog(value = "图片下载", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    public ResponseResult<String> downloadPictureByUrl(@RequestParam String url) throws IOException {
-        PresignedDownloader.download(url);
-        return new ResponseResult<>(HttpStatus.OK.value(), "OK");
-    }
-
     @GetMapping("/getDept")
     @Operation(summary = "获得员工所属部门")
     @AuditLog(value = "获得员工所属部门", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
