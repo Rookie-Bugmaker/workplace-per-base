@@ -16,7 +16,6 @@ import com.crrc.entity.*;
 import com.crrc.entity.dto.ProcessInstanceVo;
 import com.crrc.entity.dto.StartProcessInstanceDTO;
 import com.crrc.entity.dto.response.ResultData;
-import com.crrc.entity.filedata.vo.FileDataStream;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
@@ -37,7 +36,6 @@ import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -52,7 +50,6 @@ import org.apache.commons.lang3.StringUtils;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -151,12 +148,23 @@ public class HrEmpBasicController {
                     errorList.add(pictureError);
                 });
                 pictureErrorService.saveBatch(errorList);
-
-
                 // throw new IllegalArgumentException("获取图片失败");
             }
 
             List<UserImageDTO> data = personImageByUserCode.getData();
+
+            data = data.stream().filter(e -> StringUtils.isBlank(e.getUserCode())).collect(Collectors.toList());
+            Set<String> successSet = data.stream().map(UserImageDTO::getUserCode).collect(Collectors.toSet());
+            if(data.size() != uuidList.size()) {
+                List<String> collect = uuidList.stream().filter(item -> !successSet.contains(item)).collect(Collectors.toList());
+                List<PictureError> errorList = new ArrayList<>();
+                collect.forEach(uuid -> {
+                    PictureError pictureError = new PictureError();
+                    pictureError.setUserCode(uuid);
+                    errorList.add(pictureError);
+                });
+                pictureErrorService.saveBatch(errorList);
+            }
 
             for (int i = 0; i < data.size(); i++) {
                 UserImageDTO userImageDTO = data.get(i);
