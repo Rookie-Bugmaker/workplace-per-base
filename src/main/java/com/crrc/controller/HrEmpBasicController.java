@@ -124,14 +124,17 @@ public class HrEmpBasicController {
         List<HrEmpBasic> hrEmpBasicList = hrEmpBasicService.getBaseMapper().selectList(queryWrapper);
 
         List<String> userCodeList = hrEmpBasicList.stream().map(HrEmpBasic::getUserCode).collect(Collectors.toList());
-
+        log.info("userCodeList长度：{}", userCodeList.size());
         if(userCodeList.isEmpty()) {
             return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
         }
-
+        log.info("准备开始分片");
         // 分批请求
         List<List<String>> partition = ListUtils.partition(userCodeList, 20);
+        log.info("开始分批请求");
+        int count = 0;
         for(List<String> uuidList : partition) {
+            log.info("第{}批: {}", count++, uuidList);
             ImageReqDTO imageReqDTO = new ImageReqDTO();
             imageReqDTO.setUuidList(uuidList);
             ResponseData<List<UserImageDTO>> personImageByUserCode = userProfileImageClient.getPersonImageByUserCode(imageReqDTO);
