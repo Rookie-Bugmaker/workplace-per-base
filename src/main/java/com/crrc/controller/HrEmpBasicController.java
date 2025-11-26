@@ -642,30 +642,26 @@ public class HrEmpBasicController {
                     if (hrEmpAppointments.size() > 1) {
                         hrEmpAppointment = hrEmpAppointments.stream().reduce((a, b) -> a.getStartDate().isAfter(b.getStartDate()) ? a : b).get();
                     }
-                    String positionCode = hrEmpAppointment.getPosition();
+                    // 找到最新的position，里面包含了jobType
+                    String jobType = hrEmpAppointment.getJobType();
 
-                    PositionInfo positionInfo = new PositionInfo();
-                    positionInfo.setCode(positionCode);
-                    List<PositionInfo> query = positionInfoServiceImpl.query(positionInfo);
-                    if (!ObjectUtils.isEmpty(query)) {
-                        String jobType = query.get(0).getJobType();
-                        if (StringUtils.isNotBlank(jobType) && !jobType.contains("ERROR")) {
-                            // 专业管理、市场营销职类 -> 普
-                            if (jobType.startsWith("2") || jobType.startsWith("3")) {
-                                return "007";
-                            }
 
-                            // 技能操作职类，直接生产操作、辅助生产操作职群 -> 计
-                            if (jobType.startsWith("5-01") || jobType.startsWith("5-02")) {
-                                return "008";
-                            }
-                            // 技能操作职类，辅助服务职群 -> 辅
-                            if (jobType.startsWith("5-03")) {
-                                return "009";
-                            }
-                            // 其他职类 -> 他
-                            return "010";
+                    if (!StringUtils.isNotBlank(jobType) && !jobType.contains("ERROR")) {
+                        // 专业管理、市场营销职类 -> 普
+                        if (jobType.startsWith("2") || jobType.startsWith("3")) {
+                            return "007";
                         }
+
+                        // 技能操作职类，直接生产操作、辅助生产操作职群 -> 计
+                        if (jobType.startsWith("5-01") || jobType.startsWith("5-02")) {
+                            return "008";
+                        }
+                        // 技能操作职类，辅助服务职群 -> 辅
+                        if (jobType.startsWith("5-03")) {
+                            return "009";
+                        }
+                        // 其他职类 -> 他
+                        return "010";
                     }
                 }
             }
