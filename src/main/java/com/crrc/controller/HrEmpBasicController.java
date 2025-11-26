@@ -136,18 +136,6 @@ public class HrEmpBasicController {
             imageReqDTO.setUuidList(uuidList);
             ResponseData<List<UserImageDTO>> personImageByUserCode = userProfileImageClient.getPersonImageByUserCode(imageReqDTO);
 
-//            if(personImageByUserCode == null || ObjectUtils.isEmpty(personImageByUserCode.getData())) {
-//                log.error("同步用户图片失败: {}", uuidList);
-//                List<PictureError> errorList = new ArrayList<>();
-//                uuidList.forEach(uuid -> {
-//                    PictureError pictureError = new PictureError();
-//                    pictureError.setUserCode(uuid);
-//                    errorList.add(pictureError);
-//                });
-//                pictureErrorService.saveBatch(errorList);
-//                // throw new IllegalArgumentException("获取图片失败");
-//            }
-
             List<UserImageDTO> data = personImageByUserCode.getData();
 
             data.stream().filter(e -> StringUtils.isNotBlank(e.getUserCode())).forEach(userImageDTO -> {
@@ -164,50 +152,12 @@ public class HrEmpBasicController {
                     // 更新数据
                     hrEmpBasicService.updateById(userInfo);
                 } catch (Exception e) {
-                    /* 忽略错误 */
+                    log.info("download or upload error: {}, {}", userImageDTO, uuidList, e);
                 }
             });
 
         }
 
-
-//            data = data.stream().filter(e -> StringUtils.isNotBlank(e.getUserCode())).collect(Collectors.toList());
-//            Set<String> successSet = data.stream().map(UserImageDTO::getUserCode).collect(Collectors.toSet());
-//            if(data.size() != uuidList.size()) {
-//                List<String> collect = uuidList.stream().filter(item -> !successSet.contains(item)).collect(Collectors.toList());
-//                List<PictureError> errorList = new ArrayList<>();
-//                collect.forEach(uuid -> {
-//                    PictureError pictureError = new PictureError();
-//                    pictureError.setUserCode(uuid);
-//                    errorList.add(pictureError);
-//                });
-//                pictureErrorService.saveBatch(errorList);
-//            }
-//
-//            for (int i = 0; i < data.size(); i++) {
-//                UserImageDTO userImageDTO = data.get(i);
-//                try {
-//                    String imageUri = userImageDTO.getImageUri();
-//                    // 获取数据流
-//                    byte[] bytes = ImageUtils.downloadImage(imageUri);
-//                    // 转为MultipartFile
-//                    ByteArrayMultipartFile image = new ByteArrayMultipartFile(bytes, "image", "image.jpg", "image/jpeg");
-//                    // 上传到minIO
-//                    String profilePicture = minIOUtils.saveFile(image);
-//                    HrEmpBasic userInfo = hrEmpBasicService.getByUserCode(userImageDTO.getUserCode());
-//                    userInfo.setProfilePicture(profilePicture);
-//                    // 更新数据
-//                    hrEmpBasicService.updateById(userInfo);
-//                } catch (Exception e) {
-//                    log.error("上传错误", e);
-//                    log.error("用户图片同步失败: {}", userImageDTO.getUserCode());
-//                    PictureError pictureError = new PictureError();
-//                    pictureError.setUserCode(userImageDTO.getUserCode());
-//                    pictureErrorService.save(pictureError);
-//                    // throw new IllegalArgumentException(e.getMessage());
-//                }
-//            }
-//        }
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
     }
 
