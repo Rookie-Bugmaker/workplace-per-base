@@ -15,7 +15,7 @@ public final class ImageUtils {
     public static byte[] downloadImage(String imageUri) throws Exception {
         URL url = new URL(imageUri);
         try (InputStream in = url.openStream(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            byte[] buffer = new byte[1024];
+            byte[] buffer = new byte[8192];
             int bytesRead;
             while ((bytesRead = in.read(buffer)) != -1) {
                 out.write(buffer, 0, bytesRead);

@@ -132,6 +132,9 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"身份类型"}, index = 16)
     @Schema(description = "身份类型")
+    /**
+     * 001 干 002 工 一定要按001、002、003...顺序增加， 否则TSDA会出错
+     */
     private String identityType;
     
     @QueryMethod(method = QueryType.EQ)
@@ -244,4 +247,9 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     @ExcelProperty(value = {"用户图片的文件id"}, index = 38)
     @Schema(description = "用户图片的文件id")
     private String profilePicture;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"用户人脸识别（考勤打卡）的图片id"}, index = 38)
+    @Schema(description = "用户人脸识别（考勤打卡）的图片id")
+    private String attendanceImageId;
 }

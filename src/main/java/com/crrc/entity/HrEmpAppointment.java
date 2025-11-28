@@ -124,4 +124,9 @@ public class HrEmpAppointment extends BaseEntity implements Serializable {
     @ExcelProperty(value = {"工号"}, index = 17)
     @Schema(description = "工号")
     private String userCode;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"职种编码"}, index = 18)
+    @Schema(description = "职种编码")
+    private String jobType;
 }

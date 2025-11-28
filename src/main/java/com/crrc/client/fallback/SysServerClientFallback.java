@@ -5,8 +5,10 @@ import com.crrc.common.PaginationGrid;
 import com.crrc.common.ResultData;
 import com.crrc.entity.dto.CompanyDTO;
 import com.crrc.entity.dto.DeptDTO;
+import com.crrc.entity.dto.DeptqueryDTO;
 import com.crrc.pojo.dto.*;
 import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
@@ -58,6 +60,11 @@ public class SysServerClientFallback implements SysServerClient {
 
     @Override
     public ResultData<PaginationGrid<CompanyDTO>> pageCompany(Integer pageNo, Integer pageSize) {
+        return ResultData.fallback();
+    }
+
+    @Override
+    public ResultData<List<DeptDTO>> listDeptVO(@RequestBody DeptReqDTO dto) {
         return ResultData.fallback();
     }
 

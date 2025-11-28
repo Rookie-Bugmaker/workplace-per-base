@@ -8,15 +8,18 @@ import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.entity.HrEmpAppointment;
 import com.crrc.entity.HrEmpOtherAppointment;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.service.impl.CodeInfoServiceImpl;
 import com.crrc.service.impl.HrEmpOtherAppointmentServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
@@ -48,13 +51,75 @@ public class HrEmpOtherAppointmentController {
 
     @Autowired
     private HrEmpOtherAppointmentServiceImpl hrEmpOtherAppointmentService;
+    @Autowired
+    private CodeInfoServiceImpl codeInfoService;
 
     @GetMapping("/getDetails")
     @Operation(summary = "获得其他任职信息实体")
     @AuditLog(value = "获得其他任职信息实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<List<HrEmpOtherAppointment>> getMsg(@RequestParam String userCode ) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取其他任职信息成功", hrEmpOtherAppointmentService.selectMsg(userCode));
+        List<HrEmpOtherAppointment> list = hrEmpOtherAppointmentService.selectMsg(userCode);
+        // 回显码值，当数据为数字开头的时候才会进行转写，否则直接返回
+        for(HrEmpOtherAppointment entity : list) {
+            // 处理组织
+            String originDeptCode = entity.getDept();
+            if (StringUtils.isNotBlank(originDeptCode)) {
+                String deptCode = originDeptCode.matches("^\\d.*") ?
+                        codeInfoService.translateCode(originDeptCode, "hr_emp_appointment", "APPOINTMENT_ORG") : originDeptCode;
+                entity.setDept(deptCode);
+            }
+
+            // 处理组织单元
+            String originOrgUnit = entity.getOrgUnit();
+            if (StringUtils.isNotBlank(originOrgUnit)) {
+                String orgUnit = originOrgUnit.matches("^\\d.*") ?
+                        codeInfoService.translateCode(originOrgUnit, "hr_emp_appointment", "APPOINTMENT_ORG") : originOrgUnit;
+                entity.setOrgUnit(orgUnit);
+            }
+
+            // 处理组织
+            String orgOriginal = entity.getOrg();
+            if (StringUtils.isNotBlank(orgOriginal)) {
+                String org = orgOriginal.matches("^\\d.*") ?
+                        codeInfoService.translateCode(orgOriginal, "hr_emp_appointment", "APPOINTMENT_ORG") : orgOriginal;
+                entity.setOrg(org);
+            }
+
+            // 处理职位名称
+            String position = entity.getPosition();
+            if (StringUtils.isNotBlank(position)) {
+                String positionName = position.matches("^\\d.*") ?
+                        codeInfoService.translateCode(position, "hr_emp_appointment", "APPOINTMENT_POSITION") : position;
+                entity.setPosition(positionName);
+            }
+
+            // 处理其他任职类型
+            String otherAppointmentType = entity.getOtherAppointmentType();
+            if (StringUtils.isNotBlank(otherAppointmentType)) {
+                String otherAppointmentTypeValue = otherAppointmentType.matches("^\\d.*") ?
+                        codeInfoService.translateCode(otherAppointmentType, "hr_emp_appointment", "APPOINTMENT_CHANGE_TYPE") : otherAppointmentType;
+                entity.setOtherAppointmentType(otherAppointmentTypeValue);
+            }
+
+            // 处理在岗状态 dutyStatus
+            String dutyStatusOriginal = entity.getDutyStatus();
+            if (StringUtils.isNotBlank(dutyStatusOriginal)) {
+                String dutyStatus = dutyStatusOriginal.matches("^\\d.*") ?
+                        codeInfoService.translateCode(dutyStatusOriginal, "hr_emp_appointment", "APPOINTMENT_DUTY_STATUS") : dutyStatusOriginal;
+                entity.setDutyStatus(dutyStatus);
+            }
+
+            // 处理职务类别 positionCategory
+            String positionCategoryOriginal = entity.getPositionCategory();
+            if (StringUtils.isNotBlank(positionCategoryOriginal)) {
+                String positionCategory = positionCategoryOriginal.matches("^\\d.*") ?
+                        codeInfoService.translateCode(positionCategoryOriginal, "hr_emp_appointment", "APPOINTMENT_POSITION_CATEGORY") : positionCategoryOriginal;
+                entity.setPositionCategory(positionCategory);
+            }
+
+        }
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取其他任职信息成功", list);
     }
 
     @PostMapping("/page")

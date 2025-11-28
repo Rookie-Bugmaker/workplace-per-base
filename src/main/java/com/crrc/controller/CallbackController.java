@@ -106,7 +106,9 @@ public class CallbackController {
         // 奖励情况
         REWARDS,
         // 惩处信息
-        PENALTIES
+        PENALTIES,
+        // 个人照片
+        PICTURE
     }
 
 
@@ -153,12 +155,52 @@ public class CallbackController {
                     return processSkillsRequest(param);
                 case "rewards":
                     return processRewardsRequest(param);
+                case "pic":
+                    return processPictureRequest(param);
                 default:
                     return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "不支持的变更类型: " , false);
             }
         } catch (Exception e) {
             log.error("审批回调处理失败: {}", e.getMessage(), e);
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "处理失败", false);
+        }
+    }
+
+    private ResponseResult<Boolean> processPictureRequest(WorkflowWriteBackParamDTO param) {
+        Query query = new Query(Criteria.where("_id").is(param.getBizId()));
+        HrEmpBasicChangeRequest request = mongoTemplate.findOne(query, HrEmpBasicChangeRequest.class);
+
+        if (request == null) {
+            return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "员工奖励情况变更申请不存在", false);
+        }
+
+        return processRequest(
+                request,
+                request.getStatus(),
+                request.getUserCode(),
+                request::setStatus,
+                () -> updateHrEmpBasicPictureNew(request.getChangedData()),
+                APPROVED::equals,
+                param.getProcessInstanceStatus(),
+                UpdateType.PICTURE
+        );
+    }
+
+    private void updateHrEmpBasicPictureNew(HrEmpBasicDTO changedData) {
+        if (changedData == null) {
+            return;
+        }
+
+        // 获取用户编码
+        String userCode = changedData.getUserCode();
+
+        // 查询现有数据
+        HrEmpBasic hrEmpBasic = hrEmpBasicService.getByUserCode(userCode);
+
+        // 更新头像
+        if(hrEmpBasic != null) {
+            hrEmpBasic.setProfilePicture(changedData.getProfilePicture());
+            hrEmpBasicService.updateById(hrEmpBasic);
         }
     }
 
@@ -486,9 +528,17 @@ public class CallbackController {
         }
     }
 
-
     /**
      * 通用请求处理逻辑
+     * @param request mangoDB存储的PO对象
+     * @param currentStatus 当前审批状态，PENDING/APPROVED/REJECTED
+     * @param userCode 用户档案号
+     * @param statusSetter 设置数据审批状态的回调函数
+     * @param updateAction 保存或更新数据PO的回调方法
+     * @param statusChecker 判断status状态，会向回调函数传入ProcessStatus
+     * @param processInstanceStatus 流程实例状态
+     * @param updateType 根据updateType的类型来解锁行数据
+     * @return
      */
     private <T> ResponseResult<Boolean> processRequest(
             T request,
@@ -652,6 +702,7 @@ public class CallbackController {
     private void updateIsUpdating(String isUpdating, String userCode, UpdateType updateType) {
         switch (updateType) {
             case BASIC:
+            case PICTURE:
                 updateBasicIsUpdating(isUpdating, userCode);
                 break;
             case EDU:
