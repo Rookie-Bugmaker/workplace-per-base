@@ -673,11 +673,11 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         try {
             // 院校名称
             HrEmpSchoolInfo school = hrEmpSchoolInfoService.selectByCode(edu.getSchoolCode());
-            edu.setSchoolName(school != null ? school.getSchoolName() : "未知院校");
+            edu.setSchoolName(school != null ? school.getSchoolName() : edu.getSchoolCode());
 
             // 专业名称
             HrEmpMajorInfo major = hrEmpMajorInfoService.selectByCode(edu.getMajorCode());
-            edu.setMajor(major != null ? major.getMajor() : "未知专业");
+            edu.setMajor(major != null ? major.getMajor() : edu.getMajorCode());
             return true;
         } catch (Exception e) {
             log.error("教育明细信息查询错误: {}", e.getMessage(), e);
