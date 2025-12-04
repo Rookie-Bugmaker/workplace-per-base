@@ -27,8 +27,11 @@ public class HrEmpResumeServiceImpl extends WorkServiceImpl<HrEmpResumeMapper, H
     public List<HrEmpResume> selectMsg(String userCode) {
         MPJLambdaWrapper<HrEmpResume> wrapper = new MPJLambdaWrapper<HrEmpResume>()
                 .selectAll(HrEmpResume.class)
-                .leftJoin(HrEmpAppointment.class, HrEmpAppointment::getUserCode, HrEmpResume::getUserCode)
-                .leftJoin(HrEmpAppointment.class, HrEmpAppointment::getStartDate, HrEmpResume::getStartDate)
+                .leftJoin(HrEmpAppointment.class,
+                        // 使用 on() 方法同时指定两个关联条件
+                        on -> on.eq(HrEmpAppointment::getUserCode, HrEmpResume::getUserCode)
+                                .eq(HrEmpAppointment::getStartDate, HrEmpResume::getStartDate)
+                )
                 .select(HrEmpAppointment::getChangeType)
                 .eq(HrEmpResume::getUserCode, userCode)
                 .orderByAsc(HrEmpResume::getStartDate);
