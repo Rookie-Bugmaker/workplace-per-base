@@ -129,5 +129,6 @@ public class HrEmpEducation extends BaseEntity implements Serializable {
     private String fileHeaderId;
 
     @Schema(description = "通过fileHeaderId，查询回的文件列表")
+    @TableField(exist = false)
     private List<SysFileDTO> files;
 }

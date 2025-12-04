@@ -8,6 +8,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,14 +41,17 @@ public class FileUtils {
     }
 
     /**
-     * 处理单个对象的附件解析
+     * 处理单个对象的附件解析（支持继承字段查找）
      */
     private static void processSingleItem(Object item) throws Exception {
         try {
-            // 使用反射检查对象是否包含所需字段
+            // 获取对象类及其所有父类
             Class<?> clazz = item.getClass();
-            java.lang.reflect.Field fileHeaderIdField = clazz.getDeclaredField("fileHeaderId");
-            java.lang.reflect.Field filesField = clazz.getDeclaredField("files");
+
+            // 查找 fileHeaderId 字段（包括父类）
+            Field fileHeaderIdField = findFieldInHierarchy(clazz, "fileHeaderId");
+            // 查找 files 字段（当前类）
+            Field filesField = findFieldInHierarchy(clazz, "files");
 
             fileHeaderIdField.setAccessible(true);
             filesField.setAccessible(true);
@@ -62,8 +66,22 @@ public class FileUtils {
                 }
             }
         } catch (NoSuchFieldException e) {
-            // 如果对象没有所需字段，则跳过处理
             log.warn("对象缺少必要的字段: {}", e.getMessage());
         }
+    }
+
+    /**
+     * 在类继承链中查找字段（包括父类）
+     */
+    private static Field findFieldInHierarchy(Class<?> clazz, String fieldName) throws NoSuchFieldException {
+        Class<?> currentClass = clazz;
+        while (currentClass != null) {
+            try {
+                return currentClass.getDeclaredField(fieldName);
+            } catch (NoSuchFieldException e) {
+                currentClass = currentClass.getSuperclass();
+            }
+        }
+        throw new NoSuchFieldException("字段 '" + fieldName + "' 在类 " + clazz.getName() + " 及其父类中未找到");
     }
 }
