@@ -170,6 +170,13 @@ public class HrEmpEducationController {
 
             // 学位部分 todo
         }
+
+        try{
+            // 处理附件信息
+            hrEmpEducationService.resolveFiles(result);
+        } catch (Exception e) {
+            log.warn("人员教育经历附件信息解析失败");
+        }
         log.info("getDetails查询回来的教育经历原始数据：{}", JSON.toJSONString(result, SerializerFeature.PrettyFormat));
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工教育信息表实体成功", result);
     }
@@ -451,6 +458,12 @@ public class HrEmpEducationController {
         if (request == null) {
             return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "变更申请不存在");
         }
+
+        // 由于附件信息不存在MongoDB中，先尝试进行查询并赋值
+        List<HrEmpEducation> originalData = request.getOriginalData();
+        hrEmpEducationService.resolveFiles(originalData);
+        List<HrEmpEducation> changedData = request.getChangedData();
+        hrEmpEducationService.resolveFiles(changedData);
 
         // 2. 构建返回结果（直接返回两个列表）
         Map<String, Object> result = new HashMap<>();

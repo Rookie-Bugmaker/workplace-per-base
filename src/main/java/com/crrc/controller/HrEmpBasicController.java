@@ -87,8 +87,6 @@ public class HrEmpBasicController {
     @Autowired
     private WkWorkflowApi wkWorkflowApi;
     @Autowired
-    private PostCatalogInfoServiceImpl postCatalogInfoService;
-    @Autowired
     private HrEmpCareerPathMapper hrEmpCareerPathMapper;
     @Autowired
     private HrEmpResumeMapper hrEmpResumeMapper;
@@ -99,15 +97,11 @@ public class HrEmpBasicController {
     @Autowired
     private HrEmpSkillLevelServiceImpl hrEmpSkillLevelService;
     @Autowired
-    private PositionInfoServiceImpl positionInfoServiceImpl;
-    @Autowired
     private CodeInfoService codeInfoService;
     @Autowired
     private UserProfileImageClient userProfileImageClient;
     @Autowired
     private MinIOUtils minIOUtils;
-    @Autowired
-    private PictureErrorServiceImpl pictureErrorService;
 
     @GetMapping("/isAvailable")
     @Operation(summary = "就绪探针")
@@ -834,14 +828,20 @@ public class HrEmpBasicController {
             return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "变更申请不存在");
         }
 
+        // 由于附件信息不存在MongoDB中，先尝试进行查询并赋值
+        HrEmpBasicDTO originalData = request.getOriginalData();
+        hrEmpBasicService.resolveFiles(originalData);
+        HrEmpBasicDTO changedData = request.getChangedData();
+        hrEmpBasicService.resolveFiles(changedData);
+
         // 2. 构建返回结果（直接返回两个列表）
         Map<String, Object> result = new HashMap<>();
 
         // 原始数据列表（转换为Map列表或直接使用对象）
-        result.put("originalData", MyUtils.convertToMapList(request.getOriginalData()));
+        result.put("originalData", MyUtils.convertToMapList(originalData));
 
         // 审批流中的数据列表
-        result.put("changedData", MyUtils.convertToMapList(request.getChangedData()));
+        result.put("changedData", MyUtils.convertToMapList(changedData));
 
         // 基础信息
         result.put("requestId", requestId);

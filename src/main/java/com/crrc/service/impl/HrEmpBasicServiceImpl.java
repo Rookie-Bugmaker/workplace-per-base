@@ -75,6 +75,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     private static final String COMPANY_MANAGER_DICT_CODE = "human_resource_company_manager";
 
     private final WkDataAPi wkDataAPi;
+
     private final SysServerClient sysServerClient;
 
     private final DictTypeUtils dictTypeUtils;
@@ -348,16 +349,16 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             resolvePolitical(result.get(0));
 
             // 5. 处理年龄
-            log.info("准备开始处理年龄信息");
             resolveAge(result.get(0));
 
             // 6. 处理人员分类1,4,7,8
-            log.info("准备开始处理人员分类信息");
             resolveCategory(result.get(0));
 
             // 6. 处理人员在岗状态
-            log.info("准备开始处理人员在岗状态信息");
             resolveStatus(result.get(0));
+
+            // 处理附件信息
+            resolveFiles(result.get(0));
 
             return result;
         } catch (Exception e) {
@@ -380,6 +381,17 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     private void resolvePolitical(HrEmpBasicDTO hrEmpBasicDTO) {
         Map<String, String> translateMap = codeInfoService.getTranslateMap(TABLE_NAME, POLITICAL_TYPE_NAME);
         hrEmpBasicDTO.setPoliticalValue(translateMap.getOrDefault(hrEmpBasicDTO.getPolitical(), null));
+    }
+
+    /**
+     * 解析人员附件信息
+     */
+    public void resolveFiles(HrEmpBasicDTO dto) {
+        try {
+            FileUtils.resolveFilesByHeaderId(dto);
+        } catch (Exception e) {
+            log.warn("{}，的人员基本信息附件信息解析失败, {}" ,dto.getUserCode(), e.getMessage());
+        }
     }
 
 
