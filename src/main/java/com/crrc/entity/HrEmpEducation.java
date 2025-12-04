@@ -5,9 +5,11 @@ import com.alibaba.excel.annotation.ExcelProperty;
 import com.baomidou.mybatisplus.annotation.*;
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.util.List;
 
 import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
+import com.crrc.pojo.dto.SysFileDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -125,4 +127,8 @@ public class HrEmpEducation extends BaseEntity implements Serializable {
     @ExcelProperty(value = {"附件挂载Id"}, index = 18)
     @Schema(description = "附件挂载Id")
     private String fileHeaderId;
+
+    @Schema(description = "通过fileHeaderId，查询回的文件列表")
+    @TableField(exist = false)
+    private List<SysFileDTO> files;
 }

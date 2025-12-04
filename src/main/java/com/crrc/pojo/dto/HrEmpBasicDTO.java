@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * 用于返回个人信息里面的基本信息
  */
@@ -71,5 +73,8 @@ public class HrEmpBasicDTO extends HrEmpBasic {
 
     @Schema(description = "流程实例id")
     private String processInstanceId;
+
+    @Schema(description = "通过fileHeaderId，查询回的文件列表")
+    private List<SysFileDTO> files;
 
 }
