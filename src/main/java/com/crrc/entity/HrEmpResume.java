@@ -67,4 +67,8 @@ public class HrEmpResume extends BaseEntity implements Serializable {
     @ExcelProperty(value = {"职位"}, index = 6)
     @Schema(description = "职位")
     private String position;
+
+    @TableField(exist = false)
+    @Schema(description = "变动类型,取任职信息的变动类型的字段，匹配标准为档案号和开始日期一致")
+    private String changeType;
 }

@@ -1,5 +1,6 @@
 package com.crrc.service.impl;
 
+import com.crrc.entity.HrEmpAppointment;
 import com.crrc.entity.HrEmpResume;
 import com.crrc.mapper.HrEmpResumeMapper;
 import com.crrc.service.HrEmpResumeService;
@@ -23,9 +24,15 @@ public class HrEmpResumeServiceImpl extends WorkServiceImpl<HrEmpResumeMapper, H
     @Autowired
     private HrEmpResumeMapper hrEmpResumeMapper;
 
-    public List<HrEmpResume> selectMsg(String userCode){
+    public List<HrEmpResume> selectMsg(String userCode) {
         MPJLambdaWrapper<HrEmpResume> wrapper = new MPJLambdaWrapper<HrEmpResume>()
                 .selectAll(HrEmpResume.class)
+                .leftJoin(HrEmpAppointment.class,
+                        // 使用 on() 方法同时指定两个关联条件
+                        on -> on.eq(HrEmpAppointment::getUserCode, HrEmpResume::getUserCode)
+                                .eq(HrEmpAppointment::getStartDate, HrEmpResume::getStartDate)
+                )
+                .select(HrEmpAppointment::getChangeType)
                 .eq(HrEmpResume::getUserCode, userCode)
                 .orderByAsc(HrEmpResume::getStartDate);
         return hrEmpResumeMapper.selectList(wrapper);
