@@ -3,10 +3,6 @@ package com.crrc.entity;
 import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
 import com.baomidou.mybatisplus.annotation.*;
-import java.io.Serializable;
-import java.time.LocalDate;
-import java.util.List;
-
 import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
 import com.crrc.pojo.dto.SysFileDTO;
@@ -14,6 +10,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+
+import java.io.Serializable;
+import java.time.LocalDate;
+import java.util.List;
 
 /**
  * <p>

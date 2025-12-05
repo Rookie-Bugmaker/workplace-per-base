@@ -1,7 +1,7 @@
 package com.crrc.mapper;
 
-import com.crrc.entity.HrEmpOtherAppointment;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.crrc.entity.HrEmpOtherAppointment;
 import org.apache.ibatis.annotations.Mapper;
 
 /**

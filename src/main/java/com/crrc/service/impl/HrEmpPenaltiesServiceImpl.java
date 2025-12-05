@@ -1,8 +1,6 @@
 package com.crrc.service.impl;
 
-import com.crrc.entity.HrEmpEducation;
 import com.crrc.entity.HrEmpPenalties;
-import com.crrc.mapper.HrEmpEducationMapper;
 import com.crrc.mapper.HrEmpPenaltiesMapper;
 import com.crrc.service.HrEmpPenaltiesService;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;

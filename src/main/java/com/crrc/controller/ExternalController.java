@@ -29,7 +29,10 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletResponse;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -67,7 +70,7 @@ public class ExternalController {
     @Autowired
     private CategoryRecordService categoryRecordService;
     @Autowired
-    private MinIOUtils minIOUtils;
+    private MinIOUtils minioUtils;
 
     @PostMapping("/receiveKingDieMsg")
     @Operation(summary = "接收金蝶传递人事令信息")
@@ -402,7 +405,7 @@ public class ExternalController {
         LambdaQueryWrapper<HrEmpBasic> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(HrEmpBasic::getUserCode, userCode);
         HrEmpBasic hrEmpBasic = hrEmpBasicService.getBaseMapper().selectOne(queryWrapper);
-        String fileUrl = minIOUtils.getFileUrl(hrEmpBasic.getAttendanceImageId());
+        String fileUrl = minioUtils.getFileUrl(hrEmpBasic.getAttendanceImageId());
         if(StringUtils.isNotBlank(fileUrl) && fileUrl.startsWith("http")) {
             log.info("getAttendanceImage OK:{}", new ResponseResult<>(HttpStatus.OK.value(), "OK", fileUrl));
             return new ResponseEntity<>(fileUrl, HttpStatus.OK);
@@ -419,6 +422,6 @@ public class ExternalController {
         LambdaQueryWrapper<HrEmpBasic> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(HrEmpBasic::getUserCode, userCode);
         HrEmpBasic hrEmpBasic = hrEmpBasicService.getBaseMapper().selectOne(queryWrapper);
-        minIOUtils.getFile(hrEmpBasic.getAttendanceImageId(), response);
+        minioUtils.getFile(hrEmpBasic.getAttendanceImageId(), response);
     }
 }

@@ -1,9 +1,7 @@
 package com.crrc.service.impl;
 
 import com.crrc.entity.HrEmpCareerPath;
-import com.crrc.entity.HrEmpEducation;
 import com.crrc.mapper.HrEmpCareerPathMapper;
-import com.crrc.mapper.HrEmpEducationMapper;
 import com.crrc.service.HrEmpCareerPathService;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import org.springframework.beans.factory.annotation.Autowired;

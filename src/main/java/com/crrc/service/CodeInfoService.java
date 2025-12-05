@@ -30,6 +30,7 @@ public interface CodeInfoService extends IService<CodeInfo> {
      *
      * @param tableName 表名
      * @param type      字段名
+     * @return 字典key和value的map
      */
     Map<String, String> getTranslateMap(String tableName, String type);
 }

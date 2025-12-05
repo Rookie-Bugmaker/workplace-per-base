@@ -2,10 +2,11 @@ package com.crrc.controller;
 
 
 import com.crrc.annotation.AuditLog;
+import com.crrc.entity.HrEmpBasic;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.pojo.ResponseResult;
-import com.crrc.service.impl.*;
+import com.crrc.service.impl.HrEmpBasicServiceImpl;
 import com.crrc.utils.DateValidator;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.AllArgsConstructor;
@@ -13,12 +14,14 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
-
-import com.crrc.entity.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author mayiyao

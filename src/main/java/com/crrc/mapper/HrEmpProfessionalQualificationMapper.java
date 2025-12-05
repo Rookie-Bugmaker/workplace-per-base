@@ -1,7 +1,7 @@
 package com.crrc.mapper;
 
-import com.crrc.entity.HrEmpProfessionalQualification;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.crrc.entity.HrEmpProfessionalQualification;
 import org.apache.ibatis.annotations.Mapper;
 
 /**

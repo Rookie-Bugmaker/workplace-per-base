@@ -20,7 +20,6 @@ import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.service.impl.CodeInfoServiceImpl;
 import com.crrc.service.impl.HrEmpAppointmentServiceImpl;
-import com.crrc.utils.DeptUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -63,7 +62,7 @@ public class HrEmpAppointmentController {
     @Autowired
     private CodeInfoServiceImpl codeInfoService;
     @Autowired
-    private WkDataAPi wkDataAPi;
+    private WkDataAPi wkDataApi;
     @Autowired
     private HrEmpBasicMapper hrEmpBasicMapper;
 
@@ -191,7 +190,7 @@ public class HrEmpAppointmentController {
     public ResponseResult<List<HrEmpAppointment>> getLatestDetailList(@RequestBody List<String> userCodeList) {
         List<HrEmpAppointment> resultList = hrEmpAppointmentService.selectLatestMsg(userCodeList);
         Map<String, String> translateMap = codeInfoService.getTranslateMap("hr_emp_appointment", "APPOINTMENT_POSITION");
-        Map<String, String> code2NameMap = wkDataAPi.allOrganization().getData().stream().collect(Collectors.toMap(
+        Map<String, String> code2NameMap = wkDataApi.allOrganization().getData().stream().collect(Collectors.toMap(
                 OrganizationDTO::getOrgCode,
                 OrganizationDTO::getOrgName
         ));

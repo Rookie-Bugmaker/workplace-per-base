@@ -5,9 +5,11 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.crrc.annotation.IgnoreTenant;
 import com.crrc.client.WorkFlowClient;
+import com.crrc.entity.*;
 import com.crrc.feign.WorkflowApi;
 import com.crrc.mongodb.*;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.service.impl.*;
 import com.crrc.utils.MyUtils;
@@ -25,11 +27,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.crrc.entity.*;
-import com.crrc.pojo.dto.*;
-
 import javax.annotation.Resource;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 

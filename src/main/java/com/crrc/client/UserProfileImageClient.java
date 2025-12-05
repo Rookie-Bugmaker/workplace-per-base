@@ -1,7 +1,7 @@
 package com.crrc.client;
 
-import com.crrc.pojo.dto.ResponseData;
 import com.crrc.pojo.dto.ImageReqDTO;
+import com.crrc.pojo.dto.ResponseData;
 import com.crrc.pojo.dto.UserImageDTO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;

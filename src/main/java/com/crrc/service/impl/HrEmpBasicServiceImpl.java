@@ -15,7 +15,8 @@ import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mapper.HrEmpEducationMapper;
 import com.crrc.mapper.HrEmpProfessionalQualificationMapper;
 import com.crrc.mapper.HrEmpSkillLevelMapper;
-import com.crrc.pojo.dto.*;
+import com.crrc.pojo.dto.HrEmpBasicDTO;
+import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
 import com.crrc.service.HrEmpBasicService;
 import com.crrc.utils.*;
 import com.github.yulichang.toolkit.JoinWrappers;
@@ -81,7 +82,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     private final DictTypeUtils dictTypeUtils;
 
     @Autowired
-    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataAPi, @Qualifier("com.crrc.client.SysServerClient") SysServerClient sysServerClient, DictTypeUtils dictTypeUtils) {
+    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataApi, @Qualifier("com.crrc.client.SysServerClient") SysServerClient sysServerClient, DictTypeUtils dictTypeUtils) {
         this.hrEmpBasicMapper = hrEmpBasicMapper;
         this.hrEmpEducationMapper = hrEmpEducationMapper;
         this.hrEmpSchoolInfoService = hrEmpSchoolInfoService;
@@ -90,7 +91,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         this.hrEmpSkillLevelMapper = hrEmpSkillLevelMapper;
         this.codeInfoService = codeInfoService;
         this.wkCoreApi = wkCoreApi;
-        this.wkDataAPi = wkDataAPi;
+        this.wkDataAPi = wkDataApi;
         this.sysServerClient = sysServerClient;
         this.dictTypeUtils = dictTypeUtils;
     }
@@ -231,11 +232,11 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             }
             // 如果没有配置，则从basic里查询出员工的部门
             else {
-                List<HrEmpBasicDTO> hrEmpBasicDTOS = this.selectMsg(jobNo);
-                if(ObjectUtils.isEmpty(hrEmpBasicDTOS)) {
+                List<HrEmpBasicDTO> dtoList = this.selectMsg(jobNo);
+                if(ObjectUtils.isEmpty(dtoList)) {
                     throw new IllegalArgumentException("获取员工信息失败，员工不存在，userCode:" + jobNo);
                 }
-                orgCode = hrEmpBasicDTOS.get(0).getOrgCode();
+                orgCode = dtoList.get(0).getOrgCode();
             }
 
             // 获取所有的组织数据
@@ -266,7 +267,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
      */
     private List<OrganizationTreeDTO> findParentAndFlattenList(List<OrganizationTreeDTO> data, String orgCode) {
         for(OrganizationTreeDTO root : data) {
-            if (TreeUtils.containsBFS(root, n -> StringUtils.equals(orgCode, n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
+            if (TreeUtils.containsBfs(root, n -> StringUtils.equals(orgCode, n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
                 return TreeUtils.flattenDescendants(root, OrganizationTreeDTO::getChildren, true);
             }
         }
@@ -472,11 +473,8 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         String tableName = "person_category";
 
         try {
-//            log.info("userCode:{},category1:{}", dto.getUserCode(), dto.getCategory1());
             if (StringUtils.isNotBlank(dto.getCategory1())) {
-//                log.info("读取到category1：{}", dto.getCategory1());
                 String category1 = codeInfoService.translateCode(dto.getCategory1(), tableName, "category1");
-//                log.info("查询到category1：{}", category1);
                 dto.setCategory1(category1);
             }
 

@@ -3,7 +3,6 @@ package com.crrc.pojo.vo;
 import com.alibaba.excel.annotation.ExcelProperty;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.crrc.annotation.QueryMethod;
-import com.crrc.entity.HrEmpBasic;
 import com.crrc.enums.QueryType;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import io.swagger.v3.oas.annotations.media.Schema;

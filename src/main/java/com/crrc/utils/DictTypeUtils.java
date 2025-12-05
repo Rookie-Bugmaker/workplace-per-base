@@ -26,10 +26,10 @@ public class DictTypeUtils {
     @Autowired
     public DictTypeUtils(
         WkCoreAPi wkCoreApi,
-        WkDataAPi wkDataAPi
+        WkDataAPi wkDataApi
     ) {
         this.wkCoreApi = wkCoreApi;
-        this.wkDataAPi = wkDataAPi;
+        this.wkDataAPi = wkDataApi;
     }
 
 

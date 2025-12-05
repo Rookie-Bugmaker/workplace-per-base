@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -41,7 +40,9 @@ public class HrEmpAppointmentServiceImpl extends WorkServiceImpl<HrEmpAppointmen
 
     public List<HrEmpAppointment> selectLatestMsg(List<String> userCodeList){
 
-        if (userCodeList == null || userCodeList.isEmpty()) return Collections.emptyList();
+        if (userCodeList == null || userCodeList.isEmpty()) {
+            return Collections.emptyList();
+        }
         List<String> codes = userCodeList.stream()
                 .filter(Objects::nonNull).map(String::trim)
                 .filter(s -> !s.isEmpty()).distinct().collect(Collectors.toList());

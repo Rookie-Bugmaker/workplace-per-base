@@ -1,7 +1,6 @@
 package com.crrc.pojo.dto;
 
 import com.crrc.entity.dto.mainData.OrganizationDTO;
-import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import lombok.Data;
 
 import java.util.List;

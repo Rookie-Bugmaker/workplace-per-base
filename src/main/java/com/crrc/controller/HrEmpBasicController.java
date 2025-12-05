@@ -32,10 +32,11 @@ import com.crrc.service.impl.*;
 import com.crrc.utils.*;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import com.xxl.job.core.handler.annotation.XxlJob;
-import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -45,14 +46,16 @@ import org.springframework.util.ObjectUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.apache.commons.lang3.StringUtils;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -101,7 +104,7 @@ public class HrEmpBasicController {
     @Autowired
     private UserProfileImageClient userProfileImageClient;
     @Autowired
-    private MinIOUtils minIOUtils;
+    private MinIOUtils minioUtils;
 
     @GetMapping("/isAvailable")
     @Operation(summary = "就绪探针")
@@ -143,7 +146,7 @@ public class HrEmpBasicController {
                     // 转为MultipartFile
                     ByteArrayMultipartFile image = new ByteArrayMultipartFile(bytes, "image", "image.jpg", "image/jpeg");
                     // 上传到minIO
-                    String profilePicture = minIOUtils.saveFile(image);
+                    String profilePicture = minioUtils.saveFile(image);
                     HrEmpBasic userInfo = hrEmpBasicService.getByUserCode(userImageDTO.getCode());
                     userInfo.setProfilePicture(profilePicture);
                     // 更新数据
@@ -170,7 +173,7 @@ public class HrEmpBasicController {
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "未传入图片");
         }
         // 上传到minIO
-        String profilePicture = minIOUtils.saveFile(imageFile);
+        String profilePicture = minioUtils.saveFile(imageFile);
 
         boolean flag = RoleUtils.check("人力资源部-招聘管理专员");
         if (flag) {
@@ -277,7 +280,7 @@ public class HrEmpBasicController {
     @Operation(summary = "图片下载")
     @AuditLog(value = "图片下载", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     public ResponseResult<String> downloadPicture(@RequestParam String fileId) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "OK", minIOUtils.getFileUrl(fileId));
+        return new ResponseResult<>(HttpStatus.OK.value(), "OK", minioUtils.getFileUrl(fileId));
     }
 
     @GetMapping("/getDept")
@@ -308,11 +311,6 @@ public class HrEmpBasicController {
             List<HrEmpBasic> list = (userCodeList != null && !userCodeList.isEmpty())
                     ? hrEmpBasicService.getListByUserCode(userCodeList)
                     : hrEmpBasicService.getAllUser();
-
-//            List<HrEmpBasic> list1 = new ArrayList<>();
-//            HrEmpBasic temp = new HrEmpBasic();
-//            temp.setUserCode("013200031192");
-//            List<HrEmpBasic> list2 = hrEmpBasicService.getListByUserCode(list1);
 
             Map<String, String> position2ValueMap = codeInfoService.getTranslateMap("hr_emp_appointment", "APPOINTMENT_POSITION");
 

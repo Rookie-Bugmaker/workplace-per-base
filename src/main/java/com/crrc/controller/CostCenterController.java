@@ -2,27 +2,14 @@ package com.crrc.controller;
 
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.EasyExcelFactory;
-import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
-import com.alibaba.excel.annotation.ExcelProperty;
-import com.alibaba.excel.context.AnalysisContext;
-import com.alibaba.excel.converters.Converter;
-import com.alibaba.excel.enums.CellDataTypeEnum;
-import com.alibaba.excel.metadata.CellExtra;
-import com.alibaba.excel.metadata.GlobalConfiguration;
-import com.alibaba.excel.metadata.data.ReadCellData;
-import com.alibaba.excel.metadata.property.ExcelContentProperty;
-import com.alibaba.excel.read.listener.ReadListener;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
-import com.crrc.annotation.QueryMethod;
 import com.crrc.entity.CostCenter;
-import com.crrc.entity.HrEmpBasic;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
-import com.crrc.enums.QueryType;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.BundleEmpAndCostCenterVO;
 import com.crrc.pojo.vo.CostCenterImportVO;
@@ -32,10 +19,6 @@ import com.crrc.service.impl.HrEmpBasicServiceImpl;
 import com.crrc.utils.CostCenterCustomImportListener;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
@@ -49,8 +32,8 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.regex.Pattern;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author yukun
@@ -96,7 +79,7 @@ public class CostCenterController {
         return new ResponseResult<>(HttpStatus.OK.value(), "获取实体成功", costCenterService.getVO(id));
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/bundleEmp")
     @Operation(summary = "创建实体")
     @AuditLog(value = "创建实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
@@ -105,7 +88,7 @@ public class CostCenterController {
         return new ResponseResult<>(HttpStatus.OK.value(), "创建实体成功", costCenterService.bundleEmpAndCostCenter(vo));
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @GetMapping("/queryDetails")
     @Operation(summary = "创建实体")
     @AuditLog(value = "创建实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
@@ -114,7 +97,7 @@ public class CostCenterController {
         return new ResponseResult<>(HttpStatus.OK.value(), "创建实体成功", costCenterService.queryDetails(id));
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/create")
     @Operation(summary = "创建实体")
     @AuditLog(value = "创建实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
@@ -123,7 +106,7 @@ public class CostCenterController {
         return new ResponseResult<>(HttpStatus.OK.value(), "创建实体成功", costCenterService.save(createReqVO));
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/update")
     @Operation(summary = "更新实体")
     @AuditLog(value = "更新实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)

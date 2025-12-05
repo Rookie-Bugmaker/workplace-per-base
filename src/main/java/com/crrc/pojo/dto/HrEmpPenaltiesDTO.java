@@ -1,6 +1,5 @@
 package com.crrc.pojo.dto;
 
-import com.crrc.entity.HrEmpCareerPath;
 import com.crrc.entity.HrEmpPenalties;
 import lombok.Data;
 

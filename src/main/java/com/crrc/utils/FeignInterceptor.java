@@ -13,15 +13,16 @@ import javax.servlet.http.HttpServletRequest;
 @Configuration
 public class FeignInterceptor implements RequestInterceptor {
 
+    //项目编码
+    private final String X_PROJECT_CODE = "X-Project-Code";
+
     @Override
     public void apply(RequestTemplate requestTemplate) {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (!ObjectUtils.isEmpty(attributes)) {
             HttpServletRequest request = attributes.getRequest();
             requestTemplate.header(HttpHeaders.AUTHORIZATION, request.getHeader(HttpHeaders.AUTHORIZATION));
-            //项目编码
-            String x_PROJECT_CODE = "X-Project-Code";
-            requestTemplate.header(x_PROJECT_CODE, request.getHeader(x_PROJECT_CODE));
+            requestTemplate.header(X_PROJECT_CODE, request.getHeader(X_PROJECT_CODE));
         }
     }
 }

@@ -3,16 +3,16 @@ package com.crrc.controller;
 import com.crrc.annotation.AuditLog;
 import com.crrc.api.WkDataAPi;
 import com.crrc.client.SysServerClient;
-import com.crrc.common.PaginationGrid;
 import com.crrc.common.ResultData;
 import com.crrc.entity.dto.CompanyDTO;
 import com.crrc.entity.dto.DeptDTO;
 import com.crrc.entity.dto.DictItemReqDTO;
-import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.pojo.ResponseResult;
-import com.crrc.pojo.dto.*;
+import com.crrc.pojo.dto.SysDeptPersonDTO;
+import com.crrc.pojo.dto.SysUserDTO;
+import com.crrc.pojo.dto.SysUserRequestDTO;
 import com.crrc.utils.DictTypeUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,7 +21,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.ObjectUtils;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
 import java.util.*;
@@ -48,7 +50,7 @@ public class HrEmpFlowableController {
     @Autowired
     private DictTypeUtils dictTypeUtils;
     @Autowired
-    private WkDataAPi wkDataAPi;
+    private WkDataAPi wkDataApi;
 
 
     @GetMapping("/findUserByDeptIdAndRoleCode")
