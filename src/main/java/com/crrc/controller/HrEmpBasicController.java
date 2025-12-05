@@ -312,11 +312,6 @@ public class HrEmpBasicController {
                     ? hrEmpBasicService.getListByUserCode(userCodeList)
                     : hrEmpBasicService.getAllUser();
 
-//            List<HrEmpBasic> list1 = new ArrayList<>();
-//            HrEmpBasic temp = new HrEmpBasic();
-//            temp.setUserCode("013200031192");
-//            List<HrEmpBasic> list2 = hrEmpBasicService.getListByUserCode(list1);
-
             Map<String, String> position2ValueMap = codeInfoService.getTranslateMap("hr_emp_appointment", "APPOINTMENT_POSITION");
 
             for(HrEmpBasic hrEmpBasic : list){

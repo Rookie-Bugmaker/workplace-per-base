@@ -46,7 +46,7 @@ public class CommonController {
         return new ResponseResultDTO<>(HttpStatus.OK.value(), "获取部门成功", DeepCopyDTO.mapTreeList(result));
     }
 
-    static class DeepCopyDTO {
+    private static class DeepCopyDTO {
         /**
          * 顶层：把一个 List<SourceDTO> 转成 List<TargetDTO>
          */

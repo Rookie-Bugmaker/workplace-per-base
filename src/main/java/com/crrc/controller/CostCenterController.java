@@ -79,7 +79,7 @@ public class CostCenterController {
         return new ResponseResult<>(HttpStatus.OK.value(), "获取实体成功", costCenterService.getVO(id));
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/bundleEmp")
     @Operation(summary = "创建实体")
     @AuditLog(value = "创建实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
@@ -88,7 +88,7 @@ public class CostCenterController {
         return new ResponseResult<>(HttpStatus.OK.value(), "创建实体成功", costCenterService.bundleEmpAndCostCenter(vo));
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @GetMapping("/queryDetails")
     @Operation(summary = "创建实体")
     @AuditLog(value = "创建实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
@@ -97,7 +97,7 @@ public class CostCenterController {
         return new ResponseResult<>(HttpStatus.OK.value(), "创建实体成功", costCenterService.queryDetails(id));
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/create")
     @Operation(summary = "创建实体")
     @AuditLog(value = "创建实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
@@ -106,7 +106,7 @@ public class CostCenterController {
         return new ResponseResult<>(HttpStatus.OK.value(), "创建实体成功", costCenterService.save(createReqVO));
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/update")
     @Operation(summary = "更新实体")
     @AuditLog(value = "更新实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)

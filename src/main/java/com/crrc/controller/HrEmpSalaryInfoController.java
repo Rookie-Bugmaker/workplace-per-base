@@ -81,7 +81,7 @@ public class HrEmpSalaryInfoController {
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工薪资信息表实体成功", hrEmpSalaryInfoService.getById(id));
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/save")
     @Operation(summary = "保存员工薪资信息表实体")
     @AuditLog(value = "员工薪资信息表实体保存", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
@@ -93,7 +93,7 @@ public class HrEmpSalaryInfoController {
         return new ResponseResult<>(HttpStatus.OK.value(), "保存员工薪资信息表实体成功", result);
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/saveByUserCode")
     @Operation(summary = "根据档案号保存员工薪资信息表实体")
     @AuditLog(value = "员工薪资信息表实体保存", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
@@ -107,7 +107,7 @@ public class HrEmpSalaryInfoController {
         return new ResponseResult<>(HttpStatus.OK.value(), "保存员工薪资信息表实体成功", result);
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @GetMapping("/delete")
     @Operation(summary = "删除员工薪资信息表实体")
     @AuditLog(value = "删除员工薪资信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_DELETE)

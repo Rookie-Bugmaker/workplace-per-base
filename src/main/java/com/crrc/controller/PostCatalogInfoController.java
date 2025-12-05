@@ -80,7 +80,7 @@ public class PostCatalogInfoController {
         return new ResponseResult<>(HttpStatus.OK.value(), "获取实体成功", postCatalogInfoService.getById(id));
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/create")
     @Operation(summary = "创建实体")
     @AuditLog(value = "创建实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
@@ -89,7 +89,7 @@ public class PostCatalogInfoController {
         return new ResponseResult<>(HttpStatus.OK.value(), "创建实体成功", postCatalogInfoService.save(createReqVO));
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/update")
     @Operation(summary = "更新实体")
     @AuditLog(value = "更新实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
@@ -98,7 +98,7 @@ public class PostCatalogInfoController {
         return new ResponseResult<>(HttpStatus.OK.value(), "更新实体成功", postCatalogInfoService.saveOrUpdate(updateReqVO));
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @GetMapping("/delete")
     @Operation(summary = "删除实体")
     @AuditLog(value = "删除实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_DELETE)
