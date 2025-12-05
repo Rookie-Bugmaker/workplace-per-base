@@ -5,8 +5,6 @@ import com.crrc.common.PaginationGrid;
 import com.crrc.common.ResultData;
 import com.crrc.entity.dto.CompanyDTO;
 import com.crrc.entity.dto.DeptDTO;
-import com.crrc.entity.dto.DeptqueryDTO;
-import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.pojo.dto.*;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;

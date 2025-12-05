@@ -1,8 +1,6 @@
 package com.crrc.service.impl;
 
-import com.crrc.entity.HrEmpEducation;
 import com.crrc.entity.HrEmpSkillLevel;
-import com.crrc.mapper.HrEmpEducationMapper;
 import com.crrc.mapper.HrEmpSkillLevelMapper;
 import com.crrc.service.HrEmpSkillLevelService;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;

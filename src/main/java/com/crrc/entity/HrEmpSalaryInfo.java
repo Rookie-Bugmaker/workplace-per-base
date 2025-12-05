@@ -2,12 +2,11 @@ package com.crrc.entity;
 
 import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
-import com.baomidou.mybatisplus.annotation.*;
-import java.io.Serializable;
-import java.time.LocalDateTime;
-import java.util.Date;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.crrc.annotation.QueryMethod;
-import com.crrc.converter.DictConverter;
 import com.crrc.enums.QueryType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;

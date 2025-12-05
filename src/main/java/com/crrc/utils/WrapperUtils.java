@@ -3,9 +3,10 @@ package com.crrc.utils;
 /**
  * @author yukun
  */
+
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
-import com.baomidou.mybatisplus.annotation.TableField;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;

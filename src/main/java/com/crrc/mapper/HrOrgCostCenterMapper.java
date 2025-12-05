@@ -1,7 +1,7 @@
 package com.crrc.mapper;
 
-import com.crrc.entity.HrOrgCostCenter;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.crrc.entity.HrOrgCostCenter;
 import org.apache.ibatis.annotations.Mapper;
 
 /**

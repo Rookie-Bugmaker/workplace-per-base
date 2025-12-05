@@ -20,7 +20,6 @@ import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.service.impl.CodeInfoServiceImpl;
 import com.crrc.service.impl.HrEmpAppointmentServiceImpl;
-import com.crrc.utils.DeptUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;

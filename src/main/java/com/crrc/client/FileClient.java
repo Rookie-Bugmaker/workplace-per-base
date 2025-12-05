@@ -2,9 +2,10 @@ package com.crrc.client;
 
 import com.crrc.client.fallback.FileClientFallBack;
 import com.crrc.common.ResultData;
-import com.crrc.pojo.dto.*;
+import com.crrc.pojo.dto.SysFileDTO;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
