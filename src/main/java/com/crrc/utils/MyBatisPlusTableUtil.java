@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 @Component
 public class MyBatisPlusTableUtil {
     //需要排除的字段
-    private static final List<String> EXCLUDE_COLUMNS = Arrays.asList("tenant_id","validate_key", "file_header_id", "profile_picture");
+    private static final List<String> EXCLUDE_COLUMNS = Arrays.asList("tenant_id","validate_key", "file_header_id", "profile_picture", "attendance_image_id");
 
     /**
      * 获取实体类对应的表名
