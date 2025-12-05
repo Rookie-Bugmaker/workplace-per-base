@@ -116,7 +116,7 @@ public class HrCoreTalentServiceImpl extends WorkServiceImpl<HrCoreTalentMapper,
         return true;
     }
 
-    public HrCoreTalent getVOById(Long id) {
+    public HrCoreTalent getEntityById(Long id) {
         HrCoreTalent talent = this.getById(id);
         buildDateTimeStr(Collections.singletonList(talent));
         translateCode(Collections.singletonList(talent));

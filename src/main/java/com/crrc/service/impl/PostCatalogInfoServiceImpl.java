@@ -66,6 +66,7 @@ public class PostCatalogInfoServiceImpl extends WorkServiceImpl<PostCatalogInfoM
         this.page(page, queryWrapper);
     }
 
+    @Override
     public List<PostCatalogInfo> query(PostCatalogInfo reqVO) {
         QueryWrapper<PostCatalogInfo> queryWrapper = WrapperUtils.buildWrapper(reqVO);
         return this.baseMapper.selectList(queryWrapper);

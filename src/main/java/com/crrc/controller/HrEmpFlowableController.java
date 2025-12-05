@@ -50,7 +50,7 @@ public class HrEmpFlowableController {
     @Autowired
     private DictTypeUtils dictTypeUtils;
     @Autowired
-    private WkDataAPi wkDataAPi;
+    private WkDataAPi wkDataApi;
 
 
     @GetMapping("/findUserByDeptIdAndRoleCode")

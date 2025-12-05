@@ -25,12 +25,12 @@ import java.util.stream.Collectors;
 @Service
 public class CostCenterServiceImpl extends WorkServiceImpl<CostCenterMapper, CostCenter> implements CostCenterService {
     @Autowired
-    WkDataAPi wkDataAPi;
+    WkDataAPi wkDataApi;
     @Autowired
     private HrEmpBasicServiceImpl hrEmpBasicService;
 
     public void queryVO(Page<CostCenter> page, CostCenter pageReqVO) {
-        Map<String, String> orgCode2Name = wkDataAPi.treeOrganization().getData().stream().peek(
+        Map<String, String> orgCode2Name = wkDataApi.treeOrganization().getData().stream().peek(
                 item -> item.setChildren(null)
         ).collect(Collectors.toMap(
                 OrganizationTreeDTO::getOrgCode,
@@ -43,7 +43,7 @@ public class CostCenterServiceImpl extends WorkServiceImpl<CostCenterMapper, Cos
     }
 
     public List<CostCenter> queryVO(CostCenter queryReqVO) {
-        Map<String, String> orgCode2Name = wkDataAPi.allOrganization().getData().stream().collect(Collectors.toMap(
+        Map<String, String> orgCode2Name = wkDataApi.allOrganization().getData().stream().collect(Collectors.toMap(
                 OrganizationDTO::getOrgCode,
                 OrganizationDTO::getOrgName
         ));
@@ -58,7 +58,7 @@ public class CostCenterServiceImpl extends WorkServiceImpl<CostCenterMapper, Cos
     }
 
     public CostCenter getVO(Long id) {
-        Map<String, String> orgCode2Name = wkDataAPi.allOrganization().getData().stream().collect(Collectors.toMap(
+        Map<String, String> orgCode2Name = wkDataApi.allOrganization().getData().stream().collect(Collectors.toMap(
                 OrganizationDTO::getOrgCode,
                 OrganizationDTO::getOrgName
         ));

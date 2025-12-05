@@ -131,7 +131,7 @@ public class HrCoreTalentController {
     @AuditLog(value = "获得实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<HrCoreTalent> getHrCoreTalent(@RequestParam("id") Long id) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取实体成功", hrCoreTalentService.getVOById(id));
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取实体成功", hrCoreTalentService.getEntityById(id));
     }
 
     @Transactional
@@ -221,6 +221,7 @@ public class HrCoreTalentController {
             this.dataList = new ArrayList<>();
         }
 
+        @Override
         public void onException(Exception exception, AnalysisContext context) throws Exception {
             throw exception;
         }

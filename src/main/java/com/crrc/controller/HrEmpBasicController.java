@@ -104,7 +104,7 @@ public class HrEmpBasicController {
     @Autowired
     private UserProfileImageClient userProfileImageClient;
     @Autowired
-    private MinIOUtils minIOUtils;
+    private MinIOUtils minioUtils;
 
     @GetMapping("/isAvailable")
     @Operation(summary = "就绪探针")
@@ -146,7 +146,7 @@ public class HrEmpBasicController {
                     // 转为MultipartFile
                     ByteArrayMultipartFile image = new ByteArrayMultipartFile(bytes, "image", "image.jpg", "image/jpeg");
                     // 上传到minIO
-                    String profilePicture = minIOUtils.saveFile(image);
+                    String profilePicture = minioUtils.saveFile(image);
                     HrEmpBasic userInfo = hrEmpBasicService.getByUserCode(userImageDTO.getCode());
                     userInfo.setProfilePicture(profilePicture);
                     // 更新数据
@@ -173,7 +173,7 @@ public class HrEmpBasicController {
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "未传入图片");
         }
         // 上传到minIO
-        String profilePicture = minIOUtils.saveFile(imageFile);
+        String profilePicture = minioUtils.saveFile(imageFile);
 
         boolean flag = RoleUtils.check("人力资源部-招聘管理专员");
         if (flag) {
@@ -280,7 +280,7 @@ public class HrEmpBasicController {
     @Operation(summary = "图片下载")
     @AuditLog(value = "图片下载", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     public ResponseResult<String> downloadPicture(@RequestParam String fileId) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "OK", minIOUtils.getFileUrl(fileId));
+        return new ResponseResult<>(HttpStatus.OK.value(), "OK", minioUtils.getFileUrl(fileId));
     }
 
     @GetMapping("/getDept")

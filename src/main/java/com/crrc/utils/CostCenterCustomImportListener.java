@@ -60,7 +60,9 @@ public class CostCenterCustomImportListener implements ReadListener<CostCenterIm
     }
 
     private void flush() {
-        if (buffer.isEmpty()) return;
+        if (buffer.isEmpty()) {
+            return;
+        }
         ArrayList<String> userCodeList = new ArrayList<>(buffer);
 
         for (String userCode : userCodeList) {

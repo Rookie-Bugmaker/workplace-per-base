@@ -114,6 +114,7 @@ public final class TreeUtils {
                         throw new IllegalArgumentException(
                                 "发现孤儿节点或自指（父不存在/parentId=null/self-loop）。id=" + id + ", parentId=" + pid
                         );
+                    default:
                 }
             } else {
                 childrenBuckets.get(pid).add(t);
@@ -181,13 +182,17 @@ public final class TreeUtils {
      * @param childrenGetter children的Get方法
      * @return 是否包含Predicate
      */
-    public static <T> Boolean containsBFS(T root, Predicate<T> matcher, Function<T, List<T>> childrenGetter) {
-        if(childrenGetter.apply(root) == null || matcher == null) return false;
+    public static <T> Boolean containsBfs(T root, Predicate<T> matcher, Function<T, List<T>> childrenGetter) {
+        if(childrenGetter.apply(root) == null || matcher == null) {
+            return false;
+        }
         Queue<T> q = new ArrayDeque<>();
         q.offer(root);
         while(!q.isEmpty()) {
             T node = q.poll();
-            if(matcher.test(node)) return true;
+            if(matcher.test(node)) {
+                return true;
+            }
             for(T c : childrenGetter.apply(node)) {
                 q.offer(c);
             }

@@ -82,7 +82,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     private final DictTypeUtils dictTypeUtils;
 
     @Autowired
-    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataAPi, @Qualifier("com.crrc.client.SysServerClient") SysServerClient sysServerClient, DictTypeUtils dictTypeUtils) {
+    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataApi, @Qualifier("com.crrc.client.SysServerClient") SysServerClient sysServerClient, DictTypeUtils dictTypeUtils) {
         this.hrEmpBasicMapper = hrEmpBasicMapper;
         this.hrEmpEducationMapper = hrEmpEducationMapper;
         this.hrEmpSchoolInfoService = hrEmpSchoolInfoService;
@@ -91,7 +91,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         this.hrEmpSkillLevelMapper = hrEmpSkillLevelMapper;
         this.codeInfoService = codeInfoService;
         this.wkCoreApi = wkCoreApi;
-        this.wkDataAPi = wkDataAPi;
+        this.wkDataAPi = wkDataApi;
         this.sysServerClient = sysServerClient;
         this.dictTypeUtils = dictTypeUtils;
     }
@@ -232,11 +232,11 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             }
             // 如果没有配置，则从basic里查询出员工的部门
             else {
-                List<HrEmpBasicDTO> hrEmpBasicDTOS = this.selectMsg(jobNo);
-                if(ObjectUtils.isEmpty(hrEmpBasicDTOS)) {
+                List<HrEmpBasicDTO> dtoList = this.selectMsg(jobNo);
+                if(ObjectUtils.isEmpty(dtoList)) {
                     throw new IllegalArgumentException("获取员工信息失败，员工不存在，userCode:" + jobNo);
                 }
-                orgCode = hrEmpBasicDTOS.get(0).getOrgCode();
+                orgCode = dtoList.get(0).getOrgCode();
             }
 
             // 获取所有的组织数据
@@ -267,7 +267,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
      */
     private List<OrganizationTreeDTO> findParentAndFlattenList(List<OrganizationTreeDTO> data, String orgCode) {
         for(OrganizationTreeDTO root : data) {
-            if (TreeUtils.containsBFS(root, n -> StringUtils.equals(orgCode, n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
+            if (TreeUtils.containsBfs(root, n -> StringUtils.equals(orgCode, n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
                 return TreeUtils.flattenDescendants(root, OrganizationTreeDTO::getChildren, true);
             }
         }
