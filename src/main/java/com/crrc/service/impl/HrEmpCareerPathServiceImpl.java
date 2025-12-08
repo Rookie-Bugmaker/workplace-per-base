@@ -32,7 +32,7 @@ public class HrEmpCareerPathServiceImpl extends WorkServiceImpl<HrEmpCareerPathM
         hrEmpCareerPaths.forEach(item -> {
             item.setIsExpiredValue("1".equals(item.getIsExpired()) ? "失效" : "生效");
         });
-        return hrEmpCareerPathMapper.selectList(wrapper);
+        return hrEmpCareerPaths;
     }
 
 }
