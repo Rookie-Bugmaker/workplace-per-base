@@ -36,10 +36,11 @@ public class HrEmpResumeServiceImpl extends WorkServiceImpl<HrEmpResumeMapper, H
                 .selectAll(HrEmpResume.class)
                 .eq(HrEmpResume::getUserCode, userCode)
                 .orderByAsc(HrEmpResume::getStartDate);
-        LambdaQueryWrapper<HrEmpAppointment> queryWrapper = new LambdaQueryWrapper<>();
+
         List<HrEmpResume> hrEmpResumes = hrEmpResumeMapper.selectList(wrapper);
         for(HrEmpResume hrEmpResume : hrEmpResumes) {
             // 根据userCode，开始时间查询对应的appointment，以处理变动类型
+            LambdaQueryWrapper<HrEmpAppointment> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(HrEmpAppointment::getUserCode, hrEmpResume.getUserCode());
             queryWrapper.eq(HrEmpAppointment::getStartDate, hrEmpResume.getStartDate());
 
