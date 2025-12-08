@@ -45,6 +45,8 @@ import java.util.stream.Stream;
 @Slf4j
 public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrEmpBasic> implements HrEmpBasicService {
 
+    private static final String APPOINTMENT_TABLE_NAME = "hr_emp_appointment";
+    private static final String POSITION_TYPE_NAME = "APPOINTMENT_POSITION";
     private final HrEmpBasicMapper hrEmpBasicMapper;
 
     private final HrEmpEducationMapper hrEmpEducationMapper;
@@ -358,6 +360,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             // 6. 处理人员在岗状态
             resolveStatus(result.get(0));
 
+            // 处理职位信息
+            resolvePosition(result.get(0));
+
             // 处理附件信息
             resolveFiles(result.get(0));
 
@@ -367,6 +372,11 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             return queryBaseInfoWithJoins(userCode);
         }
 
+    }
+
+    private void resolvePosition(HrEmpBasicDTO hrEmpBasicDTO) {
+        Map<String, String> translateMap = codeInfoService.getTranslateMap(APPOINTMENT_TABLE_NAME, POSITION_TYPE_NAME);
+        hrEmpBasicDTO.setPosition(translateMap.getOrDefault(hrEmpBasicDTO.getPosition(), null));
     }
 
     private void resolveEducation(HrEmpBasicDTO hrEmpBasicDTO) {
