@@ -77,4 +77,7 @@ public class HrEmpBasicDTO extends HrEmpBasic {
     @Schema(description = "通过fileHeaderId，查询回的文件列表")
     private List<SysFileDTO> files;
 
+    @Schema(description = "职位")
+    private String position;
+
 }

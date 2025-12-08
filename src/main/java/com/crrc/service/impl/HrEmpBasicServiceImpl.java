@@ -11,10 +11,7 @@ import com.crrc.entity.dto.DictItemReqDTO;
 import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
-import com.crrc.mapper.HrEmpBasicMapper;
-import com.crrc.mapper.HrEmpEducationMapper;
-import com.crrc.mapper.HrEmpProfessionalQualificationMapper;
-import com.crrc.mapper.HrEmpSkillLevelMapper;
+import com.crrc.mapper.*;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
 import com.crrc.service.HrEmpBasicService;
@@ -34,6 +31,7 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * <p>
@@ -80,9 +78,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     private final SysServerClient sysServerClient;
 
     private final DictTypeUtils dictTypeUtils;
+    private final HrEmpAppointmentMapper hrEmpAppointmentMapper;
 
     @Autowired
-    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataApi, @Qualifier("com.crrc.client.SysServerClient") SysServerClient sysServerClient, DictTypeUtils dictTypeUtils) {
+    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataApi, @Qualifier("com.crrc.client.SysServerClient") SysServerClient sysServerClient, DictTypeUtils dictTypeUtils, HrEmpAppointmentMapper hrEmpAppointmentMapper) {
         this.hrEmpBasicMapper = hrEmpBasicMapper;
         this.hrEmpEducationMapper = hrEmpEducationMapper;
         this.hrEmpSchoolInfoService = hrEmpSchoolInfoService;
@@ -94,6 +93,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         this.wkDataAPi = wkDataApi;
         this.sysServerClient = sysServerClient;
         this.dictTypeUtils = dictTypeUtils;
+        this.hrEmpAppointmentMapper = hrEmpAppointmentMapper;
     }
 
     public List<HrEmpBasic> getCategoryInfo(List<HrEmpBasic> hrEmpBasicList) {
@@ -548,7 +548,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
         // 建立userCode -> SubTableData Map
         Map<String, SubTableData> resultMap = new LinkedHashMap<>();
-        codes.forEach(c -> resultMap.put(c, new SubTableData(new ArrayList<>(), new ArrayList<>(), new ArrayList<>())));
+        codes.forEach(c -> resultMap.put(c, new SubTableData(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>())));
 
         // --- 1) 教育（最高学历）批量查询 ---
 
@@ -609,6 +609,21 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             });
         }
 
+        // --- 4) 任职信息（最近）批量查询 ---
+
+        List<HrEmpAppointment> appointmentList = hrEmpAppointmentMapper.selectList(
+                JoinWrappers.lambda(HrEmpAppointment.class)
+                        .select(HrEmpAppointment::getUserCode,
+                                HrEmpAppointment::getPosition)
+                        .in(HrEmpAppointment::getUserCode, userCodes)
+        );
+        List<HrEmpAppointment> appointmentListSorted = appointmentList.stream().filter(
+                e -> e.getStartDate() != null).sorted(Comparator.comparing(HrEmpAppointment::getStartDate).reversed()
+        ).collect(Collectors.toList());
+        if (!appointmentListSorted.isEmpty()) {
+            SubTableData d = resultMap.get(appointmentListSorted.get(0).getUserCode());
+            d.appointmentList.add(appointmentListSorted.get(0));
+        }
 
         // 保持与入参顺序一致返回
         return resultMap;
@@ -645,6 +660,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                         .eq(HrEmpProfessionalQualification::getUserCode, userCode)
         );
 
+        // 任职经历
         return data;
     }
 
@@ -672,6 +688,11 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         // 处理职业资格
         if (!data.qualificationList.isEmpty()) {
             dto.setQuaId(data.qualificationList.get(0).getQuaId());
+        }
+
+        // 处理职位
+        if(!data.appointmentList.isEmpty()) {
+            dto.setPosition(data.appointmentList.get(0).getPosition());
         }
     }
 
@@ -759,11 +780,13 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         List<HrEmpEducation> educationList;
         List<HrEmpSkillLevel> skillLevelList;
         List<HrEmpProfessionalQualification> qualificationList;
+        List<HrEmpAppointment> appointmentList;
 
         boolean isAllUnique() {
             return educationList.size() <= 1 &&
                     skillLevelList.size() <= 1 &&
-                    qualificationList.size() <= 1;
+                    qualificationList.size() <= 1 &&
+                    appointmentList.size() <= 1;
         }
     }
 }
