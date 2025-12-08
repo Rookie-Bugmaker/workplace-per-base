@@ -25,7 +25,8 @@ public class HrEmpCareerPathServiceImpl extends WorkServiceImpl<HrEmpCareerPathM
     public List<HrEmpCareerPath> selectMsg(String userCode){
         MPJLambdaWrapper<HrEmpCareerPath> wrapper = new MPJLambdaWrapper<HrEmpCareerPath>()
                 .selectAll(HrEmpCareerPath.class)
-                .eq(HrEmpCareerPath::getUserCode, userCode);
+                .eq(HrEmpCareerPath::getUserCode, userCode)
+                .orderByAsc(HrEmpCareerPath::getQualificationDate);
         List<HrEmpCareerPath> hrEmpCareerPaths = hrEmpCareerPathMapper.selectList(wrapper);
         // 翻译是否失效
         hrEmpCareerPaths.forEach(item -> {
