@@ -661,6 +661,14 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                         .eq(HrEmpSkillLevel::getIsHighest, SystemConstants.TRUE_FLAG)
                         .eq(HrEmpSkillLevel::getUserCode, userCode)
         );
+        // 如果有多条，取取得时间最新的一条
+        if(data.skillLevelList.size() > 1) {
+            data.skillLevelList = data.skillLevelList.stream().filter(
+                    e -> e.getGetDate() != null
+            ).sorted(
+                    Comparator.comparing(HrEmpSkillLevel::getGetDate)
+            ).collect(Collectors.toList()).subList(0, 1);
+        }
 
         // 职业资格（最高资格）
         data.qualificationList = hrEmpProfessionalQualificationMapper.selectList(
@@ -669,6 +677,15 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                         .eq(HrEmpProfessionalQualification::getIsHighest, SystemConstants.TRUE_FLAG)
                         .eq(HrEmpProfessionalQualification::getUserCode, userCode)
         );
+
+        // 如果有多条，取开始聘任时间最新的一条
+        if(data.qualificationList.size() > 1) {
+            data.qualificationList = data.qualificationList.stream().filter(
+                    e -> e.getAppointedStartDate() != null
+            ).sorted(
+                    Comparator.comparing(HrEmpProfessionalQualification::getAppointedStartDate)
+            ).collect(Collectors.toList()).subList(0, 1);
+        }
 
         // 任职信息（最新一条）
         data.appointmentList = Collections.singletonList(hrEmpAppointmentMapper.selectList(
