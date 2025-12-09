@@ -15,6 +15,7 @@ import com.crrc.pojo.dto.KingDiePersonalOrderDTO;
 import com.crrc.service.CategoryRecordService;
 import com.crrc.service.impl.*;
 import com.crrc.utils.MinIOUtils;
+import com.crrc.utils.SystemConstants;
 import com.crrc.utils.UpdateWrapperUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.slf4j.Slf4j;
@@ -78,7 +79,6 @@ public class ExternalController {
     @Transactional(rollbackFor = Exception.class)
     public ResponseResult<Integer> receiveKingDieMsg(@RequestBody List<KingDiePersonalOrderDTO> dtoList) {
 
-        // @TODO 免登录接口需要手动写入租户Id，测试环境438，生产32，记得切换
         int updateFlag = 0;
         for (KingDiePersonalOrderDTO dto : dtoList) {
             try {
@@ -88,6 +88,10 @@ public class ExternalController {
                     HrEmpBasic basic = dto.getHrEmpBasic();
                     if (basic.getUserCode() == null) {
                         return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "工号不能为空!");
+                    }
+                    // 如果死亡时间不为空，将人员放入离职库中
+                    if(!ObjectUtils.isEmpty(basic.getDeathTime())) {
+                        basic.setIsEmployed(SystemConstants.FALSE_FLAG);
                     }
 
                     // 先查询是否存在该工号的记录
