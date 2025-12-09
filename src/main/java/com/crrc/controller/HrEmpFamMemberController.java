@@ -25,6 +25,7 @@ import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mongodb.HrEmpFamMemberChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpFamMemberDTO;
+import com.crrc.service.CodeInfoService;
 import com.crrc.service.impl.HrEmpFamMemberServiceImpl;
 import com.crrc.utils.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -72,14 +73,23 @@ public class HrEmpFamMemberController {
     private WkWorkflowApi wkWorkflowApi;
     @Autowired
     private HrEmpBasicMapper hrEmpBasicMapper;
-
+    @Autowired
+    private CodeInfoService codeInfoService;
 
     @GetMapping("/getDetails")
     @Operation(summary = "获得员工主要家庭成员社会关系表实体")
     @AuditLog(value = "获得员工主要家庭成员社会关系表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<List<HrEmpFamMember>> getMsg(@RequestParam String userCode ) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工主要家庭成员社会关系表实体成功", hrEmpFamMemberService.selectMsg(userCode));
+        List<HrEmpFamMember> famMembers = hrEmpFamMemberService.selectMsg(userCode);
+        for(HrEmpFamMember famMember : famMembers) {
+            // 处理政治面貌
+            String famPoliticalStatus = codeInfoService.translateCode(famMember.getFamPoliticalStatus(), "hr_emp_fam_member", "FAM_POLITICAL_STATUS");
+            if(StringUtils.isNotBlank(famPoliticalStatus)) {
+                famMember.setFamPoliticalStatus(famPoliticalStatus);
+            }
+        }
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工主要家庭成员社会关系表实体成功", famMembers);
     }
 
     @PostMapping("/page")

@@ -36,7 +36,6 @@ public class HrEmpFamMember extends BaseEntity implements Serializable {
     @TableId(value = "id", type = IdType.AUTO)
     private String id;
 
-
     @TableLogic(value = "0")
     @Schema(description = "删除", example = "false")
     private Integer deleted;
