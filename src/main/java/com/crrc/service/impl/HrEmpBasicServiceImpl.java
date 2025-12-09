@@ -2,6 +2,8 @@ package com.crrc.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.IgnoreTenant;
 import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
@@ -182,60 +184,42 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
      * @return 分页list
      */
     public IPage<HrEmpBasicDTO> listData(IPage<HrEmpBasicDTO> page, HrEmpBasicSearchDTO dto) {
-        MPJLambdaWrapper<HrEmpBasic> queryWrapper = JoinWrappers.lambda(HrEmpBasic.class)
-                .distinct()
-                .selectAll(HrEmpBasic.class)
-                .select(HrEmpCertificate::getCertiId, HrEmpCertificate::getCertiType)
-                .leftJoin(HrEmpCertificate.class, HrEmpCertificate::getUserCode, HrEmpBasic::getUserCode)
-                .select(HrEmpHouseHold::getHouseHoldType, HrEmpHouseHold::getHouseHoldLocation, HrEmpHouseHold::getHouseHoldLocationDetail)
-                .leftJoin(HrEmpHouseHold.class, HrEmpHouseHold::getUserCode, HrEmpBasic::getUserCode)
-                .select(HrEmpCommunication::getMobilePhone, HrEmpCommunication::getPersonalEmail, HrEmpCommunication::getAddress, HrEmpCommunication::getWorkEmail)
-                .leftJoin(HrEmpCommunication.class, HrEmpCommunication::getUserCode, HrEmpBasic::getUserCode)
-                .select(HrEmpHealth::getHealthStatus)
-                .leftJoin(HrEmpHealth.class, HrEmpHealth::getUserCode, HrEmpBasic::getUserCode)
-                .select(HrEmpProfessionalSkill::getSkillLevel, HrEmpProfessionalSkill::getSkillName)
-                .leftJoin(HrEmpProfessionalSkill.class, HrEmpProfessionalSkill::getUserCode, HrEmpBasic::getUserCode)
-                .select(HrEmpEducation::getSchoolCode, HrEmpEducation::getEducation, HrEmpEducation::getDegree, HrEmpEducation::getIsHighestEducation, HrEmpEducation::getMajorCode)
-                .leftJoin(HrEmpEducation.class,
-                        on -> on.eq(HrEmpEducation::getUserCode, HrEmpBasic::getUserCode)
-                                .eq(HrEmpEducation::getIsHighestEducation, SystemConstants.TRUE_FLAG)
-                )
-                .leftJoin(HrEmpAppointment.class, HrEmpAppointment::getUserCode, HrEmpBasic::getUserCode);
 
+        // ========= 1. 先处理权限，保持跟原来逻辑完全一致 =========
         // 确保只要HrEmpBasic表有数据就能显示
-        queryWrapper.isNotNull(HrEmpBasic::getUserCode);  // 确保HrEmpBasic表有数据
+        // 注意：这个条件要在基础表分页里保留
+        // 下面的权限逻辑只是改了“使用谁的 wrapper”，业务逻辑不变
 
-        // 先判断大权限
-        if(RoleUtils.check("员工基本信息公司级管理员")) {
+        if (RoleUtils.check("员工基本信息公司级管理员")) {
             // 不查部门，查询公司
             dto.setDept(null);
-            // 先去字典中判断是否为子公司的公司级管理员
-            Map<String, String> jobNo2CompanyCode = dictTypeUtils.getDict(COMPANY_MANAGER_DICT_CODE).stream().collect(Collectors.toMap(
-                    DictItemReqDTO::getItemCode,
-                    DictItemReqDTO::getItemName
-            ));
 
+            // 先去字典中判断是否为子公司的公司级管理员
+            Map<String, String> jobNo2CompanyCode = dictTypeUtils.getDict(COMPANY_MANAGER_DICT_CODE)
+                    .stream()
+                    .collect(Collectors.toMap(
+                            DictItemReqDTO::getItemCode,
+                            DictItemReqDTO::getItemName
+                    ));
 
             // 根据员工获取部门编码
-            // 获得员工登录信息
             LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
-            if(loginUser == null) {
+            if (loginUser == null) {
                 throw new IllegalArgumentException("获取员工登录信息失败");
             }
-            if(loginUser.getUser() == null || StringUtils.isBlank(loginUser.getUser().getJobNo())) {
+            if (loginUser.getUser() == null || StringUtils.isBlank(loginUser.getUser().getJobNo())) {
                 throw new IllegalArgumentException("获取员工工号失败");
             }
-            // 获取员工工号
             String jobNo = loginUser.getUser().getJobNo();
+
             String orgCode;
             // 如果在字典中配置了，则不需要进行后续查询
-            if(jobNo2CompanyCode.containsKey(jobNo)) {
+            if (jobNo2CompanyCode.containsKey(jobNo)) {
                 orgCode = jobNo2CompanyCode.get(jobNo);
-            }
-            // 如果没有配置，则从basic里查询出员工的部门
-            else {
+            } else {
+                // 如果没有配置，则从basic里查询出员工的部门
                 List<HrEmpBasicDTO> dtoList = this.selectMsg(jobNo);
-                if(ObjectUtils.isEmpty(dtoList)) {
+                if (ObjectUtils.isEmpty(dtoList)) {
                     throw new IllegalArgumentException("获取员工信息失败，员工不存在，userCode:" + jobNo);
                 }
                 orgCode = dtoList.get(0).getOrgCode();
@@ -243,22 +227,88 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
             // 获取所有的组织数据
             ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
-            if(listResponseResultDTO == null || ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+            if (listResponseResultDTO == null || ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
                 throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
             }
             List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+
             // 根据orgCode匹配公司及其下级部门能否有匹配项，如果包含，则获得其展平后的List（包含所有部门Code）
             List<OrganizationTreeDTO> childrenOrgList = findParentAndFlattenList(data, orgCode);
-            if(childrenOrgList == null || childrenOrgList.isEmpty()) {
+            if (childrenOrgList == null || childrenOrgList.isEmpty()) {
                 throw new IllegalArgumentException("获取公司失败，公司匹配错误，orgCode:" + orgCode);
             }
 
-            dto.setDeptSet(childrenOrgList.stream().map(OrganizationTreeDTO::getOrgCode).collect(Collectors.toSet()));
+            dto.setDeptSet(childrenOrgList.stream()
+                    .map(OrganizationTreeDTO::getOrgCode)
+                    .collect(Collectors.toSet()));
         }
 
-        buildFuzzyConditions(queryWrapper, dto);
-        queryWrapper.orderByAsc(HrEmpBasic::getUserCode);
-        return hrEmpBasicMapper.selectJoinPage(page, HrEmpBasicDTO.class, queryWrapper);
+        // ========= 2. 用 HrEmpBasic 先做一次分页（只走主表，不 join 大表） =========
+
+        long current = page.getCurrent();
+        long size = page.getSize();
+
+        IPage<HrEmpBasic> basicPage = new Page<>(current, size);
+
+        LambdaQueryWrapper<HrEmpBasic> basicWrapper = Wrappers.<HrEmpBasic>lambdaQuery()
+                .isNotNull(HrEmpBasic::getUserCode);
+
+        // 这里的 buildFuzzyConditions 需要只使用 HrEmpBasic 上的字段做条件
+        buildFuzzyConditions(basicWrapper, dto);
+
+        basicWrapper.orderByAsc(HrEmpBasic::getUserCode);
+
+        IPage<HrEmpBasic> empPage = hrEmpBasicMapper.selectPage(basicPage, basicWrapper);
+
+        if (ObjectUtils.isEmpty(empPage.getRecords())) {
+            // 无数据，直接返回一个空分页
+            Page<HrEmpBasicDTO> empty = new Page<>(current, size, 0L);
+            empty.setRecords(Collections.emptyList());
+            return empty;
+        }
+
+        // 当前页对应的 userCode 列表（去重）
+        List<String> userCodes = empPage.getRecords().stream()
+                .map(HrEmpBasic::getUserCode)
+                .filter(StringUtils::isNotBlank)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // ========= 3. 再针对本页 userCode 做一次小范围 join 查询，拼装 DTO =========
+
+        MPJLambdaWrapper<HrEmpBasic> joinWrapper = JoinWrappers.lambda(HrEmpBasic.class)
+                .distinct()
+                .selectAll(HrEmpBasic.class)
+                .select(HrEmpCertificate::getCertiId, HrEmpCertificate::getCertiType)
+                .leftJoin(HrEmpCertificate.class, HrEmpCertificate::getUserCode, HrEmpBasic::getUserCode)
+                .select(HrEmpHouseHold::getHouseHoldType, HrEmpHouseHold::getHouseHoldLocation, HrEmpHouseHold::getHouseHoldLocationDetail)
+                .leftJoin(HrEmpHouseHold.class, HrEmpHouseHold::getUserCode, HrEmpBasic::getUserCode)
+                .select(HrEmpCommunication::getMobilePhone, HrEmpCommunication::getPersonalEmail,
+                        HrEmpCommunication::getAddress, HrEmpCommunication::getWorkEmail)
+                .leftJoin(HrEmpCommunication.class, HrEmpCommunication::getUserCode, HrEmpBasic::getUserCode)
+                .select(HrEmpHealth::getHealthStatus)
+                .leftJoin(HrEmpHealth.class, HrEmpHealth::getUserCode, HrEmpBasic::getUserCode)
+                .select(HrEmpProfessionalSkill::getSkillLevel, HrEmpProfessionalSkill::getSkillName)
+                .leftJoin(HrEmpProfessionalSkill.class, HrEmpProfessionalSkill::getUserCode, HrEmpBasic::getUserCode)
+                .select(HrEmpEducation::getSchoolCode, HrEmpEducation::getEducation, HrEmpEducation::getDegree,
+                        HrEmpEducation::getIsHighestEducation, HrEmpEducation::getMajorCode)
+                .leftJoin(HrEmpEducation.class,
+                        on -> on.eq(HrEmpEducation::getUserCode, HrEmpBasic::getUserCode)
+                                .eq(HrEmpEducation::getIsHighestEducation, SystemConstants.TRUE_FLAG)
+                )
+                .leftJoin(HrEmpAppointment.class, HrEmpAppointment::getUserCode, HrEmpBasic::getUserCode)
+                // 关键：只查本页的员工，避免全表 join
+                .in(HrEmpBasic::getUserCode, userCodes)
+                .orderByAsc(HrEmpBasic::getUserCode);
+
+        // 这里不再分页，因为 userCode 已经是分页后的结果，数据量很小
+        List<HrEmpBasicDTO> dtoList = hrEmpBasicMapper.selectJoinList(HrEmpBasicDTO.class, joinWrapper);
+
+        // ========= 4. 组装 IPage<HrEmpBasicDTO>，保持分页信息一致 =========
+
+        Page<HrEmpBasicDTO> resultPage = new Page<>(empPage.getCurrent(), empPage.getSize(), empPage.getTotal());
+        resultPage.setRecords(dtoList);
+        return resultPage;
     }
 
     /**
@@ -276,8 +326,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         return Collections.emptyList();
     }
 
-
-    private void buildFuzzyConditions(MPJLambdaWrapper<HrEmpBasic> wrapper, HrEmpBasicSearchDTO dto) {
+    private void buildFuzzyConditions(LambdaQueryWrapper<HrEmpBasic> wrapper, HrEmpBasicSearchDTO dto) {
         // 链式构建多个模糊查询条件
         wrapper
                 .like(StringUtils.isNotBlank(dto.getName()),
@@ -289,9 +338,6 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 .like(StringUtils.isNotBlank(dto.getDept()),
                         HrEmpBasic::getDept,
                         dto.getDept())
-                .like(StringUtils.isNotBlank(dto.getPosition()),
-                        HrEmpAppointment::getPosition,
-                        dto.getPosition())
                 .like(StringUtils.isNotBlank(dto.getIsEmployed()),
                         HrEmpBasic::getIsEmployed,
                         dto.getIsEmployed())
@@ -313,7 +359,6 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         if(StringUtils.isNotBlank(dto.getDutyStatus()) && !category8StatusSet.contains(dto.getDutyStatus())) {
             wrapper.eq(HrEmpBasic::getStatus, dto.getDutyStatus());
         }
-
     }
 
 
