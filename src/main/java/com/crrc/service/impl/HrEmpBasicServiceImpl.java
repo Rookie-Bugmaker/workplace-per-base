@@ -657,7 +657,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         // 技能等级（最高等级）
         data.skillLevelList = hrEmpSkillLevelMapper.selectList(
                 JoinWrappers.lambda(HrEmpSkillLevel.class)
-                        .select(HrEmpSkillLevel::getSkillLevel)
+                        .selectAll()
                         .eq(HrEmpSkillLevel::getIsHighest, SystemConstants.TRUE_FLAG)
                         .eq(HrEmpSkillLevel::getUserCode, userCode)
         );
@@ -666,14 +666,14 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             data.skillLevelList = data.skillLevelList.stream().filter(
                     e -> e.getGetDate() != null
             ).sorted(
-                    Comparator.comparing(HrEmpSkillLevel::getGetDate)
+                    Comparator.comparing(HrEmpSkillLevel::getGetDate).reversed()
             ).collect(Collectors.toList()).subList(0, 1);
         }
 
         // 职业资格（最高资格）
         data.qualificationList = hrEmpProfessionalQualificationMapper.selectList(
                 JoinWrappers.lambda(HrEmpProfessionalQualification.class)
-                        .select(HrEmpProfessionalQualification::getQuaId)
+                        .selectAll()
                         .eq(HrEmpProfessionalQualification::getIsHighest, SystemConstants.TRUE_FLAG)
                         .eq(HrEmpProfessionalQualification::getUserCode, userCode)
         );
@@ -683,7 +683,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             data.qualificationList = data.qualificationList.stream().filter(
                     e -> e.getAppointedStartDate() != null
             ).sorted(
-                    Comparator.comparing(HrEmpProfessionalQualification::getAppointedStartDate)
+                    Comparator.comparing(HrEmpProfessionalQualification::getAppointedStartDate).reversed()
             ).collect(Collectors.toList()).subList(0, 1);
         }
 
