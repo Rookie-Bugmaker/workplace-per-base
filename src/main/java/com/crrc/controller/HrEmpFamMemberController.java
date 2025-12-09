@@ -8,7 +8,6 @@ import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
 import com.crrc.api.WkWorkflowApi;
@@ -25,7 +24,6 @@ import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mongodb.HrEmpFamMemberChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpFamMemberDTO;
-import com.crrc.service.CodeInfoService;
 import com.crrc.service.impl.HrEmpFamMemberServiceImpl;
 import com.crrc.utils.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -73,8 +71,6 @@ public class HrEmpFamMemberController {
     private WkWorkflowApi wkWorkflowApi;
     @Autowired
     private HrEmpBasicMapper hrEmpBasicMapper;
-    @Autowired
-    private CodeInfoService codeInfoService;
 
     @GetMapping("/getDetails")
     @Operation(summary = "获得员工主要家庭成员社会关系表实体")
@@ -84,10 +80,7 @@ public class HrEmpFamMemberController {
         List<HrEmpFamMember> famMembers = hrEmpFamMemberService.selectMsg(userCode);
         for(HrEmpFamMember famMember : famMembers) {
             // 处理政治面貌
-            String famPoliticalStatus = codeInfoService.translateCode(famMember.getFamPoliticalStatus(), "hr_emp_fam_member", "FAM_POLITICAL_STATUS");
-            if(StringUtils.isNotBlank(famPoliticalStatus)) {
-                famMember.setFamPoliticalStatus(famPoliticalStatus);
-            }
+            hrEmpFamMemberService.resolvePoliticalStatus(famMember);
         }
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工主要家庭成员社会关系表实体成功", famMembers);
     }
@@ -95,10 +88,10 @@ public class HrEmpFamMemberController {
     @PostMapping("/page")
     @Operation(summary = "获取员工主要家庭成员社会关系表列表 page")
     @AuditLog(value = "获取员工主要家庭成员社会关系表列表 page", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    @Parameter(name = "pageReqVO",description = "包含查询条件的实体对象", required = false)
-    @Parameter(name = "pageNo", description = "页码", required = false, example = "1")
-    @Parameter(name = "pageSize", description = "条数", required = false, example = "10")
-    public ResponseResult<IPage> pageHrEmpFamMember(@Validated @RequestBody(required = false) HrEmpFamMember pageReqVO,
+    @Parameter(name = "pageReqVO",description = "包含查询条件的实体对象")
+    @Parameter(name = "pageNo", description = "页码", example = "1")
+    @Parameter(name = "pageSize", description = "条数", example = "10")
+    public ResponseResult<?> pageHrEmpFamMember(@Validated @RequestBody(required = false) HrEmpFamMember pageReqVO,
                                              @RequestParam(required = false, defaultValue = "1") int pageNo,
                                              @RequestParam(required = false, defaultValue = "10")int pageSize) {
         pageReqVO = (pageReqVO == null) ? new HrEmpFamMember() : pageReqVO;
@@ -110,7 +103,7 @@ public class HrEmpFamMemberController {
     @PostMapping("/query")
     @Operation(summary = "获取员工主要家庭成员社会关系表列表")
     @AuditLog(value = "获取员工主要家庭成员社会关系表列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象", required = false)
+    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
     public ResponseResult<List<HrEmpFamMember>> queryHrEmpFamMember(@Validated @RequestBody(required = false) HrEmpFamMember queryReqVO) {
         queryReqVO = (queryReqVO == null) ? new HrEmpFamMember() : queryReqVO;
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工主要家庭成员社会关系表列表成功", hrEmpFamMemberService.query(queryReqVO));
@@ -350,10 +343,22 @@ public class HrEmpFamMemberController {
                 return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "变更申请不存在");
             }
 
+            // 处理单据中的家庭成员的政治面貌
+            List<HrEmpFamMember> originalData = request.getOriginalData();
+            List<HrEmpFamMember> changedData = request.getChangedData();
+
+            for (HrEmpFamMember member : originalData) {
+                hrEmpFamMemberService.resolvePoliticalStatus(member);
+            }
+
+            for (HrEmpFamMember member : changedData) {
+                hrEmpFamMemberService.resolvePoliticalStatus(member);
+            }
+
             // 2. 构建返回结果
             Map<String, Object> result = new HashMap<>();
-            result.put("originalData", MyUtils.convertToMapList(request.getOriginalData()));
-            result.put("changedData", MyUtils.convertToMapList(request.getChangedData()));
+            result.put("originalData", MyUtils.convertToMapList(originalData));
+            result.put("changedData", MyUtils.convertToMapList(changedData));
             result.put("requestId", requestId);
             result.put("createTime", request.getCreateTime());
 
