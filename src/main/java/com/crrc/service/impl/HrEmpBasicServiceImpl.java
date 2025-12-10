@@ -99,6 +99,25 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         this.hrEmpAppointmentMapper = hrEmpAppointmentMapper;
     }
 
+    // 模糊分页查询，用于给考勤打卡系统按姓名或档案号模糊查询
+    public Page<HrEmpBasic> queryFuzzy(Page<HrEmpBasic> page, HrEmpBasic queryReqVO) {
+        MPJLambdaWrapper<HrEmpBasic> wrapper = new MPJLambdaWrapper<>();
+
+        // 基础查询条件
+        wrapper.selectAll(HrEmpBasic.class);
+
+        // 模糊查询条件
+        if (StringUtils.isNotBlank(queryReqVO.getUserCode())) {
+            wrapper.like(HrEmpBasic::getUserCode, queryReqVO.getUserCode());
+        }
+        if (StringUtils.isNotBlank(queryReqVO.getName())) {
+            wrapper.like(HrEmpBasic::getName, queryReqVO.getName());
+        }
+
+        // 执行分页查询
+        return baseMapper.selectJoinPage(page, HrEmpBasic.class, wrapper);
+    }
+
     public List<HrEmpBasic> getCategoryInfo(List<HrEmpBasic> hrEmpBasicList) {
         Set<String> userCodeSet = hrEmpBasicList.stream().map(HrEmpBasic::getUserCode).collect(Collectors.toSet());
         LambdaQueryWrapper<HrEmpBasic> wrapper = new LambdaQueryWrapper<>();
