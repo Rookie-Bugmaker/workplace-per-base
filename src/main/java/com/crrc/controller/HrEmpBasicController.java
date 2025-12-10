@@ -699,6 +699,25 @@ public class HrEmpBasicController {
         }
     }
 
+    @PostMapping("/pageForPerSelf")
+    @Operation(summary = "获取员工基本信息表列表 page")
+    @AuditLog(value = "获取员工基本信息表列表 page", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
+    @Parameter(name = "pageNo", description = "页码", example = "1")
+    @Parameter(name = "pageSize", description = "条数", example = "10")
+    public ResponseResult<IPage<HrEmpBasic>> pageForPerSelf(@Validated @RequestBody(required = false) HrEmpBasic pageReqVO,
+                                                               @RequestParam(required = false, defaultValue = "1") int pageNo,
+                                                               @RequestParam(required = false, defaultValue = "10") int pageSize) {
+        pageReqVO = (pageReqVO == null) ? new HrEmpBasic() : pageReqVO;
+        try {
+            Page<HrEmpBasic> page = new Page<>(pageNo, pageSize);
+            IPage<HrEmpBasic> result = hrEmpBasicService.query(page, pageReqVO);
+            return new ResponseResult<>(HttpStatus.OK.value(), "查询成功", result);
+        } catch (Exception e) {
+            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "查询异常: " + e.getMessage());
+        }
+    }
+
     @PostMapping("/query")
     @Operation(summary = "获取员工基本信息表列表")
     @AuditLog(value = "获取员工基本信息表列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
