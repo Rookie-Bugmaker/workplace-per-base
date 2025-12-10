@@ -700,8 +700,8 @@ public class HrEmpBasicController {
     }
 
     @PostMapping("/pageForPerSelf")
-    @Operation(summary = "获取员工基本信息表列表 page")
-    @AuditLog(value = "获取员工基本信息表列表 page", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Operation(summary = "获取员工基本信息表列表(支持模糊查询)")
+    @AuditLog(value = "获取员工基本信息表列表(模糊查询)", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
     @Parameter(name = "pageNo", description = "页码", example = "1")
     @Parameter(name = "pageSize", description = "条数", example = "10")
@@ -711,7 +711,8 @@ public class HrEmpBasicController {
         pageReqVO = (pageReqVO == null) ? new HrEmpBasic() : pageReqVO;
         try {
             Page<HrEmpBasic> page = new Page<>(pageNo, pageSize);
-            Page<HrEmpBasic> result = hrEmpBasicService.query(page, pageReqVO);
+            // 在service层实现模糊查询逻辑
+            Page<HrEmpBasic> result = hrEmpBasicService.queryFuzzy(page, pageReqVO);
             return ResponseResult.success(result);
         } catch (Exception e) {
             return ResponseResult.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), "查询异常: " + e.getMessage());
