@@ -1,5 +1,6 @@
 package com.crrc.utils;
 
+import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import org.springframework.stereotype.Component;
@@ -31,7 +32,7 @@ public class MyBatisPlusTableUtil {
         }
 
         return tableInfo.getFieldList().stream()
-                .map(field -> field.getColumn())
+                .map(TableFieldInfo::getColumn)
                 .filter(column -> !EXCLUDE_COLUMNS.contains(column)) // 过滤掉排除的列
                 .collect(Collectors.toList());
     }

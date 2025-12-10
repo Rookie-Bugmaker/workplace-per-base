@@ -29,9 +29,7 @@ public class HrEmpCareerPathServiceImpl extends WorkServiceImpl<HrEmpCareerPathM
                 .orderByAsc(HrEmpCareerPath::getQualificationDate);
         List<HrEmpCareerPath> hrEmpCareerPaths = hrEmpCareerPathMapper.selectList(wrapper);
         // 翻译是否失效
-        hrEmpCareerPaths.forEach(item -> {
-            item.setIsExpiredValue("1".equals(item.getIsExpired()) ? "失效" : "生效");
-        });
+        hrEmpCareerPaths.forEach(item -> item.setIsExpiredValue("1".equals(item.getIsExpired()) ? "失效" : "生效"));
         return hrEmpCareerPaths;
     }
 
