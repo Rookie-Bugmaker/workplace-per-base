@@ -1,5 +1,6 @@
 package com.crrc.utils;
 
+import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import org.springframework.stereotype.Component;
@@ -11,7 +12,7 @@ import java.util.stream.Collectors;
 @Component
 public class MyBatisPlusTableUtil {
     //需要排除的字段
-    private static final List<String> EXCLUDE_COLUMNS = Arrays.asList("tenant_id","validate_key", "file_header_id", "profile_picture");
+    private static final List<String> EXCLUDE_COLUMNS = Arrays.asList("tenant_id","validate_key", "file_header_id", "profile_picture", "attendance_image_id");
 
     /**
      * 获取实体类对应的表名
@@ -31,7 +32,7 @@ public class MyBatisPlusTableUtil {
         }
 
         return tableInfo.getFieldList().stream()
-                .map(field -> field.getColumn())
+                .map(TableFieldInfo::getColumn)
                 .filter(column -> !EXCLUDE_COLUMNS.contains(column)) // 过滤掉排除的列
                 .collect(Collectors.toList());
     }

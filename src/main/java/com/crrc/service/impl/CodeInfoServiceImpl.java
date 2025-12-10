@@ -47,7 +47,7 @@ public class CodeInfoServiceImpl extends WorkServiceImpl<CodeInfoMapper, CodeInf
                 .eq(CodeInfo::getType, type)
                 .eq(CodeInfo::getCode, dictCode);
         try{
-            CodeInfo codeInfo = codeInfoMapper.selectOne(wrapper);
+            CodeInfo codeInfo = codeInfoMapper.selectList(wrapper).get(0);
             if(StringUtils.isNotBlank(codeInfo.getCodeValue())){
                 return codeInfo.getCodeValue();
             }else {

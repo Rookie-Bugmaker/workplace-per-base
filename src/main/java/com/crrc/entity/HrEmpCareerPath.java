@@ -2,10 +2,7 @@ package com.crrc.entity;
 
 import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -85,6 +82,9 @@ public class HrEmpCareerPath extends BaseEntity implements Serializable {
     @ExcelProperty(value = {"是否失效"}, index = 9)
     @Schema(description = "是否失效")
     private String isExpired;
+
+    @TableField(exist = false)
+    private String isExpiredValue;
 
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"是否存在正在被修改的状态"}, index = 7)

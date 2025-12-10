@@ -23,6 +23,7 @@ import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mongodb.HrEmpEduChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpEducationDTO;
+import com.crrc.service.CodeInfoService;
 import com.crrc.service.impl.HrEmpEducationServiceImpl;
 import com.crrc.service.impl.HrEmpMajorInfoServiceImpl;
 import com.crrc.service.impl.HrEmpSchoolInfoServiceImpl;
@@ -76,6 +77,8 @@ public class HrEmpEducationController {
     private WkWorkflowApi wkWorkflowApi;
     @Autowired
     private HrEmpBasicMapper hrEmpBasicMapper;
+    @Autowired
+    private CodeInfoService codeInfoService;
 
 
     @GetMapping("/getSchoolInfo")
@@ -156,19 +159,26 @@ public class HrEmpEducationController {
                     HrEmpMajorInfo hrEmpMajorInfo = hrEmpMajorInfoService.selectByCode(hrEmpEducation.getMajorCode());
                     if(hrEmpMajorInfo == null) {
                         log.info("专业查询失败");
-                        hrEmpEducation.setMajor("未知专业");
+                        // 因为数据导入问题，直接显示学历编码
+                        hrEmpEducation.setMajor(hrEmpEducation.getMajorCode());
                     } else {
                         hrEmpEducation.setMajor(hrEmpMajorInfo.getMajor());
                     }
                 } else {
-                    hrEmpEducation.setMajor("未知专业");
+                    hrEmpEducation.setMajor(null);
                 }
             }else{
                 // 其它学历，将专业置空
                 hrEmpEducation.setMajor(null);
             }
 
-            // 学位部分 todo
+            // todo  目前是前端进行了字典值回写，之后需要后端进行反写
+            // 教育方式
+//            if(StringUtils.isNotBlank(hrEmpEducation.getIsFullTime())) {
+//                String isFullTimeNew = codeInfoService.translateCode(hrEmpEducation.getIsFullTime(), "hr_emp_education", "EDU_FULL_TIME");
+//                hrEmpEducation.setIsFullTime(isFullTimeNew);
+//            }
+
         }
 
         try{
