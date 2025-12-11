@@ -103,8 +103,8 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     public Page<HrEmpBasic> queryFuzzy(Page<HrEmpBasic> page, HrEmpBasic queryReqVO) {
         MPJLambdaWrapper<HrEmpBasic> wrapper = new MPJLambdaWrapper<>();
 
-        // 基础查询条件
-        wrapper.selectAll(HrEmpBasic.class);
+        // 只查询必要字段
+        wrapper.select(HrEmpBasic::getUserCode, HrEmpBasic::getName, HrEmpBasic::getDept);
 
         // 模糊查询条件
         if (StringUtils.isNotBlank(queryReqVO.getUserCode())) {
