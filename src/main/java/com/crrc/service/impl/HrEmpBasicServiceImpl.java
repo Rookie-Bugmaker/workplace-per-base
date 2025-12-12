@@ -439,22 +439,22 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
     private void resolvePosition(HrEmpBasicDTO hrEmpBasicDTO) {
         Map<String, String> translateMap = codeInfoService.getTranslateMap(APPOINTMENT_TABLE_NAME, POSITION_TYPE_NAME);
-        hrEmpBasicDTO.setPosition(translateMap.getOrDefault(hrEmpBasicDTO.getPosition(), null));
+        hrEmpBasicDTO.setPosition(translateMap.getOrDefault(hrEmpBasicDTO.getPosition(), hrEmpBasicDTO.getPosition()));
     }
 
     private void resolveEducation(HrEmpBasicDTO hrEmpBasicDTO) {
         Map<String, String> translateMap = codeInfoService.getTranslateMap(EDUCATION_TABLE_NAME, EDUCATION_TYPE_NAME);
-        hrEmpBasicDTO.setEducationValue(translateMap.getOrDefault(hrEmpBasicDTO.getEducation(), null));
+        hrEmpBasicDTO.setEducationValue(translateMap.getOrDefault(hrEmpBasicDTO.getEducation(), hrEmpBasicDTO.getEducation()));
     }
 
     private void resolveDegree(HrEmpBasicDTO hrEmpBasicDTO) {
         Map<String, String> translateMap = codeInfoService.getTranslateMap(EDUCATION_TABLE_NAME, DEGREE_TYPE_NAME);
-        hrEmpBasicDTO.setDegreeValue(translateMap.getOrDefault(hrEmpBasicDTO.getDegree(), null));
+        hrEmpBasicDTO.setDegreeValue(translateMap.getOrDefault(hrEmpBasicDTO.getDegree(), hrEmpBasicDTO.getDegree()));
     }
 
     private void resolvePolitical(HrEmpBasicDTO hrEmpBasicDTO) {
         Map<String, String> translateMap = codeInfoService.getTranslateMap(TABLE_NAME, POLITICAL_TYPE_NAME);
-        hrEmpBasicDTO.setPoliticalValue(translateMap.getOrDefault(hrEmpBasicDTO.getPolitical(), null));
+        hrEmpBasicDTO.setPoliticalValue(translateMap.getOrDefault(hrEmpBasicDTO.getPolitical(), hrEmpBasicDTO.getPolitical()));
     }
 
     /**
