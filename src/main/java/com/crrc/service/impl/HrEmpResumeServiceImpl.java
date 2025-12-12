@@ -8,6 +8,7 @@ import com.crrc.mapper.HrEmpResumeMapper;
 import com.crrc.service.HrEmpResumeService;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
@@ -30,6 +31,8 @@ public class HrEmpResumeServiceImpl extends WorkServiceImpl<HrEmpResumeMapper, H
     private HrEmpResumeMapper hrEmpResumeMapper;
     @Autowired
     private HrEmpAppointmentMapper hrEmpAppointmentMapper;
+    @Autowired
+    private CodeInfoServiceImpl codeInfoService;
 
     public List<HrEmpResume> selectMsg(String userCode) {
         MPJLambdaWrapper<HrEmpResume> wrapper = new MPJLambdaWrapper<HrEmpResume>()
@@ -55,6 +58,11 @@ public class HrEmpResumeServiceImpl extends WorkServiceImpl<HrEmpResumeMapper, H
                 }
                 // 无论是否只有一条匹配结果，都会set变动类型
                 hrEmpResume.setChangeType(hrEmpAppointments.get(0).getChangeType());
+            }
+            // 如果关联上了变动类型，尝试进行反写
+            if(StringUtils.isNotBlank(hrEmpResume.getChangeType())) {
+                String newType = codeInfoService.translateCode(hrEmpResume.getChangeType(), "hr_emp_appointment","APPOINTMENT_CHANGE_TYPE");
+                hrEmpResume.setChangeType(newType);
             }
         }
 
