@@ -7,6 +7,7 @@ import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -30,4 +31,13 @@ public class HrEmpSkillLevelServiceImpl extends WorkServiceImpl<HrEmpSkillLevelM
         return hrEmpSkillLevelMapper.selectList(wrapper);
     }
 
+    @Override
+    public void resolveDetails(List<HrEmpSkillLevel> hrEmpSkillLevels) {
+        for(HrEmpSkillLevel level : hrEmpSkillLevels) {
+            // 处理聘任结束时间，如果在2098年之后的，置为空
+            if(level.getAppointedEndDate() != null && level.getAppointedEndDate().isAfter(LocalDate.parse("2098-01-01"))) {
+                level.setAppointedEndDate(null);
+            }
+        }
+    }
 }
