@@ -395,9 +395,6 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 return Collections.emptyList();
             }
 
-            // 2. 部门名称转换
-            resolveDepartmentName(result.get(0));
-
             // 3. 查询关联子表数据
             SubTableData subData = querySubTableData(userCode);
 
@@ -405,6 +402,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             if (subData.isAllUnique()) {
                 mergeSubTableData(result.get(0), subData);
             }
+
+            // 需要在mergeSubTableData之后进行部门名称转换
+            resolveDepartmentName(result.get(0));
+
             // 处理最高学历
             resolveEducation(result.get(0));
 
@@ -789,9 +790,12 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             dto.setQuaId(data.qualificationList.get(0).getQuaId());
         }
 
-        // 处理职位
+        // 处理职位和部门
         if(!data.appointmentList.isEmpty()) {
             dto.setPosition(data.appointmentList.get(0).getPosition());
+            if(ObjectUtils.isNotEmpty(data.appointmentList.get(0).getDept())) {
+                dto.setDept(data.appointmentList.get(0).getDept());
+            }
         }
     }
 
@@ -835,9 +839,6 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             Map<String, String> eduTranslateMap = codeInfoService.getTranslateMap(EDUCATION_TABLE_NAME, EDUCATION_TYPE_NAME);
             Map<String, String> politicalTranslateMap = codeInfoService.getTranslateMap(TABLE_NAME, POLITICAL_TYPE_NAME);
             resultList.forEach(result -> {
-                // 2. 部门名称转换
-                result.setDept(orgCode2Name.getOrDefault(result.getDept(), result.getDept()));
-
                 // 3. 查询关联子表数据
                 SubTableData subData = stringSubTableDataMap.get(result.getUserCode());
 
@@ -847,6 +848,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 }
                 // 处理最高学历
                 result.setEducationValue(eduTranslateMap.getOrDefault(result.getEducation(), result.getEducation()));
+
+                // 需要在mergeSubTableData之后再进行部门名称转换
+                result.setDept(orgCode2Name.getOrDefault(result.getDept(), result.getDept()));
 
                 // 处理政治面貌
                 result.setPoliticalValue(politicalTranslateMap.getOrDefault(result.getPolitical(), result.getPolitical()));
