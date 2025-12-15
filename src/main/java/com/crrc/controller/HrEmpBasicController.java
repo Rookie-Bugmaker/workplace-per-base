@@ -52,10 +52,7 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -110,6 +107,31 @@ public class HrEmpBasicController {
     @Operation(summary = "就绪探针")
     public ResponseResult<String> isAvailable() {
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", "OK");
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @PostMapping("/syncDept")
+    public ResponseResult<String> syncDept(List<String> userCodeList) {
+
+        LambdaQueryWrapper<HrEmpBasic> queryWrapper = new LambdaQueryWrapper<>();
+        if(userCodeList != null && !userCodeList.isEmpty()) {
+            queryWrapper.in(HrEmpBasic::getUserCode, userCodeList);
+        }
+
+        List<HrEmpBasic> hrEmpBasicList = hrEmpBasicService.getBaseMapper().selectList(queryWrapper);
+
+        for(HrEmpBasic basic : hrEmpBasicList) {
+            LambdaQueryWrapper<HrEmpAppointment> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(HrEmpAppointment::getUserCode, basic.getUserCode());
+            List<HrEmpAppointment> hrEmpAppointments = hrEmpAppointmentMapper.selectList(wrapper);
+            Optional<HrEmpAppointment> max = hrEmpAppointments.stream().filter(e -> e.getStartDate() != null).max(Comparator.comparing(HrEmpAppointment::getStartDate));
+            if(max.isPresent() && !Objects.equals(basic.getDept(), max.get().getDept())) {
+                basic.setDept(max.get().getDept());
+                hrEmpBasicService.saveOrUpdate(basic);
+            }
+        }
+
+        return new ResponseResult<>(HttpStatus.OK.value(), "OK");
     }
 
     @PostMapping("/syncPicture")
