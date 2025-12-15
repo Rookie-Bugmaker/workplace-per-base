@@ -45,3 +45,34 @@ FROM latest l
 WHERE b.id = l.id;   -- 这里用主键字段名替换 id
 
 COMMIT;
+
+/**
+ * 同步部门
+ */
+BEGIN;
+
+MERGE INTO HR_EMP_BASIC b
+    USING (
+        SELECT user_code, dept
+        FROM (
+                 SELECT
+                     user_code,
+                     dept,
+                     ROW_NUMBER() OVER(
+        PARTITION BY user_code
+        ORDER BY start_date DESC NULLS LAST, id DESC
+      ) rn
+                 FROM HR_EMP_APPOINTMENT
+                 WHERE start_date IS NOT NULL
+             ) t
+        WHERE t.rn = 1
+    ) a
+    ON (b.user_code = a.user_code)
+    WHEN MATCHED THEN
+        UPDATE SET b.dept = a.dept
+    -- 只更新“确实不同”的，避免无意义写入
+    WHERE (b.dept <> a.dept)
+     OR (b.dept IS NULL AND a.dept IS NOT NULL)
+     OR (b.dept IS NOT NULL AND a.dept IS NULL);
+
+COMMIT;

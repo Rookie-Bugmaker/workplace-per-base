@@ -119,7 +119,7 @@ public class HrEmpBasicController {
         }
 
         List<HrEmpBasic> hrEmpBasicList = hrEmpBasicService.getBaseMapper().selectList(queryWrapper);
-
+        int count = 0;
         for(HrEmpBasic basic : hrEmpBasicList) {
             LambdaQueryWrapper<HrEmpAppointment> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(HrEmpAppointment::getUserCode, basic.getUserCode());
@@ -129,6 +129,8 @@ public class HrEmpBasicController {
                 basic.setDept(max.get().getDept());
                 hrEmpBasicService.saveOrUpdate(basic);
             }
+            count++;
+            log.info("进度: {}", (float) count/ (float) hrEmpBasicList.size());
         }
 
         return new ResponseResult<>(HttpStatus.OK.value(), "OK");
