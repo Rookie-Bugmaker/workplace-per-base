@@ -39,6 +39,7 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -179,6 +180,10 @@ public class HrEmpAppointmentController {
                 entity.setPositionCategory(positionCategory);
             }
 
+            // 处理结束时间，如果是2198年以后的，直接置为空
+            if(entity.getEndDate() != null && entity.getEndDate().isAfter(LocalDate.parse("2198-01-01"))) {
+                entity.setEndDate(null);
+            }
         }
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工任职信息表实体成功", list);
     }

@@ -7,6 +7,7 @@ import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -33,4 +34,12 @@ public class HrEmpCareerPathServiceImpl extends WorkServiceImpl<HrEmpCareerPathM
         return hrEmpCareerPaths;
     }
 
+    @Override
+    public void resolveDetails(List<HrEmpCareerPath> hrEmpCareerPaths) {
+        for(HrEmpCareerPath path : hrEmpCareerPaths) {
+            if(path.getExpiryDate() != null && path.getExpiryDate().isAfter(LocalDate.parse("2198-01-01"))) {
+                path.setExpiryDate(null);
+            }
+        }
+    }
 }

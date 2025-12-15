@@ -81,7 +81,9 @@ public class HrEmpCareerPathController {
     @AuditLog(value = "获得职业发展通道实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<List<HrEmpCareerPath>> getMsg(@RequestParam String userCode ) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取职业发展通道实体成功", hrEmpCareerPathService.selectMsg(userCode));
+        List<HrEmpCareerPath> hrEmpCareerPaths = hrEmpCareerPathService.selectMsg(userCode);
+        hrEmpCareerPathService.resolveDetails(hrEmpCareerPaths);
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取职业发展通道实体成功", hrEmpCareerPaths);
     }
 
     @PostMapping("/page")

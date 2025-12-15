@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -40,7 +41,11 @@ public class HrEmpResumeServiceImpl extends WorkServiceImpl<HrEmpResumeMapper, H
                 .eq(HrEmpResume::getUserCode, userCode)
                 .orderByAsc(HrEmpResume::getStartDate);
 
-        List<HrEmpResume> hrEmpResumes = hrEmpResumeMapper.selectList(wrapper);
+        return hrEmpResumeMapper.selectList(wrapper);
+    }
+
+    @Override
+    public void resolveDetails(List<HrEmpResume> hrEmpResumes) {
         for(HrEmpResume hrEmpResume : hrEmpResumes) {
             // 根据userCode，开始时间查询对应的appointment，以处理变动类型
             LambdaQueryWrapper<HrEmpAppointment> queryWrapper = new LambdaQueryWrapper<>();
@@ -64,9 +69,11 @@ public class HrEmpResumeServiceImpl extends WorkServiceImpl<HrEmpResumeMapper, H
                 String newType = codeInfoService.translateCode(hrEmpResume.getChangeType(), "hr_emp_appointment","APPOINTMENT_CHANGE_TYPE");
                 hrEmpResume.setChangeType(newType);
             }
+
+            // 处理结束日期，如果结束日期在2198年之后的，置为空
+            if(hrEmpResume.getEndDate() != null && hrEmpResume.getEndDate().isAfter(LocalDate.parse("2198-01-01"))) {
+                hrEmpResume.setEndDate(null);
+            }
         }
-
-        return hrEmpResumes;
     }
-
 }
