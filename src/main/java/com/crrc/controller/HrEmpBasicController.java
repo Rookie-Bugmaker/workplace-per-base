@@ -540,6 +540,19 @@ public class HrEmpBasicController {
                 // 任职信息→在岗状态→在岗 -> 现
                 if ("在岗".equals(dutyStatus) || "101".equals(dutyStatus)) {
                     return "006";
+                }  else if(!ObjectUtils.isEmpty(hrEmpOtherAppointments)){
+                    // 其它任职信息→在岗状态→在岗 -> 现
+                    HrEmpOtherAppointment hrEmpOtherAppointment = hrEmpOtherAppointments.get(0);
+                    // 如果超过一条，选择startDate最晚的
+                    if (hrEmpOtherAppointments.size() > 1) {
+                        hrEmpOtherAppointment = hrEmpOtherAppointments.stream().reduce(
+                                (a, b) -> a.getStartDate().isAfter(b.getStartDate()) ? a : b
+                        ).get();
+                    }
+                    String otherAppointmentDutyStatus = hrEmpOtherAppointment.getDutyStatus();
+                    if ("在岗".equals(otherAppointmentDutyStatus) || "101".equals(otherAppointmentDutyStatus)) {
+                        return "006";
+                    }
                 }
                 // 任职信息→在岗状态→859内退人员&“三类精算”内退人员&新增精算内退人员&其他内退人员 -> 养
                 if ("859内退人员".equals(dutyStatus) || "“三类精算”内退人员".equals(dutyStatus) || "新增精算内退人员".equals(dutyStatus) || "其他内退人员".equals(dutyStatus)
