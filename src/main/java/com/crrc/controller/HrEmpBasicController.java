@@ -111,7 +111,7 @@ public class HrEmpBasicController {
 
     @Transactional(rollbackFor = Exception.class)
     @PostMapping("/syncDept")
-    public ResponseResult<String> syncDept(List<String> userCodeList) {
+    public ResponseResult<String> syncDept(@RequestBody List<String> userCodeList) {
 
         LambdaQueryWrapper<HrEmpBasic> queryWrapper = new LambdaQueryWrapper<>();
         if(userCodeList != null && !userCodeList.isEmpty()) {
