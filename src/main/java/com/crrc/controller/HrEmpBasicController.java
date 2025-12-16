@@ -602,14 +602,8 @@ public class HrEmpBasicController {
             if (!ObjectUtils.isEmpty(hrEmpCareerPaths)) {
                 // 找到经营管理通道的list
                 // 001	经营管理
-                List<HrEmpCareerPath> pathList = hrEmpCareerPaths.stream().filter(item -> "001".equals(item.getPathId()))
-                        .filter(e -> !ObjectUtils.isEmpty(e.getEffectiveDate())).collect(Collectors.toList());
-                if (!ObjectUtils.isEmpty(pathList)) {
-                    // 如果有多个，找到getEffectiveDate最晚的
-                    HrEmpCareerPath path = pathList.get(0);
-                    if (hrEmpCareerPaths.size() > 1) {
-                        path = pathList.stream().reduce((a, b) -> a.getEffectiveDate().isAfter(b.getEffectiveDate()) ? a : b).get();
-                    }
+                HrEmpCareerPath path = hrEmpCareerPaths.stream().filter(item -> item.getPathId() != null).max(Comparator.comparing(HrEmpCareerPath::getEffectiveDate)).orElse(null);
+                if (path != null && ("001".equals(path.getPathId()) || path.getPathId().contains("经营管理通道"))) {
                     // 经营管理职类，经营管理通道，等级D1/D2 -> 厂
                     String levelId = path.getLevelId();
                     if ("D1".equals(levelId) || "D2".equals(levelId)) {
