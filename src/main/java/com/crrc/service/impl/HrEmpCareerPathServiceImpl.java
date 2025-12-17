@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 /**
  * <p>
@@ -22,6 +23,8 @@ import java.util.List;
 public class HrEmpCareerPathServiceImpl extends WorkServiceImpl<HrEmpCareerPathMapper, HrEmpCareerPath> implements HrEmpCareerPathService {
     @Autowired
     private HrEmpCareerPathMapper hrEmpCareerPathMapper;
+    @Autowired
+    private CodeInfoServiceImpl codeInfoService;
 
     public List<HrEmpCareerPath> selectMsg(String userCode){
         MPJLambdaWrapper<HrEmpCareerPath> wrapper = new MPJLambdaWrapper<HrEmpCareerPath>()
@@ -29,17 +32,23 @@ public class HrEmpCareerPathServiceImpl extends WorkServiceImpl<HrEmpCareerPathM
                 .eq(HrEmpCareerPath::getUserCode, userCode)
                 .orderByAsc(HrEmpCareerPath::getQualificationDate);
         List<HrEmpCareerPath> hrEmpCareerPaths = hrEmpCareerPathMapper.selectList(wrapper);
-        // 翻译是否失效
-        hrEmpCareerPaths.forEach(item -> item.setIsExpiredValue("1".equals(item.getIsExpired()) ? "失效" : "生效"));
+
         return hrEmpCareerPaths;
     }
 
     @Override
     public void resolveDetails(List<HrEmpCareerPath> hrEmpCareerPaths) {
+        Map<String, String> translateMap = codeInfoService.getTranslateMap("hr_emp_career_path", "CAREER_PATH_ID");
         for(HrEmpCareerPath path : hrEmpCareerPaths) {
+            // 处理过期时间
             if(path.getExpiryDate() != null && path.getExpiryDate().isAfter(LocalDate.parse("2198-01-01"))) {
                 path.setExpiryDate(null);
             }
+            // 翻译i是否生效
+            path.setIsExpiredValue("1".equals(path.getIsExpired()) ? "失效" : "生效");
+
+            // 翻译职业发展通道
+            path.setPathId(translateMap.getOrDefault(path.getPathId(), path.getPathId()));
         }
     }
 }
