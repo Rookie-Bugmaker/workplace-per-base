@@ -180,6 +180,17 @@ public class ExternalController {
 
                 //职业发展通道
                 if (dto.getHrEmpCareerPath() != null && dto.getHrEmpCareerPath().getUserCode() != null) {
+                    // 将该用户其他职业发展通道设置为过期
+                    String userCode = dto.getHrEmpCareerPath().getUserCode();
+                    LambdaQueryWrapper<HrEmpCareerPath> wrapper = new LambdaQueryWrapper<>();
+                    wrapper.eq(HrEmpCareerPath::getUserCode, userCode);
+                    List<HrEmpCareerPath> hrEmpCareerPaths = hrEmpCareerPathService.getBaseMapper().selectList(wrapper);
+                    for(HrEmpCareerPath path : hrEmpCareerPaths) {
+                        if("0".equals(path.getIsExpired())) {
+                            path.setIsExpired("1");
+                            hrEmpCareerPathService.updateById(path);
+                        }
+                    }
                     dto.getHrEmpCareerPath().setId(IdUtil.simpleUUID());
                     boolean saveResult = hrEmpCareerPathService.save(dto.getHrEmpCareerPath());
                     if (!saveResult) {

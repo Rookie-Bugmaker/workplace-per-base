@@ -44,7 +44,7 @@ public class HrEmpCareerPathServiceImpl extends WorkServiceImpl<HrEmpCareerPathM
             if(path.getExpiryDate() != null && path.getExpiryDate().isAfter(LocalDate.parse("2198-01-01"))) {
                 path.setExpiryDate(null);
             }
-            // 翻译i是否生效
+            // 翻译是否生效
             path.setIsExpiredValue("1".equals(path.getIsExpired()) ? "失效" : "生效");
 
             // 翻译职业发展通道
