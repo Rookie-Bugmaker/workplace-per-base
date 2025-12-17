@@ -1,5 +1,6 @@
 package com.crrc.service.impl;
 
+import com.crrc.entity.HrEmpAppointment;
 import com.crrc.entity.HrEmpOtherAppointment;
 import com.crrc.mapper.HrEmpOtherAppointmentMapper;
 import com.crrc.service.HrEmpOtherAppointmentService;
@@ -39,7 +40,10 @@ public class HrEmpOtherAppointmentServiceImpl extends WorkServiceImpl<HrEmpOther
     public List<HrEmpOtherAppointment> selectUndoneApp(String userCode) {
         MPJLambdaWrapper<HrEmpOtherAppointment> wrapper = new MPJLambdaWrapper<HrEmpOtherAppointment>()
                 .eq(HrEmpOtherAppointment::getUserCode, userCode)
-                .isNull(HrEmpOtherAppointment::getEndDate);
+                .or(w -> w
+                        .isNull(HrEmpAppointment::getEndDate)
+                        .gt(HrEmpAppointment::getEndDate, "2198-01-01")
+                );
         List<HrEmpOtherAppointment> result = hrEmpOtherAppointmentMapper.selectList(wrapper);
         if (result == null || result.isEmpty()) {
             return null;

@@ -112,6 +112,33 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", "OK");
     }
 
+    @Transactional(rollbackFor = Exception.class)
+    @PostMapping("/syncDept")
+    public ResponseResult<String> syncDept(@RequestBody List<String> userCodeList) {
+
+        LambdaQueryWrapper<HrEmpBasic> queryWrapper = new LambdaQueryWrapper<>();
+        if(userCodeList != null && !userCodeList.isEmpty()) {
+            queryWrapper.in(HrEmpBasic::getUserCode, userCodeList);
+        }
+
+        List<HrEmpBasic> hrEmpBasicList = hrEmpBasicService.getBaseMapper().selectList(queryWrapper);
+        int count = 0;
+        for(HrEmpBasic basic : hrEmpBasicList) {
+            LambdaQueryWrapper<HrEmpAppointment> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(HrEmpAppointment::getUserCode, basic.getUserCode());
+            List<HrEmpAppointment> hrEmpAppointments = hrEmpAppointmentMapper.selectList(wrapper);
+            Optional<HrEmpAppointment> max = hrEmpAppointments.stream().filter(e -> e.getStartDate() != null).max(Comparator.comparing(HrEmpAppointment::getStartDate));
+            if(max.isPresent() && !Objects.equals(basic.getDept(), max.get().getDept())) {
+                basic.setDept(max.get().getDept());
+                hrEmpBasicService.saveOrUpdate(basic);
+            }
+            count++;
+            log.info("进度: {}", (float) count/ (float) hrEmpBasicList.size());
+        }
+
+        return new ResponseResult<>(HttpStatus.OK.value(), "OK");
+    }
+
     @PostMapping("/syncPicture")
     @Transactional(rollbackFor = Exception.class)
     public ResponseResult<Boolean> syncPicture() {
@@ -540,6 +567,19 @@ public class HrEmpBasicController {
                 // 任职信息→在岗状态→在岗 -> 现
                 if ("在岗".equals(dutyStatus) || "101".equals(dutyStatus)) {
                     return "006";
+                }  else if(!ObjectUtils.isEmpty(hrEmpOtherAppointments)){
+                    // 其它任职信息→在岗状态→在岗 -> 现
+                    HrEmpOtherAppointment hrEmpOtherAppointment = hrEmpOtherAppointments.get(0);
+                    // 如果超过一条，选择startDate最晚的
+                    if (hrEmpOtherAppointments.size() > 1) {
+                        hrEmpOtherAppointment = hrEmpOtherAppointments.stream().reduce(
+                                (a, b) -> a.getStartDate().isAfter(b.getStartDate()) ? a : b
+                        ).get();
+                    }
+                    String otherAppointmentDutyStatus = hrEmpOtherAppointment.getDutyStatus();
+                    if ("在岗".equals(otherAppointmentDutyStatus) || "101".equals(otherAppointmentDutyStatus)) {
+                        return "006";
+                    }
                 }
                 // 任职信息→在岗状态→859内退人员&“三类精算”内退人员&新增精算内退人员&其他内退人员 -> 养
                 if ("859内退人员".equals(dutyStatus) || "“三类精算”内退人员".equals(dutyStatus) || "新增精算内退人员".equals(dutyStatus) || "其他内退人员".equals(dutyStatus)
@@ -565,14 +605,8 @@ public class HrEmpBasicController {
             if (!ObjectUtils.isEmpty(hrEmpCareerPaths)) {
                 // 找到经营管理通道的list
                 // 001	经营管理
-                List<HrEmpCareerPath> pathList = hrEmpCareerPaths.stream().filter(item -> "001".equals(item.getPathId()))
-                        .filter(e -> !ObjectUtils.isEmpty(e.getEffectiveDate())).collect(Collectors.toList());
-                if (!ObjectUtils.isEmpty(pathList)) {
-                    // 如果有多个，找到getEffectiveDate最晚的
-                    HrEmpCareerPath path = pathList.get(0);
-                    if (hrEmpCareerPaths.size() > 1) {
-                        path = pathList.stream().reduce((a, b) -> a.getEffectiveDate().isAfter(b.getEffectiveDate()) ? a : b).get();
-                    }
+                HrEmpCareerPath path = hrEmpCareerPaths.stream().filter(item -> item.getPathId() != null).max(Comparator.comparing(HrEmpCareerPath::getEffectiveDate)).orElse(null);
+                if (path != null && ("001".equals(path.getPathId()) || path.getPathId().contains("经营管理通道"))) {
                     // 经营管理职类，经营管理通道，等级D1/D2 -> 厂
                     String levelId = path.getLevelId();
                     if ("D1".equals(levelId) || "D2".equals(levelId)) {

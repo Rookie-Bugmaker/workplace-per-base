@@ -157,7 +157,7 @@ public class ExternalController {
                 //任职信息
                 if (dto.getHrEmpAppointments() != null && !dto.getHrEmpAppointments().isEmpty()) {
                     // 更新之前任职信息的结束时间
-                    // 选择出所有任职信息的结束时间为空的数据
+                    // 选择出所有任职信息的结束时间为空或者任职结束时间在2198年之后的数据
                     List<HrEmpAppointment> undoneList = hrEmpAppointmentService.selectUndoneApp(dto.getHrEmpAppointments().get(0).getUserCode());
                     if (!ObjectUtils.isEmpty(undoneList)) {
                         for (HrEmpAppointment temp : undoneList) {
@@ -178,10 +178,19 @@ public class ExternalController {
                     }
                 }
 
-
-
                 //职业发展通道
                 if (dto.getHrEmpCareerPath() != null && dto.getHrEmpCareerPath().getUserCode() != null) {
+                    // 将该用户其他职业发展通道设置为过期
+                    String userCode = dto.getHrEmpCareerPath().getUserCode();
+                    LambdaQueryWrapper<HrEmpCareerPath> wrapper = new LambdaQueryWrapper<>();
+                    wrapper.eq(HrEmpCareerPath::getUserCode, userCode);
+                    List<HrEmpCareerPath> hrEmpCareerPaths = hrEmpCareerPathService.getBaseMapper().selectList(wrapper);
+                    for(HrEmpCareerPath path : hrEmpCareerPaths) {
+                        if("0".equals(path.getIsExpired())) {
+                            path.setIsExpired("1");
+                            hrEmpCareerPathService.updateById(path);
+                        }
+                    }
                     dto.getHrEmpCareerPath().setId(IdUtil.simpleUUID());
                     boolean saveResult = hrEmpCareerPathService.save(dto.getHrEmpCareerPath());
                     if (!saveResult) {
@@ -257,9 +266,12 @@ public class ExternalController {
                 if (dto.getHrEmpResumes() != null && !dto.getHrEmpResumes().isEmpty()){
                     // 获取工号
                     HrEmpResume hrEmpResume = dto.getHrEmpResumes().get(0);
-                    // 选择所有该工号，结束时间为null的数据
+                    // 选择所有该工号，结束时间为null，或者结束时间在2198年之后的的数据
                     LambdaQueryWrapper<HrEmpResume> queryWrapper = new LambdaQueryWrapper<>();
-                    queryWrapper.isNull(HrEmpResume::getEndDate);
+                    queryWrapper.or(w -> w
+                            .isNull(HrEmpResume::getEndDate)
+                            .gt(HrEmpResume::getEndDate, "2198-01-01")
+                    );
                     queryWrapper.eq(HrEmpResume::getUserCode, hrEmpResume.getUserCode());
                     List<HrEmpResume> hrEmpResumeList = hrEmpResumeService.getBaseMapper().selectList(queryWrapper);
                     if(!ObjectUtils.isEmpty(hrEmpResumeList)) {

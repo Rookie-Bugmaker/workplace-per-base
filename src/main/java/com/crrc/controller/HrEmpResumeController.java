@@ -55,7 +55,9 @@ public class HrEmpResumeController {
     @AuditLog(value = "获得员工履历信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<List<HrEmpResume>> getMsg(@RequestParam String userCode ) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工履历信息表实体成功", hrEmpResumeService.selectMsg(userCode));
+        List<HrEmpResume> hrEmpResumes = hrEmpResumeService.selectMsg(userCode);
+        hrEmpResumeService.resolveDetails(hrEmpResumes);
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工履历信息表实体成功", hrEmpResumes);
     }
 
     @PostMapping("/page")

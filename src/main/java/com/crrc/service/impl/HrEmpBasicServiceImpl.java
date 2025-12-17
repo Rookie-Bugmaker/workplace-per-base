@@ -103,8 +103,8 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     public Page<HrEmpBasic> queryFuzzy(Page<HrEmpBasic> page, HrEmpBasic queryReqVO) {
         MPJLambdaWrapper<HrEmpBasic> wrapper = new MPJLambdaWrapper<>();
 
-        // 只查询必要字段
-        wrapper.select(HrEmpBasic::getUserCode, HrEmpBasic::getName, HrEmpBasic::getDept);
+        // 基础查询条件
+        wrapper.selectAll(HrEmpBasic.class);
 
         // 模糊查询条件
         if (StringUtils.isNotBlank(queryReqVO.getUserCode())) {
@@ -395,9 +395,6 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 return Collections.emptyList();
             }
 
-            // 2. 部门名称转换
-            resolveDepartmentName(result.get(0));
-
             // 3. 查询关联子表数据
             SubTableData subData = querySubTableData(userCode);
 
@@ -405,6 +402,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             if (subData.isAllUnique()) {
                 mergeSubTableData(result.get(0), subData);
             }
+
+            // 需要在mergeSubTableData之后进行部门名称转换
+            resolveDepartmentName(result.get(0));
+
             // 处理最高学历
             resolveEducation(result.get(0));
 
@@ -439,22 +440,22 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
     private void resolvePosition(HrEmpBasicDTO hrEmpBasicDTO) {
         Map<String, String> translateMap = codeInfoService.getTranslateMap(APPOINTMENT_TABLE_NAME, POSITION_TYPE_NAME);
-        hrEmpBasicDTO.setPosition(translateMap.getOrDefault(hrEmpBasicDTO.getPosition(), null));
+        hrEmpBasicDTO.setPosition(translateMap.getOrDefault(hrEmpBasicDTO.getPosition(), hrEmpBasicDTO.getPosition()));
     }
 
     private void resolveEducation(HrEmpBasicDTO hrEmpBasicDTO) {
         Map<String, String> translateMap = codeInfoService.getTranslateMap(EDUCATION_TABLE_NAME, EDUCATION_TYPE_NAME);
-        hrEmpBasicDTO.setEducationValue(translateMap.getOrDefault(hrEmpBasicDTO.getEducation(), null));
+        hrEmpBasicDTO.setEducationValue(translateMap.getOrDefault(hrEmpBasicDTO.getEducation(), hrEmpBasicDTO.getEducation()));
     }
 
     private void resolveDegree(HrEmpBasicDTO hrEmpBasicDTO) {
         Map<String, String> translateMap = codeInfoService.getTranslateMap(EDUCATION_TABLE_NAME, DEGREE_TYPE_NAME);
-        hrEmpBasicDTO.setDegreeValue(translateMap.getOrDefault(hrEmpBasicDTO.getDegree(), null));
+        hrEmpBasicDTO.setDegreeValue(translateMap.getOrDefault(hrEmpBasicDTO.getDegree(), hrEmpBasicDTO.getDegree()));
     }
 
     private void resolvePolitical(HrEmpBasicDTO hrEmpBasicDTO) {
         Map<String, String> translateMap = codeInfoService.getTranslateMap(TABLE_NAME, POLITICAL_TYPE_NAME);
-        hrEmpBasicDTO.setPoliticalValue(translateMap.getOrDefault(hrEmpBasicDTO.getPolitical(), null));
+        hrEmpBasicDTO.setPoliticalValue(translateMap.getOrDefault(hrEmpBasicDTO.getPolitical(), hrEmpBasicDTO.getPolitical()));
     }
 
     /**
@@ -789,9 +790,12 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             dto.setQuaId(data.qualificationList.get(0).getQuaId());
         }
 
-        // 处理职位
+        // 处理职位和部门
         if(!data.appointmentList.isEmpty()) {
             dto.setPosition(data.appointmentList.get(0).getPosition());
+            if(ObjectUtils.isNotEmpty(data.appointmentList.get(0).getDept())) {
+                dto.setDept(data.appointmentList.get(0).getDept());
+            }
         }
     }
 
@@ -835,9 +839,6 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             Map<String, String> eduTranslateMap = codeInfoService.getTranslateMap(EDUCATION_TABLE_NAME, EDUCATION_TYPE_NAME);
             Map<String, String> politicalTranslateMap = codeInfoService.getTranslateMap(TABLE_NAME, POLITICAL_TYPE_NAME);
             resultList.forEach(result -> {
-                // 2. 部门名称转换
-                result.setDept(orgCode2Name.getOrDefault(result.getDept(), result.getDept()));
-
                 // 3. 查询关联子表数据
                 SubTableData subData = stringSubTableDataMap.get(result.getUserCode());
 
@@ -847,6 +848,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 }
                 // 处理最高学历
                 result.setEducationValue(eduTranslateMap.getOrDefault(result.getEducation(), result.getEducation()));
+
+                // 需要在mergeSubTableData之后再进行部门名称转换
+                result.setDept(orgCode2Name.getOrDefault(result.getDept(), result.getDept()));
 
                 // 处理政治面貌
                 result.setPoliticalValue(politicalTranslateMap.getOrDefault(result.getPolitical(), result.getPolitical()));

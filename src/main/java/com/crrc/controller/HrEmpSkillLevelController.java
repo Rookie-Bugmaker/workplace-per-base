@@ -93,7 +93,9 @@ public class HrEmpSkillLevelController {
     @AuditLog(value = "获得职业技能等级实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<List<HrEmpSkillLevel>> getMsg(@RequestParam String userCode ) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取职业技能等级成功", hrEmpSkillLevelService.selectMsg(userCode));
+        List<HrEmpSkillLevel> hrEmpSkillLevels = hrEmpSkillLevelService.selectMsg(userCode);
+        hrEmpSkillLevelService.resolveDetails(hrEmpSkillLevels);
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取职业技能等级成功", hrEmpSkillLevels);
     }
 
     @PostMapping("/page")
