@@ -2,10 +2,7 @@ package com.crrc.entity;
 
 import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -98,4 +95,68 @@ public class PositionInfo extends BaseEntity {
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"上级职位名称"})
     private String parentPositionName;
+
+    /** 审批状态 */
+    @Schema(description = "审批状态")
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"审批状态"})
+    private String auditStatus;
+
+    /** 职层 */
+    @Schema(description = "职层")
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"职层"})
+    private String positionLevel;
+
+    /** 职级 */
+    @Schema(description = "职级")
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"职级"})
+    private String jobGrade;
+
+    /** 编制人数 */
+    @Schema(description = "编制人数")
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"编制人数"})
+    private String staffingSize;
+
+    /** 控编模式 */
+    @Schema(description = "控编模式")
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"控编模式"})
+    private String hcCtrlMode;
+
+    /** 撤销日期 */
+    @Schema(description = "撤销日期")
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"撤销日期"})
+    private String revocationDate;
+
+    /** 工作流ID */
+    @Schema(description = "工作流ID")
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"工作流ID"})
+    private String wfId;
+
+    /** 工作流实例ID */
+    @Schema(description = "工作流实例ID")
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"工作流实例ID"})
+    private String processInstanceId;
+
+    /** 审批状态翻译 */
+    @TableField(exist = false)
+    private String auditStatusValue;
+
+    /** 职类 */
+    @TableField(exist = false)
+    private String jobCategoryValue;
+
+    /** 职群 */
+    @TableField(exist = false)
+    private String jobGroupValue;
+
+    /** 职种 */
+    @TableField(exist = false)
+    private String jobTypeValue;
 }
