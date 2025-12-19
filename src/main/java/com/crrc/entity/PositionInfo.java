@@ -132,6 +132,12 @@ public class PositionInfo extends BaseEntity {
     @ExcelProperty(value = {"撤销日期"})
     private String revocationDate;
 
+    /** 版本 */
+    @Schema(description = "版本")
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"版本"})
+    private String version;
+
     /** 工作流ID */
     @Schema(description = "工作流ID")
     @QueryMethod(method = QueryType.EQ)
@@ -148,15 +154,15 @@ public class PositionInfo extends BaseEntity {
     @TableField(exist = false)
     private String auditStatusValue;
 
-    /** 职类 */
+    /** 职类翻译 */
     @TableField(exist = false)
     private String jobCategoryValue;
 
-    /** 职群 */
+    /** 职群翻译 */
     @TableField(exist = false)
     private String jobGroupValue;
 
-    /** 职种 */
+    /** 职种翻译 */
     @TableField(exist = false)
     private String jobTypeValue;
 }

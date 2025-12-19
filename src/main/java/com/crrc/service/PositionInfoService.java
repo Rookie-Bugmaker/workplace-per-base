@@ -2,6 +2,7 @@ package com.crrc.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.crrc.entity.CodeInfo;
 import com.crrc.entity.PositionInfo;
 import com.crrc.pojo.dto.SysUserDTO;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
@@ -25,4 +26,17 @@ public interface PositionInfoService extends IService<PositionInfo> {
      * @param pageReqVO 查询条件
      */
     void queryActivated(Page<PositionInfo> page, PositionInfo pageReqVO);
+
+    /**
+     * 获取职层列表
+     * @return 职层列表
+     */
+    List<CodeInfo> queryPositionLevel();
+
+    /**
+     * 保存或更新职层
+     * @param codeInfo 需要更新的职层信息
+     * @return 是否更新成功
+     */
+    Boolean saveOrUpdatePositionLevel(CodeInfo codeInfo);
 }
