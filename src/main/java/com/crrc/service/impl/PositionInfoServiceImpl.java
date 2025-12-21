@@ -52,6 +52,8 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
                 PostCatalogInfo::getCode,
                 PostCatalogInfo::getName
         ));
+        // 获得职层翻译的字典
+        Map<String, String> positionLevelTranslateMap = codeInfoService.getTranslateMap(POSITION_INFO_TABLE_NAME, POSITION_LEVEL_TYPE_NAME);
         records.forEach(item -> {
             // 获取职群信息(去掉最后一个-之后的内容)
             String jobGroup = item.getJobType().replaceAll("-[^-]*$", "");
@@ -61,6 +63,8 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
             item.setJobTypeValue(jobCatalogTranslateMap.getOrDefault(item.getJobType(), item.getJobType()));
             item.setJobGroupValue(jobCatalogTranslateMap.getOrDefault(jobGroup, jobGroup));
             item.setJobCategoryValue(jobCatalogTranslateMap.getOrDefault(jobCategory, jobCategory));
+            // 翻译职层
+            item.setPositionLevelValue(positionLevelTranslateMap.getOrDefault(item.getPositionLevel(), item.getPositionLevel()));
         });
     }
 
