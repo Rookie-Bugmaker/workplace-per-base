@@ -2,12 +2,10 @@ package com.crrc.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.crrc.entity.PositionSetupApplication;
-import com.crrc.pojo.dto.SysUserDTO;
 import com.crrc.pojo.dto.WorkflowUserPageDTO;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 
 import javax.validation.Valid;
-import java.util.List;
 
 /**
  *

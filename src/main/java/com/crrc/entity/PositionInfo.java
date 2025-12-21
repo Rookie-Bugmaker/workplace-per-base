@@ -5,6 +5,7 @@ import com.alibaba.excel.annotation.ExcelProperty;
 import com.baomidou.mybatisplus.annotation.*;
 import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -58,6 +59,7 @@ public class PositionInfo extends BaseEntity {
     @Schema(description = "生效日期")
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"生效日期"})
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private Date effectiveDate;
 
     /** 关联职务 */
@@ -71,18 +73,6 @@ public class PositionInfo extends BaseEntity {
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"职种"})
     private String jobType;
-
-    /** 部门代码 */
-    @Schema(description = "部门代码")
-    @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"部门代码"})
-    private String deptCode;
-
-    /** 部门名称 */
-    @Schema(description = "部门名称")
-    @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"部门名称"})
-    private String deptName;
 
     /** 上级职位编码 */
     @Schema(description = "上级职位编码")
@@ -138,18 +128,6 @@ public class PositionInfo extends BaseEntity {
     @ExcelProperty(value = {"版本"})
     private String version;
 
-    /** 工作流ID */
-    @Schema(description = "工作流ID")
-    @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"工作流ID"})
-    private String wfId;
-
-    /** 工作流实例ID */
-    @Schema(description = "工作流实例ID")
-    @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"工作流实例ID"})
-    private String processInstanceId;
-
     /** 审批状态翻译 */
     @TableField(exist = false)
     private String auditStatusValue;
@@ -165,4 +143,8 @@ public class PositionInfo extends BaseEntity {
     /** 职种翻译 */
     @TableField(exist = false)
     private String jobTypeValue;
+
+    /** 职层翻译 */
+    @TableField(exist = false)
+    private String positionLevelValue;
 }

@@ -122,27 +122,28 @@ public class PositionInfoController {
         }
     }
 
-    @PostMapping("/save")
-    @Operation(summary = "创建")
-    @AuditLog(value = "创建", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
-    @Parameter(name = "createReqVO", description = "需要创建的对象", required = true)
-    public ResponseResult<Boolean> createPositionInfo(@Valid @RequestBody PositionInfo createReqVO) {
+    @Transactional(rollbackFor = Exception.class)
+    @PostMapping("/saveOrUpdate")
+    @Operation(summary = "更新")
+    @AuditLog(value = "更新", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
+    @Parameter(name = "updateReqVO", description = "需要更新的职位", required = true)
+    public ResponseResult<Boolean> updatePositionInfo(@Valid @RequestBody PositionInfo updateReqVO) {
         try {
-            return new ResponseResult<>(HttpStatus.OK.value(), "创建成功", positionInfoService.save(createReqVO));
+            return new ResponseResult<>(HttpStatus.OK.value(), "更新成功", positionInfoService.saveOrUpdate(updateReqVO));
         }  catch (Exception e) {
-            log.error("职位创建出现错误", e);
+            log.error("职位更新出现错误", e);
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
     }
 
     @Transactional(rollbackFor = Exception.class)
-    @PostMapping("/update")
-    @Operation(summary = "更新")
-    @AuditLog(value = "更新", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
-    @Parameter(name = "createReqVO", description = "需要更新的职位", required = true)
-    public ResponseResult<Boolean> updatePositionInfo(@Valid @RequestBody PositionInfo updateReqVO) {
+    @PostMapping("/delete")
+    @Operation(summary = "批量删除")
+    @AuditLog(value = "批量删除", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
+    @Parameter(name = "ids", description = "需要删除的职位", required = true)
+    public ResponseResult<Boolean> deletePositionInfo(@RequestBody List<Long> ids) {
         try {
-            return new ResponseResult<>(HttpStatus.OK.value(), "更新成功", positionInfoService.saveOrUpdate(updateReqVO));
+            return new ResponseResult<>(HttpStatus.OK.value(), "更新成功", positionInfoService.removeBatchByIds(ids));
         }  catch (Exception e) {
             log.error("职位更新出现错误", e);
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
