@@ -39,4 +39,11 @@ public interface PositionInfoService extends IService<PositionInfo> {
      * @return 是否更新成功
      */
     Boolean saveOrUpdatePositionLevel(CodeInfo codeInfo);
+
+    /**
+     * 通过list批量删除职层
+     * @param ids 需要删除的职层的idList
+     * @return 是否删除成功
+     */
+    Boolean removePositionLevel(List<String> ids);
 }

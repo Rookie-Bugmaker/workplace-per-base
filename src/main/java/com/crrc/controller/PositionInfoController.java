@@ -65,11 +65,24 @@ public class PositionInfoController {
     @Operation(summary = "保存或更新职层")
     @AuditLog(value = "保存或更新职层", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
-    public ResponseResult<Boolean> saveOrUpdatePositionLevel(CodeInfo codeInfo) {
+    public ResponseResult<Boolean> saveOrUpdatePositionLevel(@RequestBody CodeInfo codeInfo) {
         try {
-            return new ResponseResult<>(HttpStatus.OK.value(), "获取列表成功", positionInfoService.saveOrUpdatePositionLevel(codeInfo));
+            return new ResponseResult<>(HttpStatus.OK.value(), "保存职层成功", positionInfoService.saveOrUpdatePositionLevel(codeInfo));
         } catch (Exception e) {
-            log.error("职位query查询出现错误", e);
+            log.error("保存或更新职层出现错误", e);
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
+    }
+
+    @PostMapping("/removePositionLevel")
+    @Operation(summary = "删除职层")
+    @AuditLog(value = "删除职层", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "pageReqVO", description = "需要删除的idList")
+    public ResponseResult<Boolean> saveOrUpdatePositionLevel(@RequestBody List<String> ids) {
+        try {
+            return new ResponseResult<>(HttpStatus.OK.value(), "删除职层成功", positionInfoService.removePositionLevel(ids));
+        } catch (Exception e) {
+            log.error("删除职层出现错误", e);
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
     }

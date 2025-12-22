@@ -93,6 +93,11 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
         return codeInfoService.saveOrUpdate(codeInfo);
     }
 
+    @Override
+    public Boolean removePositionLevel(List<String> ids) {
+        return codeInfoService.removeBatchByIds(ids);
+    }
+
     // TODO: 这个方法没有用上
     private SysUserDTO findUserByUserCode(String userCode) {
         ResultData<SysDeptPersonDTO> resultData = sysServerClient.findByUserCode(userCode);
