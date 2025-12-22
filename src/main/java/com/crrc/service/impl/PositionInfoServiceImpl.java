@@ -17,6 +17,7 @@ import com.crrc.mapper.PositionInfoMapper;
 import com.crrc.service.PositionInfoService;
 import com.crrc.utils.ConstantsUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
 
@@ -31,8 +32,11 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
     private final HrEmpBasicMapper hrEmpBasicMapper;
     private final PostCatalogInfoServiceImpl postCatalogInfoService;
 
-    private static final String POSITION_LEVEL_TYPE_NAME = "POSITION_LEVEL";
+    private static final String POSITION_LEVEL_TYPE = "POSITION_LEVEL";
     private static final String POSITION_INFO_TABLE_NAME = "position_info";
+    private static final String POSITION_LEVEL_TYPE_NAME = "职层";
+    private static final Long TENANT_ID = 438L;
+
     private final CodeInfoServiceImpl codeInfoService;
 
     public PositionInfoServiceImpl(SysServerClient sysServerClient,
@@ -54,7 +58,7 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
                 PostCatalogInfo::getName
         ));
         // 获得职层翻译的字典
-        Map<String, String> positionLevelTranslateMap = codeInfoService.getTranslateMap(POSITION_INFO_TABLE_NAME, POSITION_LEVEL_TYPE_NAME);
+        Map<String, String> positionLevelTranslateMap = codeInfoService.getTranslateMap(POSITION_INFO_TABLE_NAME, POSITION_LEVEL_TYPE);
         records.forEach(item -> {
             // 获取职群信息(去掉最后一个-之后的内容)
             String jobGroup = item.getJobType().replaceAll("-[^-]*$", "");
@@ -78,7 +82,7 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
     @Override
     public List<CodeInfo> queryPositionLevel() {
         CodeInfo codeInfo = new CodeInfo();
-        codeInfo.setType(POSITION_LEVEL_TYPE_NAME);
+        codeInfo.setType(POSITION_LEVEL_TYPE);
         codeInfo.setTableName(POSITION_INFO_TABLE_NAME);
         return codeInfoService.query(codeInfo);
     }
@@ -86,14 +90,18 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
     @Override
     public Boolean saveOrUpdatePositionLevel(CodeInfo codeInfo) {
         // 设置type与tableName信息
-        codeInfo.setType(POSITION_LEVEL_TYPE_NAME);
+        codeInfo.setType(POSITION_LEVEL_TYPE);
+        codeInfo.setTypeName(POSITION_LEVEL_TYPE_NAME);
         codeInfo.setTableName(POSITION_INFO_TABLE_NAME);
         // id需要手动生成
         codeInfo.setId(IdUtil.randomUUID());
+        // 手动设置租户id
+        codeInfo.setTenantId(TENANT_ID);
         return codeInfoService.saveOrUpdate(codeInfo);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Boolean removePositionLevel(List<String> ids) {
         return codeInfoService.removeBatchByIds(ids);
     }
