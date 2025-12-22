@@ -439,6 +439,7 @@ public class HrEmpEducationController {
 
             formData.put("deptId", deptId.get());
             formData.put("type","edu");
+            // TODO: 判断CompanyCode，如果是子公司，那么roleCode put为hrsc_sub_emp_info_mgr，否则为hrsc_dept_emp_info_mgr
             formData.put("roleCode", "hrsc_audit");
             formData.put("Edu",MyUtils.convertToMapList(changeReqVO));
             instanceDTO.setFormData(formData);
