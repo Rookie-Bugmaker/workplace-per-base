@@ -1,5 +1,6 @@
 package com.crrc.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.crrc.client.SysServerClient;
 import com.crrc.common.ResultData;
 import com.crrc.constants.AuditConstants;
@@ -10,10 +11,14 @@ import com.crrc.pojo.dto.SysUserRequestDTO;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.service.PositionSetupApplicationService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 import com.crrc.pojo.dto.WorkflowUserPageDTO;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  *
@@ -82,12 +87,24 @@ public class PositionSetupApplicationServiceImpl extends WorkServiceImpl<Positio
     }
 
     @Override
-    public Boolean removeDraftById(Long id) {
-        PositionSetupApplication application = getById(id);
-        if(application == null || AuditConstants.STATUS_DRAFT.equals(application.getApprovalStatus())) {
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean removeDraftByIds(List<Long> ids) {
+        Set<String> filteredSet = new HashSet<>(Arrays.asList(
+                AuditConstants.STATUS_AUDIT,
+                AuditConstants.STATUS_AUDIT_PASS
+        ));
+        LambdaQueryWrapper<PositionSetupApplication> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.in(PositionSetupApplication::getId, ids);
+        List<PositionSetupApplication> positionSetupApplications = this.baseMapper.selectList(queryWrapper);
+
+        if
+        (
+            ObjectUtils.isEmpty(positionSetupApplications) ||
+            positionSetupApplications.stream().anyMatch(e -> filteredSet.contains(e.getApprovalStatus()))
+        ) {
             throw new IllegalArgumentException("该草稿已经被删除或已提交进入审批");
         }
 
-        return removeById(id);
+        return removeBatchByIds(ids);
     }
 }

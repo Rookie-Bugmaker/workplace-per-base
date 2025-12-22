@@ -132,13 +132,13 @@ public class PositionSetupApplicationController {
     }
 
     @Transactional
-    @GetMapping("/deleteDraft")
+    @PostMapping("/deleteDraft")
     @Operation(summary = "删除实体")
     @AuditLog(value = "删除实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_DELETE)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
-    public ResponseResult<Boolean> deletePositionSetupApplication(@RequestParam("id") Long id) {
+    public ResponseResult<Boolean> deletePositionSetupApplication(@RequestBody List<Long> ids) {
         try {
-            return new ResponseResult<>(HttpStatus.OK.value(), "删除草稿成功", positionSetupApplicationService.removeDraftById(id));
+            return new ResponseResult<>(HttpStatus.OK.value(), "删除草稿成功", positionSetupApplicationService.removeDraftByIds(ids));
         } catch (Exception e) {
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "删除草稿失败");
         }

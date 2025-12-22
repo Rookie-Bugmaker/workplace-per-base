@@ -6,6 +6,7 @@ import com.crrc.pojo.dto.WorkflowUserPageDTO;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 
 import javax.validation.Valid;
+import java.util.List;
 
 /**
  *
@@ -36,10 +37,10 @@ public interface PositionSetupApplicationService extends IService<PositionSetupA
     Boolean saveOrUpdateDraft(@Valid PositionSetupApplication updateReqVO);
 
     /**
-     * 根据id删除草稿，如果不是草稿会throw exception
-     * @param id 需要删除的数据的id
+     * 根据ids批量删除草稿，如果不是草稿会throw exception
+     * @param ids 需要删除的数据的id列表
      * @return 是否删除成功
      * @throws IllegalArgumentException 不是草稿状态会抛此异常
      */
-    Boolean removeDraftById(Long id);
+    Boolean removeDraftByIds(List<Long> ids);
 }
