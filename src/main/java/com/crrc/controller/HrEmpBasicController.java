@@ -330,6 +330,7 @@ public class HrEmpBasicController {
     @AuditLog(value = "同步人员分类，目前用定时任务每天处理", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @XxlJob("syncPersonCategory")
     public ResponseResult<String> syncPersonCategory(@RequestBody(required = false) List<HrEmpBasic> userCodeList) {
+        // 现在人员分类4不需要计算，通过金蝶直接传参解决
         try {
             // 如果传参了且非空，就用传参，否则全量更新
             List<HrEmpBasic> list = (userCodeList != null && !userCodeList.isEmpty())
@@ -345,9 +346,9 @@ public class HrEmpBasicController {
                 hrEmpBasic.setCategory1(category1);
                 log.info("userCode:{},查询人员分类1完毕,值为{}", hrEmpBasic.getUserCode(), category1);
                 // 同步人员分类4
-                String category4 = resolveCategory4(hrEmpBasic, position2ValueMap);
-                hrEmpBasic.setCategory4(category4);
-                log.info("userCode:{},查询人员分类4完毕,值为{}", hrEmpBasic.getUserCode(), category4);
+//                String category4 = resolveCategory4(hrEmpBasic, position2ValueMap);
+//                hrEmpBasic.setCategory4(category4);
+//                log.info("userCode:{},查询人员分类4完毕,值为{}", hrEmpBasic.getUserCode(), category4);
                 // 同步人员分类7
                 String category7 = resolveCategory7(hrEmpBasic);
                 hrEmpBasic.setCategory7(category7);
@@ -358,12 +359,12 @@ public class HrEmpBasicController {
                 log.info("userCode:{},查询人员分类8完毕,值为{}", hrEmpBasic.getUserCode(), category8);
 
                 // 更新方法
-                log.info("准备执行更新方法，category1:{}，category4:{}，category7:{}，category8:{}",
-                        hrEmpBasic.getCategory1(), hrEmpBasic.getCategory4(), hrEmpBasic.getCategory7() ,hrEmpBasic.getCategory8());
+                log.info("准备执行更新方法，category1:{}，category7:{}，category8:{}",
+                        hrEmpBasic.getCategory1(), hrEmpBasic.getCategory7() ,hrEmpBasic.getCategory8());
                 LambdaUpdateWrapper<HrEmpBasic> wrapper = new LambdaUpdateWrapper<>();
                 wrapper.eq(HrEmpBasic::getUserCode, hrEmpBasic.getUserCode())
                         .set(HrEmpBasic::getCategory1, hrEmpBasic.getCategory1())
-                        .set(HrEmpBasic::getCategory4, hrEmpBasic.getCategory4())
+//                        .set(HrEmpBasic::getCategory4, hrEmpBasic.getCategory4())
                         .set(HrEmpBasic::getCategory7, hrEmpBasic.getCategory7())
                         .set(HrEmpBasic::getCategory8, hrEmpBasic.getCategory8());
                 hrEmpBasicService.update(wrapper);

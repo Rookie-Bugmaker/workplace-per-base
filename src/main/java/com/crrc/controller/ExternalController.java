@@ -84,6 +84,7 @@ public class ExternalController {
             try {
                 MultiTenantHandler.tenantId.set("438");
                 // 员工基本信息表 - 按工号更新或新增，先查询，如果没有该档案号数据就新增
+                // 这里会更新人员身份（人员分类4）
                 if (dto.getHrEmpBasic() != null) {
                     HrEmpBasic basic = dto.getHrEmpBasic();
                     if (basic.getUserCode() == null) {
