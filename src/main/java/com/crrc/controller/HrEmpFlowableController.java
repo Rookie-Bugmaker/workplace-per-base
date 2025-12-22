@@ -67,6 +67,7 @@ public class HrEmpFlowableController {
         if (ObjectUtils.isEmpty(companyId)) {
             return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "companyId不能为空");
         }
+        // TODO: 改造这里的审批人查询，单独控制
         // 查询人员信息
         SysUserRequestDTO sysUserRequestDTO = new SysUserRequestDTO();
         sysUserRequestDTO.setRoleCode(roleCode);

@@ -196,6 +196,7 @@ public class HrEmpRewardsController {
     @Operation(summary = "提交员工奖励情况变更申请")
     public ResponseResult<String> submitRewardChange(@Valid @RequestBody UpdateListDTO<HrEmpRewards> changeReqVO) {
         try {
+            // TODO: 修改这里的代码，适应最新的权限管理要求
             boolean flag = RoleUtils.check("人力资源部-人事管理专员");
             if (flag) {
                 log.info("权限校验通过，用户拥有'人力资源部-人事管理专员'角色，直接进行更新");
