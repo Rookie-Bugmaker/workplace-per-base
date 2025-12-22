@@ -1,5 +1,6 @@
 package com.crrc.service.impl;
 
+import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.client.SysServerClient;
@@ -87,6 +88,8 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
         // 设置type与tableName信息
         codeInfo.setType(POSITION_LEVEL_TYPE_NAME);
         codeInfo.setTableName(POSITION_INFO_TABLE_NAME);
+        // id需要手动生成
+        codeInfo.setId(IdUtil.randomUUID());
         return codeInfoService.saveOrUpdate(codeInfo);
     }
 

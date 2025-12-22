@@ -24,8 +24,11 @@ import lombok.experimental.Accessors;
 @Data
 public class CodeInfo extends BaseEntity{
 
+    /**
+     * 注意，ID需要手动生成
+     */
     @Schema(description = "主键")
-    @TableId(value = "id", type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.ASSIGN_UUID)
     private String id;
 
     @TableField(fill = FieldFill.INSERT)
