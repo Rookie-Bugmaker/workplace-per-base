@@ -183,20 +183,31 @@ public final class TreeUtils {
      * @return 是否包含Predicate
      */
     public static <T> Boolean containsBfs(T root, Predicate<T> matcher, Function<T, List<T>> childrenGetter) {
+        return findNodeBfs(root, matcher, childrenGetter).isPresent();
+    }
+
+    /**
+     * 查询树的节点
+     * @param root 查询的树根
+     * @param matcher Predicate条件
+     * @param childrenGetter children的Get方法
+     * @return 是否包含Predicate
+     */
+    public static <T> Optional<T> findNodeBfs(T root, Predicate<T> matcher, Function<T, List<T>> childrenGetter) {
         if(childrenGetter.apply(root) == null || matcher == null) {
-            return false;
+            return Optional.empty();
         }
         Queue<T> q = new ArrayDeque<>();
         q.offer(root);
         while(!q.isEmpty()) {
             T node = q.poll();
             if(matcher.test(node)) {
-                return true;
+                return Optional.of(node);
             }
             for(T c : childrenGetter.apply(node)) {
                 q.offer(c);
             }
         }
-        return false;
+        return Optional.empty();
     }
 }
