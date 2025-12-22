@@ -1,10 +1,13 @@
 package com.crrc.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.crrc.api.WkCoreAPi;
 import com.crrc.client.SysServerClient;
 import com.crrc.common.ResultData;
 import com.crrc.constants.AuditConstants;
 import com.crrc.entity.PositionSetupApplication;
+import com.crrc.entity.dto.RoleDTO;
+import com.crrc.entity.dto.UserDTO;
 import com.crrc.mapper.PositionSetupApplicationMapper;
 import com.crrc.pojo.dto.SysUserDTO;
 import com.crrc.pojo.dto.SysUserRequestDTO;
@@ -19,6 +22,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -27,6 +31,8 @@ import java.util.Set;
  */
 @Service
 public class PositionSetupApplicationServiceImpl extends WorkServiceImpl<PositionSetupApplicationMapper, PositionSetupApplication> implements PositionSetupApplicationService {
+
+    private static final Long WMRZ_AUDIT_ROLE_ID = 416962338874359808L;
 
     private final SysServerClient sysServerClient;
 
@@ -38,15 +44,13 @@ public class PositionSetupApplicationServiceImpl extends WorkServiceImpl<Positio
     public WorkflowUserPageDTO findApproval(Integer page, Integer pageSize) {
         WorkflowUserPageDTO pageDTO = new WorkflowUserPageDTO();
         // TODO: 替换为真正的审批人查询逻辑
-        SysUserRequestDTO sysUserRequestDTO = new SysUserRequestDTO();
-        sysUserRequestDTO.setRoleCode("wmrz_audit");
-        ResultData<List<SysUserDTO>> userByRoleCode = sysServerClient.findUserByRoleCode(sysUserRequestDTO);
-        if(userByRoleCode == null || ObjectUtils.isEmpty(userByRoleCode.getResult())) {
+        ResultData<List<SysUserDTO>> resultData = sysServerClient.findUserByRoleCode(WMRZ_AUDIT_ROLE_ID);
+        if(resultData == null || ObjectUtils.isEmpty(resultData.getResult())) {
             throw new IllegalArgumentException("审批人查询为空!");
         }
-
-        pageDTO.setRows(userByRoleCode.getResult());
-        pageDTO.setTotal((long) userByRoleCode.getResult().size());
+        List<SysUserDTO> rows = resultData.getResult();
+        pageDTO.setRows(rows);
+        pageDTO.setTotal((long) rows.size());
 
         return pageDTO;
     }

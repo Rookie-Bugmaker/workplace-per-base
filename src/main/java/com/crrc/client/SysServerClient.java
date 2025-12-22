@@ -49,6 +49,14 @@ public interface SysServerClient {
     ResultData<List<SysUserDTO>> findUserByRoleCode(@RequestBody SysUserRequestDTO sysUserRequestDTO);
 
     /**
+     * 查询角色ID绑定的用户列表
+     * @param roleId 角色id
+     * @return 绑定的用户列表
+     */
+    @GetMapping("/role/getBindUserByRoleId")
+    ResultData<List<SysUserDTO>> findUserByRoleCode(@RequestParam("roleId") Long roleId);
+
+    /**
      * 根据租户id和角色编码获取用户信息
      * @param sysUserRequestDTO
      * @return
