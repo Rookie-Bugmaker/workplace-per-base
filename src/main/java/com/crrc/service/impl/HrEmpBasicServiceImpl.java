@@ -9,7 +9,6 @@ import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
 import com.crrc.client.SysServerClient;
 import com.crrc.entity.*;
-import com.crrc.entity.dto.DictItemReqDTO;
 import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
@@ -73,8 +72,6 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     private static final String EDUCATION_TYPE_NAME = "EDU_EDU";
 
     private static final String DEGREE_TYPE_NAME = "EDU_DEGREE";
-
-    private static final String COMPANY_MANAGER_DICT_CODE = "human_resource_company_manager";
 
     private final WkDataAPi wkDataAPi;
 
@@ -208,51 +205,93 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         // 注意：这个条件要在基础表分页里保留
         // 下面的权限逻辑只是改了“使用谁的 wrapper”，业务逻辑不变
 
-        if (RoleUtils.check("员工基本信息公司级管理员")) {
-            // 不查部门，查询公司
-            dto.setDept(null);
+        if (
+                RoleUtils.checkAnyMatch("hrsc_sub_emp_info_mgr", "hrsc_dept_emp_info_mgr")
+        ) {
+//            // 不查部门，查询公司
+//            dto.setDept(null);
+//
+//            // 先去字典中判断是否为子公司的公司级管理员
+//            Map<String, String> jobNo2CompanyCode = dictTypeUtils.getDict(COMPANY_MANAGER_DICT_CODE)
+//                    .stream()
+//                    .collect(Collectors.toMap(
+//                            DictItemReqDTO::getItemCode,
+//                            DictItemReqDTO::getItemName
+//                    ));
 
-            // 先去字典中判断是否为子公司的公司级管理员
-            Map<String, String> jobNo2CompanyCode = dictTypeUtils.getDict(COMPANY_MANAGER_DICT_CODE)
-                    .stream()
-                    .collect(Collectors.toMap(
-                            DictItemReqDTO::getItemCode,
-                            DictItemReqDTO::getItemName
-                    ));
+//            // 根据员工获取部门编码
+//            LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
+//            if (loginUser == null) {
+//                throw new IllegalArgumentException("获取员工登录信息失败");
+//            }
+//            if (loginUser.getUser() == null || StringUtils.isBlank(loginUser.getUser().getJobNo())) {
+//                throw new IllegalArgumentException("获取员工工号失败");
+//            }
+//            String jobNo = loginUser.getUser().getJobNo();
+//
+//            String orgCode;
+//            // 如果在字典中配置了，则不需要进行后续查询
+//            if (jobNo2CompanyCode.containsKey(jobNo)) {
+//                orgCode = jobNo2CompanyCode.get(jobNo);
+//            } else {
+//                // 如果没有配置，则从basic里查询出员工的部门
+//                List<HrEmpBasicDTO> dtoList = this.selectMsg(jobNo);
+//                if (ObjectUtils.isEmpty(dtoList)) {
+//                    throw new IllegalArgumentException("获取员工信息失败，员工不存在，userCode:" + jobNo);
+//                }
+//                orgCode = dtoList.get(0).getOrgCode();
+//            }
+//
+//            // 获取所有的组织数据
+//            ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
+//            if (listResponseResultDTO == null || ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+//                throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
+//            }
+//            List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+//
+//            // 根据orgCode匹配公司及其下级部门能否有匹配项，如果包含，则获得其展平后的List（包含所有部门Code）
+//            List<OrganizationTreeDTO> childrenOrgList = findParentAndFlattenList(data, orgCode);
+//            if (childrenOrgList == null || childrenOrgList.isEmpty()) {
+//                throw new IllegalArgumentException("获取公司失败，公司匹配错误，orgCode:" + orgCode);
+//            }
+//
+//            dto.setDeptSet(childrenOrgList.stream()
+//                    .map(OrganizationTreeDTO::getOrgCode)
+//                    .collect(Collectors.toSet()));
 
-            // 根据员工获取部门编码
-            LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
-            if (loginUser == null) {
-                throw new IllegalArgumentException("获取员工登录信息失败");
-            }
-            if (loginUser.getUser() == null || StringUtils.isBlank(loginUser.getUser().getJobNo())) {
-                throw new IllegalArgumentException("获取员工工号失败");
-            }
-            String jobNo = loginUser.getUser().getJobNo();
-
-            String orgCode;
-            // 如果在字典中配置了，则不需要进行后续查询
-            if (jobNo2CompanyCode.containsKey(jobNo)) {
-                orgCode = jobNo2CompanyCode.get(jobNo);
-            } else {
-                // 如果没有配置，则从basic里查询出员工的部门
-                List<HrEmpBasicDTO> dtoList = this.selectMsg(jobNo);
-                if (ObjectUtils.isEmpty(dtoList)) {
-                    throw new IllegalArgumentException("获取员工信息失败，员工不存在，userCode:" + jobNo);
-                }
-                orgCode = dtoList.get(0).getOrgCode();
-            }
-
+            String orgCode = getCurrentUserOrgCode();
+            // 获得当前人员的orgCode，并获得其可查询的Tree结构
             // 获取所有的组织数据
             ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
             if (listResponseResultDTO == null || ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
                 throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
             }
             List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+            List<OrganizationTreeDTO> childrenOrgList = Collections.emptyList();
+            // 如果是子公司级别管理员
+            if(RoleUtils.checkAnyMatch("hrsc_sub_emp_info_mgr")) {
+                // 根据orgCode匹配公司及其下级部门能否有匹配项，如果包含，则获得其展平后的List（包含所有部门Code）
+                childrenOrgList = findParentAndFlattenList(data, orgCode);
+                if (childrenOrgList == null || childrenOrgList.isEmpty()) {
+                    throw new IllegalArgumentException("获取公司失败，公司匹配错误，orgCode:" + orgCode);
+                }
+            }
 
-            // 根据orgCode匹配公司及其下级部门能否有匹配项，如果包含，则获得其展平后的List（包含所有部门Code）
-            List<OrganizationTreeDTO> childrenOrgList = findParentAndFlattenList(data, orgCode);
-            if (childrenOrgList == null || childrenOrgList.isEmpty()) {
+            // 如果是部门级别管理员
+            if(RoleUtils.checkAnyMatch("hrsc_dept_emp_info_mgr")) {
+                Optional<OrganizationTreeDTO> nodeBfs = Optional.empty();
+                for (OrganizationTreeDTO root : data) {
+                    nodeBfs = TreeUtils.findNodeBfs(root, n -> StringUtils.equals(orgCode, n.getOrgCode()), OrganizationTreeDTO::getChildren);
+                    if (nodeBfs.isPresent()) {
+                        break;
+                    }
+                }
+
+                // 根据orgCode匹配其下级部门，并获得其展平后的List（包含所有部门Code）
+                childrenOrgList = TreeUtils.flattenDescendants(nodeBfs.get(), OrganizationTreeDTO::getChildren, true);
+            }
+
+            if (childrenOrgList.isEmpty()) {
                 throw new IllegalArgumentException("获取公司失败，公司匹配错误，orgCode:" + orgCode);
             }
 
@@ -327,6 +366,24 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         Page<HrEmpBasicDTO> resultPage = new Page<>(empPage.getCurrent(), empPage.getSize(), empPage.getTotal());
         resultPage.setRecords(dtoList);
         return resultPage;
+    }
+
+    private String getCurrentUserOrgCode() {
+        // 根据员工获取部门编码
+        LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
+        if (loginUser == null) {
+            throw new IllegalArgumentException("获取员工登录信息失败");
+        }
+        if (loginUser.getUser() == null || StringUtils.isBlank(loginUser.getUser().getJobNo())) {
+            throw new IllegalArgumentException("获取员工工号失败");
+        }
+        String jobNo = loginUser.getUser().getJobNo();
+        // 如果没有配置，则从basic里查询出员工的部门
+        List<HrEmpBasicDTO> dtoList = this.selectMsg(jobNo);
+        if (ObjectUtils.isEmpty(dtoList)) {
+            throw new IllegalArgumentException("获取员工信息失败，员工不存在，userCode:" + jobNo);
+        }
+        return dtoList.get(0).getOrgCode();
     }
 
     /**
