@@ -11,10 +11,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.api.WkDataAPi;
 import com.crrc.api.WkWorkflowApi;
 import com.crrc.entity.*;
 import com.crrc.entity.dto.ProcessInstanceVo;
+import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.StartProcessInstanceDTO;
+import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.entity.dto.response.ResultData;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
@@ -78,7 +81,7 @@ public class HrEmpEducationController {
     @Autowired
     private HrEmpBasicMapper hrEmpBasicMapper;
     @Autowired
-    private CodeInfoService codeInfoService;
+    private WkDataAPi wkDataAPi;
 
 
     @GetMapping("/getSchoolInfo")
@@ -341,9 +344,9 @@ public class HrEmpEducationController {
     @Operation(summary = "提交员工教育经历变更申请")
     public ResponseResult<String> submitChange(@Valid @RequestBody  HrEmpEducationDTO changeReqVO) {
         try {
-            boolean flag = RoleUtils.check("人力资源部-招聘管理专员");
+            boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
             if (flag) {
-                log.info("权限校验通过，用户拥有'人力资源部-招聘管理专员'角色，直接进行更新");
+                log.info("权限校验通过，用户拥有'公司超级管理员'角色，直接进行更新");
                 try{
                     updateHrEmpEducation(changeReqVO).getData();
                     return new ResponseResult<>(HttpStatus.OK.value(), "直接更新成功!");
@@ -351,7 +354,7 @@ public class HrEmpEducationController {
                     log.warn("权限校验成功，但直接更新失败，尝试走审批流");
                 }
             }
-            log.warn("权限校验失败，用户缺少'人力资源部-招聘管理专员'角色");
+            log.warn("权限校验失败，用户缺少'公司超级管理员'角色");
             // 1. 获取当前数据快照
             List<HrEmpEducation> originalData = getMsg(changeReqVO.getUserCode()).getData();
             log.info("提交审批流时查询回来的教育经历原始数据：{}", JSON.toJSONString(originalData, SerializerFeature.PrettyFormat));
@@ -430,16 +433,38 @@ public class HrEmpEducationController {
 
             LambdaQueryWrapper<HrEmpBasic> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(HrEmpBasic::getUserCode, loginUser.getUser().getJobNo());
-            String dept = hrEmpBasicMapper.selectOne(wrapper).getDept();
-            Optional<Long> deptId = DeptUtils.getDeptIdByCode(dept);
-            if(!deptId.isPresent()) {
+            String deptCode = hrEmpBasicMapper.selectOne(wrapper).getDept();
+
+            if(StringUtils.isBlank(deptCode)) {
                 log.error("获取用户部门失败，部门查询错误，工号:" + loginUser.getUser().getJobNo());
                 throw new IllegalArgumentException("获取用户部门失败，部门查询错误");
             }
 
-            formData.put("deptId", deptId.get());
+            formData.put("deptCode", deptCode);
             formData.put("type","edu");
-            formData.put("roleCode", "hrsc_audit");
+
+            // 如果是子公司的，则PUT子公司管理员，反之PUT部门管理员
+            // 获取全部部门信息
+            // 获取所有的组织数据
+            ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
+            if (listResponseResultDTO == null || org.apache.commons.lang3.ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+                throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
+            }
+            List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+            String parentCode = null;
+            for(OrganizationTreeDTO root : data) {
+                if (TreeUtils.containsBfs(root, n -> StringUtils.equals(deptCode, n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
+                    parentCode = root.getOrgCode();
+                    break;
+                }
+            }
+            formData.put("companyCode", parentCode);
+            if(StringUtils.isNotBlank(parentCode) && parentCode.equals("0132")) {
+                formData.put("roleCode", "hrsc_dept_emp_info_mgr");
+            } else {
+                formData.put("roleCode", "hrsc_sub_emp_info_mgr");
+            }
+
             formData.put("Edu",MyUtils.convertToMapList(changeReqVO));
             instanceDTO.setFormData(formData);
             log.info("流程测试instanceDTO" + instanceDTO);
