@@ -45,6 +45,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrEmpBasic> implements HrEmpBasicService {
 
+    private static final String SKILL_LEVEL_TABLE_NAME = "hr_emp_skill_level";
+    private static final String SKILL_LEVEL_TYPE_NAME = "SKILL_LEVEL";
     private static final String APPOINTMENT_TABLE_NAME = "hr_emp_appointment";
     private static final String POSITION_TYPE_NAME = "APPOINTMENT_POSITION";
     private final HrEmpBasicMapper hrEmpBasicMapper;
@@ -497,8 +499,17 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         // 处理职位信息
         resolvePosition(result.get(0));
 
+        // 处理技能等级信息
+        resolveSkillLevel(result.get(0));
+
         // 处理附件信息
         resolveFiles(result.get(0));
+    }
+
+    private void resolveSkillLevel(HrEmpBasicDTO hrEmpBasicDTO) {
+        hrEmpBasicDTO.setSkillLevel(
+            codeInfoService.translateCode(hrEmpBasicDTO.getSkillLevel(), SKILL_LEVEL_TABLE_NAME, SKILL_LEVEL_TYPE_NAME)
+        );
     }
 
     private void resolvePosition(HrEmpBasicDTO hrEmpBasicDTO) {
@@ -936,6 +947,15 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             // 6. 处理人员在岗状态
             log.info("准备开始处理人员在岗状态信息");
             resolveStatus(result);
+
+            // 处理职位信息
+            resolvePosition(result);
+
+            // 处理技能等级信息
+            resolveSkillLevel(result);
+
+            // 处理附件信息
+            resolveFiles(result);
         });
     }
 
