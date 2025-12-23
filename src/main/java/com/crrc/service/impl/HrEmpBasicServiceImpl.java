@@ -460,39 +460,41 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 mergeSubTableData(result.get(0), subData);
             }
 
-            // 需要在mergeSubTableData之后进行部门名称转换
-            resolveDepartmentName(result.get(0));
-
-            // 处理最高学历
-            resolveEducation(result.get(0));
-
-            // 处理最高学位
-            resolveDegree(result.get(0));
-
-            // 处理政治面貌
-            resolvePolitical(result.get(0));
-
-            // 5. 处理年龄
-            resolveAge(result.get(0));
-
-            // 6. 处理人员分类1,4,7,8
-            resolveCategory(result.get(0));
-
-            // 6. 处理人员在岗状态
-            resolveStatus(result.get(0));
-
-            // 处理职位信息
-            resolvePosition(result.get(0));
-
-            // 处理附件信息
-            resolveFiles(result.get(0));
-
             return result;
         } catch (Exception e) {
             log.warn("查询异常,{}", e.getMessage(), e);
             return queryBaseInfoWithJoins(userCode);
         }
 
+    }
+
+    public void resolveFields(List<HrEmpBasicDTO> result) {
+        // 需要在mergeSubTableData之后进行部门名称转换
+        resolveDepartmentName(result.get(0));
+
+        // 处理最高学历
+        resolveEducation(result.get(0));
+
+        // 处理最高学位
+        resolveDegree(result.get(0));
+
+        // 处理政治面貌
+        resolvePolitical(result.get(0));
+
+        // 5. 处理年龄
+        resolveAge(result.get(0));
+
+        // 6. 处理人员分类1,4,7,8
+        resolveCategory(result.get(0));
+
+        // 6. 处理人员在岗状态
+        resolveStatus(result.get(0));
+
+        // 处理职位信息
+        resolvePosition(result.get(0));
+
+        // 处理附件信息
+        resolveFiles(result.get(0));
     }
 
     private void resolvePosition(HrEmpBasicDTO hrEmpBasicDTO) {
@@ -847,12 +849,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             dto.setQuaId(data.qualificationList.get(0).getQuaId());
         }
 
-        // 处理职位和部门
+        // 处理职位
         if(!data.appointmentList.isEmpty()) {
             dto.setPosition(data.appointmentList.get(0).getPosition());
-            if(ObjectUtils.isNotEmpty(data.appointmentList.get(0).getDept())) {
-                dto.setDept(data.appointmentList.get(0).getDept());
-            }
         }
     }
 

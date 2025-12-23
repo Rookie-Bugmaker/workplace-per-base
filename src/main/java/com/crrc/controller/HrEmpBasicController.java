@@ -277,6 +277,7 @@ public class HrEmpBasicController {
                 throw new IllegalArgumentException("获取用户部门失败，部门查询错误");
             }
 
+            // TODO: 判断CompanyCode，如果是子公司，那么roleCode put为hrsc_sub_emp_info_mgr，否则为hrsc_dept_emp_info_mgr
             formData.put("deptId", deptId.get());
             formData.put("type","pic");
             formData.put("roleCode", "hrsc_audit");
@@ -701,7 +702,9 @@ public class HrEmpBasicController {
     @AuditLog(value = "获得员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<List<HrEmpBasicDTO>> getMsg(@RequestParam String userCode) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工基本信息表实体成功", hrEmpBasicService.selectMsg(userCode));
+        List<HrEmpBasicDTO> hrEmpBasicDTOS = hrEmpBasicService.selectMsg(userCode);
+        hrEmpBasicService.resolveFields(hrEmpBasicDTOS);
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工基本信息表实体成功", hrEmpBasicDTOS);
     }
 
     @PostMapping("/getDetailList")
@@ -786,17 +789,17 @@ public class HrEmpBasicController {
             changeReqVO.setDept(null);
             changeReqVO.setOrgCode(null);
 
-            boolean flag = RoleUtils.check("人力资源部-招聘管理专员");
+            boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
             if (flag) {
-                log.info("权限校验通过，用户拥有'人力资源部-招聘管理专员'角色，直接进行更新");
-                try{
+                log.info("权限校验通过，用户拥有'公司超级管理员'角色，直接进行更新");
+                try {
                     updateHrEmpBasic(changeReqVO).getData();
                     return new ResponseResult<>(HttpStatus.OK.value(), "直接更新成功!");
                 } catch (Exception e){
                     log.warn("权限校验成功，但直接更新失败，尝试走审批流");
                 }
             }
-            log.warn("权限校验失败，用户缺少'人力资源部-招聘管理专员'角色");
+            log.warn("权限校验失败，用户缺少'公司超级管理员'角色");
 
             // 1. 获取当前数据快照
             HrEmpBasicDTO originalData = hrEmpBasicService.selectMsg(changeReqVO.getUserCode()).get(0);
