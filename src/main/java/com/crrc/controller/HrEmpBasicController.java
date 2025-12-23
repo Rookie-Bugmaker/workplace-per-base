@@ -807,6 +807,7 @@ public class HrEmpBasicController {
                 return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "员工信息不存在");
             }
 
+            hrEmpBasicService.resolveFields(originalData);
             // 2. 创建变更申请文档
             HrEmpBasicChangeRequest changeRequest = new HrEmpBasicChangeRequest();
             changeRequest.setId(IdUtil.simpleUUID());

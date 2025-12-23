@@ -468,6 +468,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
     }
 
+    public void resolveFields(HrEmpBasicDTO basic) {
+        resolveFields(Collections.singletonList(basic));
+    }
+
     public void resolveFields(List<HrEmpBasicDTO> result) {
         // 需要在mergeSubTableData之后进行部门名称转换
         resolveDepartmentName(result.get(0));
