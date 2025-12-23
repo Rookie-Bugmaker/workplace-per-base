@@ -71,6 +71,12 @@ public class PositionSetupApplication extends BaseEntity implements Serializable
     @Schema(description = "审批状态")
     private String approvalStatus;
 
+    /**
+     * 审批状态翻译
+     */
+    @TableField(exist = false)
+    private String approvalStatusValue;
+
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"流程模板Id"}, index = 7)
     @Schema(description = "流程模板Id")

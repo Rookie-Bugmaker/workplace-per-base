@@ -94,10 +94,16 @@ public class PositionSetupApplicationController {
     public ResponseResult<IPage<PositionSetupApplication>> pagePositionSetupApplication(@Validated @RequestBody(required = false) PositionSetupApplication pageReqVO,
                                              @RequestParam(required = false, defaultValue = "1") int pageNo,
                                              @RequestParam(required = false, defaultValue = "10")int pageSize) {
-        pageReqVO = (pageReqVO == null) ? new PositionSetupApplication() : pageReqVO;
-        Page<PositionSetupApplication> page = new Page<>(pageNo, pageSize);
-        positionSetupApplicationService.query(page, pageReqVO);
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取列表 page成功", page);
+        try {
+            pageReqVO = (pageReqVO == null) ? new PositionSetupApplication() : pageReqVO;
+            Page<PositionSetupApplication> page = new Page<>(pageNo, pageSize);
+            positionSetupApplicationService.query(page, pageReqVO);
+            positionSetupApplicationService.resolveFields(page.getRecords());
+            return new ResponseResult<>(HttpStatus.OK.value(), "获取列表 page成功", page);
+        } catch (Exception e) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
+
     }
 
     @PostMapping("/query")

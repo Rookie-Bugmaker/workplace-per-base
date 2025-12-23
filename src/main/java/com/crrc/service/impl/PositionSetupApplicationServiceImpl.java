@@ -13,15 +13,13 @@ import com.crrc.pojo.dto.SysUserDTO;
 import com.crrc.pojo.dto.SysUserRequestDTO;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.service.PositionSetupApplicationService;
+import com.crrc.utils.ConstantsUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 import com.crrc.pojo.dto.WorkflowUserPageDTO;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -110,5 +108,13 @@ public class PositionSetupApplicationServiceImpl extends WorkServiceImpl<Positio
         }
 
         return removeBatchByIds(ids);
+    }
+
+    @Override
+    public void resolveFields(List<PositionSetupApplication> records) {
+        Map<String, String> translateMap = ConstantsUtils.valueToDescMap(AuditConstants.class);
+        records.forEach(item -> {
+            item.setApprovalStatusValue(translateMap.getOrDefault(item.getApprovalStatus(), item.getApprovalStatus()));
+        });
     }
 }

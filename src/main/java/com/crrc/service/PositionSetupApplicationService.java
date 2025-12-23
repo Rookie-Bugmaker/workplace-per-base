@@ -43,4 +43,10 @@ public interface PositionSetupApplicationService extends IService<PositionSetupA
      * @throws IllegalArgumentException 不是草稿状态会抛此异常
      */
     Boolean removeDraftByIds(List<Long> ids);
+
+    /**
+     * 翻译各个字段(如果是码值等等)
+     * @param records 需要翻译的list
+     */
+    void resolveFields(List<PositionSetupApplication> records);
 }
