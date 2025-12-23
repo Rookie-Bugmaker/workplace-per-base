@@ -1,22 +1,29 @@
 package com.crrc.controller;
 
 import com.crrc.annotation.AuditLog;
+import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
 import com.crrc.client.SysServerClient;
 import com.crrc.common.ResultData;
 import com.crrc.entity.dto.CompanyDTO;
 import com.crrc.entity.dto.DeptDTO;
 import com.crrc.entity.dto.DictItemReqDTO;
+import com.crrc.entity.dto.ResponseResultDTO;
+import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.SysDeptPersonDTO;
 import com.crrc.pojo.dto.SysUserDTO;
 import com.crrc.pojo.dto.SysUserRequestDTO;
+import com.crrc.service.impl.HrEmpBasicServiceImpl;
 import com.crrc.utils.DictTypeUtils;
+import com.crrc.utils.TreeUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
@@ -50,92 +57,145 @@ public class HrEmpFlowableController {
     @Autowired
     private DictTypeUtils dictTypeUtils;
     @Autowired
-    private WkDataAPi wkDataApi;
+    private HrEmpBasicServiceImpl hrEmpBasicService;
+    @Autowired
+    private WkDataAPi wkDataAPi;
+
+    private final static Long HRSC_SUB_EMP_INFO_MGR_ROLE_ID = 449259816650117120L;
+
+    private final static Long HRSC_DEPT_EMP_INFO_MGR_ROLE_ID = 449260075015049216L;
 
 
     @GetMapping("/findUserByDeptIdAndRoleCode")
     @Operation(summary = "HrEmpFlowableController工作流获取审批人信息")
     @AuditLog(value = "HrEmpFlowableController工作流获取审批人信息", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    public ResponseResult<List<SysUserDTO>> findUserByDeptIdAndRoleCode(Long companyId, Long deptId, String roleCode) {
-        log.info("触发人力资源获取人员信息接口findUserByDeptIdAndRoleCode 查询参数companyId:{},deptId:{},roleCode:{}", companyId, deptId, roleCode);
-        if (ObjectUtils.isEmpty(deptId)) {
-            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "deptId不能为空");
+    public ResponseResult<List<SysUserDTO>> findUserByDeptIdAndRoleCode(String companyCode, String deptCode, String roleCode) {
+        log.info("触发人力资源获取人员信息接口findUserByDeptIdAndRoleCode 查询参数companyCode:{},deptId:{},roleCode:{}", companyCode, deptCode, roleCode);
+        if (ObjectUtils.isEmpty(deptCode)) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "deptCode不能为空");
         }
         if (ObjectUtils.isEmpty(roleCode)) {
             return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "roleCode不能为空");
         }
-        if (ObjectUtils.isEmpty(companyId)) {
-            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "companyId不能为空");
+        if (ObjectUtils.isEmpty(companyCode)) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "companyCode不能为空");
         }
-        // TODO: 改造这里的审批人查询，单独控制
-        // 查询人员信息
-        SysUserRequestDTO sysUserRequestDTO = new SysUserRequestDTO();
-        sysUserRequestDTO.setRoleCode(roleCode);
-        sysUserRequestDTO.setCompanyId(companyId);
-        sysUserRequestDTO.setDeptId(deptId);
-        ResultData<List<SysUserDTO>> userByRoleCodeAndCompanyId = sysServerClient.findUserByRoleCode(sysUserRequestDTO);
         List<SysUserDTO> result = new ArrayList<>();
-        log.info("触发人力资源获取人员信息接口findUserByDeptIdAndRoleCode {}", userByRoleCodeAndCompanyId.getResult());
-        if(!ObjectUtils.isEmpty(userByRoleCodeAndCompanyId) && !ObjectUtils.isEmpty(userByRoleCodeAndCompanyId.getResult())){
-            result.addAll(userByRoleCodeAndCompanyId.getResult());
-        }
-        // 查询字典中配置的审批人
-        log.info("开始查询字典审批人");
-        List<DictItemReqDTO> humanResourceAuditConfig = dictTypeUtils.getDict("human_resource_audit_config");
-        Map<String, List<String>> code2AuditList = humanResourceAuditConfig.stream().collect(Collectors.groupingBy(
-                DictItemReqDTO::getItemName,
-                Collectors.mapping(
-                        DictItemReqDTO::getItemCode,
-                        Collectors.toList()
-                )
-        ));
-
-        log.info("字典审批人查询完毕: size: {} {}", humanResourceAuditConfig.size(), humanResourceAuditConfig);
-
-        // 根据deptId查orgCode
-        ResultData<DeptDTO> pageByDeptId = sysServerClient.findDeptByDeptId(deptId);
-        if(pageByDeptId == null || pageByDeptId.getResult() == null) {
-            log.error("未查询到部门信息:{}", deptId);
-        } else {
-            DeptDTO deptDTO = pageByDeptId.getResult();
-
-            log.info("部门信息查询完毕: {}", deptDTO.getOrgCode());
-            log.info("公司编码:, {}", deptDTO.getCompanyId());
-
-            Optional<CompanyDTO> first = sysServerClient.pageCompany(1, 10000).getResult().getRows().stream().filter(e -> e.getId().equals(deptDTO.getCompanyId())).findFirst();
-            String companyCode = "";
-            if(first.isPresent()) {
-                companyCode = first.get().getOrgCode();
-                log.info("公司查询成功，编码: {}", companyCode);
-            } else {
-                log.info("公司查询失败，编码:, {}", deptDTO.getCompanyId());
+        // 如果是子公司人员信息管理
+        if("hrsc_sub_emp_info_mgr".equals(roleCode)) {
+            ResultData<List<SysUserDTO>> resultData = sysServerClient.findUserByRoleId(HRSC_SUB_EMP_INFO_MGR_ROLE_ID);
+            if(resultData == null || ObjectUtils.isEmpty(resultData.getResult())) {
+                log.info("子公司人员信息管理角色查询为空:{}", resultData);
             }
-            if(code2AuditList.containsKey(deptDTO.getOrgCode()) || code2AuditList.containsKey(companyCode)) {
-                log.info("开始查询个人信息，组装审批人");
-                List<String> userCodeList = code2AuditList.getOrDefault(deptDTO.getOrgCode(), new ArrayList<>());
-                log.info("部门编码查询到审批人:, {}", code2AuditList.getOrDefault(deptDTO.getOrgCode(), new ArrayList<>()));
-                userCodeList.addAll(code2AuditList.getOrDefault(companyCode, new ArrayList<>()));
-                log.info("公司编码查询到审批人:, {}", code2AuditList.getOrDefault(companyCode, new ArrayList<>()));
-                List<String> userCodeDistinctList = userCodeList.stream().distinct().collect(Collectors.toList());
-                for (String userCode : userCodeDistinctList) {
-                    ResultData<SysDeptPersonDTO> byUserCode = sysServerClient.findByUserCode(userCode);
-                    if (byUserCode == null || byUserCode.getResult() == null || byUserCode.getResult().getPersonId() == null) {
-                        log.error("工号查询个人详细信息失败:{}", userCode);
-                        continue;
-                    }
 
-                    Long personId = byUserCode.getResult().getPersonId();
-                    ResultData<List<SysUserDTO>> byPersonIds = sysServerClient.findByPersonIds(Collections.singletonList(personId));
-                    if (byPersonIds == null || ObjectUtils.isEmpty(byPersonIds.getResult())) {
-                        log.error("人员id查询个人详细信息失败:{}", personId);
-                        continue;
-                    }
-
-                    result.addAll(byPersonIds.getResult());
-                    log.info("个人信息审批人: {}", byPersonIds.getResult().get(0).getUserName());
+            List<SysUserDTO> userByRoleId = resultData.getResult();
+            List<String> userCodeList = userByRoleId.stream().map(SysUserDTO::getUserName).collect(Collectors.toList());
+            List<HrEmpBasicDTO> hrEmpBasicDTOList = hrEmpBasicService.selectMsgList(userCodeList);
+            // 获取所有的组织数据
+            ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
+            if (listResponseResultDTO == null || org.apache.commons.lang3.ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+                throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
+            }
+            List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+            Set<String> childrenOrgSet = Collections.emptySet();
+            for(OrganizationTreeDTO root : data) {
+                // 获得该子公司展平的所有部门
+                if (TreeUtils.containsBfs(root, n -> StringUtils.equals(deptCode, n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
+                    childrenOrgSet = TreeUtils.flattenDescendants(root, OrganizationTreeDTO::getChildren, true).stream().map(OrganizationTreeDTO::getOrgCode).collect(Collectors.toSet());
                 }
             }
+
+            // 筛选部门在其中的所有人员
+            Set<String> finalChildrenOrgSet = childrenOrgSet;
+            Set<String> userCodeSet = hrEmpBasicDTOList.stream().filter(
+                    e -> finalChildrenOrgSet.contains(e.getDept())
+            ).map(HrEmpBasicDTO::getUserCode).collect(Collectors.toSet());
+
+            result = userByRoleId.stream().filter(e -> userCodeSet.contains(e.getUserName())).collect(Collectors.toList());
         }
+        // 如果是部门人员信息管理
+        if("hrsc_dept_emp_info_mgr".equals(roleCode)) {
+            ResultData<List<SysUserDTO>> resultData = sysServerClient.findUserByRoleId(HRSC_DEPT_EMP_INFO_MGR_ROLE_ID);
+            if(resultData == null || ObjectUtils.isEmpty(resultData.getResult())) {
+                log.info("部门人员信息管理角色查询为空:{}", resultData);
+            }
+
+            List<SysUserDTO> userByRoleId = resultData.getResult();
+            List<String> userCodeList = userByRoleId.stream().map(SysUserDTO::getUserName).collect(Collectors.toList());
+            List<HrEmpBasicDTO> hrEmpBasicDTOList = hrEmpBasicService.selectMsgList(userCodeList);
+            Set<String> userCodeSet = hrEmpBasicDTOList.stream().filter(
+                    e -> deptCode.equals(e.getDept())
+            ).map(HrEmpBasicDTO::getUserCode).collect(Collectors.toSet());
+
+            result = userByRoleId.stream().filter(e -> userCodeSet.contains(e.getUserName())).collect(Collectors.toList());
+        }
+
+//        sysUserRequestDTO.setRoleCode(roleCode);
+//        sysUserRequestDTO.setCompanyId(companyId);
+//        sysUserRequestDTO.setDeptId(deptId);
+//        ResultData<List<SysUserDTO>> userByRoleCodeAndCompanyId = sysServerClient.findUserByRoleCode(sysUserRequestDTO);
+//
+//        log.info("触发人力资源获取人员信息接口findUserByDeptIdAndRoleCode {}", userByRoleCodeAndCompanyId.getResult());
+//        if(!ObjectUtils.isEmpty(userByRoleCodeAndCompanyId) && !ObjectUtils.isEmpty(userByRoleCodeAndCompanyId.getResult())){
+//            result.addAll(userByRoleCodeAndCompanyId.getResult());
+//        }
+//        // 查询字典中配置的审批人
+//        log.info("开始查询字典审批人");
+//        List<DictItemReqDTO> humanResourceAuditConfig = dictTypeUtils.getDict("human_resource_audit_config");
+//        Map<String, List<String>> code2AuditList = humanResourceAuditConfig.stream().collect(Collectors.groupingBy(
+//                DictItemReqDTO::getItemName,
+//                Collectors.mapping(
+//                        DictItemReqDTO::getItemCode,
+//                        Collectors.toList()
+//                )
+//        ));
+//
+//        log.info("字典审批人查询完毕: size: {} {}", humanResourceAuditConfig.size(), humanResourceAuditConfig);
+//
+//        // 根据deptId查orgCode
+//        ResultData<DeptDTO> pageByDeptId = sysServerClient.findDeptByDeptId(deptId);
+//        if(pageByDeptId == null || pageByDeptId.getResult() == null) {
+//            log.error("未查询到部门信息:{}", deptId);
+//        } else {
+//            DeptDTO deptDTO = pageByDeptId.getResult();
+//
+//            log.info("部门信息查询完毕: {}", deptDTO.getOrgCode());
+//            log.info("公司编码:, {}", deptDTO.getCompanyId());
+//
+//            Optional<CompanyDTO> first = sysServerClient.pageCompany(1, 10000).getResult().getRows().stream().filter(e -> e.getId().equals(deptDTO.getCompanyId())).findFirst();
+//            String companyCode = "";
+//            if(first.isPresent()) {
+//                companyCode = first.get().getOrgCode();
+//                log.info("公司查询成功，编码: {}", companyCode);
+//            } else {
+//                log.info("公司查询失败，编码:, {}", deptDTO.getCompanyId());
+//            }
+//            if(code2AuditList.containsKey(deptDTO.getOrgCode()) || code2AuditList.containsKey(companyCode)) {
+//                log.info("开始查询个人信息，组装审批人");
+//                List<String> userCodeList = code2AuditList.getOrDefault(deptDTO.getOrgCode(), new ArrayList<>());
+//                log.info("部门编码查询到审批人:, {}", code2AuditList.getOrDefault(deptDTO.getOrgCode(), new ArrayList<>()));
+//                userCodeList.addAll(code2AuditList.getOrDefault(companyCode, new ArrayList<>()));
+//                log.info("公司编码查询到审批人:, {}", code2AuditList.getOrDefault(companyCode, new ArrayList<>()));
+//                List<String> userCodeDistinctList = userCodeList.stream().distinct().collect(Collectors.toList());
+//                for (String userCode : userCodeDistinctList) {
+//                    ResultData<SysDeptPersonDTO> byUserCode = sysServerClient.findByUserCode(userCode);
+//                    if (byUserCode == null || byUserCode.getResult() == null || byUserCode.getResult().getPersonId() == null) {
+//                        log.error("工号查询个人详细信息失败:{}", userCode);
+//                        continue;
+//                    }
+//
+//                    Long personId = byUserCode.getResult().getPersonId();
+//                    ResultData<List<SysUserDTO>> byPersonIds = sysServerClient.findByPersonIds(Collections.singletonList(personId));
+//                    if (byPersonIds == null || ObjectUtils.isEmpty(byPersonIds.getResult())) {
+//                        log.error("人员id查询个人详细信息失败:{}", personId);
+//                        continue;
+//                    }
+//
+//                    result.addAll(byPersonIds.getResult());
+//                    log.info("个人信息审批人: {}", byPersonIds.getResult().get(0).getUserName());
+//                }
+//            }
+//        }
 
         if(ObjectUtils.isEmpty(result)) {
             log.info("未查到审批人数据");

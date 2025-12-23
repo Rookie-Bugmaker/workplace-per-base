@@ -888,16 +888,8 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 return Collections.emptyList();
             }
 
-            Map<String, String> orgCode2Name = wkDataAPi.allOrganization().getData().stream().collect(Collectors.toMap(
-                    OrganizationDTO::getOrgCode,
-                    OrganizationDTO::getOrgName
-            ));
-
             // 查询关联子表数据
             Map<String, SubTableData> stringSubTableDataMap = querySubTableDataList(userCodeList);
-
-            Map<String, String> eduTranslateMap = codeInfoService.getTranslateMap(EDUCATION_TABLE_NAME, EDUCATION_TYPE_NAME);
-            Map<String, String> politicalTranslateMap = codeInfoService.getTranslateMap(TABLE_NAME, POLITICAL_TYPE_NAME);
             resultList.forEach(result -> {
                 // 3. 查询关联子表数据
                 SubTableData subData = stringSubTableDataMap.get(result.getUserCode());
@@ -906,32 +898,45 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 if (subData.isAllUnique()) {
                     mergeSubTableData(result, subData);
                 }
-                // 处理最高学历
-                result.setEducationValue(eduTranslateMap.getOrDefault(result.getEducation(), result.getEducation()));
-
-                // 需要在mergeSubTableData之后再进行部门名称转换
-                result.setDept(orgCode2Name.getOrDefault(result.getDept(), result.getDept()));
-
-                // 处理政治面貌
-                result.setPoliticalValue(politicalTranslateMap.getOrDefault(result.getPolitical(), result.getPolitical()));
-
-                // 5. 处理年龄
-                log.info("准备开始处理年龄信息");
-                resolveAge(result);
-
-                // 6. 处理人员分类1,4,7,8
-                log.info("准备开始处理人员分类信息");
-                resolveCategory(result);
-
-                // 6. 处理人员在岗状态
-                log.info("准备开始处理人员在岗状态信息");
-                resolveStatus(result);
             });
             return resultList;
         } catch (Exception e) {
             log.warn("查询异常,{}", e.getMessage());
             return queryBaseInfoListWithJoins(userCodeList);
         }
+    }
+
+    public void resolveFieldsList(List<HrEmpBasicDTO> resultList) {
+        Map<String, String> orgCode2Name = wkDataAPi.allOrganization().getData().stream().collect(Collectors.toMap(
+                OrganizationDTO::getOrgCode,
+                OrganizationDTO::getOrgName
+        ));
+
+        Map<String, String> eduTranslateMap = codeInfoService.getTranslateMap(EDUCATION_TABLE_NAME, EDUCATION_TYPE_NAME);
+        Map<String, String> politicalTranslateMap = codeInfoService.getTranslateMap(TABLE_NAME, POLITICAL_TYPE_NAME);
+        resultList.forEach(result -> {
+
+            // 处理最高学历
+            result.setEducationValue(eduTranslateMap.getOrDefault(result.getEducation(), result.getEducation()));
+
+            // 需要在mergeSubTableData之后再进行部门名称转换
+            result.setDept(orgCode2Name.getOrDefault(result.getDept(), result.getDept()));
+
+            // 处理政治面貌
+            result.setPoliticalValue(politicalTranslateMap.getOrDefault(result.getPolitical(), result.getPolitical()));
+
+            // 5. 处理年龄
+            log.info("准备开始处理年龄信息");
+            resolveAge(result);
+
+            // 6. 处理人员分类1,4,7,8
+            log.info("准备开始处理人员分类信息");
+            resolveCategory(result);
+
+            // 6. 处理人员在岗状态
+            log.info("准备开始处理人员在岗状态信息");
+            resolveStatus(result);
+        });
     }
 
     /**

@@ -33,6 +33,11 @@ public class SysServerClientFallback implements SysServerClient {
     }
 
     @Override
+    public ResultData<List<SysUserDTO>> findUserByRoleId(Long roleId) {
+        return ResultData.fallback();
+    }
+
+    @Override
     public ResultData<List<SysUserDTO>> findUserByRoleCodeAndCompanyId(SysUserRequestDTO sysUserRequestDTO) {
         return ResultData.fallback();
     }
