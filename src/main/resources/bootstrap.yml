@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: test-hw
+    active: @env@
   main:
     allow-bean-definition-overriding: true
   mvc:
@@ -12,14 +12,14 @@ spring:
   cloud:
     nacos:
       config:
-        server-addr: 10.151.255.167:8848
-        file-extension: yaml
-        namespace: 02526464-a067-476c-ab4b-0c38d14017e0
-        username: nacos
-        password: QiangK0uLing
+        server-addr: @nacos.config.serverAddr@
+        file-extension: @nacos.config.fileExtension@
+        namespace: @nacos.config.namespace@
+        username: @nacos.username@
+        password: @nacos.password@
       discovery:
-        server-addr: 10.151.255.167:8848
-        namespace: 02526464-a067-476c-ab4b-0c38d14017e0
-        username: nacos
-        password: QiangK0uLing
-        # ip: 10.151.255.167
+        server-addr: @nacos.discovery.server@
+        namespace: @nacos.discovery.namespace@
+        username: @nacos.username@
+        password: @nacos.password@
+        ip: @nacos.discovery.ip@

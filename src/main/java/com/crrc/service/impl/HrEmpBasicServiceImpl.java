@@ -281,7 +281,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             if(RoleUtils.checkAnyMatch("hrsc_dept_emp_info_mgr")) {
                 Optional<OrganizationTreeDTO> nodeBfs = Optional.empty();
                 for (OrganizationTreeDTO root : data) {
-                    nodeBfs = TreeUtils.findNodeBfs(root, n -> StringUtils.equals(orgCode, n.getOrgCode()), OrganizationTreeDTO::getChildren);
+                    nodeBfs = TreeUtils.findNodeBfs(root, n -> orgCode.equals(n.getOrgCode()), OrganizationTreeDTO::getChildren);
                     if (nodeBfs.isPresent()) {
                         break;
                     }
@@ -383,7 +383,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         if (ObjectUtils.isEmpty(dtoList)) {
             throw new IllegalArgumentException("获取员工信息失败，员工不存在，userCode:" + jobNo);
         }
-        return dtoList.get(0).getOrgCode();
+        return dtoList.get(0).getDept();
     }
 
     /**
