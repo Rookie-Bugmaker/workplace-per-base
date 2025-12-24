@@ -161,18 +161,18 @@ public final class TreeUtils {
         return found ? Optional.of(result) : Optional.empty();
     }
 
-    // DFS：path 里始终保存 “当前节点的祖先链（含当前节点）”，但在命中目标时不把目标加入 path
+    // DFS：path 里始终保存 “当前节点的祖先链（不含当前节点）”，但在命中目标时不把目标加入 path
     private static <T> boolean dfsFindAncestors(T current, Predicate<T> matcher, Function<T, List<T>> childrenGetter, Deque<T> path, List<T> result) {
         if (current == null) return false;
+
+        // 当前节点作为后续子树目标的祖先，先入栈
+        path.addLast(current);
 
         // 命中目标：此时 path 就是所有祖先（不含目标）
         if (matcher.test(current)) {
             result.addAll(path);
             return true;
         }
-
-        // 当前节点作为后续子树目标的祖先，先入栈
-        path.addLast(current);
 
         for (T child : childrenGetter.apply(current)) {
             if (dfsFindAncestors(child, matcher, childrenGetter, path, result)) {
