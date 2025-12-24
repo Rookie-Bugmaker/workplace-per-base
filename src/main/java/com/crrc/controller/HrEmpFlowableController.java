@@ -86,7 +86,7 @@ public class HrEmpFlowableController {
             return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "companyCode不能为空");
         }
         List<SysUserDTO> result = new ArrayList<>();
-        // 查找字典数据
+        // 查找字典中配置的跨部门审批人的数据
         DictVO dict = dictUtils.get("human_resource_audit_config");
 
         // 获取所有的组织数据
@@ -107,6 +107,7 @@ public class HrEmpFlowableController {
 
         Set<String> parentOrgCodeSet = parents.get().stream().map(OrganizationTreeDTO::getOrgCode).collect(Collectors.toSet());
 
+        // 由于业务要求，要求非本部门的人能够担任本部门的人事员，故有字典配置项
         // 这里itemName是deptCode，itemCode是userCode
         List<DictItemVO> auditList = dict.getItems().stream().filter(e -> parentOrgCodeSet.contains(e.getItemName())).collect(Collectors.toList());
         if(!ObjectUtils.isEmpty(auditList)) {

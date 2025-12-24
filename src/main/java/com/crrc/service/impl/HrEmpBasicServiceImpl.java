@@ -9,6 +9,8 @@ import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
 import com.crrc.client.SysServerClient;
 import com.crrc.entity.*;
+import com.crrc.entity.dict.vo.DictItemVO;
+import com.crrc.entity.dict.vo.DictVO;
 import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
@@ -81,9 +83,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
     private final DictTypeUtils dictTypeUtils;
     private final HrEmpAppointmentMapper hrEmpAppointmentMapper;
+    private final DictUtils dictUtils;
 
     @Autowired
-    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataApi, @Qualifier("com.crrc.client.SysServerClient") SysServerClient sysServerClient, DictTypeUtils dictTypeUtils, HrEmpAppointmentMapper hrEmpAppointmentMapper) {
+    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataApi, @Qualifier("com.crrc.client.SysServerClient") SysServerClient sysServerClient, DictTypeUtils dictTypeUtils, HrEmpAppointmentMapper hrEmpAppointmentMapper, DictUtils dictUtils) {
         this.hrEmpBasicMapper = hrEmpBasicMapper;
         this.hrEmpEducationMapper = hrEmpEducationMapper;
         this.hrEmpSchoolInfoService = hrEmpSchoolInfoService;
@@ -96,6 +99,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         this.sysServerClient = sysServerClient;
         this.dictTypeUtils = dictTypeUtils;
         this.hrEmpAppointmentMapper = hrEmpAppointmentMapper;
+        this.dictUtils = dictUtils;
     }
 
     // 模糊分页查询，用于给考勤打卡系统按姓名或档案号模糊查询
@@ -262,6 +266,23 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 //                    .collect(Collectors.toSet()));
 
             String orgCode = getCurrentUserOrgCode();
+
+            // 查找字典数据
+            DictVO dict = dictUtils.get("human_resource_audit_config");
+            // 这里itemName是deptCode，itemCode是userCode
+            List<DictItemVO> items = dict.getItems();
+            // 查找当前人员是否是特殊配置的信息管理人
+            String currentUserCode = SecurityFrameworkUtils.getLoginUser().getUser().getJobNo();
+            Map<String, String> userCodeOrgCodeMap = items.stream().collect(Collectors.toMap(
+                    DictItemVO::getItemCode,
+                    DictItemVO::getItemName
+            ));
+
+            // 如果是字典中特殊配置的信息管理人，说明该人员管理的非本部门信息，需要将orgCode改为实际管理的部门的code
+            if(userCodeOrgCodeMap.containsKey(currentUserCode)) {
+                orgCode = userCodeOrgCodeMap.get(currentUserCode);
+            }
+
             // 获得当前人员的orgCode，并获得其可查询的Tree结构
             // 获取所有的组织数据
             ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
@@ -269,7 +290,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
             }
             List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+            // 获取orgCode的所有儿子节点
             List<OrganizationTreeDTO> childrenOrgList = Collections.emptyList();
+
             // 如果是子公司级别管理员
             if(RoleUtils.checkAnyMatch("hrsc_sub_emp_info_mgr")) {
                 // 根据orgCode匹配公司及其下级部门能否有匹配项，如果包含，则获得其展平后的List（包含所有部门Code）
@@ -283,7 +306,8 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             if(RoleUtils.checkAnyMatch("hrsc_dept_emp_info_mgr")) {
                 Optional<OrganizationTreeDTO> nodeBfs = Optional.empty();
                 for (OrganizationTreeDTO root : data) {
-                    nodeBfs = TreeUtils.findNodeBfs(root, n -> orgCode.equals(n.getOrgCode()), OrganizationTreeDTO::getChildren);
+                    String finalOrgCode = orgCode;
+                    nodeBfs = TreeUtils.findNodeBfs(root, n -> finalOrgCode.equals(n.getOrgCode()), OrganizationTreeDTO::getChildren);
                     if (nodeBfs.isPresent()) {
                         break;
                     }
