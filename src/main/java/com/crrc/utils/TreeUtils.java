@@ -1,5 +1,7 @@
 package com.crrc.utils;
 
+import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
+
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -138,6 +140,49 @@ public final class TreeUtils {
         }
 
         return roots;
+    }
+
+    /**
+     * 获得目标节点的所有祖先节点，顺序：root -> ... -> parent
+     * @param root 查询的树根
+     * @param matcher Predicate条件(判定节点是否为目标节点的方法)，例如: node.getId().equals(123L)
+     * @param childrenGetter 获取树节点中儿子列表的方法
+     * @return 所有包含的parents列表
+     */
+    public static <T> Optional<List<T>> findParents(T root, Predicate<T> matcher, Function<T, List<T>> childrenGetter) {
+        if(root == null || matcher == null) {
+            return Optional.empty();
+        }
+
+        Deque<T> path = new ArrayDeque<>(); // 保存当前 DFS 路径上的祖先（不含目标节点）
+        List<T> result = new ArrayList<>();
+
+        boolean found = dfsFindAncestors(root, matcher, childrenGetter, path, result);
+        return found ? Optional.of(result) : Optional.empty();
+    }
+
+    // DFS：path 里始终保存 “当前节点的祖先链（含当前节点）”，但在命中目标时不把目标加入 path
+    private static <T> boolean dfsFindAncestors(T current, Predicate<T> matcher, Function<T, List<T>> childrenGetter, Deque<T> path, List<T> result) {
+        if (current == null) return false;
+
+        // 命中目标：此时 path 就是所有祖先（不含目标）
+        if (matcher.test(current)) {
+            result.addAll(path);
+            return true;
+        }
+
+        // 当前节点作为后续子树目标的祖先，先入栈
+        path.addLast(current);
+
+        for (T child : childrenGetter.apply(current)) {
+            if (dfsFindAncestors(child, matcher, childrenGetter, path, result)) {
+                return true; // 已找到目标，直接结束
+            }
+        }
+
+        // 回溯
+        path.removeLast();
+        return false;
     }
 
     /**

@@ -5,10 +5,9 @@ import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
 import com.crrc.client.SysServerClient;
 import com.crrc.common.ResultData;
-import com.crrc.entity.dto.CompanyDTO;
-import com.crrc.entity.dto.DeptDTO;
-import com.crrc.entity.dto.DictItemReqDTO;
-import com.crrc.entity.dto.ResponseResultDTO;
+import com.crrc.entity.dict.vo.DictItemVO;
+import com.crrc.entity.dict.vo.DictVO;
+import com.crrc.entity.dto.*;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
@@ -19,11 +18,13 @@ import com.crrc.pojo.dto.SysUserDTO;
 import com.crrc.pojo.dto.SysUserRequestDTO;
 import com.crrc.service.impl.HrEmpBasicServiceImpl;
 import com.crrc.utils.DictTypeUtils;
+import com.crrc.utils.DictUtils;
 import com.crrc.utils.TreeUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
@@ -60,6 +61,10 @@ public class HrEmpFlowableController {
     private HrEmpBasicServiceImpl hrEmpBasicService;
     @Autowired
     private WkDataAPi wkDataAPi;
+    @Autowired
+    private DictUtils dictUtils;
+    @Autowired
+    private WkCoreAPi wkCoreAPi;
 
     private final static Long HRSC_SUB_EMP_INFO_MGR_ROLE_ID = 449259816650117120L;
 
@@ -81,6 +86,43 @@ public class HrEmpFlowableController {
             return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "companyCode不能为空");
         }
         List<SysUserDTO> result = new ArrayList<>();
+        // 查找字典数据
+        DictVO dict = dictUtils.get("human_resource_audit_config");
+
+        // 获取所有的组织数据
+        ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
+        if (listResponseResultDTO == null || org.apache.commons.lang3.ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+            throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
+        }
+        List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+
+        // 获取包含deptCode的所有父节点
+        Optional<List<OrganizationTreeDTO>> parents = Optional.empty();
+        for(OrganizationTreeDTO dto : data) {
+            parents = TreeUtils.findParents(dto, e -> deptCode.equals(e.getOrgCode()), OrganizationTreeDTO::getChildren);
+            if(parents.isPresent()) {
+                break;
+            }
+        }
+
+        Set<String> parentOrgCode = parents.get().stream().map(OrganizationTreeDTO::getOrgCode).collect(Collectors.toSet());
+
+        // 这里itemName是deptCode，itemCode是userCode
+        List<DictItemVO> auditList = dict.getItems().stream().filter(e -> parentOrgCode.contains(e.getItemName())).collect(Collectors.toList());
+        if(!ObjectUtils.isEmpty(auditList)) {
+            // 添加所有的字典审批人
+            List<UserListDTO> list = wkCoreAPi.getUserListByUserName(auditList.stream().map(DictItemVO::getItemCode).collect(Collectors.toList()));
+            result.addAll(list.stream().map(e -> {
+                SysUserDTO sysUserDTO = new SysUserDTO();
+                sysUserDTO.setUserId(e.getId());
+                sysUserDTO.setUserName(e.getUserName());
+                sysUserDTO.setFullName(e.getNickName());
+                return sysUserDTO;
+            }).collect(Collectors.toList()));
+        }
+
+        Set<String> auditUserCodeList = auditList.stream().map(DictItemVO::getItemCode).collect(Collectors.toSet());
+
         // 如果是子公司人员信息管理
         if("hrsc_sub_emp_info_mgr".equals(roleCode)) {
             ResultData<List<SysUserDTO>> resultData = sysServerClient.findUserByRoleId(HRSC_SUB_EMP_INFO_MGR_ROLE_ID);
@@ -89,14 +131,11 @@ public class HrEmpFlowableController {
             }
 
             List<SysUserDTO> userByRoleId = resultData.getResult();
-            List<String> userCodeList = userByRoleId.stream().map(SysUserDTO::getUserName).collect(Collectors.toList());
+
+            // 排除在字典中配置过的人员
+            List<String> userCodeList = userByRoleId.stream().map(SysUserDTO::getUserName).filter(userName -> !auditUserCodeList.contains(userName)).collect(Collectors.toList());
             List<HrEmpBasicDTO> hrEmpBasicDTOList = hrEmpBasicService.selectMsgList(userCodeList);
-            // 获取所有的组织数据
-            ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
-            if (listResponseResultDTO == null || org.apache.commons.lang3.ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
-                throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
-            }
-            List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+
             Set<String> childrenOrgSet = Collections.emptySet();
             for(OrganizationTreeDTO root : data) {
                 // 获得该子公司展平的所有部门
@@ -111,8 +150,9 @@ public class HrEmpFlowableController {
                     e -> finalChildrenOrgSet.contains(e.getDept())
             ).map(HrEmpBasicDTO::getUserCode).collect(Collectors.toSet());
 
-            result = userByRoleId.stream().filter(e -> userCodeSet.contains(e.getUserName())).collect(Collectors.toList());
+            result.addAll(userByRoleId.stream().filter(e -> userCodeSet.contains(e.getUserName())).collect(Collectors.toList()));
         }
+
         // 如果是部门人员信息管理
         if("hrsc_dept_emp_info_mgr".equals(roleCode)) {
             ResultData<List<SysUserDTO>> resultData = sysServerClient.findUserByRoleId(HRSC_DEPT_EMP_INFO_MGR_ROLE_ID);
@@ -121,13 +161,14 @@ public class HrEmpFlowableController {
             }
 
             List<SysUserDTO> userByRoleId = resultData.getResult();
-            List<String> userCodeList = userByRoleId.stream().map(SysUserDTO::getUserName).collect(Collectors.toList());
+            // 排除在字典中配置过的人员
+            List<String> userCodeList = userByRoleId.stream().map(SysUserDTO::getUserName).filter(userName -> !auditUserCodeList.contains(userName)).collect(Collectors.toList());
             List<HrEmpBasicDTO> hrEmpBasicDTOList = hrEmpBasicService.selectMsgList(userCodeList);
             Set<String> userCodeSet = hrEmpBasicDTOList.stream().filter(
                     e -> deptCode.equals(e.getDept())
             ).map(HrEmpBasicDTO::getUserCode).collect(Collectors.toSet());
 
-            result = userByRoleId.stream().filter(e -> userCodeSet.contains(e.getUserName())).collect(Collectors.toList());
+            result.addAll(userByRoleId.stream().filter(e -> userCodeSet.contains(e.getUserName())).collect(Collectors.toList()));
         }
 
 //        sysUserRequestDTO.setRoleCode(roleCode);
