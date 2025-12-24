@@ -457,6 +457,14 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             // 3. 查询关联子表数据
             SubTableData subData = querySubTableData(userCode);
 
+            // 处理是否可编辑
+            if(RoleUtils.checkAnyMatch("hrsc_super_admin")) {
+                result.get(0).setIsEditable("1");
+            } else {
+                String userName = SecurityFrameworkUtils.getLoginUser().getUser().getJobNo();
+                result.get(0).setIsEditable(result.get(0).getUserCode().equals(userName) ? "1" : "0");
+            }
+
             // 4. 处理子表数据（当所有子表数据唯一时）
             if (subData.isAllUnique()) {
                 mergeSubTableData(result.get(0), subData);
@@ -901,6 +909,14 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
             // 查询关联子表数据
             Map<String, SubTableData> stringSubTableDataMap = querySubTableDataList(userCodeList);
+
+            if(RoleUtils.checkAnyMatch("hrsc_super_admin")) {
+                resultList.forEach(result -> result.setIsEditable("1"));
+            } else {
+                String userName = SecurityFrameworkUtils.getLoginUser().getUser().getJobNo();
+                resultList.forEach(result -> result.setIsEditable(result.getUserCode().equals(userName) ? "1" : "0"));
+            }
+
             resultList.forEach(result -> {
                 // 3. 查询关联子表数据
                 SubTableData subData = stringSubTableDataMap.get(result.getUserCode());

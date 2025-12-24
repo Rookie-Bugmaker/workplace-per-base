@@ -80,4 +80,7 @@ public class HrEmpBasicDTO extends HrEmpBasic {
     @Schema(description = "职位")
     private String position;
 
+    @Schema(description = "是否可编辑")
+    private String isEditable;
+
 }
