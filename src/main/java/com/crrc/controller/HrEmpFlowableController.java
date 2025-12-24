@@ -5,6 +5,7 @@ import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
 import com.crrc.client.SysServerClient;
 import com.crrc.common.ResultData;
+import com.crrc.entity.CodeInfo;
 import com.crrc.entity.dict.vo.DictItemVO;
 import com.crrc.entity.dict.vo.DictVO;
 import com.crrc.entity.dto.*;
@@ -16,6 +17,7 @@ import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.SysDeptPersonDTO;
 import com.crrc.pojo.dto.SysUserDTO;
 import com.crrc.pojo.dto.SysUserRequestDTO;
+import com.crrc.service.impl.CodeInfoServiceImpl;
 import com.crrc.service.impl.HrEmpBasicServiceImpl;
 import com.crrc.utils.DictTypeUtils;
 import com.crrc.utils.DictUtils;
@@ -62,7 +64,7 @@ public class HrEmpFlowableController {
     @Autowired
     private WkDataAPi wkDataAPi;
     @Autowired
-    private DictUtils dictUtils;
+    private CodeInfoServiceImpl codeInfoService;
     @Autowired
     private WkCoreAPi wkCoreAPi;
 
@@ -87,7 +89,7 @@ public class HrEmpFlowableController {
         }
         List<SysUserDTO> result = new ArrayList<>();
         // 查找字典中配置的跨部门审批人的数据
-        DictVO dict = dictUtils.get("human_resource_audit_config");
+        List<CodeInfo> codeInfoList = codeInfoService.getCodeInfoList("hr_emp_basic", "info_manager");
 
         // 获取所有的组织数据
         ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
@@ -109,10 +111,10 @@ public class HrEmpFlowableController {
 
         // 由于业务要求，要求非本部门的人能够担任本部门的人事员，故有字典配置项
         // 这里itemName是deptCode，itemCode是userCode
-        List<DictItemVO> auditList = dict.getItems().stream().filter(e -> parentOrgCodeSet.contains(e.getItemName())).collect(Collectors.toList());
+        List<CodeInfo> auditList = codeInfoList.stream().filter(e -> parentOrgCodeSet.contains(e.getCode())).collect(Collectors.toList());
         if(!ObjectUtils.isEmpty(auditList)) {
             // 添加所有的字典审批人
-            List<UserListDTO> list = wkCoreAPi.getUserListByUserName(auditList.stream().map(DictItemVO::getItemCode).collect(Collectors.toList()));
+            List<UserListDTO> list = wkCoreAPi.getUserListByUserName(auditList.stream().map(CodeInfo::getCodeValue).collect(Collectors.toList()));
             result.addAll(list.stream().map(e -> {
                 SysUserDTO sysUserDTO = new SysUserDTO();
                 sysUserDTO.setUserId(e.getId());
@@ -122,7 +124,7 @@ public class HrEmpFlowableController {
             }).collect(Collectors.toList()));
         }
 
-        Set<String> auditUserCodeList = auditList.stream().map(DictItemVO::getItemCode).collect(Collectors.toSet());
+        Set<String> auditUserCodeList = auditList.stream().map(CodeInfo::getCodeValue).collect(Collectors.toSet());
 
         // 如果是子公司人员信息管理
         if("hrsc_sub_emp_info_mgr".equals(roleCode)) {
