@@ -42,7 +42,7 @@ public class PositionSetupApplicationServiceImpl extends WorkServiceImpl<Positio
     public WorkflowUserPageDTO findApproval(Integer page, Integer pageSize) {
         WorkflowUserPageDTO pageDTO = new WorkflowUserPageDTO();
         // TODO: 替换为真正的审批人查询逻辑
-        ResultData<List<SysUserDTO>> resultData = sysServerClient.findUserByRoleCode(WMRZ_AUDIT_ROLE_ID);
+        ResultData<List<SysUserDTO>> resultData = sysServerClient.findUserByRoleId(WMRZ_AUDIT_ROLE_ID);
         if(resultData == null || ObjectUtils.isEmpty(resultData.getResult())) {
             throw new IllegalArgumentException("审批人查询为空!");
         }
