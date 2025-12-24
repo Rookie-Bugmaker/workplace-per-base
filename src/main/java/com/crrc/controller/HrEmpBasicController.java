@@ -10,11 +10,15 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.api.WkCoreAPi;
+import com.crrc.api.WkDataAPi;
 import com.crrc.api.WkWorkflowApi;
 import com.crrc.client.UserProfileImageClient;
 import com.crrc.entity.*;
 import com.crrc.entity.dto.ProcessInstanceVo;
+import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.StartProcessInstanceDTO;
+import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.entity.dto.response.ResultData;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
@@ -102,6 +106,8 @@ public class HrEmpBasicController {
     private UserProfileImageClient userProfileImageClient;
     @Autowired
     private MinIOUtils minioUtils;
+    @Autowired
+    private WkDataAPi wkDataAPi;
 
     @GetMapping("/isAvailable")
     @Operation(summary = "就绪探针")
@@ -199,9 +205,9 @@ public class HrEmpBasicController {
         // 上传到minIO
         String profilePicture = minioUtils.saveFile(imageFile);
 
-        boolean flag = RoleUtils.check("人力资源部-招聘管理专员");
+        boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
         if (flag) {
-            log.info("权限校验通过，用户拥有'人力资源部-招聘管理专员'角色，直接进行更新");
+            log.info("权限校验通过，用户拥有'公司超级管理员'角色，直接进行更新");
             try{
                 // 构建更新条件
                 MPJLambdaWrapper<HrEmpBasic> updateWrapper = new MPJLambdaWrapper<>();
@@ -223,7 +229,7 @@ public class HrEmpBasicController {
                 log.warn("权限校验成功，但直接更新失败，尝试走审批流", e);
             }
         }
-        log.warn("权限校验失败，用户缺少'人力资源部-招聘管理专员'角色");
+        log.warn("权限校验失败，用户缺少'公司超级管理员'角色");
 
         try{
             // 1. 获取当前数据快照
@@ -270,16 +276,37 @@ public class HrEmpBasicController {
                 throw new IllegalArgumentException("获取用户工号失败，工号为空");
             }
 
-            String dept = hrEmpBasicService.getDept(loginUser.getUser().getJobNo());
-            Optional<Long> deptId = DeptUtils.getDeptIdByCode(dept);
-            if(!deptId.isPresent()) {
+            String deptCode = hrEmpBasicService.getDept(loginUser.getUser().getJobNo());
+
+            if(StringUtils.isBlank(deptCode)) {
                 log.error("获取用户部门失败，部门查询错误，工号:" + loginUser.getUser().getJobNo());
                 throw new IllegalArgumentException("获取用户部门失败，部门查询错误");
             }
 
-            formData.put("deptId", deptId.get());
+
+            formData.put("deptCode", deptCode);
             formData.put("type","pic");
-            formData.put("roleCode", "hrsc_audit");
+            // 如果是子公司的，则PUT子公司管理员，反之PUT部门管理员
+            // 获取全部部门信息
+            // 获取所有的组织数据
+            ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
+            if (listResponseResultDTO == null || org.apache.commons.lang3.ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+                throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
+            }
+            List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+            String parentCode = null;
+            for(OrganizationTreeDTO root : data) {
+                if (TreeUtils.containsBfs(root, n -> StringUtils.equals(deptCode, n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
+                    parentCode = root.getOrgCode();
+                    break;
+                }
+            }
+            formData.put("companyCode", parentCode);
+            if(StringUtils.isNotBlank(parentCode) && parentCode.equals("0132")) {
+                formData.put("roleCode", "hrsc_dept_emp_info_mgr");
+            } else {
+                formData.put("roleCode", "hrsc_sub_emp_info_mgr");
+            }
 
             formData.put("Pic",MyUtils.convertToMapList(changeReqVO));
             instanceDTO.setFormData(formData);
@@ -701,7 +728,9 @@ public class HrEmpBasicController {
     @AuditLog(value = "获得员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<List<HrEmpBasicDTO>> getMsg(@RequestParam String userCode) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工基本信息表实体成功", hrEmpBasicService.selectMsg(userCode));
+        List<HrEmpBasicDTO> hrEmpBasicDTOS = hrEmpBasicService.selectMsg(userCode);
+        hrEmpBasicService.resolveFields(hrEmpBasicDTOS);
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工基本信息表实体成功", hrEmpBasicDTOS);
     }
 
     @PostMapping("/getDetailList")
@@ -709,7 +738,9 @@ public class HrEmpBasicController {
     @AuditLog(value = "获得员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<List<HrEmpBasicDTO>> getMsgList(@RequestBody List<String> userCodeList) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工基本信息表实体成功", hrEmpBasicService.selectMsgList(userCodeList));
+        List<HrEmpBasicDTO> hrEmpBasicDTOS = hrEmpBasicService.selectMsgList(userCodeList);
+        hrEmpBasicService.resolveFieldsList(hrEmpBasicDTOS);
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工基本信息表实体成功", hrEmpBasicDTOS);
     }
 
     @PostMapping("/page")
@@ -786,17 +817,17 @@ public class HrEmpBasicController {
             changeReqVO.setDept(null);
             changeReqVO.setOrgCode(null);
 
-            boolean flag = RoleUtils.check("人力资源部-招聘管理专员");
+            boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
             if (flag) {
-                log.info("权限校验通过，用户拥有'人力资源部-招聘管理专员'角色，直接进行更新");
-                try{
+                log.info("权限校验通过，用户拥有'公司超级管理员'角色，直接进行更新");
+                try {
                     updateHrEmpBasic(changeReqVO).getData();
                     return new ResponseResult<>(HttpStatus.OK.value(), "直接更新成功!");
                 } catch (Exception e){
                     log.warn("权限校验成功，但直接更新失败，尝试走审批流");
                 }
             }
-            log.warn("权限校验失败，用户缺少'人力资源部-招聘管理专员'角色");
+            log.warn("权限校验失败，用户缺少'公司超级管理员'角色");
 
             // 1. 获取当前数据快照
             HrEmpBasicDTO originalData = hrEmpBasicService.selectMsg(changeReqVO.getUserCode()).get(0);
@@ -804,6 +835,7 @@ public class HrEmpBasicController {
                 return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "员工信息不存在");
             }
 
+            hrEmpBasicService.resolveFields(originalData);
             // 2. 创建变更申请文档
             HrEmpBasicChangeRequest changeRequest = new HrEmpBasicChangeRequest();
             changeRequest.setId(IdUtil.simpleUUID());
@@ -838,16 +870,36 @@ public class HrEmpBasicController {
                 throw new IllegalArgumentException("获取用户工号失败，工号为空");
             }
 
-            String dept = hrEmpBasicService.getDept(loginUser.getUser().getJobNo());
-            Optional<Long> deptId = DeptUtils.getDeptIdByCode(dept);
-            if(!deptId.isPresent()) {
+            String deptCode = hrEmpBasicService.getDept(loginUser.getUser().getJobNo());
+
+            if(StringUtils.isBlank(deptCode)) {
                 log.error("获取用户部门失败，部门查询错误，工号:" + loginUser.getUser().getJobNo());
                 throw new IllegalArgumentException("获取用户部门失败，部门查询错误");
             }
 
-            formData.put("deptId", deptId.get());
+            formData.put("deptCode", deptCode);
             formData.put("type","basic");
-            formData.put("roleCode", "hrsc_audit");
+            // 如果是子公司的，则PUT子公司管理员，反之PUT部门管理员
+            // 获取全部部门信息
+            // 获取所有的组织数据
+            ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
+            if (listResponseResultDTO == null || org.apache.commons.lang3.ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+                throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
+            }
+            List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+            String parentCode = null;
+            for(OrganizationTreeDTO root : data) {
+                if (TreeUtils.containsBfs(root, n -> StringUtils.equals(deptCode, n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
+                    parentCode = root.getOrgCode();
+                    break;
+                }
+            }
+            formData.put("companyCode", parentCode);
+            if(StringUtils.isNotBlank(parentCode) && parentCode.equals("0132")) {
+                formData.put("roleCode", "hrsc_dept_emp_info_mgr");
+            } else {
+                formData.put("roleCode", "hrsc_sub_emp_info_mgr");
+            }
 
             formData.put("Basic",MyUtils.convertToMapList(changeReqVO));
             instanceDTO.setFormData(formData);

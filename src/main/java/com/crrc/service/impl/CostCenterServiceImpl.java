@@ -88,6 +88,7 @@ public class CostCenterServiceImpl extends WorkServiceImpl<CostCenterMapper, Cos
         List<String> userCodeList = hrEmpBasicService.query(hrEmpBasic).stream().map(HrEmpBasic::getUserCode).collect(Collectors.toList());
         // 根据人员信息查询(带翻译)
         List<HrEmpBasicDTO> query = hrEmpBasicService.selectMsgList(userCodeList);
+        hrEmpBasicService.resolveFieldsList(query);
         return query.stream().map(basic -> {
             HrBasicCostCenterDetailVO hrBasicCostCenterDetailVO = new HrBasicCostCenterDetailVO();
             hrBasicCostCenterDetailVO.setCostCenterCode(costCenter.getCode());

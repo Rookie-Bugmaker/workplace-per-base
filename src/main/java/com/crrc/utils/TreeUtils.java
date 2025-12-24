@@ -197,6 +197,7 @@ public final class TreeUtils {
         if(childrenGetter.apply(root) == null || matcher == null) {
             return Optional.empty();
         }
+
         Queue<T> q = new ArrayDeque<>();
         q.offer(root);
         while(!q.isEmpty()) {
@@ -208,6 +209,7 @@ public final class TreeUtils {
                 q.offer(c);
             }
         }
+
         return Optional.empty();
     }
 }
