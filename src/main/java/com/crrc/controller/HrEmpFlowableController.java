@@ -105,10 +105,10 @@ public class HrEmpFlowableController {
             }
         }
 
-        Set<String> parentOrgCode = parents.get().stream().map(OrganizationTreeDTO::getOrgCode).collect(Collectors.toSet());
+        Set<String> parentOrgCodeSet = parents.get().stream().map(OrganizationTreeDTO::getOrgCode).collect(Collectors.toSet());
 
         // 这里itemName是deptCode，itemCode是userCode
-        List<DictItemVO> auditList = dict.getItems().stream().filter(e -> parentOrgCode.contains(e.getItemName())).collect(Collectors.toList());
+        List<DictItemVO> auditList = dict.getItems().stream().filter(e -> parentOrgCodeSet.contains(e.getItemName())).collect(Collectors.toList());
         if(!ObjectUtils.isEmpty(auditList)) {
             // 添加所有的字典审批人
             List<UserListDTO> list = wkCoreAPi.getUserListByUserName(auditList.stream().map(DictItemVO::getItemCode).collect(Collectors.toList()));
@@ -134,20 +134,12 @@ public class HrEmpFlowableController {
 
             // 排除在字典中配置过的人员
             List<String> userCodeList = userByRoleId.stream().map(SysUserDTO::getUserName).filter(userName -> !auditUserCodeList.contains(userName)).collect(Collectors.toList());
+
             List<HrEmpBasicDTO> hrEmpBasicDTOList = hrEmpBasicService.selectMsgList(userCodeList);
 
-            Set<String> childrenOrgSet = Collections.emptySet();
-            for(OrganizationTreeDTO root : data) {
-                // 获得该子公司展平的所有部门
-                if (TreeUtils.containsBfs(root, n -> StringUtils.equals(deptCode, n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
-                    childrenOrgSet = TreeUtils.flattenDescendants(root, OrganizationTreeDTO::getChildren, true).stream().map(OrganizationTreeDTO::getOrgCode).collect(Collectors.toSet());
-                }
-            }
-
             // 筛选部门在其中的所有人员
-            Set<String> finalChildrenOrgSet = childrenOrgSet;
             Set<String> userCodeSet = hrEmpBasicDTOList.stream().filter(
-                    e -> finalChildrenOrgSet.contains(e.getDept())
+                    e -> parentOrgCodeSet.contains(e.getDept())
             ).map(HrEmpBasicDTO::getUserCode).collect(Collectors.toSet());
 
             result.addAll(userByRoleId.stream().filter(e -> userCodeSet.contains(e.getUserName())).collect(Collectors.toList()));
@@ -163,9 +155,11 @@ public class HrEmpFlowableController {
             List<SysUserDTO> userByRoleId = resultData.getResult();
             // 排除在字典中配置过的人员
             List<String> userCodeList = userByRoleId.stream().map(SysUserDTO::getUserName).filter(userName -> !auditUserCodeList.contains(userName)).collect(Collectors.toList());
+
             List<HrEmpBasicDTO> hrEmpBasicDTOList = hrEmpBasicService.selectMsgList(userCodeList);
+
             Set<String> userCodeSet = hrEmpBasicDTOList.stream().filter(
-                    e -> deptCode.equals(e.getDept())
+                e -> parentOrgCodeSet.contains(e.getDept())
             ).map(HrEmpBasicDTO::getUserCode).collect(Collectors.toSet());
 
             result.addAll(userByRoleId.stream().filter(e -> userCodeSet.contains(e.getUserName())).collect(Collectors.toList()));
