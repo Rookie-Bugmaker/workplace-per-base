@@ -4,6 +4,7 @@ package com.crrc.controller;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
 import com.crrc.annotation.IgnoreTenant;
 import com.crrc.entity.*;
@@ -18,6 +19,7 @@ import com.crrc.utils.MinIOUtils;
 import com.crrc.utils.SystemConstants;
 import com.crrc.utils.UpdateWrapperUtils;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
@@ -440,5 +443,25 @@ public class ExternalController {
         queryWrapper.eq(HrEmpBasic::getUserCode, userCode);
         HrEmpBasic hrEmpBasic = hrEmpBasicService.getBaseMapper().selectOne(queryWrapper);
         minioUtils.getFile(hrEmpBasic.getAttendanceImageId(), response);
+    }
+
+    @PostMapping("/pageForPerSelf")
+    @Operation(summary = "获取员工基本信息表列表(支持模糊查询)")
+    @AuditLog(value = "获取员工基本信息表列表(模糊查询)", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
+    @Parameter(name = "pageNo", description = "页码", example = "1")
+    @Parameter(name = "pageSize", description = "条数", example = "10")
+    public ResponseResult<Page<HrEmpBasic>> pageForPerSelf(@Validated @RequestBody(required = false) HrEmpBasic pageReqVO,
+                                                           @RequestParam(required = false, defaultValue = "1") int pageNo,
+                                                           @RequestParam(required = false, defaultValue = "10") int pageSize) {
+        pageReqVO = (pageReqVO == null) ? new HrEmpBasic() : pageReqVO;
+        try {
+            Page<HrEmpBasic> page = new Page<>(pageNo, pageSize);
+            // 在service层实现模糊查询逻辑
+            Page<HrEmpBasic> result = hrEmpBasicService.queryFuzzy(page, pageReqVO);
+            return ResponseResult.success(result);
+        } catch (Exception e) {
+            return ResponseResult.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), "查询异常: " + e.getMessage());
+        }
     }
 }
