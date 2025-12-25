@@ -488,12 +488,19 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             SubTableData subData = querySubTableData(userCode);
 
             // 处理是否可编辑
+            // 超管均可编辑
             if(RoleUtils.checkAnyMatch("hrsc_super_admin")) {
                 result.get(0).setIsEditable("1");
+            } else if(RoleUtils.checkAnyMatch("hrsc_emp_non_inc_info_mgr")) {
+                // 如果是非在职管理员，那么可编辑非在职数据
+                String userName = SecurityFrameworkUtils.getLoginUser().getUser().getJobNo();
+                result.get(0).setIsEditable(result.get(0).getUserCode().equals(userName) || "0".equals(result.get(0).getIsEmployed()) ? "1" : "0");
             } else {
                 String userName = SecurityFrameworkUtils.getLoginUser().getUser().getJobNo();
                 result.get(0).setIsEditable(result.get(0).getUserCode().equals(userName) ? "1" : "0");
             }
+
+
 
             // 4. 处理子表数据（当所有子表数据唯一时）
             if (subData.isAllUnique()) {
