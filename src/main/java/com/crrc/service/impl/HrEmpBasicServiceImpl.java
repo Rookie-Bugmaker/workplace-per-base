@@ -9,6 +9,8 @@ import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
 import com.crrc.client.SysServerClient;
 import com.crrc.entity.*;
+import com.crrc.entity.dict.vo.DictItemVO;
+import com.crrc.entity.dict.vo.DictVO;
 import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
@@ -75,15 +77,18 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
     private static final String DEGREE_TYPE_NAME = "EDU_DEGREE";
 
+    private static final String INFO_MANAGER_TYPE_NAME = "info_manager";
+
     private final WkDataAPi wkDataAPi;
 
     private final SysServerClient sysServerClient;
 
     private final DictTypeUtils dictTypeUtils;
     private final HrEmpAppointmentMapper hrEmpAppointmentMapper;
+    private final DictUtils dictUtils;
 
     @Autowired
-    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataApi, @Qualifier("com.crrc.client.SysServerClient") SysServerClient sysServerClient, DictTypeUtils dictTypeUtils, HrEmpAppointmentMapper hrEmpAppointmentMapper) {
+    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataApi, @Qualifier("com.crrc.client.SysServerClient") SysServerClient sysServerClient, DictTypeUtils dictTypeUtils, HrEmpAppointmentMapper hrEmpAppointmentMapper, DictUtils dictUtils) {
         this.hrEmpBasicMapper = hrEmpBasicMapper;
         this.hrEmpEducationMapper = hrEmpEducationMapper;
         this.hrEmpSchoolInfoService = hrEmpSchoolInfoService;
@@ -96,6 +101,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         this.sysServerClient = sysServerClient;
         this.dictTypeUtils = dictTypeUtils;
         this.hrEmpAppointmentMapper = hrEmpAppointmentMapper;
+        this.dictUtils = dictUtils;
     }
 
     // 模糊分页查询，用于给考勤打卡系统按姓名或档案号模糊查询
@@ -262,39 +268,63 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 //                    .collect(Collectors.toSet()));
 
             String orgCode = getCurrentUserOrgCode();
-            // 获得当前人员的orgCode，并获得其可查询的Tree结构
-            // 获取所有的组织数据
-            ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
-            if (listResponseResultDTO == null || ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
-                throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
-            }
-            List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
-            List<OrganizationTreeDTO> childrenOrgList = Collections.emptyList();
-            // 如果是子公司级别管理员
-            if(RoleUtils.checkAnyMatch("hrsc_sub_emp_info_mgr")) {
-                // 根据orgCode匹配公司及其下级部门能否有匹配项，如果包含，则获得其展平后的List（包含所有部门Code）
-                childrenOrgList = findParentAndFlattenList(data, orgCode);
-                if (childrenOrgList == null || childrenOrgList.isEmpty()) {
-                    throw new IllegalArgumentException("获取公司失败，公司匹配错误，orgCode:" + orgCode);
-                }
-            }
 
-            // 如果是部门级别管理员
-            if(RoleUtils.checkAnyMatch("hrsc_dept_emp_info_mgr")) {
-                Optional<OrganizationTreeDTO> nodeBfs = Optional.empty();
-                for (OrganizationTreeDTO root : data) {
-                    nodeBfs = TreeUtils.findNodeBfs(root, n -> orgCode.equals(n.getOrgCode()), OrganizationTreeDTO::getChildren);
-                    if (nodeBfs.isPresent()) {
-                        break;
+            // 查找字典数据
+            // 这里code是deptCode，codeValue是userCode，orgCode和deptCode完全一致，都指部门编码，如流程与数字化部 01320103
+            List<CodeInfo> items = codeInfoService.getCodeInfoList(TABLE_NAME, INFO_MANAGER_TYPE_NAME);
+
+            // 查找当前人员是否是特殊配置的信息管理人
+            String currentUserCode = SecurityFrameworkUtils.getLoginUser().getUser().getJobNo();
+            Set<String> managerOrgCodes = items.stream().filter(e -> e.getCodeValue().equals(currentUserCode)).map(CodeInfo::getCode).collect(Collectors.toSet());
+
+            List<OrganizationTreeDTO> childrenOrgList = new ArrayList<>();
+            ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
+            List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+
+            // 如果是字典中特殊配置的信息管理人，说明该人员管理的非本部门信息，同时，有可能管理多个部门的信息，那么后面就不需要判断了
+            if(!managerOrgCodes.isEmpty()) {
+                for (String manageOrgCode : managerOrgCodes) {
+                    // 后面只用到了childrenOrgList中每一项的orgCode字段
+                    for (OrganizationTreeDTO root : data) {
+                        Optional<OrganizationTreeDTO> nodeBfs = TreeUtils.findNodeBfs(root, n -> manageOrgCode.equals(n.getOrgCode()), OrganizationTreeDTO::getChildren);
+                        // 根据orgCode匹配其下级部门，并获得其展平后的List（包含所有部门Code）
+                        nodeBfs.ifPresent(organizationTreeDTO -> childrenOrgList.addAll(TreeUtils.flattenDescendants(organizationTreeDTO, OrganizationTreeDTO::getChildren, true)));
+                    }
+                }
+            } else {
+                // 如果字典里没有配置，说明是正常情况，该人员管理自己部门的信息
+                // 获得当前人员的orgCode，并获得其可查询的Tree结构
+                // 获取所有的组织数据
+                if (ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+                    throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
+                }
+
+                // 如果是子公司级别管理员
+                if(RoleUtils.checkAnyMatch("hrsc_sub_emp_info_mgr")) {
+                    // 根据orgCode匹配公司及其下级部门能否有匹配项，如果包含，则获得其展平后的List（包含所有部门Code）
+                    childrenOrgList.addAll(findParentAndFlattenList(data, orgCode));
+                    if (childrenOrgList.isEmpty()) {
+                        throw new IllegalArgumentException("获取公司失败，公司匹配错误，orgCode:" + orgCode);
                     }
                 }
 
-                // 根据orgCode匹配其下级部门，并获得其展平后的List（包含所有部门Code）
-                childrenOrgList = TreeUtils.flattenDescendants(nodeBfs.get(), OrganizationTreeDTO::getChildren, true);
-            }
+                // 如果是部门级别管理员
+                if(RoleUtils.checkAnyMatch("hrsc_dept_emp_info_mgr")) {
+                    Optional<OrganizationTreeDTO> nodeBfs = Optional.empty();
+                    for (OrganizationTreeDTO root : data) {
+                        nodeBfs = TreeUtils.findNodeBfs(root, n -> orgCode.equals(n.getOrgCode()), OrganizationTreeDTO::getChildren);
+                        if (nodeBfs.isPresent()) {
+                            break;
+                        }
+                    }
 
-            if (childrenOrgList.isEmpty()) {
-                throw new IllegalArgumentException("获取公司失败，公司匹配错误，orgCode:" + orgCode);
+                    // 根据orgCode匹配其下级部门，并获得其展平后的List（包含所有部门Code）
+                    childrenOrgList.addAll(TreeUtils.flattenDescendants(nodeBfs.get(), OrganizationTreeDTO::getChildren, true));
+                }
+
+                if (childrenOrgList.isEmpty()) {
+                    throw new IllegalArgumentException("获取公司失败，公司匹配错误，orgCode:" + orgCode);
+                }
             }
 
             dto.setDeptSet(childrenOrgList.stream()
@@ -458,12 +488,19 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             SubTableData subData = querySubTableData(userCode);
 
             // 处理是否可编辑
+            // 超管均可编辑
             if(RoleUtils.checkAnyMatch("hrsc_super_admin")) {
                 result.get(0).setIsEditable("1");
+            } else if(RoleUtils.checkAnyMatch("hrsc_emp_non_inc_info_mgr")) {
+                // 如果是非在职管理员，那么可编辑非在职数据
+                String userName = SecurityFrameworkUtils.getLoginUser().getUser().getJobNo();
+                result.get(0).setIsEditable(result.get(0).getUserCode().equals(userName) || "0".equals(result.get(0).getIsEmployed()) ? "1" : "0");
             } else {
                 String userName = SecurityFrameworkUtils.getLoginUser().getUser().getJobNo();
                 result.get(0).setIsEditable(result.get(0).getUserCode().equals(userName) ? "1" : "0");
             }
+
+
 
             // 4. 处理子表数据（当所有子表数据唯一时）
             if (subData.isAllUnique()) {

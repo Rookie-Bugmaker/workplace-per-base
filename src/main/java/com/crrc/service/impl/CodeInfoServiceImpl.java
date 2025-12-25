@@ -2,6 +2,7 @@ package com.crrc.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.crrc.entity.CodeInfo;
+import com.crrc.entity.dict.vo.DictItemVO;
 import com.crrc.mapper.CodeInfoMapper;
 import com.crrc.service.CodeInfoService;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
@@ -68,15 +69,24 @@ public class CodeInfoServiceImpl extends WorkServiceImpl<CodeInfoMapper, CodeInf
      */
     @Override
     public Map<String, String> getTranslateMap(String tableName, String type) {
-        LambdaQueryWrapper<CodeInfo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(CodeInfo::getTableName, tableName);
-        wrapper.eq(CodeInfo::getType, type);
-        List<CodeInfo> codeInfos = this.baseMapper.selectList(wrapper);
+        List<CodeInfo> codeInfos = getCodeInfoList(tableName, type);
 
         return codeInfos.stream().collect(Collectors.toMap(
             CodeInfo::getCode,
             CodeInfo::getCodeValue,
             (a, b) -> a
         ));
+    }
+
+    /**
+     * 获得指定的表中的指定字段的list
+     * @param tableName 表名
+     * @param type      字段名
+     */
+    public List<CodeInfo> getCodeInfoList(String tableName, String type) {
+        LambdaQueryWrapper<CodeInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(CodeInfo::getTableName, tableName);
+        wrapper.eq(CodeInfo::getType, type);
+        return this.baseMapper.selectList(wrapper);
     }
 }
