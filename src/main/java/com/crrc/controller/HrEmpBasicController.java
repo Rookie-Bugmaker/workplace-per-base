@@ -816,10 +816,10 @@ public class HrEmpBasicController {
             // 防止dept被误修改
             changeReqVO.setDept(null);
             changeReqVO.setOrgCode(null);
-
-            boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
+            HrEmpBasic byId = hrEmpBasicService.getById(changeReqVO.getId());
+            boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin") || ("0".equals(byId.getIsEmployed()) && RoleUtils.checkAnyMatch("hrsc_emp_non_inc_info_mgr"));
             if (flag) {
-                log.info("权限校验通过，用户拥有'公司超级管理员'角色，直接进行更新");
+                log.info("权限校验通过，用户拥有'公司超级管理员'或'非在职人员管理'角色，直接进行更新");
                 try {
                     updateHrEmpBasic(changeReqVO).getData();
                     return new ResponseResult<>(HttpStatus.OK.value(), "直接更新成功!");
@@ -827,7 +827,7 @@ public class HrEmpBasicController {
                     log.warn("权限校验成功，但直接更新失败，尝试走审批流");
                 }
             }
-            log.warn("权限校验失败，用户缺少'公司超级管理员'角色");
+            log.warn("权限校验失败，用户缺少'公司超级管理员'或'非在职人员管理'角色");
 
             // 1. 获取当前数据快照
             HrEmpBasicDTO originalData = hrEmpBasicService.selectMsg(changeReqVO.getUserCode()).get(0);
