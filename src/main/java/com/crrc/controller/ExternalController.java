@@ -249,7 +249,7 @@ public class ExternalController {
                     String appointed = booleanTranslateMap.getOrDefault(hrEmpProfessionalQualification.getIsAppointed(), hrEmpProfessionalQualification.getIsAppointed());
                     hrEmpProfessionalQualification.setIsHighest(highest);
                     hrEmpProfessionalQualification.setIsAppointed(appointed);
-                    // 将其他的isHighest置为0
+                    // 如果这里的highest是'1', 将其他的isHighest置为0
                     if("1".equals(hrEmpProfessionalQualification.getIsHighest())) {
                         List<HrEmpProfessionalQualification> hrEmpProfessionalQualifications = hrEmpProfessionalQualificationService.selectMsg(hrEmpProfessionalQualification.getUserCode());
                         List<HrEmpProfessionalQualification> list = hrEmpProfessionalQualifications.stream().filter(e -> "是".equals(e.getIsHighest()) || "1".equals(e.getIsHighest())).collect(Collectors.toList());
