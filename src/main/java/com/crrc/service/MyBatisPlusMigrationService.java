@@ -201,7 +201,7 @@ public class MyBatisPlusMigrationService {
                     querySql = String.format(
                             "WITH ranked_data AS (" +
                                     "    SELECT *, " +
-                                    "           ROW_NUMBER() OVER (PARTITION BY user_code ORDER BY education DESC) AS group_rank " +  // 改为按education排序
+                                    "           ROW_NUMBER() OVER (PARTITION BY user_code ORDER BY CASE WHEN school_entry_date IS NULL THEN 1 ELSE 0 END ASC, school_entry_date DESC, education ASC) AS group_rank " +  // 改为按education排序
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND user_code IS NOT NULL AND education IS NOT NULL" +  // 增加education不为空条件
                                     ") " +
