@@ -521,8 +521,8 @@ public class MyBatisPlusMigrationService {
                 java.util.Collections.nCopies(columns.size(), "?"));
 
         // 查询总数
-        long totalCount = openGaussJdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM " + tableName + " GROUP BY user_code", Long.class);
+        long totalCount = openGaussJdbcTemplate.queryForList(
+                "SELECT COUNT(*) FROM " + tableName + " GROUP BY user_code", Long.class).size();
 
         // Oracle连接
         try (Connection oracleConn = OracleJdbcUtil.getConnection()) {
@@ -634,8 +634,8 @@ public class MyBatisPlusMigrationService {
                 java.util.Collections.nCopies(columns.size(), "?"));
 
         // 查询总数
-        long totalCount = openGaussJdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM " + tableName + " GROUP BY user_code", Long.class);
+        long totalCount = openGaussJdbcTemplate.queryForList(
+                "SELECT COUNT(*) FROM " + tableName + " GROUP BY user_code", Long.class).size();
 
         // Oracle连接
         try (Connection oracleConn = OracleJdbcUtil.getConnection()) {
@@ -747,8 +747,8 @@ public class MyBatisPlusMigrationService {
                 java.util.Collections.nCopies(columns.size(), "?"));
 
         // 查询总数
-        long totalCount = openGaussJdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM " + tableName + " GROUP BY user_code", Long.class);
+        long totalCount = openGaussJdbcTemplate.queryForList(
+                "SELECT COUNT(*) FROM " + tableName + " GROUP BY user_code", Long.class).size();
 
         // Oracle连接
         try (Connection oracleConn = OracleJdbcUtil.getConnection()) {
@@ -860,8 +860,8 @@ public class MyBatisPlusMigrationService {
                 java.util.Collections.nCopies(columns.size(), "?"));
 
         // 查询总数
-        long totalCount = openGaussJdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM " + tableName + " GROUP BY user_code", Long.class);
+        long totalCount = openGaussJdbcTemplate.queryForList(
+                "SELECT COUNT(*) FROM " + tableName + " GROUP BY user_code", Long.class).size();
 
         // Oracle连接
         try (Connection oracleConn = OracleJdbcUtil.getConnection()) {
@@ -973,8 +973,8 @@ public class MyBatisPlusMigrationService {
                 java.util.Collections.nCopies(columns.size(), "?"));
 
         // 查询总数
-        long totalCount = openGaussJdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM " + tableName + " GROUP BY user_code", Long.class);
+        long totalCount = openGaussJdbcTemplate.queryForList(
+                "SELECT COUNT(*) FROM " + tableName + " GROUP BY user_code", Long.class).size();
 
         // Oracle连接
         try (Connection oracleConn = OracleJdbcUtil.getConnection()) {
