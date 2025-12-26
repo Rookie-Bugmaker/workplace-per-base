@@ -1006,7 +1006,7 @@ public class MyBatisPlusMigrationService {
                                     "(PARTITION BY user_code ORDER BY CASE WHEN is_highest IS NULL THEN 1 ELSE 0 END ASC, is_highest DESC, CASE WHEN appointed_start_date IS NULL THEN 1 ELSE 0 END ASC, CASE WHEN get_date IS NULL THEN 1 ELSE 0 END ASC, get_date DESC, CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC) " +
                                     "AS group_rank " +
                                     "    FROM %s " +
-                                    "    WHERE DELETED = '0' AND is_highest = '1' OR is_highest IS NULL AND user_code IS NOT NULL" +
+                                    "    WHERE DELETED = '0' AND (is_highest = '1' OR is_highest IS NULL) AND user_code IS NOT NULL" +
                                     ") " +
                                     "SELECT * FROM ranked_data " +
                                     "WHERE group_rank = 1 " +
@@ -1025,7 +1025,7 @@ public class MyBatisPlusMigrationService {
                                     "(PARTITION BY user_code ORDER BY CASE WHEN is_highest IS NULL THEN 1 ELSE 0 END ASC, is_highest DESC, CASE WHEN appointed_start_date IS NULL THEN 1 ELSE 0 END ASC, CASE WHEN get_date IS NULL THEN 1 ELSE 0 END ASC, get_date DESC, CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC) " +
                                     "AS group_rank " +
                                     "    FROM %s " +
-                                    "    WHERE DELETED = '0' AND is_highest = '1' OR is_highest IS NULL AND user_code IS NOT NULL AND user_code > ?" +
+                                    "    WHERE DELETED = '0' AND (is_highest = '1' OR is_highest IS NULL) AND user_code IS NOT NULL AND user_code > ?" +
                                     ") " +
                                     "SELECT * FROM ranked_data " +
                                     "WHERE group_rank = 1 " +
