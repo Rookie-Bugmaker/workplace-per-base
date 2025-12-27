@@ -345,7 +345,8 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         // 这里的 buildFuzzyConditions 需要只使用 HrEmpBasic 上的字段做条件
         buildFuzzyConditions(basicWrapper, dto);
 
-        basicWrapper.orderByAsc(HrEmpBasic::getUserCode);
+        // 按照是否包含0132排序，这样可以让正常工号显示在前面
+        basicWrapper.last("ORDER BY CASE WHEN user_code LIKE '0132' THEN 0 ELSE 1 END ASC");
 
         IPage<HrEmpBasic> empPage = hrEmpBasicMapper.selectPage(basicPage, basicWrapper);
 
