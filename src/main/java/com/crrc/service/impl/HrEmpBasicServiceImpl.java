@@ -395,7 +395,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         List<HrEmpBasicDTO> dtoList = hrEmpBasicMapper.selectJoinList(HrEmpBasicDTO.class, joinWrapper);
 
         // 翻译部门
-        dtoList.forEach(item -> item.setDepartmentName(item.getDept()));
+        dtoList.forEach(this::resolveDepartmentName);
 
 
         // ========= 4. 组装 IPage<HrEmpBasicDTO>，保持分页信息一致 =========
