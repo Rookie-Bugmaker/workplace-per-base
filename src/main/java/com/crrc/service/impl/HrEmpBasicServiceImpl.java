@@ -394,6 +394,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         // 这里不再分页，因为 userCode 已经是分页后的结果，数据量很小
         List<HrEmpBasicDTO> dtoList = hrEmpBasicMapper.selectJoinList(HrEmpBasicDTO.class, joinWrapper);
 
+        // 翻译部门
+        dtoList.forEach(item -> item.setDepartmentName(item.getDept()));
+
+
         // ========= 4. 组装 IPage<HrEmpBasicDTO>，保持分页信息一致 =========
 
         Page<HrEmpBasicDTO> resultPage = new Page<>(empPage.getCurrent(), empPage.getSize(), empPage.getTotal());
