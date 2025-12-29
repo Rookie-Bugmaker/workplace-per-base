@@ -174,7 +174,7 @@ public class MyBatisPlusMigrationService {
 
         // 查询总数
         long totalCount = openGaussJdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM " + "v_"+tableName, Long.class);
+                "SELECT COUNT(*) FROM " + tableName, Long.class);
 
         // Oracle连接
         try (Connection oracleConn = OracleJdbcUtil.getConnection()) {
@@ -209,7 +209,7 @@ public class MyBatisPlusMigrationService {
                                     "WHERE group_rank <= 2 " +  // 取每组前两条
                                     "ORDER BY user_code " +  // 外层仍按user_code排序保证分页连续性
                                     "LIMIT ?",
-                            "v_"+tableName);
+                            tableName);
                     batchData = openGaussJdbcTemplate.queryForList(querySql, batchSize);
                 } else {
                     // 后续查询
@@ -224,7 +224,7 @@ public class MyBatisPlusMigrationService {
                                     "WHERE group_rank <= 2 " +  // 取每组前两条
                                     "ORDER BY user_code " +  // 外层仍按user_code排序保证分页连续性
                                     "LIMIT ?",
-                            "v_"+tableName);
+                            tableName);
                     batchData = openGaussJdbcTemplate.queryForList(querySql, lastUserCode, batchSize);
                 }
 
