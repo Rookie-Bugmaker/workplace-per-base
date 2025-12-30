@@ -31,7 +31,7 @@ public class MigrationController {
         // 暂无数据
         myBatisPlusMigrationService.migrateEntity(HrEmpBank.class);
         // TODO: 只有一个工号重复了：013252080202
-        myBatisPlusMigrationService.migrateEntity(HrEmpBasic.class);
+        myBatisPlusMigrationService.migrateBasicEntity(HrEmpBasic.class);
         // 已修改，无问题
         myBatisPlusMigrationService.migrateCareerPathEntity(HrEmpCareerPath.class);
         // TODO: 013263021159 013252080202 重复身份证号

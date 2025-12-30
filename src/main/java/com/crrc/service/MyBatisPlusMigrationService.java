@@ -669,8 +669,8 @@ public class MyBatisPlusMigrationService {
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND is_expired = '0' AND user_code IS NOT NULL" +
                                     ") " +
-                                    "SELECT * FROM ranked_data " +
-                                    "WHERE group_rank = 1 " +
+                                    "SELECT ranked_data.id, ranked_data.user_code, CASE WHEN code_value IS NULL THEN path_id ELSE code_value END AS path_id, level_id, level_name, \"hierarchy\", qualification_date, effective_date, expiry_date, is_expired, deleted, ranked_data.create_time, ranked_data.create_by, ranked_data.update_time, ranked_data.update_by, ranked_data.tenant_id, is_updating FROM ranked_data LEFT JOIN code_info ci ON path_id = ci.code " +
+                                    "WHERE group_rank = 1 AND \"type\" = 'CAREER_PATH_ID' or \"type\" IS NULL " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
                             // 不从视图取值
@@ -688,8 +688,8 @@ public class MyBatisPlusMigrationService {
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND is_expired = '0' AND user_code IS NOT NULL AND user_code > ?" +
                                     ") " +
-                                    "SELECT * FROM ranked_data " +
-                                    "WHERE group_rank = 1 " +
+                                    "SELECT ranked_data.id, ranked_data.user_code, CASE WHEN code_value IS NULL THEN path_id ELSE code_value END AS path_id, level_id, level_name, \"hierarchy\", qualification_date, effective_date, expiry_date, is_expired, deleted, ranked_data.create_time, ranked_data.create_by, ranked_data.update_time, ranked_data.update_by, ranked_data.tenant_id, is_updating FROM ranked_data LEFT JOIN code_info ci ON path_id = ci.code " +
+                                    "WHERE group_rank = 1 AND \"type\" = 'CAREER_PATH_ID' or \"type\" IS NULL " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
                             // 不从视图取值
@@ -1058,6 +1058,121 @@ public class MyBatisPlusMigrationService {
                 log.info("表 {} 迁移进度: {}/{} ({}%)",
                         tableName, currentCount, totalCount,
                         String.format("%.2f", currentCount * 100.0 / totalCount));
+            }
+
+            long endTime = System.currentTimeMillis();
+            log.info("表 {} 迁移完成, 共 {} 条记录, 耗时 {} 毫秒",
+                    tableName, migratedCount.get(), (endTime - startTime));
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Oracle数据库操作失败", e);
+        }
+    }
+
+    public void migrateBasicEntity(Class<HrEmpBasic> hrEmpBasicClass) {
+        String tableName = tableUtil.getTableName(hrEmpBasicClass);
+        List<String> columns = tableUtil.getTableColumns(hrEmpBasicClass);
+        String primaryKey = tableUtil.getPrimaryKey(hrEmpBasicClass);
+        columns.add(primaryKey);
+
+        log.info("开始迁移表: " + tableName);
+        log.info("主键列: " + primaryKey);
+        log.info("迁移列: " + String.join(", ", columns));
+
+        long startTime = System.currentTimeMillis();
+
+        String columnStr = String.join(", ", columns);
+        String placeholders = String.join(", ",
+                java.util.Collections.nCopies(columns.size(), "?"));
+
+        // 查询总数
+        long totalCount = openGaussJdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM " + tableName, Long.class);
+
+        // Oracle连接
+        try (Connection oracleConn = OracleJdbcUtil.getConnection()) {
+            // 清空目标表
+            try (Statement stmt = oracleConn.createStatement()) {
+                stmt.execute("TRUNCATE TABLE " + tableName);
+            }
+
+            // 准备插入语句
+            String insertSql = String.format(
+                    "INSERT INTO %s (%s) VALUES (%s)",
+                    tableName, columnStr, placeholders);
+
+            Object lastUserCode = null; // 初始为null
+            AtomicLong migratedCount = new AtomicLong(0);
+
+            while (true) {
+                // 分页查询源数据
+                String querySql;
+                List<Map<String, Object>> batchData;
+
+                if (lastUserCode == null) {
+                    // 第一次查询
+                    querySql = String.format(
+                            "WITH ranked_data AS (" +
+                                    "    SELECT *, " +
+                                    // 先取create_time有值的
+                                    "           ROW_NUMBER() OVER " +
+                                    "(PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END, create_time DESC) " +
+                                    "AS group_rank " +
+                                    "    FROM %s " +
+                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL" +
+                                    ") " +
+                                    "SELECT * FROM ranked_data " +
+                                    "WHERE group_rank = 1 " +
+                                    "ORDER BY user_code " +
+                                    "LIMIT ?",
+                            // 不从视图取值
+                            tableName);
+                    batchData = openGaussJdbcTemplate.queryForList(querySql, batchSize);
+                } else {
+                    // 后续查询
+                    querySql = String.format(
+                            "WITH ranked_data AS (" +
+                                    "    SELECT *, " +
+                                    // 先取create_time有值的
+                                    "           ROW_NUMBER() OVER " +
+                                    "(PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END, create_time DESC) " +
+                                    "AS group_rank " +
+                                    "    FROM %s " +
+                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL AND user_code > ?" +
+                                    ") " +
+                                    "SELECT * FROM ranked_data " +
+                                    "WHERE group_rank = 1 " +
+                                    "ORDER BY user_code " +
+                                    "LIMIT ?",
+                            // 不从视图取值
+                            tableName);
+                    batchData = openGaussJdbcTemplate.queryForList(querySql, lastUserCode, batchSize);
+                }
+
+                if (batchData.isEmpty()) {
+                    break;
+                }
+
+                // 批量插入目标表
+                try (PreparedStatement pstmt = oracleConn.prepareStatement(insertSql)) {
+                    for (Map<String, Object> row : batchData) {
+                        for (int i = 0; i < columns.size(); i++) {
+                            pstmt.setObject(i + 1, row.get(columns.get(i)));
+                        }
+                        pstmt.addBatch();
+
+                        // 更新最后ID
+                        lastUserCode = row.get("user_code");
+                    }
+                    pstmt.executeBatch();
+                }
+
+                long currentCount = migratedCount.addAndGet(batchData.size());
+                log.info("表 {} 迁移进度: {}/{} ({}%)",
+                        tableName, currentCount, totalCount,
+                        String.format("%.2f", currentCount * 100.0 / totalCount));
+
+
             }
 
             long endTime = System.currentTimeMillis();
