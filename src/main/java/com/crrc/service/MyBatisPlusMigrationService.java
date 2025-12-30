@@ -723,7 +723,7 @@ public class MyBatisPlusMigrationService {
                                     "    SELECT *, " +
                                     // 先取create_time有值的
                                     "           ROW_NUMBER() OVER " +
-                                    "(PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC, CASE WHEN effective_date IS NULL THEN 1 ELSE 0 END ASC, effective_date DESC, CASE WHEN qualification_date IS NULL THEN 1 ELSE 0 END ASC, qualification_date DESC) " +
+                                    "(PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC, CASE WHEN qualification_date IS NULL THEN 1 ELSE 0 END ASC, qualification_date DESC) " +
                                     "AS group_rank " +
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND is_expired = '0' AND user_code IS NOT NULL" +
@@ -742,7 +742,7 @@ public class MyBatisPlusMigrationService {
                                     "    SELECT *, " +
                                     // 先取create_time有值的
                                     "           ROW_NUMBER() OVER " +
-                                    "(PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC, CASE WHEN effective_date IS NULL THEN 1 ELSE 0 END ASC, effective_date DESC, CASE WHEN qualification_date IS NULL THEN 1 ELSE 0 END ASC, qualification_date DESC) " +
+                                    "(PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC, CASE WHEN qualification_date IS NULL THEN 1 ELSE 0 END ASC, qualification_date DESC) " +
                                     "AS group_rank " +
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND is_expired = '0' AND user_code IS NOT NULL AND user_code > ?" +
