@@ -819,8 +819,13 @@ public class MyBatisPlusMigrationService {
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND (is_highest = '1' OR is_highest IS NULL) AND user_code IS NOT NULL" +
                                     ") " +
-                                    "SELECT * FROM ranked_data " +
+                                    "SELECT ra.id, user_code, case when ci.code_value is null then ra.qua_id else ci.code_value end as qua_id, " +
+                                    "qua_date, qua_title_level, qua_approval_unit, qua_path, is_highest, is_appointed, appointed_start_date, " +
+                                    "appointed_end_date, ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, is_updating " +
+                                    "FROM ranked_data ra" +
+                                    "left join code_info ci on ci.code = ra.qua_id " +
                                     "WHERE group_rank = 1 " +
+                                    "and (ci.\"type\" = 'QUA_ID' or ci.\"type\" is null) " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
                             // 不从视图取值
@@ -838,8 +843,13 @@ public class MyBatisPlusMigrationService {
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND (is_highest = '1' OR is_highest IS NULL) AND user_code IS NOT NULL AND user_code > ?" +
                                     ") " +
-                                    "SELECT * FROM ranked_data " +
+                                    "SELECT ra.id, user_code, case when ci.code_value is null then ra.qua_id else ci.code_value end as qua_id, " +
+                                    "qua_date, qua_title_level, qua_approval_unit, qua_path, is_highest, is_appointed, appointed_start_date, " +
+                                    "appointed_end_date, ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, is_updating " +
+                                    "FROM ranked_data ra" +
+                                    "left join code_info ci on ci.code = ra.qua_id " +
                                     "WHERE group_rank = 1 " +
+                                    "and (ci.\"type\" = 'QUA_ID' or ci.\"type\" is null) " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
                             // 不从视图取值
