@@ -1563,7 +1563,7 @@ public class MyBatisPlusMigrationService {
                                     "(PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC, start_date DESC, end_date DESC) " +
                                     "AS group_rank " +
                                     "    FROM %s " +
-                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL" +
+                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL AND user_code > ? " +
                                     ") " +
                                     "SELECT ra.id, user_code, start_date, end_date, unit, department, " +
                                     "case when ci.code_value is null then \"position\" else ci.code_value end as \"position\", " +
