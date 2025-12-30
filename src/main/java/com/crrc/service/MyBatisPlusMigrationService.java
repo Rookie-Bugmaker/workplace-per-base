@@ -1,6 +1,10 @@
 package com.crrc.service;
 
+import com.crrc.api.WkCoreAPi;
+import com.crrc.api.WkDataAPi;
 import com.crrc.entity.*;
+import com.crrc.entity.dto.mainData.OrganizationDTO;
+import com.crrc.utils.DeptUtils;
 import com.crrc.utils.MyBatisPlusTableUtil;
 import com.crrc.utils.OracleJdbcUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +32,9 @@ public class MyBatisPlusMigrationService {
 
     @Autowired
     private MyBatisPlusTableUtil tableUtil;
+
+    @Autowired
+    private WkDataAPi wkDataAPi;
 
     /**
      * 迁移实体表数据
@@ -716,7 +723,7 @@ public class MyBatisPlusMigrationService {
                                     "    SELECT *, " +
                                     // 先取create_time有值的
                                     "           ROW_NUMBER() OVER " +
-                                    "(PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC, effective_date DESC, qualification_date DESC) " +
+                                    "(PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC, CASE WHEN effective_date IS NULL THEN 1 ELSE 0 END ASC, effective_date DESC, CASE WHEN qualification_date IS NULL THEN 1 ELSE 0 END ASC, qualification_date DESC) " +
                                     "AS group_rank " +
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND is_expired = '0' AND user_code IS NOT NULL" +
@@ -735,7 +742,7 @@ public class MyBatisPlusMigrationService {
                                     "    SELECT *, " +
                                     // 先取create_time有值的
                                     "           ROW_NUMBER() OVER " +
-                                    "(PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC, effective_date DESC, qualification_date DESC) " +
+                                    "(PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC, CASE WHEN effective_date IS NULL THEN 1 ELSE 0 END ASC, effective_date DESC, CASE WHEN qualification_date IS NULL THEN 1 ELSE 0 END ASC, qualification_date DESC) " +
                                     "AS group_rank " +
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND is_expired = '0' AND user_code IS NOT NULL AND user_code > ?" +
@@ -1141,6 +1148,12 @@ public class MyBatisPlusMigrationService {
     }
 
     public void migrateBasicEntity(Class<HrEmpBasic> hrEmpBasicClass) {
+        // 获得部门翻译字典
+        Map<String, String> orgCodeTranslateMap = wkDataAPi.allOrganization().getData().stream().collect(Collectors.toMap(
+                OrganizationDTO::getOrgCode,
+                OrganizationDTO::getOrgName
+        ));
+
         String tableName = tableUtil.getTableName(hrEmpBasicClass);
         List<String> columns = tableUtil.getTableColumns(hrEmpBasicClass);
         String primaryKey = tableUtil.getPrimaryKey(hrEmpBasicClass);
@@ -1325,6 +1338,9 @@ public class MyBatisPlusMigrationService {
                 if (batchData.isEmpty()) {
                     break;
                 }
+
+                // 翻译部门字段
+                batchData.forEach(item -> item.replace("dept", orgCodeTranslateMap.get(String.valueOf(item.get("dept")))));
 
                 // 批量插入目标表
                 try (PreparedStatement pstmt = oracleConn.prepareStatement(insertSql)) {
