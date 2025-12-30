@@ -688,6 +688,7 @@ public class MyBatisPlusMigrationService {
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND is_expired = '0' AND user_code IS NOT NULL AND user_code > ?" +
                                     ") " +
+                                    // 翻译path_id字段
                                     "SELECT ranked_data.id, ranked_data.user_code, CASE WHEN code_value IS NULL THEN path_id ELSE code_value END AS path_id, level_id, level_name, \"hierarchy\", qualification_date, effective_date, expiry_date, is_expired, deleted, ranked_data.create_time, ranked_data.create_by, ranked_data.update_time, ranked_data.update_by, ranked_data.tenant_id, is_updating FROM ranked_data LEFT JOIN code_info ci ON path_id = ci.code " +
                                     "WHERE group_rank = 1 AND \"type\" = 'CAREER_PATH_ID' or \"type\" IS NULL " +
                                     "ORDER BY user_code " +
