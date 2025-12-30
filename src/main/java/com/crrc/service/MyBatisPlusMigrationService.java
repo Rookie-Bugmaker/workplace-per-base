@@ -1186,7 +1186,7 @@ public class MyBatisPlusMigrationService {
                             "WITH ranked_data AS (" +
                                     "    SELECT *, " +
                                     "ROW_NUMBER() OVER (PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END, create_time DESC) AS group_rank " +
-                                    "FROM %s " +
+                                    "FROM %s t " +
                                     "WHERE t.DELETED = '0' AND t.user_code IS NOT NULL" +
                                     ") " +
                                     "SELECT " +
@@ -1199,7 +1199,7 @@ public class MyBatisPlusMigrationService {
                                     "ra.birth_date, " +
                                     "ra.age, " +
                                     "ra.birth_place, " +
-                                    "case when ci3.code_value is null then t.political else ci3.code_value end as political, " +
+                                    "case when ci3.code_value is null then ra.political else ci3.code_value end as political, " +
                                     "ra.name, " +
                                     "ra.party_join_date, " +
                                     "ra.work_date, " +
@@ -1234,7 +1234,7 @@ public class MyBatisPlusMigrationService {
                                     "ra.is_employed, " +
                                     "ra.emp_type, " +
                                     "ra.file_header_id, " +
-                                    "ra.profile_picture, " +
+                                    "ra.profile_picture " +
                                     "FROM ranked_data ra " +
                                     "LEFT JOIN code_info ci1 ON ci1.code = ra.gender AND ci1.\"type\" = 'BASIC_GENDER' " +
                                     "LEFT JOIN code_info ci2 ON ci2.code = ra.nation AND ci2.\"type\" = 'BASIC_NATION' " +
@@ -1256,7 +1256,7 @@ public class MyBatisPlusMigrationService {
                             "WITH ranked_data AS (" +
                                     "    SELECT *, " +
                                     "ROW_NUMBER() OVER (PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END, create_time DESC) AS group_rank " +
-                                    "FROM %s " +
+                                    "FROM %s t " +
                                     "WHERE t.DELETED = '0' AND t.user_code IS NOT NULL AND t.user_code > ? " +
                                     ") " +
                                     "SELECT " +
@@ -1269,7 +1269,7 @@ public class MyBatisPlusMigrationService {
                                     "ra.birth_date, " +
                                     "ra.age, " +
                                     "ra.birth_place, " +
-                                    "case when ci3.code_value is null then t.political else ci3.code_value end as political, " +
+                                    "case when ci3.code_value is null then ra.political else ci3.code_value end as political, " +
                                     "ra.name, " +
                                     "ra.party_join_date, " +
                                     "ra.work_date, " +
@@ -1304,7 +1304,7 @@ public class MyBatisPlusMigrationService {
                                     "ra.is_employed, " +
                                     "ra.emp_type, " +
                                     "ra.file_header_id, " +
-                                    "ra.profile_picture, " +
+                                    "ra.profile_picture " +
                                     "FROM ranked_data ra " +
                                     "LEFT JOIN code_info ci1 ON ci1.code = ra.gender AND ci1.\"type\" = 'BASIC_GENDER' " +
                                     "LEFT JOIN code_info ci2 ON ci2.code = ra.nation AND ci2.\"type\" = 'BASIC_NATION' " +
