@@ -53,7 +53,7 @@ public class MigrationController {
         // 暂无数据
         myBatisPlusMigrationService.migrateEntity(HrEmpProfessionalSkill.class);
         // TODO: 有重复！已导出表格
-        myBatisPlusMigrationService.migrateAppointmentEntity(HrEmpResume.class);
+        myBatisPlusMigrationService.migrateResumeEntity(HrEmpResume.class);
         // TODO: tsda有用吗？这个怎么推
         myBatisPlusMigrationService.migrateEntity(HrEmpRewards.class);
         // 虽有重复，但是salary_grade与salary_level相同，推哪一条都可以
