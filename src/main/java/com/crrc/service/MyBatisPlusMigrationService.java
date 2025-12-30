@@ -1184,66 +1184,67 @@ public class MyBatisPlusMigrationService {
                     // 第一次查询
                     querySql = String.format(
                             "WITH ranked_data AS (" +
-                                    "    SELECT " +
-                                    "t.id, " +
-                                    "t.user_code, " +
-                                    "case when ci1.code_value is null then t.gender else ci1.code_value end as gender, " +
-                                    "case when ci2.code_value is null then t.nation else ci2.code_value end as nation, " +
-                                    "t.native_place_name, " +
-                                    "t.nationality, " +
-                                    "t.birth_date, " +
-                                    "t.age, " +
-                                    "t.birth_place, " +
-                                    "case when ci3.code_value is null then t.political else ci3.code_value end as political, " +
-                                    "t.name, " +
-                                    "t.party_join_date, " +
-                                    "t.work_date, " +
-                                    "t.entry_date, " +
-                                    "case when ci4.code_value is null then t.emp_source else ci4.code_value end as emp_source, " +
-                                    "case when ci5.code_value is null then t.marital_status else ci5.code_value end as marital_status, " +
-                                    "t.identity_type, " +
-                                    "t.emp_job, " +
-                                    "t.emp_rank, " +
-                                    "t.campus_period, " +
-                                    "t.deleted, " +
-                                    "t.create_time, " +
-                                    "t.create_by, " +
-                                    "t.update_time, " +
-                                    "t.update_by, " +
-                                    "t.tenant_id, " +
-                                    "t.hire_date, " +
-                                    "t.native_place_code, " +
-                                    "t.dept, " +
-                                    "t.cost_center, " +
-                                    "t.is_updating, " +
-                                    "case when ci6.code_value is null then t.category1 else ci6.code_value end as category1, " +
-                                    "case when ci7.code_value is null then t.category4 else ci7.code_value end as category4, " +
-                                    "case when ci8.code_value is null then t.category7 else ci8.code_value end as category7, " +
-                                    "case when ci9.code_value is null then t.category8 else ci9.code_value end as category8, " +
-                                    "t.status, " +
-                                    "t.enlistment_date, " +
-                                    "t.former_name, " +
-                                    "t.promotion_time, " +
-                                    "t.death_time, " +
-                                    "t.service_break_time, " +
-                                    "t.is_employed, " +
-                                    "t.emp_type, " +
-                                    "t.file_header_id, " +
-                                    "t.profile_picture, " +
+                                    "    SELECT *, " +
                                     "ROW_NUMBER() OVER (PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END, create_time DESC) AS group_rank " +
-                                    "FROM %s t " +
-                                    "LEFT JOIN code_info ci1 ON ci1.code = t.gender AND ci1.\"type\" = 'BASIC_GENDER' " +
-                                    "LEFT JOIN code_info ci2 ON ci2.code = t.nation AND ci2.\"type\" = 'BASIC_NATION' " +
-                                    "LEFT JOIN code_info ci3 ON ci3.code = t.political AND ci3.\"type\" = 'BASIC_POLITICAL' " +
-                                    "LEFT JOIN code_info ci4 ON ci4.code = t.emp_source AND ci4.\"type\" = 'BASIC_EMP_SOURCE' " +
-                                    "LEFT JOIN code_info ci5 ON ci5.code = t.marital_status AND ci5.\"type\" = 'BASIC_MARITAL_STATUS' " +
-                                    "LEFT JOIN code_info ci6 ON ci6.code = t.category1 AND ci6.\"type\" = 'category1' " +
-                                    "LEFT JOIN code_info ci7 ON ci7.code = t.category4 AND ci7.\"type\" = 'category4' " +
-                                    "LEFT JOIN code_info ci8 ON ci8.code = t.category7 AND ci8.\"type\" = 'category7' " +
-                                    "LEFT JOIN code_info ci9 ON ci9.code = t.category8 AND ci9.\"type\" = 'category8' " +
+                                    "FROM %s " +
                                     "WHERE t.DELETED = '0' AND t.user_code IS NOT NULL" +
                                     ") " +
-                                    "SELECT * FROM ranked_data " +
+                                    "SELECT " +
+                                    "ra.id, " +
+                                    "ra.user_code, " +
+                                    "case when ci1.code_value is null then ra.gender else ci1.code_value end as gender, " +
+                                    "case when ci2.code_value is null then ra.nation else ci2.code_value end as nation, " +
+                                    "ra.native_place_name, " +
+                                    "ra.nationality, " +
+                                    "ra.birth_date, " +
+                                    "ra.age, " +
+                                    "ra.birth_place, " +
+                                    "case when ci3.code_value is null then t.political else ci3.code_value end as political, " +
+                                    "ra.name, " +
+                                    "ra.party_join_date, " +
+                                    "ra.work_date, " +
+                                    "ra.entry_date, " +
+                                    "case when ci4.code_value is null then ra.emp_source else ci4.code_value end as emp_source, " +
+                                    "case when ci5.code_value is null then ra.marital_status else ci5.code_value end as marital_status, " +
+                                    "ra.identity_type, " +
+                                    "ra.emp_job, " +
+                                    "ra.emp_rank, " +
+                                    "ra.campus_period, " +
+                                    "ra.deleted, " +
+                                    "ra.create_time, " +
+                                    "ra.create_by, " +
+                                    "ra.update_time, " +
+                                    "ra.update_by, " +
+                                    "ra.tenant_id, " +
+                                    "ra.hire_date, " +
+                                    "ra.native_place_code, " +
+                                    "ra.dept, " +
+                                    "ra.cost_center, " +
+                                    "ra.is_updating, " +
+                                    "case when ci6.code_value is null then ra.category1 else ci6.code_value end as category1, " +
+                                    "case when ci7.code_value is null then ra.category4 else ci7.code_value end as category4, " +
+                                    "case when ci8.code_value is null then ra.category7 else ci8.code_value end as category7, " +
+                                    "case when ci9.code_value is null then ra.category8 else ci9.code_value end as category8, " +
+                                    "ra.status, " +
+                                    "ra.enlistment_date, " +
+                                    "ra.former_name, " +
+                                    "ra.promotion_time, " +
+                                    "ra.death_time, " +
+                                    "ra.service_break_time, " +
+                                    "ra.is_employed, " +
+                                    "ra.emp_type, " +
+                                    "ra.file_header_id, " +
+                                    "ra.profile_picture, " +
+                                    "FROM ranked_data ra " +
+                                    "LEFT JOIN code_info ci1 ON ci1.code = ra.gender AND ci1.\"type\" = 'BASIC_GENDER' " +
+                                    "LEFT JOIN code_info ci2 ON ci2.code = ra.nation AND ci2.\"type\" = 'BASIC_NATION' " +
+                                    "LEFT JOIN code_info ci3 ON ci3.code = ra.political AND ci3.\"type\" = 'BASIC_POLITICAL' " +
+                                    "LEFT JOIN code_info ci4 ON ci4.code = ra.emp_source AND ci4.\"type\" = 'BASIC_EMP_SOURCE' " +
+                                    "LEFT JOIN code_info ci5 ON ci5.code = ra.marital_status AND ci5.\"type\" = 'BASIC_MARITAL_STATUS' " +
+                                    "LEFT JOIN code_info ci6 ON ci6.code = ra.category1 AND ci6.\"type\" = 'category1' " +
+                                    "LEFT JOIN code_info ci7 ON ci7.code = ra.category4 AND ci7.\"type\" = 'category4' " +
+                                    "LEFT JOIN code_info ci8 ON ci8.code = ra.category7 AND ci8.\"type\" = 'category7' " +
+                                    "LEFT JOIN code_info ci9 ON ci9.code = ra.category8 AND ci9.\"type\" = 'category8' " +
                                     "WHERE group_rank = 1 " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
@@ -1253,66 +1254,67 @@ public class MyBatisPlusMigrationService {
                     // 后续查询
                     querySql = String.format(
                             "WITH ranked_data AS (" +
-                                    "    SELECT " +
-                                    "t.id, " +
-                                    "t.user_code, " +
-                                    "case when ci1.code_value is null then t.gender else ci1.code_value end as gender, " +
-                                    "case when ci2.code_value is null then t.nation else ci2.code_value end as nation, " +
-                                    "t.native_place_name, " +
-                                    "t.nationality, " +
-                                    "t.birth_date, " +
-                                    "t.age, " +
-                                    "t.birth_place, " +
-                                    "case when ci3.code_value is null then t.political else ci3.code_value end as political, " +
-                                    "t.name, " +
-                                    "t.party_join_date, " +
-                                    "t.work_date, " +
-                                    "t.entry_date, " +
-                                    "case when ci4.code_value is null then t.emp_source else ci4.code_value end as emp_source, " +
-                                    "case when ci5.code_value is null then t.marital_status else ci5.code_value end as marital_status, " +
-                                    "t.identity_type, " +
-                                    "t.emp_job, " +
-                                    "t.emp_rank, " +
-                                    "t.campus_period, " +
-                                    "t.deleted, " +
-                                    "t.create_time, " +
-                                    "t.create_by, " +
-                                    "t.update_time, " +
-                                    "t.update_by, " +
-                                    "t.tenant_id, " +
-                                    "t.hire_date, " +
-                                    "t.native_place_code, " +
-                                    "t.dept, " +
-                                    "t.cost_center, " +
-                                    "t.is_updating, " +
-                                    "case when ci6.code_value is null then t.category1 else ci6.code_value end as category1, " +
-                                    "case when ci7.code_value is null then t.category4 else ci7.code_value end as category4, " +
-                                    "case when ci8.code_value is null then t.category7 else ci8.code_value end as category7, " +
-                                    "case when ci9.code_value is null then t.category8 else ci9.code_value end as category8, " +
-                                    "t.status, " +
-                                    "t.enlistment_date, " +
-                                    "t.former_name, " +
-                                    "t.promotion_time, " +
-                                    "t.death_time, " +
-                                    "t.service_break_time, " +
-                                    "t.is_employed, " +
-                                    "t.emp_type, " +
-                                    "t.file_header_id, " +
-                                    "t.profile_picture, " +
+                                    "    SELECT *, " +
                                     "ROW_NUMBER() OVER (PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END, create_time DESC) AS group_rank " +
-                                    "FROM %s t " +
-                                    "LEFT JOIN code_info ci1 ON ci1.code = t.gender AND ci1.\"type\" = 'BASIC_GENDER' " +
-                                    "LEFT JOIN code_info ci2 ON ci2.code = t.nation AND ci2.\"type\" = 'BASIC_NATION' " +
-                                    "LEFT JOIN code_info ci3 ON ci3.code = t.political AND ci3.\"type\" = 'BASIC_POLITICAL' " +
-                                    "LEFT JOIN code_info ci4 ON ci4.code = t.emp_source AND ci4.\"type\" = 'BASIC_EMP_SOURCE' " +
-                                    "LEFT JOIN code_info ci5 ON ci5.code = t.marital_status AND ci5.\"type\" = 'BASIC_MARITAL_STATUS' " +
-                                    "LEFT JOIN code_info ci6 ON ci6.code = t.category1 AND ci6.\"type\" = 'category1' " +
-                                    "LEFT JOIN code_info ci7 ON ci7.code = t.category4 AND ci7.\"type\" = 'category4' " +
-                                    "LEFT JOIN code_info ci8 ON ci8.code = t.category7 AND ci8.\"type\" = 'category7' " +
-                                    "LEFT JOIN code_info ci9 ON ci9.code = t.category8 AND ci9.\"type\" = 'category8' " +
-                                    "WHERE t.DELETED = '0' AND t.user_code IS NOT NULL AND t.user_code > ?" +
+                                    "FROM %s " +
+                                    "WHERE t.DELETED = '0' AND t.user_code IS NOT NULL AND t.user_code > ? " +
                                     ") " +
-                                    "SELECT * FROM ranked_data " +
+                                    "SELECT " +
+                                    "ra.id, " +
+                                    "ra.user_code, " +
+                                    "case when ci1.code_value is null then ra.gender else ci1.code_value end as gender, " +
+                                    "case when ci2.code_value is null then ra.nation else ci2.code_value end as nation, " +
+                                    "ra.native_place_name, " +
+                                    "ra.nationality, " +
+                                    "ra.birth_date, " +
+                                    "ra.age, " +
+                                    "ra.birth_place, " +
+                                    "case when ci3.code_value is null then t.political else ci3.code_value end as political, " +
+                                    "ra.name, " +
+                                    "ra.party_join_date, " +
+                                    "ra.work_date, " +
+                                    "ra.entry_date, " +
+                                    "case when ci4.code_value is null then ra.emp_source else ci4.code_value end as emp_source, " +
+                                    "case when ci5.code_value is null then ra.marital_status else ci5.code_value end as marital_status, " +
+                                    "ra.identity_type, " +
+                                    "ra.emp_job, " +
+                                    "ra.emp_rank, " +
+                                    "ra.campus_period, " +
+                                    "ra.deleted, " +
+                                    "ra.create_time, " +
+                                    "ra.create_by, " +
+                                    "ra.update_time, " +
+                                    "ra.update_by, " +
+                                    "ra.tenant_id, " +
+                                    "ra.hire_date, " +
+                                    "ra.native_place_code, " +
+                                    "ra.dept, " +
+                                    "ra.cost_center, " +
+                                    "ra.is_updating, " +
+                                    "case when ci6.code_value is null then ra.category1 else ci6.code_value end as category1, " +
+                                    "case when ci7.code_value is null then ra.category4 else ci7.code_value end as category4, " +
+                                    "case when ci8.code_value is null then ra.category7 else ci8.code_value end as category7, " +
+                                    "case when ci9.code_value is null then ra.category8 else ci9.code_value end as category8, " +
+                                    "ra.status, " +
+                                    "ra.enlistment_date, " +
+                                    "ra.former_name, " +
+                                    "ra.promotion_time, " +
+                                    "ra.death_time, " +
+                                    "ra.service_break_time, " +
+                                    "ra.is_employed, " +
+                                    "ra.emp_type, " +
+                                    "ra.file_header_id, " +
+                                    "ra.profile_picture, " +
+                                    "FROM ranked_data ra " +
+                                    "LEFT JOIN code_info ci1 ON ci1.code = ra.gender AND ci1.\"type\" = 'BASIC_GENDER' " +
+                                    "LEFT JOIN code_info ci2 ON ci2.code = ra.nation AND ci2.\"type\" = 'BASIC_NATION' " +
+                                    "LEFT JOIN code_info ci3 ON ci3.code = ra.political AND ci3.\"type\" = 'BASIC_POLITICAL' " +
+                                    "LEFT JOIN code_info ci4 ON ci4.code = ra.emp_source AND ci4.\"type\" = 'BASIC_EMP_SOURCE' " +
+                                    "LEFT JOIN code_info ci5 ON ci5.code = ra.marital_status AND ci5.\"type\" = 'BASIC_MARITAL_STATUS' " +
+                                    "LEFT JOIN code_info ci6 ON ci6.code = ra.category1 AND ci6.\"type\" = 'category1' " +
+                                    "LEFT JOIN code_info ci7 ON ci7.code = ra.category4 AND ci7.\"type\" = 'category4' " +
+                                    "LEFT JOIN code_info ci8 ON ci8.code = ra.category7 AND ci8.\"type\" = 'category7' " +
+                                    "LEFT JOIN code_info ci9 ON ci9.code = ra.category8 AND ci9.\"type\" = 'category8' " +
                                     "WHERE group_rank = 1 " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
