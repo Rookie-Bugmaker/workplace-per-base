@@ -838,7 +838,7 @@ public class MyBatisPlusMigrationService {
                                     "SELECT ra.id, user_code, case when ci.code_value is null then ra.qua_id else ci.code_value end as qua_id, " +
                                     "qua_date, qua_title_level, qua_approval_unit, qua_path, is_highest, is_appointed, appointed_start_date, " +
                                     "appointed_end_date, ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, is_updating " +
-                                    "FROM ranked_data ra" +
+                                    "FROM ranked_data ra " +
                                     "left join code_info ci on ci.code = ra.qua_id and ci.\"type\" = 'QUA_ID' " +
                                     "WHERE group_rank = 1 " +
                                     "ORDER BY user_code " +
@@ -861,7 +861,7 @@ public class MyBatisPlusMigrationService {
                                     "SELECT ra.id, user_code, case when ci.code_value is null then ra.qua_id else ci.code_value end as qua_id, " +
                                     "qua_date, qua_title_level, qua_approval_unit, qua_path, is_highest, is_appointed, appointed_start_date, " +
                                     "appointed_end_date, ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, is_updating " +
-                                    "FROM ranked_data ra" +
+                                    "FROM ranked_data ra " +
                                     "left join code_info ci on ci.code = ra.qua_id and ci.\"type\" = 'QUA_ID' " +
                                     "WHERE group_rank = 1 " +
                                     "ORDER BY user_code " +
