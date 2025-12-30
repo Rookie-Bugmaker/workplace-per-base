@@ -556,8 +556,26 @@ public class MyBatisPlusMigrationService {
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND user_code IS NOT NULL" +
                                     ") " +
-                                    "SELECT * FROM ranked_data " +
-                                    "WHERE group_rank = 1 " +
+                                    "SELECT start_date, end_date, case when ci2.code_value is null then change_event else ci2.code_value end as change_event, " +
+                                    "case when ci1.code_value is null then change_type else ci1.code_value end as change_type, " +
+                                    "case when ci3.code_value is null then change_reason else ci3.code_value end as change_reason, personnel_category, " +
+                                    "case when ci4.code_value is null then duty_status else ci4.code_value end as duty_status, org, dept, org_unit, " +
+                                    "case when ci.code_value is null then \"position\" else ci.code_value end as \"position\", " +
+                                    "hierarchy_rank, position_name, position_hierarchy, case when ci5.code_value is null then position_category else ci5.code_value end as position_category, salary_group, ra.id, user_code, " +
+                                    "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, pci.\"name\" as job_type " +
+                                    "FROM ranked_data ra LEFT JOIN code_info ci ON ci.code = ra.\"position\" " +
+                                    "left join code_info ci1 on ci1.code = ra.change_type " +
+                                    "left join code_info ci2 on ci2.code = ra.change_event " +
+                                    "left join code_info ci3 on ci3.code = ra.change_reason " +
+                                    "left join code_info ci4 on ci4.code = ra.duty_status " +
+                                    "left join code_info ci5 on ci5.code = ra.position_category " +
+                                    "left join post_catalog_info pci on pci.code = ra.job_type " +
+                                    "WHERE group_rank = 1 AND (ci.\"type\" = 'APPOINTMENT_POSITION' OR ci.\"type\" IS NULL) " +
+                                    "and (ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' or ci1.\"type\" is null) " +
+                                    "and (ci2.\"type\" = 'APPOINTMENT_CHANGE_EVENT' or ci2.\"type\" is null) " +
+                                    "and (ci3.\"type\" = 'APPOINTMENT_CHANGE_REASON' or ci3.\"type\" is null) " +
+                                    "and (ci4.\"type\" = 'APPOINTMENT_DUTY_STATUS' or ci4.\"type\" is null) " +
+                                    "and (ci5.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' or ci5.\"type\" is null) " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
                             // 不从视图取值
@@ -575,8 +593,26 @@ public class MyBatisPlusMigrationService {
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND user_code IS NOT NULL AND user_code > ?" +
                                     ") " +
-                                    "SELECT * FROM ranked_data " +
-                                    "WHERE group_rank = 1 " +
+                                    "SELECT start_date, end_date, case when ci2.code_value is null then change_event else ci2.code_value end as change_event, " +
+                                    "case when ci1.code_value is null then change_type else ci1.code_value end as change_type, " +
+                                    "case when ci3.code_value is null then change_reason else ci3.code_value end as change_reason, personnel_category, " +
+                                    "case when ci4.code_value is null then duty_status else ci4.code_value end as duty_status, org, dept, org_unit, " +
+                                    "case when ci.code_value is null then \"position\" else ci.code_value end as \"position\", " +
+                                    "hierarchy_rank, position_name, position_hierarchy, case when ci5.code_value is null then position_category else ci5.code_value end as position_category, salary_group, ra.id, user_code, " +
+                                    "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, pci.\"name\" as job_type " +
+                                    "FROM ranked_data ra LEFT JOIN code_info ci ON ci.code = ra.\"position\" " +
+                                    "left join code_info ci1 on ci1.code = ra.change_type " +
+                                    "left join code_info ci2 on ci2.code = ra.change_event " +
+                                    "left join code_info ci3 on ci3.code = ra.change_reason " +
+                                    "left join code_info ci4 on ci4.code = ra.duty_status " +
+                                    "left join code_info ci5 on ci5.code = ra.position_category " +
+                                    "left join post_catalog_info pci on pci.code = ra.job_type " +
+                                    "WHERE group_rank = 1 AND (ci.\"type\" = 'APPOINTMENT_POSITION' OR ci.\"type\" IS NULL) " +
+                                    "and (ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' or ci1.\"type\" is null) " +
+                                    "and (ci2.\"type\" = 'APPOINTMENT_CHANGE_EVENT' or ci2.\"type\" is null) " +
+                                    "and (ci3.\"type\" = 'APPOINTMENT_CHANGE_REASON' or ci3.\"type\" is null) " +
+                                    "and (ci4.\"type\" = 'APPOINTMENT_DUTY_STATUS' or ci4.\"type\" is null) " +
+                                    "and (ci5.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' or ci5.\"type\" is null) " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
                             // 不从视图取值
@@ -1004,13 +1040,18 @@ public class MyBatisPlusMigrationService {
                                     "    SELECT *, " +
                                     // 先取create_time有值的
                                     "           ROW_NUMBER() OVER " +
-                                    "(PARTITION BY user_code ORDER BY CASE WHEN is_highest IS NULL THEN 1 ELSE 0 END ASC, is_highest DESC, CASE WHEN appointed_start_date IS NULL THEN 1 ELSE 0 END ASC, CASE WHEN get_date IS NULL THEN 1 ELSE 0 END ASC, get_date DESC, CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC) " +
+                                    "(PARTITION BY user_code ORDER BY CASE WHEN is_highest IS NULL THEN 1 ELSE 0 END ASC, is_highest DESC, " +
+                                    "CASE WHEN appointed_start_date IS NULL THEN 1 ELSE 0 END ASC, CASE WHEN get_date IS NULL THEN 1 ELSE 0 END ASC, " +
+                                    "get_date DESC, CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC) " +
                                     "AS group_rank " +
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND (is_highest = '1' OR is_highest IS NULL) AND user_code IS NOT NULL" +
                                     ") " +
-                                    "SELECT * FROM ranked_data " +
-                                    "WHERE group_rank = 1 " +
+                                    "SELECT job_id, case when ci.code_value is null then skill_level else ci.code_value end as skill_level, get_method, " +
+                                    "get_date, is_highest, is_appointed, appointed_start_date, appointed_end_date, grant_unit, certi_id, ra.id, user_code, " +
+                                    "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, is_updating FROM ranked_data ra " +
+                                    "left join code_info ci on ci.code = ra.skill_level " +
+                                    "WHERE group_rank = 1 and (ci.\"type\" = 'SKILL_LEVEL' or ci.type is null) " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
                             // 不从视图取值
@@ -1023,13 +1064,18 @@ public class MyBatisPlusMigrationService {
                                     "    SELECT *, " +
                                     // 先取create_time有值的
                                     "           ROW_NUMBER() OVER " +
-                                    "(PARTITION BY user_code ORDER BY CASE WHEN is_highest IS NULL THEN 1 ELSE 0 END ASC, is_highest DESC, CASE WHEN appointed_start_date IS NULL THEN 1 ELSE 0 END ASC, CASE WHEN get_date IS NULL THEN 1 ELSE 0 END ASC, get_date DESC, CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC) " +
+                                    "(PARTITION BY user_code ORDER BY CASE WHEN is_highest IS NULL THEN 1 ELSE 0 END ASC, is_highest DESC, " +
+                                    "CASE WHEN appointed_start_date IS NULL THEN 1 ELSE 0 END ASC, CASE WHEN get_date IS NULL THEN 1 ELSE 0 END ASC, " +
+                                    "get_date DESC, CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC) " +
                                     "AS group_rank " +
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND (is_highest = '1' OR is_highest IS NULL) AND user_code IS NOT NULL AND user_code > ?" +
                                     ") " +
-                                    "SELECT * FROM ranked_data " +
-                                    "WHERE group_rank = 1 " +
+                                    "SELECT job_id, case when ci.code_value is null then skill_level else ci.code_value end as skill_level, get_method, " +
+                                    "get_date, is_highest, is_appointed, appointed_start_date, appointed_end_date, grant_unit, certi_id, ra.id, user_code, " +
+                                    "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, is_updating FROM ranked_data ra " +
+                                    "left join code_info ci on ci.code = ra.skill_level " +
+                                    "WHERE group_rank = 1 and (ci.\"type\" = 'SKILL_LEVEL' or ci.type is null) " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
                             // 不从视图取值
@@ -1174,6 +1220,147 @@ public class MyBatisPlusMigrationService {
                         String.format("%.2f", currentCount * 100.0 / totalCount));
 
 
+            }
+
+            long endTime = System.currentTimeMillis();
+            log.info("表 {} 迁移完成, 共 {} 条记录, 耗时 {} 毫秒",
+                    tableName, migratedCount.get(), (endTime - startTime));
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Oracle数据库操作失败", e);
+        }
+    }
+
+    public void migrateOtherAppointmentEntity(Class<HrEmpOtherAppointment> hrEmpOtherAppointmentClass) {
+        String tableName = tableUtil.getTableName(hrEmpOtherAppointmentClass);
+        List<String> columns = tableUtil.getTableColumns(hrEmpOtherAppointmentClass);
+        String primaryKey = tableUtil.getPrimaryKey(hrEmpOtherAppointmentClass);
+        columns.add(primaryKey);
+
+        log.info("开始迁移表: " + tableName);
+        log.info("主键列: " + primaryKey);
+        log.info("迁移列: " + String.join(", ", columns));
+
+        long startTime = System.currentTimeMillis();
+
+        String columnStr = String.join(", ", columns);
+        String placeholders = String.join(", ",
+                java.util.Collections.nCopies(columns.size(), "?"));
+
+        // 查询总数
+        long totalCount = openGaussJdbcTemplate.queryForList(
+                "SELECT COUNT(*) FROM " + tableName + " GROUP BY user_code", Long.class).size();
+
+        // Oracle连接
+        try (Connection oracleConn = OracleJdbcUtil.getConnection()) {
+            // 清空目标表
+            try (Statement stmt = oracleConn.createStatement()) {
+                stmt.execute("TRUNCATE TABLE " + tableName);
+            }
+
+            // 准备插入语句
+            String insertSql = String.format(
+                    "INSERT INTO %s (%s) VALUES (%s)",
+                    tableName, columnStr, placeholders);
+
+            Object lastUserCode = null; // 初始为null
+            AtomicLong migratedCount = new AtomicLong(0);
+
+            while (true) {
+                // 分页查询源数据
+                String querySql;
+                List<Map<String, Object>> batchData;
+
+                if (lastUserCode == null) {
+                    // 第一次查询
+                    querySql = String.format(
+                            "WITH ranked_data AS (" +
+                                    "    SELECT *, " +
+                                    // 先取create_time有值的
+                                    "           ROW_NUMBER() OVER " +
+                                    "(PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC, start_date DESC, end_date DESC) " +
+                                    "AS group_rank " +
+                                    "    FROM %s " +
+                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL" +
+                                    ") " +
+                                    "SELECT start_date, expected_end_date, end_date, personnel_category, org, dept, org_unit, archive_relation_weaken, " +
+                                    "case when ci.code_value is null then \"position\" else ci.code_value end as \"position\", " +
+                                    "case when ci1.code_value is null then other_appointment_type else ci1.code_value end as other_appointment_type, " +
+                                    "external_app, case when ci3.code_value is null then position_category else ci3.code_value end as position_category, " +
+                                    "case when ci2.code_value is null then duty_status else ci2.code_value end as duty_status, " +
+                                    "org_path, dept_path, ra.id, user_code, ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, " +
+                                    "ra.tenant_id, pci.\"name\" as job_type FROM ranked_data ra " +
+                                    "LEFT JOIN code_info ci ON ci.code = ra.\"position\" " +
+                                    "left join code_info ci1 on ci1.code = ra.other_appointment_type " +
+                                    "left join code_info ci2 on ci2.code = ra.duty_status " +
+                                    "left join code_info ci3 on ci3.code = ra.position_category " +
+                                    "left join post_catalog_info pci on pci.code = ra.job_type " +
+                                    "WHERE group_rank = 1 AND (ci.\"type\" = 'APPOINTMENT_POSITION' OR ci.\"type\" IS NULL) " +
+                                    "and (ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' or ci1.\"type\" is null) " +
+                                    "and (ci2.\"type\" = 'APPOINTMENT_DUTY_STATUS' or ci2.\"type\" is null) " +
+                                    "and (ci3.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' or ci3.\"type\" is null) " +
+                                    "ORDER BY user_code " +
+                                    "LIMIT ?",
+                            // 不从视图取值
+                            tableName);
+                    batchData = openGaussJdbcTemplate.queryForList(querySql, batchSize);
+                } else {
+                    // 后续查询
+                    querySql = String.format(
+                            "WITH ranked_data AS (" +
+                                    "    SELECT *, " +
+                                    // 先取create_time有值的
+                                    "           ROW_NUMBER() OVER " +
+                                    "(PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC, start_date DESC, end_date DESC) " +
+                                    "AS group_rank " +
+                                    "    FROM %s " +
+                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL AND user_code > ?" +
+                                    ") " +
+                                    "SELECT start_date, expected_end_date, end_date, personnel_category, org, dept, org_unit, archive_relation_weaken, " +
+                                    "case when ci.code_value is null then \"position\" else ci.code_value end as \"position\", " +
+                                    "case when ci1.code_value is null then other_appointment_type else ci1.code_value end as other_appointment_type, " +
+                                    "external_app, case when ci3.code_value is null then position_category else ci3.code_value end as position_category, " +
+                                    "case when ci2.code_value is null then duty_status else ci2.code_value end as duty_status, " +
+                                    "org_path, dept_path, ra.id, user_code, ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, " +
+                                    "ra.tenant_id, pci.\"name\" as job_type FROM ranked_data ra " +
+                                    "LEFT JOIN code_info ci ON ci.code = ra.\"position\" " +
+                                    "left join code_info ci1 on ci1.code = ra.other_appointment_type " +
+                                    "left join code_info ci2 on ci2.code = ra.duty_status " +
+                                    "left join code_info ci3 on ci3.code = ra.position_category " +
+                                    "left join post_catalog_info pci on pci.code = ra.job_type " +
+                                    "WHERE group_rank = 1 AND (ci.\"type\" = 'APPOINTMENT_POSITION' OR ci.\"type\" IS NULL) " +
+                                    "and (ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' or ci1.\"type\" is null) " +
+                                    "and (ci2.\"type\" = 'APPOINTMENT_DUTY_STATUS' or ci2.\"type\" is null) " +
+                                    "and (ci3.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' or ci3.\"type\" is null) " +
+                                    "ORDER BY user_code " +
+                                    "LIMIT ?",
+                            // 不从视图取值
+                            tableName);
+                    batchData = openGaussJdbcTemplate.queryForList(querySql, lastUserCode, batchSize);
+                }
+
+                if (batchData.isEmpty()) {
+                    break;
+                }
+
+                // 批量插入目标表
+                try (PreparedStatement pstmt = oracleConn.prepareStatement(insertSql)) {
+                    for (Map<String, Object> row : batchData) {
+                        for (int i = 0; i < columns.size(); i++) {
+                            pstmt.setObject(i + 1, row.get(columns.get(i)));
+                        }
+                        pstmt.addBatch();
+
+                        // 更新最后ID
+                        lastUserCode = row.get("user_code");
+                    }
+                    pstmt.executeBatch();
+                }
+
+                long currentCount = migratedCount.addAndGet(batchData.size());
+                log.info("表 {} 迁移进度: {}/{} ({}%)",
+                        tableName, currentCount, totalCount,
+                        String.format("%.2f", currentCount * 100.0 / totalCount));
             }
 
             long endTime = System.currentTimeMillis();

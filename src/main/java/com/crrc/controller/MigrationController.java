@@ -45,7 +45,7 @@ public class MigrationController {
         // TODO: 只有一个人重复了：013252080202
         myBatisPlusMigrationService.migrateEntity(HrEmpHouseHold.class);
         // TODO: 已修改，有重复，已导出重复表格
-        myBatisPlusMigrationService.migrateAppointmentEntity(HrEmpOtherAppointment.class);
+        myBatisPlusMigrationService.migrateOtherAppointmentEntity(HrEmpOtherAppointment.class);
         // 无旧数据
         myBatisPlusMigrationService.migrateEntity(HrEmpPenalties.class);
         // 无问题
