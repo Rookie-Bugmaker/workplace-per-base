@@ -56,7 +56,7 @@ public class MyBatisPlusMigrationService {
 
         // 查询总数
         long totalCount = openGaussJdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM " + "v_"+tableName, Long.class);
+                "SELECT COUNT(*) FROM " + tableName, Long.class);
 
         // Oracle连接
         try (Connection oracleConn = OracleJdbcUtil.getConnection()) {
@@ -286,7 +286,7 @@ public class MyBatisPlusMigrationService {
 
         // 查询总数
         long totalCount = openGaussJdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM " + "v_"+tableName + " WHERE DELETED = '0'", Long.class);
+                "SELECT COUNT(*) FROM " + tableName + " WHERE DELETED = '0'", Long.class);
 
         // Oracle连接
         try (Connection oracleConn = OracleJdbcUtil.getConnection()) {
@@ -301,7 +301,7 @@ public class MyBatisPlusMigrationService {
                     tableName, columnStr, placeholders);
 
             // 查询所有源数据
-            String querySql = "SELECT * FROM " + "v_"+tableName + " WHERE DELETED = '0'";
+            String querySql = "SELECT * FROM " + tableName + " WHERE DELETED = '0'";
             List<Map<String, Object>> allData = openGaussJdbcTemplate.queryForList(querySql);
 
             // 批量插入目标表
