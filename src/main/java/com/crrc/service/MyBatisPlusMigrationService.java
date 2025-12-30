@@ -1171,54 +1171,63 @@ public class MyBatisPlusMigrationService {
                     querySql = String.format(
                             "WITH ranked_data AS (" +
                                     "    SELECT " +
-                                    "        t.id, " +
-                                    "        t.user_code, " +
-                                    "        COALESCE((SELECT r.code_value FROM code_info r WHERE r.type = 'BASIC_GENDER' AND r.code = t.gender), t.gender) AS gender, " +
-                                    "        COALESCE((SELECT r.code_value FROM code_info r WHERE r.type = 'BASIC_NATION' AND r.code = t.nation), t.nation) AS nation, " +
-                                    "        t.native_place_name, " +
-                                    "        t.nationality, " +
-                                    "        t.birth_date, " +
-                                    "        t.age, " +
-                                    "        t.birth_place, " +
-                                    "        COALESCE((SELECT r.code_value FROM code_info r WHERE r.type = 'BASIC_POLITICAL' AND r.code = t.political), t.political) AS political, " +
-                                    "        t.name, " +
-                                    "        t.party_join_date, " +
-                                    "        t.work_date, " +
-                                    "        t.entry_date, " +
-                                    "        COALESCE((SELECT r.code_value FROM code_info r WHERE r.type = 'BASIC_EMP_SOURCE' AND r.code = t.emp_source), t.emp_source) AS emp_source, " +
-                                    "        COALESCE((SELECT r.code_value FROM code_info r WHERE r.type = 'BASIC_MARITAL_STATUS' AND r.code = t.marital_status), t.marital_status) AS marital_status, " +
-                                    "        t.identity_type, " +
-                                    "        t.emp_job, " +
-                                    "        t.emp_rank, " +
-                                    "        t.campus_period, " +
-                                    "        t.deleted, " +
-                                    "        t.create_time, " +
-                                    "        t.create_by, " +
-                                    "        t.update_time, " +
-                                    "        t.update_by, " +
-                                    "        t.tenant_id, " +
-                                    "        t.hire_date, " +
-                                    "        t.native_place_code, " +
-                                    "        t.dept, " +
-                                    "        t.cost_center, " +
-                                    "        t.is_updating, " +
-                                    "        COALESCE((SELECT r.code_value FROM code_info r WHERE r.type = 'category1' AND r.code = t.category1), t.category1) AS category1, " +
-                                    "        COALESCE((SELECT r.code_value FROM code_info r WHERE r.type = 'category4' AND r.code = t.category4), t.category4) AS category4, " +
-                                    "        COALESCE((SELECT r.code_value FROM code_info r WHERE r.type = 'category7' AND r.code = t.category7), t.category7) AS category7, " +
-                                    "        COALESCE((SELECT r.code_value FROM code_info r WHERE r.type = 'category8' AND r.code = t.category8), t.category8) AS category8, " +
-                                    "        t.status, " +
-                                    "        t.enlistment_date, " +
-                                    "        t.former_name, " +
-                                    "        t.promotion_time, " +
-                                    "        t.death_time, " +
-                                    "        t.service_break_time, " +
-                                    "        t.is_employed, " +
-                                    "        t.emp_type, " +
-                                    "        t.file_header_id, " +
-                                    "        t.profile_picture, " +
-                                    "        ROW_NUMBER() OVER (PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END, create_time DESC) AS group_rank " +
-                                    "    FROM %s t " +
-                                    "    WHERE t.DELETED = '0' AND t.user_code IS NOT NULL" +
+                                    "t.id, " +
+                                    "t.user_code, " +
+                                    "case when ci1.code_value is null then t.gender else ci1.code_value end as gender, " +
+                                    "case when ci2.code_value is null then t.nation else ci2.code_value end as nation, " +
+                                    "t.native_place_name, " +
+                                    "t.nationality, " +
+                                    "t.birth_date, " +
+                                    "t.age, " +
+                                    "t.birth_place, " +
+                                    "case when ci3.code_value is null then t.political else ci3.code_value end as political, " +
+                                    "t.name, " +
+                                    "t.party_join_date, " +
+                                    "t.work_date, " +
+                                    "t.entry_date, " +
+                                    "case when ci4.code_value is null then t.emp_source else ci4.code_value end as emp_source, " +
+                                    "case when ci5.code_value is null then t.marital_status else ci5.code_value end as marital_status, " +
+                                    "t.identity_type, " +
+                                    "t.emp_job, " +
+                                    "t.emp_rank, " +
+                                    "t.campus_period, " +
+                                    "t.deleted, " +
+                                    "t.create_time, " +
+                                    "t.create_by, " +
+                                    "t.update_time, " +
+                                    "t.update_by, " +
+                                    "t.tenant_id, " +
+                                    "t.hire_date, " +
+                                    "t.native_place_code, " +
+                                    "t.dept, " +
+                                    "t.cost_center, " +
+                                    "t.is_updating, " +
+                                    "case when ci6.code_value is null then t.category1 else ci6.code_value end as category1, " +
+                                    "case when ci7.code_value is null then t.category4 else ci7.code_value end as category4, " +
+                                    "case when ci8.code_value is null then t.category7 else ci8.code_value end as category7, " +
+                                    "case when ci9.code_value is null then t.category8 else ci9.code_value end as category8, " +
+                                    "t.status, " +
+                                    "t.enlistment_date, " +
+                                    "t.former_name, " +
+                                    "t.promotion_time, " +
+                                    "t.death_time, " +
+                                    "t.service_break_time, " +
+                                    "t.is_employed, " +
+                                    "t.emp_type, " +
+                                    "t.file_header_id, " +
+                                    "t.profile_picture, " +
+                                    "ROW_NUMBER() OVER (PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END, create_time DESC) AS group_rank " +
+                                    "FROM %s t " +
+                                    "LEFT JOIN code_info ci1 ON ci1.code = t.gender AND ci1.\"type\" = 'BASIC_GENDER' " +
+                                    "LEFT JOIN code_info ci2 ON ci2.code = t.nation AND ci2.\"type\" = 'BASIC_NATION' " +
+                                    "LEFT JOIN code_info ci3 ON ci3.code = t.political AND ci3.\"type\" = 'BASIC_POLITICAL' " +
+                                    "LEFT JOIN code_info ci4 ON ci4.code = t.emp_source AND ci4.\"type\" = 'BASIC_EMP_SOURCE' " +
+                                    "LEFT JOIN code_info ci5 ON ci5.code = t.marital_status AND ci5.\"type\" = 'BASIC_MARITAL_STATUS' " +
+                                    "LEFT JOIN code_info ci6 ON ci6.code = t.category1 AND ci6.\"type\" = 'category1' " +
+                                    "LEFT JOIN code_info ci7 ON ci7.code = t.category4 AND ci7.\"type\" = 'category4' " +
+                                    "LEFT JOIN code_info ci8 ON ci8.code = t.category7 AND ci8.\"type\" = 'category7' " +
+                                    "LEFT JOIN code_info ci9 ON ci9.code = t.category8 AND ci9.\"type\" = 'category8' " +
+                                    "WHERE t.DELETED = '0' AND t.user_code IS NOT NULL" +
                                     ") " +
                                     "SELECT * FROM ranked_data " +
                                     "WHERE group_rank = 1 " +
@@ -1231,54 +1240,63 @@ public class MyBatisPlusMigrationService {
                     querySql = String.format(
                             "WITH ranked_data AS (" +
                                     "    SELECT " +
-                                    "        t.id, " +
-                                    "        t.user_code, " +
-                                    "        COALESCE((SELECT r.code_value FROM code_info r WHERE r.type = 'BASIC_GENDER' AND r.code = t.gender), t.gender) AS gender, " +
-                                    "        COALESCE((SELECT r.code_value FROM code_info r WHERE r.type = 'BASIC_NATION' AND r.code = t.nation), t.nation) AS nation, " +
-                                    "        t.native_place_name, " +
-                                    "        t.nationality, " +
-                                    "        t.birth_date, " +
-                                    "        t.age, " +
-                                    "        t.birth_place, " +
-                                    "        COALESCE((SELECT r.code_value FROM code_info r WHERE r.type = 'BASIC_POLITICAL' AND r.code = t.political), t.political) AS political, " +
-                                    "        t.name, " +
-                                    "        t.party_join_date, " +
-                                    "        t.work_date, " +
-                                    "        t.entry_date, " +
-                                    "        COALESCE((SELECT r.code_value FROM code_info r WHERE r.type = 'BASIC_EMP_SOURCE' AND r.code = t.emp_source), t.emp_source) AS emp_source, " +
-                                    "        COALESCE((SELECT r.code_value FROM code_info r WHERE r.type = 'BASIC_MARITAL_STATUS' AND r.code = t.marital_status), t.marital_status) AS marital_status, " +
-                                    "        t.identity_type, " +
-                                    "        t.emp_job, " +
-                                    "        t.emp_rank, " +
-                                    "        t.campus_period, " +
-                                    "        t.deleted, " +
-                                    "        t.create_time, " +
-                                    "        t.create_by, " +
-                                    "        t.update_time, " +
-                                    "        t.update_by, " +
-                                    "        t.tenant_id, " +
-                                    "        t.hire_date, " +
-                                    "        t.native_place_code, " +
-                                    "        t.dept, " +
-                                    "        t.cost_center, " +
-                                    "        t.is_updating, " +
-                                    "        COALESCE((SELECT r.code_value FROM code_info r WHERE r.type = 'category1' AND r.code = t.category1), t.category1) AS category1, " +
-                                    "        COALESCE((SELECT r.code_value FROM code_info r WHERE r.type = 'category4' AND r.code = t.category4), t.category4) AS category4, " +
-                                    "        COALESCE((SELECT r.code_value FROM code_info r WHERE r.type = 'category7' AND r.code = t.category7), t.category7) AS category7, " +
-                                    "        COALESCE((SELECT r.code_value FROM code_info r WHERE r.type = 'category8' AND r.code = t.category8), t.category8) AS category8, " +
-                                    "        t.status, " +
-                                    "        t.enlistment_date, " +
-                                    "        t.former_name, " +
-                                    "        t.promotion_time, " +
-                                    "        t.death_time, " +
-                                    "        t.service_break_time, " +
-                                    "        t.is_employed, " +
-                                    "        t.emp_type, " +
-                                    "        t.file_header_id, " +
-                                    "        t.profile_picture, " +
-                                    "        ROW_NUMBER() OVER (PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END, create_time DESC) AS group_rank " +
-                                    "    FROM %s t " +
-                                    "    WHERE t.DELETED = '0' AND t.user_code IS NOT NULL AND t.user_code > ?" +
+                                    "t.id, " +
+                                    "t.user_code, " +
+                                    "case when ci1.code_value is null then t.gender else ci1.code_value end as gender, " +
+                                    "case when ci2.code_value is null then t.nation else ci2.code_value end as nation, " +
+                                    "t.native_place_name, " +
+                                    "t.nationality, " +
+                                    "t.birth_date, " +
+                                    "t.age, " +
+                                    "t.birth_place, " +
+                                    "case when ci3.code_value is null then t.political else ci3.code_value end as political, " +
+                                    "t.name, " +
+                                    "t.party_join_date, " +
+                                    "t.work_date, " +
+                                    "t.entry_date, " +
+                                    "case when ci4.code_value is null then t.emp_source else ci4.code_value end as emp_source, " +
+                                    "case when ci5.code_value is null then t.marital_status else ci5.code_value end as marital_status, " +
+                                    "t.identity_type, " +
+                                    "t.emp_job, " +
+                                    "t.emp_rank, " +
+                                    "t.campus_period, " +
+                                    "t.deleted, " +
+                                    "t.create_time, " +
+                                    "t.create_by, " +
+                                    "t.update_time, " +
+                                    "t.update_by, " +
+                                    "t.tenant_id, " +
+                                    "t.hire_date, " +
+                                    "t.native_place_code, " +
+                                    "t.dept, " +
+                                    "t.cost_center, " +
+                                    "t.is_updating, " +
+                                    "case when ci6.code_value is null then t.category1 else ci6.code_value end as category1, " +
+                                    "case when ci7.code_value is null then t.category4 else ci7.code_value end as category4, " +
+                                    "case when ci8.code_value is null then t.category7 else ci8.code_value end as category7, " +
+                                    "case when ci9.code_value is null then t.category8 else ci9.code_value end as category8, " +
+                                    "t.status, " +
+                                    "t.enlistment_date, " +
+                                    "t.former_name, " +
+                                    "t.promotion_time, " +
+                                    "t.death_time, " +
+                                    "t.service_break_time, " +
+                                    "t.is_employed, " +
+                                    "t.emp_type, " +
+                                    "t.file_header_id, " +
+                                    "t.profile_picture, " +
+                                    "ROW_NUMBER() OVER (PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END, create_time DESC) AS group_rank " +
+                                    "FROM %s t " +
+                                    "LEFT JOIN code_info ci1 ON ci1.code = t.gender AND ci1.\"type\" = 'BASIC_GENDER' " +
+                                    "LEFT JOIN code_info ci2 ON ci2.code = t.nation AND ci2.\"type\" = 'BASIC_NATION' " +
+                                    "LEFT JOIN code_info ci3 ON ci3.code = t.political AND ci3.\"type\" = 'BASIC_POLITICAL' " +
+                                    "LEFT JOIN code_info ci4 ON ci4.code = t.emp_source AND ci4.\"type\" = 'BASIC_EMP_SOURCE' " +
+                                    "LEFT JOIN code_info ci5 ON ci5.code = t.marital_status AND ci5.\"type\" = 'BASIC_MARITAL_STATUS' " +
+                                    "LEFT JOIN code_info ci6 ON ci6.code = t.category1 AND ci6.\"type\" = 'category1' " +
+                                    "LEFT JOIN code_info ci7 ON ci7.code = t.category4 AND ci7.\"type\" = 'category4' " +
+                                    "LEFT JOIN code_info ci8 ON ci8.code = t.category7 AND ci8.\"type\" = 'category7' " +
+                                    "LEFT JOIN code_info ci9 ON ci9.code = t.category8 AND ci9.\"type\" = 'category8' " +
+                                    "WHERE t.DELETED = '0' AND t.user_code IS NOT NULL AND t.user_code > ?" +
                                     ") " +
                                     "SELECT * FROM ranked_data " +
                                     "WHERE group_rank = 1 " +
@@ -1310,8 +1328,6 @@ public class MyBatisPlusMigrationService {
                 log.info("表 {} 迁移进度: {}/{} ({}%)",
                         tableName, currentCount, totalCount,
                         String.format("%.2f", currentCount * 100.0 / totalCount));
-
-
             }
 
             long endTime = System.currentTimeMillis();
@@ -1547,6 +1563,128 @@ public class MyBatisPlusMigrationService {
                                     "left join code_info ci on ci.code = ra.\"position\" " +
                                     "WHERE group_rank = 1 " +
                                     "and (ci.\"type\" = 'APPOINTMENT_POSITION' or ci.\"type\" is null) " +
+                                    "ORDER BY user_code " +
+                                    "LIMIT ?",
+                            // 不从视图取值
+                            tableName);
+                    batchData = openGaussJdbcTemplate.queryForList(querySql, lastUserCode, batchSize);
+                }
+
+                if (batchData.isEmpty()) {
+                    break;
+                }
+
+                // 批量插入目标表
+                try (PreparedStatement pstmt = oracleConn.prepareStatement(insertSql)) {
+                    for (Map<String, Object> row : batchData) {
+                        for (int i = 0; i < columns.size(); i++) {
+                            pstmt.setObject(i + 1, row.get(columns.get(i)));
+                        }
+                        pstmt.addBatch();
+
+                        // 更新最后ID
+                        lastUserCode = row.get("user_code");
+                    }
+                    pstmt.executeBatch();
+                }
+
+                long currentCount = migratedCount.addAndGet(batchData.size());
+                log.info("表 {} 迁移进度: {}/{} ({}%)",
+                        tableName, currentCount, totalCount,
+                        String.format("%.2f", currentCount * 100.0 / totalCount));
+            }
+
+            long endTime = System.currentTimeMillis();
+            log.info("表 {} 迁移完成, 共 {} 条记录, 耗时 {} 毫秒",
+                    tableName, migratedCount.get(), (endTime - startTime));
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Oracle数据库操作失败", e);
+        }
+    }
+
+
+    public void migrateHealthEntity(Class<HrEmpHealth> hrEmpHealthClass) {
+        String tableName = tableUtil.getTableName(hrEmpHealthClass);
+        List<String> columns = tableUtil.getTableColumns(hrEmpHealthClass);
+        String primaryKey = tableUtil.getPrimaryKey(hrEmpHealthClass);
+        columns.add(primaryKey);
+
+        log.info("开始迁移表: " + tableName);
+        log.info("主键列: " + primaryKey);
+        log.info("迁移列: " + String.join(", ", columns));
+
+        long startTime = System.currentTimeMillis();
+
+        String columnStr = String.join(", ", columns);
+        String placeholders = String.join(", ",
+                java.util.Collections.nCopies(columns.size(), "?"));
+
+        // 查询总数
+        long totalCount = openGaussJdbcTemplate.queryForList(
+                "SELECT COUNT(*) FROM " + tableName + " GROUP BY user_code", Long.class).size();
+
+        // Oracle连接
+        try (Connection oracleConn = OracleJdbcUtil.getConnection()) {
+            // 清空目标表
+            try (Statement stmt = oracleConn.createStatement()) {
+                stmt.execute("TRUNCATE TABLE " + tableName);
+            }
+
+            // 准备插入语句
+            String insertSql = String.format(
+                    "INSERT INTO %s (%s) VALUES (%s)",
+                    tableName, columnStr, placeholders);
+
+            Object lastUserCode = null; // 初始为null
+            AtomicLong migratedCount = new AtomicLong(0);
+
+            while (true) {
+                // 分页查询源数据
+                String querySql;
+                List<Map<String, Object>> batchData;
+
+                if (lastUserCode == null) {
+                    // 第一次查询
+                    querySql = String.format(
+                            "WITH ranked_data AS (" +
+                                    "    SELECT *, " +
+                                    // 先取create_time有值的
+                                    "           ROW_NUMBER() OVER " +
+                                    "(PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC) " +
+                                    "AS group_rank " +
+                                    "    FROM %s " +
+                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL" +
+                                    ") " +
+                                    "SELECT ra.id, user_code, " +
+                                    "case when ci.code_value is null then ra.health_status else ci.code_value end as health_status, " +
+                                    "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id " +
+                                    "FROM ranked_data ra " +
+                                    "left join code_info ci on ci.code = ra.health_status and ci.\"type\" = 'BASIC_HEALTH_STATUS' " +
+                                    "WHERE group_rank = 1 " +
+                                    "ORDER BY user_code " +
+                                    "LIMIT ?",
+                            // 不从视图取值
+                            tableName);
+                    batchData = openGaussJdbcTemplate.queryForList(querySql, batchSize);
+                } else {
+                    // 后续查询
+                    querySql = String.format(
+                            "WITH ranked_data AS (" +
+                                    "    SELECT *, " +
+                                    // 先取create_time有值的
+                                    "           ROW_NUMBER() OVER " +
+                                    "(PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC) " +
+                                    "AS group_rank " +
+                                    "    FROM %s " +
+                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL" +
+                                    ") " +
+                                    "SELECT ra.id, user_code, " +
+                                    "case when ci.code_value is null then ra.health_status else ci.code_value end as health_status, " +
+                                    "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id " +
+                                    "FROM ranked_data ra " +
+                                    "left join code_info ci on ci.code = ra.health_status and ci.\"type\" = 'BASIC_HEALTH_STATUS' " +
+                                    "WHERE group_rank = 1 " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
                             // 不从视图取值

@@ -41,7 +41,7 @@ public class MigrationController {
         // 随机pick一条
         myBatisPlusMigrationService.migrateEntity(HrEmpFamMember.class);
         // 无重复
-        myBatisPlusMigrationService.migrateEntity(HrEmpHealth.class);
+        myBatisPlusMigrationService.migrateHealthEntity(HrEmpHealth.class);
         // TODO: 只有一个人重复了：013252080202
         myBatisPlusMigrationService.migrateEntity(HrEmpHouseHold.class);
         // TODO: 已修改，有重复，已导出重复表格
