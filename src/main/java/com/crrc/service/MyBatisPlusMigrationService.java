@@ -1340,7 +1340,7 @@ public class MyBatisPlusMigrationService {
                 }
 
                 // 翻译部门字段
-                batchData.forEach(item -> item.replace("dept", orgCodeTranslateMap.get(String.valueOf(item.get("dept")))));
+                batchData.forEach(item -> item.computeIfPresent("dept", (k, v) -> orgCodeTranslateMap.get(String.valueOf(v))));
 
                 // 批量插入目标表
                 try (PreparedStatement pstmt = oracleConn.prepareStatement(insertSql)) {
