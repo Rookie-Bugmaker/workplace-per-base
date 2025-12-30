@@ -205,7 +205,20 @@ public class MyBatisPlusMigrationService {
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND user_code IS NOT NULL AND education IS NOT NULL" +  // 增加education不为空条件
                                     ") " +
-                                    "SELECT * FROM ranked_data " +
+                                    "SELECT ra.id, user_code, school_entry_date, graduation_date, school_name, " +
+                                    "case when ci1.code_value is null then major_code else ci1.code_value end as major_code, college, is_major, " +
+                                    "case when ci3.code_value is null then is_full_time else ci3.code_value end as is_full_time, " +
+                                    "case when ci.code_value is not null then ci.code_value else education end as education, " +
+                                    "case when ci4.code_value is null then \"degree\" else ci4.code_value end as \"degree\", " +
+                                    "is_highest_degree, is_highest_education, completion_status, ra.deleted, ra.create_time, ra.create_by, " +
+                                    "ra.update_time, ra.update_by, ra.tenant_id, degree_major, is_updating, " +
+                                    "case when ci2.code_value is null then school_code else ci2.code_value end as school_code, file_header_id " +
+                                    "FROM ranked_data ra " +
+                                    "left join code_info ci on ci.code = ra.education and ci.\"type\" = 'EDU_EDU' " +
+                                    "left join code_info ci1 on ci1.code = ra.major_code and ci1.\"type\" = 'EDU_MAJOR_CODE' " +
+                                    "left join code_info ci2 on ci2.code = ra.school_code and ci2.\"type\" = 'EDU_SCHOOL_CODE' " +
+                                    "left join code_info ci3 on ci3.code = ra.is_full_time and ci3.\"type\" = 'EDU_FULL_TIME' " +
+                                    "left join code_info ci4 on ci4.code = ra.\"degree\" and ci4.\"type\" = 'EDU_DEGREE' " +
                                     "WHERE group_rank <= 2 " +  // 取每组前两条
                                     "ORDER BY user_code " +  // 外层仍按user_code排序保证分页连续性
                                     "LIMIT ?",
@@ -220,7 +233,20 @@ public class MyBatisPlusMigrationService {
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND user_code IS NOT NULL AND user_code > ? AND education IS NOT NULL" +  // 增加education不为空条件
                                     ") " +
-                                    "SELECT * FROM ranked_data " +
+                                    "SELECT ra.id, user_code, school_entry_date, graduation_date, school_name, " +
+                                    "case when ci1.code_value is null then major_code else ci1.code_value end as major_code, college, is_major, " +
+                                    "case when ci3.code_value is null then is_full_time else ci3.code_value end as is_full_time, " +
+                                    "case when ci.code_value is not null then ci.code_value else education end as education, " +
+                                    "case when ci4.code_value is null then \"degree\" else ci4.code_value end as \"degree\", " +
+                                    "is_highest_degree, is_highest_education, completion_status, ra.deleted, ra.create_time, ra.create_by, " +
+                                    "ra.update_time, ra.update_by, ra.tenant_id, degree_major, is_updating, " +
+                                    "case when ci2.code_value is null then school_code else ci2.code_value end as school_code, file_header_id " +
+                                    "FROM ranked_data ra " +
+                                    "left join code_info ci on ci.code = ra.education and ci.\"type\" = 'EDU_EDU' " +
+                                    "left join code_info ci1 on ci1.code = ra.major_code and ci1.\"type\" = 'EDU_MAJOR_CODE' " +
+                                    "left join code_info ci2 on ci2.code = ra.school_code and ci2.\"type\" = 'EDU_SCHOOL_CODE' " +
+                                    "left join code_info ci3 on ci3.code = ra.is_full_time and ci3.\"type\" = 'EDU_FULL_TIME' " +
+                                    "left join code_info ci4 on ci4.code = ra.\"degree\" and ci4.\"type\" = 'EDU_DEGREE' " +
                                     "WHERE group_rank <= 2 " +  // 取每组前两条
                                     "ORDER BY user_code " +  // 外层仍按user_code排序保证分页连续性
                                     "LIMIT ?",
@@ -563,19 +589,14 @@ public class MyBatisPlusMigrationService {
                                     "case when ci.code_value is null then \"position\" else ci.code_value end as \"position\", " +
                                     "hierarchy_rank, position_name, position_hierarchy, case when ci5.code_value is null then position_category else ci5.code_value end as position_category, salary_group, ra.id, user_code, " +
                                     "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, pci.\"name\" as job_type " +
-                                    "FROM ranked_data ra LEFT JOIN code_info ci ON ci.code = ra.\"position\" " +
-                                    "left join code_info ci1 on ci1.code = ra.change_type " +
-                                    "left join code_info ci2 on ci2.code = ra.change_event " +
-                                    "left join code_info ci3 on ci3.code = ra.change_reason " +
-                                    "left join code_info ci4 on ci4.code = ra.duty_status " +
-                                    "left join code_info ci5 on ci5.code = ra.position_category " +
+                                    "FROM ranked_data ra LEFT JOIN code_info ci ON ci.code = ra.\"position\" and ci.\"type\" = 'APPOINTMENT_POSITION' " +
+                                    "left join code_info ci1 on ci1.code = ra.change_type and ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' " +
+                                    "left join code_info ci2 on ci2.code = ra.change_event and ci2.\"type\" = 'APPOINTMENT_CHANGE_EVENT' " +
+                                    "left join code_info ci3 on ci3.code = ra.change_reason and ci3.\"type\" = 'APPOINTMENT_CHANGE_REASON' " +
+                                    "left join code_info ci4 on ci4.code = ra.duty_status and ci4.\"type\" = 'APPOINTMENT_DUTY_STATUS' " +
+                                    "left join code_info ci5 on ci5.code = ra.position_category and ci5.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' " +
                                     "left join post_catalog_info pci on pci.code = ra.job_type " +
-                                    "WHERE group_rank = 1 AND (ci.\"type\" = 'APPOINTMENT_POSITION' OR ci.\"type\" IS NULL) " +
-                                    "and (ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' or ci1.\"type\" is null) " +
-                                    "and (ci2.\"type\" = 'APPOINTMENT_CHANGE_EVENT' or ci2.\"type\" is null) " +
-                                    "and (ci3.\"type\" = 'APPOINTMENT_CHANGE_REASON' or ci3.\"type\" is null) " +
-                                    "and (ci4.\"type\" = 'APPOINTMENT_DUTY_STATUS' or ci4.\"type\" is null) " +
-                                    "and (ci5.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' or ci5.\"type\" is null) " +
+                                    "WHERE group_rank = 1 " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
                             // 不从视图取值
@@ -600,19 +621,14 @@ public class MyBatisPlusMigrationService {
                                     "case when ci.code_value is null then \"position\" else ci.code_value end as \"position\", " +
                                     "hierarchy_rank, position_name, position_hierarchy, case when ci5.code_value is null then position_category else ci5.code_value end as position_category, salary_group, ra.id, user_code, " +
                                     "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, pci.\"name\" as job_type " +
-                                    "FROM ranked_data ra LEFT JOIN code_info ci ON ci.code = ra.\"position\" " +
-                                    "left join code_info ci1 on ci1.code = ra.change_type " +
-                                    "left join code_info ci2 on ci2.code = ra.change_event " +
-                                    "left join code_info ci3 on ci3.code = ra.change_reason " +
-                                    "left join code_info ci4 on ci4.code = ra.duty_status " +
-                                    "left join code_info ci5 on ci5.code = ra.position_category " +
+                                    "FROM ranked_data ra LEFT JOIN code_info ci ON ci.code = ra.\"position\" and ci.\"type\" = 'APPOINTMENT_POSITION' " +
+                                    "left join code_info ci1 on ci1.code = ra.change_type and ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' " +
+                                    "left join code_info ci2 on ci2.code = ra.change_event and ci2.\"type\" = 'APPOINTMENT_CHANGE_EVENT' " +
+                                    "left join code_info ci3 on ci3.code = ra.change_reason and ci3.\"type\" = 'APPOINTMENT_CHANGE_REASON' " +
+                                    "left join code_info ci4 on ci4.code = ra.duty_status and ci4.\"type\" = 'APPOINTMENT_DUTY_STATUS' " +
+                                    "left join code_info ci5 on ci5.code = ra.position_category and ci5.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' " +
                                     "left join post_catalog_info pci on pci.code = ra.job_type " +
-                                    "WHERE group_rank = 1 AND (ci.\"type\" = 'APPOINTMENT_POSITION' OR ci.\"type\" IS NULL) " +
-                                    "and (ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' or ci1.\"type\" is null) " +
-                                    "and (ci2.\"type\" = 'APPOINTMENT_CHANGE_EVENT' or ci2.\"type\" is null) " +
-                                    "and (ci3.\"type\" = 'APPOINTMENT_CHANGE_REASON' or ci3.\"type\" is null) " +
-                                    "and (ci4.\"type\" = 'APPOINTMENT_DUTY_STATUS' or ci4.\"type\" is null) " +
-                                    "and (ci5.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' or ci5.\"type\" is null) " +
+                                    "WHERE group_rank = 1 " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
                             // 不从视图取值
@@ -705,8 +721,8 @@ public class MyBatisPlusMigrationService {
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND is_expired = '0' AND user_code IS NOT NULL" +
                                     ") " +
-                                    "SELECT ranked_data.id, ranked_data.user_code, CASE WHEN code_value IS NULL THEN path_id ELSE code_value END AS path_id, level_id, level_name, \"hierarchy\", qualification_date, effective_date, expiry_date, is_expired, deleted, ranked_data.create_time, ranked_data.create_by, ranked_data.update_time, ranked_data.update_by, ranked_data.tenant_id, is_updating FROM ranked_data LEFT JOIN code_info ci ON path_id = ci.code " +
-                                    "WHERE group_rank = 1 AND \"type\" = 'CAREER_PATH_ID' or \"type\" IS NULL " +
+                                    "SELECT ranked_data.id, ranked_data.user_code, CASE WHEN code_value IS NULL THEN path_id ELSE code_value END AS path_id, level_id, level_name, \"hierarchy\", qualification_date, effective_date, expiry_date, is_expired, deleted, ranked_data.create_time, ranked_data.create_by, ranked_data.update_time, ranked_data.update_by, ranked_data.tenant_id, is_updating FROM ranked_data LEFT JOIN code_info ci ON path_id = ci.code AND ci.\"type\" = 'CAREER_PATH_ID' " +
+                                    "WHERE group_rank = 1 " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
                             // 不从视图取值
@@ -725,8 +741,8 @@ public class MyBatisPlusMigrationService {
                                     "    WHERE DELETED = '0' AND is_expired = '0' AND user_code IS NOT NULL AND user_code > ?" +
                                     ") " +
                                     // 翻译path_id字段
-                                    "SELECT ranked_data.id, ranked_data.user_code, CASE WHEN code_value IS NULL THEN path_id ELSE code_value END AS path_id, level_id, level_name, \"hierarchy\", qualification_date, effective_date, expiry_date, is_expired, deleted, ranked_data.create_time, ranked_data.create_by, ranked_data.update_time, ranked_data.update_by, ranked_data.tenant_id, is_updating FROM ranked_data LEFT JOIN code_info ci ON path_id = ci.code " +
-                                    "WHERE group_rank = 1 AND \"type\" = 'CAREER_PATH_ID' or \"type\" IS NULL " +
+                                    "SELECT ranked_data.id, ranked_data.user_code, CASE WHEN code_value IS NULL THEN path_id ELSE code_value END AS path_id, level_id, level_name, \"hierarchy\", qualification_date, effective_date, expiry_date, is_expired, deleted, ranked_data.create_time, ranked_data.create_by, ranked_data.update_time, ranked_data.update_by, ranked_data.tenant_id, is_updating FROM ranked_data LEFT JOIN code_info ci ON path_id = ci.code AND ci.\"type\" = 'CAREER_PATH_ID' " +
+                                    "WHERE group_rank = 1 " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
                             // 不从视图取值
@@ -823,9 +839,8 @@ public class MyBatisPlusMigrationService {
                                     "qua_date, qua_title_level, qua_approval_unit, qua_path, is_highest, is_appointed, appointed_start_date, " +
                                     "appointed_end_date, ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, is_updating " +
                                     "FROM ranked_data ra" +
-                                    "left join code_info ci on ci.code = ra.qua_id " +
+                                    "left join code_info ci on ci.code = ra.qua_id and ci.\"type\" = 'QUA_ID' " +
                                     "WHERE group_rank = 1 " +
-                                    "and (ci.\"type\" = 'QUA_ID' or ci.\"type\" is null) " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
                             // 不从视图取值
@@ -847,9 +862,8 @@ public class MyBatisPlusMigrationService {
                                     "qua_date, qua_title_level, qua_approval_unit, qua_path, is_highest, is_appointed, appointed_start_date, " +
                                     "appointed_end_date, ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, is_updating " +
                                     "FROM ranked_data ra" +
-                                    "left join code_info ci on ci.code = ra.qua_id " +
+                                    "left join code_info ci on ci.code = ra.qua_id and ci.\"type\" = 'QUA_ID' " +
                                     "WHERE group_rank = 1 " +
-                                    "and (ci.\"type\" = 'QUA_ID' or ci.\"type\" is null) " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
                             // 不从视图取值
@@ -1398,15 +1412,12 @@ public class MyBatisPlusMigrationService {
                                     "case when ci2.code_value is null then duty_status else ci2.code_value end as duty_status, " +
                                     "org_path, dept_path, ra.id, user_code, ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, " +
                                     "ra.tenant_id, pci.\"name\" as job_type FROM ranked_data ra " +
-                                    "LEFT JOIN code_info ci ON ci.code = ra.\"position\" " +
-                                    "left join code_info ci1 on ci1.code = ra.other_appointment_type " +
-                                    "left join code_info ci2 on ci2.code = ra.duty_status " +
-                                    "left join code_info ci3 on ci3.code = ra.position_category " +
+                                    "LEFT JOIN code_info ci ON ci.code = ra.\"position\" and ci.\"type\" = 'APPOINTMENT_POSITION' " +
+                                    "left join code_info ci1 on ci1.code = ra.other_appointment_type and ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' " +
+                                    "left join code_info ci2 on ci2.code = ra.duty_status and ci2.\"type\" = 'APPOINTMENT_DUTY_STATUS' " +
+                                    "left join code_info ci3 on ci3.code = ra.position_category and ci3.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' " +
                                     "left join post_catalog_info pci on pci.code = ra.job_type " +
-                                    "WHERE group_rank = 1 AND (ci.\"type\" = 'APPOINTMENT_POSITION' OR ci.\"type\" IS NULL) " +
-                                    "and (ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' or ci1.\"type\" is null) " +
-                                    "and (ci2.\"type\" = 'APPOINTMENT_DUTY_STATUS' or ci2.\"type\" is null) " +
-                                    "and (ci3.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' or ci3.\"type\" is null) " +
+                                    "WHERE group_rank = 1 " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
                             // 不从视图取值
@@ -1431,15 +1442,12 @@ public class MyBatisPlusMigrationService {
                                     "case when ci2.code_value is null then duty_status else ci2.code_value end as duty_status, " +
                                     "org_path, dept_path, ra.id, user_code, ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, " +
                                     "ra.tenant_id, pci.\"name\" as job_type FROM ranked_data ra " +
-                                    "LEFT JOIN code_info ci ON ci.code = ra.\"position\" " +
-                                    "left join code_info ci1 on ci1.code = ra.other_appointment_type " +
-                                    "left join code_info ci2 on ci2.code = ra.duty_status " +
-                                    "left join code_info ci3 on ci3.code = ra.position_category " +
+                                    "LEFT JOIN code_info ci ON ci.code = ra.\"position\" and ci.\"type\" = 'APPOINTMENT_POSITION' " +
+                                    "left join code_info ci1 on ci1.code = ra.other_appointment_type and ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' " +
+                                    "left join code_info ci2 on ci2.code = ra.duty_status and ci2.\"type\" = 'APPOINTMENT_DUTY_STATUS' " +
+                                    "left join code_info ci3 on ci3.code = ra.position_category and ci3.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' " +
                                     "left join post_catalog_info pci on pci.code = ra.job_type " +
-                                    "WHERE group_rank = 1 AND (ci.\"type\" = 'APPOINTMENT_POSITION' OR ci.\"type\" IS NULL) " +
-                                    "and (ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' or ci1.\"type\" is null) " +
-                                    "and (ci2.\"type\" = 'APPOINTMENT_DUTY_STATUS' or ci2.\"type\" is null) " +
-                                    "and (ci3.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' or ci3.\"type\" is null) " +
+                                    "WHERE group_rank = 1 " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
                             // 不从视图取值
@@ -1536,9 +1544,8 @@ public class MyBatisPlusMigrationService {
                                     "case when ci.code_value is null then \"position\" else ci.code_value end as \"position\", " +
                                     "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id " +
                                     "FROM ranked_data ra " +
-                                    "left join code_info ci on ci.code = ra.\"position\" " +
+                                    "left join code_info ci on ci.code = ra.\"position\" and ci.\"type\" = 'APPOINTMENT_POSITION' " +
                                     "WHERE group_rank = 1 " +
-                                    "and (ci.\"type\" = 'APPOINTMENT_POSITION' or ci.\"type\" is null) " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
                             // 不从视图取值
@@ -1560,9 +1567,8 @@ public class MyBatisPlusMigrationService {
                                     "case when ci.code_value is null then \"position\" else ci.code_value end as \"position\", " +
                                     "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id " +
                                     "FROM ranked_data ra " +
-                                    "left join code_info ci on ci.code = ra.\"position\" " +
+                                    "left join code_info ci on ci.code = ra.\"position\" and ci.\"type\" = 'APPOINTMENT_POSITION' " +
                                     "WHERE group_rank = 1 " +
-                                    "and (ci.\"type\" = 'APPOINTMENT_POSITION' or ci.\"type\" is null) " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
                             // 不从视图取值
