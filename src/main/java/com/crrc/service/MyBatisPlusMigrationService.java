@@ -548,6 +548,10 @@ public class MyBatisPlusMigrationService {
         String primaryKey = tableUtil.getPrimaryKey(appointmentClass);
         columns.add(primaryKey);
 
+        columns.add("JOB_ONE");
+        columns.add("JOB_TWO");
+        columns.add("JOB_THREE");
+
         Map<String, String> translateMap = postCatalogInfoServiceImpl.query(new PostCatalogInfo()).stream().collect(Collectors.toMap(
                 PostCatalogInfo::getCode,
                 PostCatalogInfo::getName
@@ -671,10 +675,7 @@ public class MyBatisPlusMigrationService {
                         for (int i = 0; i < columns.size(); i++) {
                             pstmt.setObject(i + 1, row.get(columns.get(i)));
                         }
-                        // 单独插入JOB_ONE、JOB_TWO、JOB_THREE
-                        pstmt.setObject(columns.size(), row.get("JOB_ONE"));
-                        pstmt.setObject(columns.size() + 1, row.get("JOB_TWO"));
-                        pstmt.setObject(columns.size() + 2, row.get("JOB_THREE"));
+
                         pstmt.addBatch();
 
                         // 更新最后ID
