@@ -4,9 +4,12 @@ import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
 import com.crrc.entity.*;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
+import com.crrc.pojo.vo.PostCatalogInfoTreeVO;
+import com.crrc.service.impl.PostCatalogInfoServiceImpl;
 import com.crrc.utils.DeptUtils;
 import com.crrc.utils.MyBatisPlusTableUtil;
 import com.crrc.utils.OracleJdbcUtil;
+import com.crrc.utils.TreeUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -35,6 +38,8 @@ public class MyBatisPlusMigrationService {
 
     @Autowired
     private WkDataAPi wkDataAPi;
+    @Autowired
+    private PostCatalogInfoServiceImpl postCatalogInfoServiceImpl;
 
     /**
      * 迁移实体表数据
@@ -543,6 +548,11 @@ public class MyBatisPlusMigrationService {
         String primaryKey = tableUtil.getPrimaryKey(appointmentClass);
         columns.add(primaryKey);
 
+        Map<String, String> translateMap = postCatalogInfoServiceImpl.query(new PostCatalogInfo()).stream().collect(Collectors.toMap(
+                PostCatalogInfo::getCode,
+                PostCatalogInfo::getName
+        ));
+
         log.info("开始迁移表: " + tableName);
         log.info("主键列: " + primaryKey);
         log.info("迁移列: " + String.join(", ", columns));
@@ -595,14 +605,13 @@ public class MyBatisPlusMigrationService {
                                     "case when ci4.code_value is null then duty_status else ci4.code_value end as duty_status, org, dept, org_unit, " +
                                     "case when ci.code_value is null then \"position\" else ci.code_value end as \"position\", " +
                                     "hierarchy_rank, position_name, position_hierarchy, case when ci5.code_value is null then position_category else ci5.code_value end as position_category, salary_group, ra.id, user_code, " +
-                                    "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, pci.\"name\" as job_type " +
+                                    "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, job_type " +
                                     "FROM ranked_data ra LEFT JOIN code_info ci ON ci.code = ra.\"position\" and ci.\"type\" = 'APPOINTMENT_POSITION' " +
                                     "left join code_info ci1 on ci1.code = ra.change_type and ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' " +
                                     "left join code_info ci2 on ci2.code = ra.change_event and ci2.\"type\" = 'APPOINTMENT_CHANGE_EVENT' " +
                                     "left join code_info ci3 on ci3.code = ra.change_reason and ci3.\"type\" = 'APPOINTMENT_CHANGE_REASON' " +
                                     "left join code_info ci4 on ci4.code = ra.duty_status and ci4.\"type\" = 'APPOINTMENT_DUTY_STATUS' " +
                                     "left join code_info ci5 on ci5.code = ra.position_category and ci5.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' " +
-                                    "left join post_catalog_info pci on pci.code = ra.job_type " +
                                     "WHERE group_rank = 1 " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
@@ -627,14 +636,13 @@ public class MyBatisPlusMigrationService {
                                     "case when ci4.code_value is null then duty_status else ci4.code_value end as duty_status, org, dept, org_unit, " +
                                     "case when ci.code_value is null then \"position\" else ci.code_value end as \"position\", " +
                                     "hierarchy_rank, position_name, position_hierarchy, case when ci5.code_value is null then position_category else ci5.code_value end as position_category, salary_group, ra.id, user_code, " +
-                                    "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, pci.\"name\" as job_type " +
+                                    "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, job_type " +
                                     "FROM ranked_data ra LEFT JOIN code_info ci ON ci.code = ra.\"position\" and ci.\"type\" = 'APPOINTMENT_POSITION' " +
                                     "left join code_info ci1 on ci1.code = ra.change_type and ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' " +
                                     "left join code_info ci2 on ci2.code = ra.change_event and ci2.\"type\" = 'APPOINTMENT_CHANGE_EVENT' " +
                                     "left join code_info ci3 on ci3.code = ra.change_reason and ci3.\"type\" = 'APPOINTMENT_CHANGE_REASON' " +
                                     "left join code_info ci4 on ci4.code = ra.duty_status and ci4.\"type\" = 'APPOINTMENT_DUTY_STATUS' " +
                                     "left join code_info ci5 on ci5.code = ra.position_category and ci5.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' " +
-                                    "left join post_catalog_info pci on pci.code = ra.job_type " +
                                     "WHERE group_rank = 1 " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
@@ -646,6 +654,16 @@ public class MyBatisPlusMigrationService {
                 if (batchData.isEmpty()) {
                     break;
                 }
+
+                batchData.forEach(item -> {
+                    if(item.get("job_type") != null) {
+                        String jobType = String.valueOf(item.get("job_type"));
+                        String[] split = jobType.split("-");
+                        item.put("JOB_ONE", translateMap.getOrDefault(split[0], split[0]));
+                        item.put("JOB_TWO", translateMap.getOrDefault(split[1], split[1]));
+                        item.put("JOB_THREE", translateMap.getOrDefault(split[2], split[2]));
+                    }
+                });
 
                 // 批量插入目标表
                 try (PreparedStatement pstmt = oracleConn.prepareStatement(insertSql)) {
