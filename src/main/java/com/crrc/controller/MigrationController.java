@@ -61,7 +61,7 @@ public class MigrationController {
         // 虽有重复，但是skill_level, job_id, get_method等相同，推哪一条都可以
         myBatisPlusMigrationService.migrateSkillLevelEntity(HrEmpSkillLevel.class);
         // 均有create_time，无问题
-        myBatisPlusMigrationService.migrateEntity(HrEmpSalaryInfo.class);
+        myBatisPlusMigrationService.migrateSalaryInfoEntity(HrEmpSalaryInfo.class);
 
 
         //基础数据表全量同步 无逻辑

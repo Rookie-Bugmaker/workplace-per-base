@@ -1,15 +1,11 @@
 package com.crrc.service;
 
-import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
 import com.crrc.entity.*;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
-import com.crrc.pojo.vo.PostCatalogInfoTreeVO;
 import com.crrc.service.impl.PostCatalogInfoServiceImpl;
-import com.crrc.utils.DeptUtils;
 import com.crrc.utils.MyBatisPlusTableUtil;
 import com.crrc.utils.OracleJdbcUtil;
-import com.crrc.utils.TreeUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -1761,6 +1757,125 @@ public class MyBatisPlusMigrationService {
                 log.info("表 {} 迁移进度: {}/{} ({}%)",
                         tableName, currentCount, totalCount,
                         String.format("%.2f", currentCount * 100.0 / totalCount));
+            }
+
+            long endTime = System.currentTimeMillis();
+            log.info("表 {} 迁移完成, 共 {} 条记录, 耗时 {} 毫秒",
+                    tableName, migratedCount.get(), (endTime - startTime));
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Oracle数据库操作失败", e);
+        }
+    }
+
+
+    public void migrateSalaryInfoEntity(Class<HrEmpSalaryInfo> hrEmpSalaryInfoClass) {
+        String tableName = tableUtil.getTableName(hrEmpSalaryInfoClass);
+        List<String> columns = tableUtil.getTableColumns(hrEmpSalaryInfoClass);
+        String primaryKey = tableUtil.getPrimaryKey(hrEmpSalaryInfoClass);
+        columns.add(primaryKey);
+
+        log.info("开始迁移表: " + tableName);
+        log.info("主键列: " + primaryKey);
+        log.info("迁移列: " + String.join(", ", columns));
+
+        long startTime = System.currentTimeMillis();
+
+        String columnStr = String.join(", ", columns);
+        String placeholders = String.join(", ",
+                java.util.Collections.nCopies(columns.size(), "?"));
+
+        // 查询总数
+        long totalCount = openGaussJdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM " + tableName, Long.class);
+
+        // Oracle连接
+        try (Connection oracleConn = OracleJdbcUtil.getConnection()) {
+            // 薪酬表不清空全部数据，只清空本表中可能存在的所有user_code字段能匹配上的数据
+            try (PreparedStatement deleteStmt = oracleConn.prepareStatement(
+                    "DELETE FROM " + tableName + " WHERE user_code IN (" +
+                            "SELECT user_code FROM " + tableName + " WHERE user_code IN (" +
+                            "SELECT DISTINCT user_code FROM " + tableName + " WHERE DELETED = '0' AND user_code IS NOT NULL))")) {
+                int deletedCount = deleteStmt.executeUpdate();
+                log.info("已清理{}条与源表user_code匹配的旧数据", deletedCount);
+            }
+            // 准备插入语句
+            String insertSql = String.format(
+                    "INSERT INTO %s (%s) VALUES (%s)",
+                    tableName, columnStr, placeholders);
+
+            Object lastUserCode = null; // 初始为null
+            AtomicLong migratedCount = new AtomicLong(0);
+
+            while (true) {
+                // 分页查询源数据
+                String querySql;
+                List<Map<String, Object>> batchData;
+
+                if (lastUserCode == null) {
+                    // 第一次查询
+                    querySql = String.format(
+                            "WITH ranked_data AS (" +
+                                    "    SELECT *, " +
+                                    // 先取create_time有值的
+                                    "           ROW_NUMBER() OVER " +
+                                    "(PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END, create_time DESC) " +
+                                    "AS group_rank " +
+                                    "    FROM %s " +
+                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL" +
+                                    ") " +
+                                    "SELECT * FROM ranked_data " +
+                                    "WHERE group_rank = 1 " +
+                                    "ORDER BY user_code " +
+                                    "LIMIT ?",
+                            // 不从视图取值
+                            tableName);
+                    batchData = openGaussJdbcTemplate.queryForList(querySql, batchSize);
+                } else {
+                    // 后续查询
+                    querySql = String.format(
+                            "WITH ranked_data AS (" +
+                                    "    SELECT *, " +
+                                    // 先取create_time有值的
+                                    "           ROW_NUMBER() OVER " +
+                                    "(PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END, create_time DESC) " +
+                                    "AS group_rank " +
+                                    "    FROM %s " +
+                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL AND user_code > ?" +
+                                    ") " +
+                                    "SELECT * FROM ranked_data " +
+                                    "WHERE group_rank = 1 " +
+                                    "ORDER BY user_code " +
+                                    "LIMIT ?",
+                            // 不从视图取值
+                            tableName);
+                    batchData = openGaussJdbcTemplate.queryForList(querySql, lastUserCode, batchSize);
+                }
+
+                if (batchData.isEmpty()) {
+                    break;
+                }
+
+                // 批量插入目标表
+                try (PreparedStatement pstmt = oracleConn.prepareStatement(insertSql)) {
+                    for (Map<String, Object> row : batchData) {
+                        for (int i = 0; i < columns.size(); i++) {
+                            pstmt.setObject(i + 1, row.get(columns.get(i)));
+                        }
+                        pstmt.addBatch();
+
+                        // 更新最后ID
+                        lastUserCode = row.get("user_code");
+                    }
+                    pstmt.executeBatch();
+                }
+
+                long currentCount = migratedCount.addAndGet(batchData.size());
+                log.info("表 {} 迁移进度: {}/{} ({}%)",
+                        tableName, currentCount, totalCount,
+                        String.format("%.2f", currentCount * 100.0 / totalCount));
+
+
             }
 
             long endTime = System.currentTimeMillis();
