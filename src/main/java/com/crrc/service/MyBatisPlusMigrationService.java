@@ -656,7 +656,7 @@ public class MyBatisPlusMigrationService {
                 }
 
                 batchData.forEach(item -> {
-                    if(item.get("job_type") != null) {
+                    if(item.get("job_type") != null && !String.valueOf(item.get("job_type")).equals("ERROR")) {
                         String jobType = String.valueOf(item.get("job_type"));
                         String[] split = jobType.split("-");
                         item.put("JOB_ONE", translateMap.getOrDefault(split[0], split[0]));
