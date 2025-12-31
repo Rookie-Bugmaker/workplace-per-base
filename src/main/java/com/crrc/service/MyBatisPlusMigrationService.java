@@ -1791,14 +1791,13 @@ public class MyBatisPlusMigrationService {
 
         // Oracle连接
         try (Connection oracleConn = OracleJdbcUtil.getConnection()) {
-            // 薪酬表不清空全部数据，只清空本表中可能存在的所有user_code字段能匹配上的数据
-            try (PreparedStatement deleteStmt = oracleConn.prepareStatement(
-                    "DELETE FROM " + tableName + " WHERE user_code IN (" +
-                            "SELECT user_code FROM " + tableName + " WHERE user_code IN (" +
-                            "SELECT DISTINCT user_code FROM " + tableName + " WHERE DELETED = '0' AND user_code IS NOT NULL))")) {
-                int deletedCount = deleteStmt.executeUpdate();
-                log.info("已清理{}条与源表user_code匹配的旧数据", deletedCount);
-            }
+//            // 薪酬表不清空全部数据，只清空本表中可能存在的所有user_code字段能匹配上的数据
+//            try (PreparedStatement deleteStmt = oracleConn.prepareStatement(
+//                    "DELETE FROM " + tableName + " WHERE user_code IN (" +
+//                            "SELECT DISTINCT user_code FROM " + tableName + " WHERE DELETED = '0' AND user_code IS NOT NULL)")) {
+//                int deletedCount = deleteStmt.executeUpdate();
+//                log.info("已清理{}条与源表user_code匹配的旧数据", deletedCount);
+//            }
             // 准备插入语句
             String insertSql = String.format(
                     "INSERT INTO %s (%s) VALUES (%s)",
@@ -1855,6 +1854,19 @@ public class MyBatisPlusMigrationService {
                 if (batchData.isEmpty()) {
                     break;
                 }
+
+                // 薪酬表不清空全部数据，仅删除与源表user_code匹配的记录
+                try (PreparedStatement deleteStmt = oracleConn.prepareStatement(
+                        "DELETE FROM " + tableName + " WHERE user_code IN (" +
+                                // 需要构建user_code列表
+                                batchData.stream()
+                                        .map(data -> data.get("user_code").toString())
+                                        .collect(Collectors.joining("','", "'", "'")) +
+                                ")")) {
+                    int deletedCount = deleteStmt.executeUpdate();
+                    log.info("已清理{}条与源表user_code匹配的旧数据", deletedCount);
+                }
+
 
                 // 批量插入目标表
                 try (PreparedStatement pstmt = oracleConn.prepareStatement(insertSql)) {
