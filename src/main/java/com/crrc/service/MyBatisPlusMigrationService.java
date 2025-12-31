@@ -664,8 +664,8 @@ public class MyBatisPlusMigrationService {
                         String jobType = String.valueOf(item.get("job_type"));
                         String[] split = jobType.split("-");
                         item.put("JOB_ONE", translateMap.getOrDefault(split[0], split[0]));
-                        item.put("JOB_TWO", translateMap.getOrDefault(split[1], split[1]));
-                        item.put("JOB_THREE", translateMap.getOrDefault(split[2], split[2]));
+                        item.put("JOB_TWO", translateMap.getOrDefault(String.join(",", split[0], split[1]), String.join(",", split[0], split[1])));
+                        item.put("JOB_THREE", translateMap.getOrDefault(jobType, jobType));
                     }
                 });
 
