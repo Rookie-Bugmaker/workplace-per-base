@@ -419,14 +419,12 @@ public class HrEmpBasicController {
             for(HrEmpBasic hrEmpBasic : list){
                 // 同步人员分类7
                 String category7 = resolveCategory7(hrEmpBasic);
-                hrEmpBasic.setCategory7(category7);
                 log.info("userCode:{},查询人员分类7完毕,值为{}", hrEmpBasic.getUserCode(), category7);
                 // 更新方法
-                log.info("准备执行更新方法，category1:{}，category7:{}，category8:{}",
-                        hrEmpBasic.getCategory1(), hrEmpBasic.getCategory7() ,hrEmpBasic.getCategory8());
+                log.info("准备执行更新方法，category7:{}", category7);
                 LambdaUpdateWrapper<HrEmpBasic> wrapper = new LambdaUpdateWrapper<>();
                 wrapper.eq(HrEmpBasic::getUserCode, hrEmpBasic.getUserCode())
-                        .set(HrEmpBasic::getCategory7, hrEmpBasic.getCategory7());
+                        .set(HrEmpBasic::getCategory7, category7);
                 hrEmpBasicService.update(wrapper);
                 log.info("userCode:{},更新成功", hrEmpBasic.getUserCode());
             }
@@ -472,7 +470,6 @@ public class HrEmpBasicController {
 
     private String resolveCategory7(HrEmpBasic hrEmpBasic) {
         try {
-            String category7 = null;
             // 获取专业职务任职资格列表
             List<HrEmpProfessionalQualification> qualificationList = hrEmpProfessionalQualificationService.selectMsg(hrEmpBasic.getUserCode());
             if (!qualificationList.isEmpty()) {
@@ -480,21 +477,18 @@ public class HrEmpBasicController {
                     // 找到目前最高的任职资格，以此为判断标准
                     if (StringUtils.isNotBlank(qualification.getIsHighest()) && SystemConstants.TRUE_FLAG.equals(qualification.getIsHighest()) && StringUtils.isNotBlank(qualification.getQuaTitleLevel())) {
                         if(qualification.getQuaTitleLevel().equals("00010") || qualification.getQuaTitleLevel().contains("正高级")) {
-                            category7 = "001";
+                            return "001";
                         } else if(qualification.getQuaTitleLevel().equals("00020") || qualification.getQuaTitleLevel().contains("高级")) {
-                            category7 = "002";
+                            return "002";
                         } else if(qualification.getQuaTitleLevel().equals("00030") || qualification.getQuaTitleLevel().contains("中级")) {
-                            category7 = "003";
+                            return "003";
                         } else if(qualification.getQuaTitleLevel().equals("00040") || qualification.getQuaTitleLevel().contains("助理级") || qualification.getQuaTitleLevel().contains("初级")) {
-                            category7 = "004";
+                            return "004";
                         } else if(qualification.getQuaTitleLevel().equals("00050") || qualification.getQuaTitleLevel().contains("员级")) {
-                            category7 = "005";
+                            return "005";
                         }
                     }
                 }
-            }
-            if (category7 != null) {
-                return category7;
             }
 
             // 职业技能等级
@@ -511,25 +505,25 @@ public class HrEmpBasicController {
                                   00060/70	中级工、初级工 员
                                  */
                             if(skillLevel.getSkillLevel().equals("00010") || skillLevel.getSkillLevel().contains("首席技师")) {
-                                category7 = "001";
+                                return "001";
                             } else if(skillLevel.getSkillLevel().equals("00020") || skillLevel.getSkillLevel().contains("特级技师")) {
-                                category7 = "001";
+                                return "001";
                             } else if(skillLevel.getSkillLevel().equals("00030") || skillLevel.getSkillLevel().contains("高级技师")) {
-                                category7 = "001";
+                                return "001";
                             } else if(skillLevel.getSkillLevel().equals("00040") || skillLevel.getSkillLevel().contains("技师")) {
-                                category7 = "002";
+                                return "002";
                             } else if(skillLevel.getSkillLevel().equals("00050") || skillLevel.getSkillLevel().contains("高级工")) {
-                                category7 = "003";
+                                return "003";
                             } else if(skillLevel.getSkillLevel().equals("00060") || skillLevel.getSkillLevel().contains("中级工")) {
-                                category7 = "004";
+                                return "004";
                             } else if(skillLevel.getSkillLevel().equals("00070") || skillLevel.getSkillLevel().contains("初级工")) {
-                                category7 = "005";
+                                return "005";
                             }
                         }
                     }
                 }
             }
-            return category7;
+            return null;
         } catch (Exception e) {
             log.error("人员分类7同步失败: {}", e.getMessage(), e);
             return hrEmpBasic.getCategory7();
