@@ -446,28 +446,16 @@ public class HrEmpBasicController {
                 for (HrEmpProfessionalQualification qualification : qualificationList) {
                     // 找到目前最高的任职资格，以此为判断标准
                     if (StringUtils.isNotBlank(qualification.getIsHighest()) && SystemConstants.TRUE_FLAG.equals(qualification.getIsHighest()) && StringUtils.isNotBlank(qualification.getQuaTitleLevel())) {
-                        switch (qualification.getQuaTitleLevel()) {
-                            case "00010":
-                            case "正高级":
-                                category7 = "001";
-                                break;
-                            case "00020":
-                            case "高级":
-                                category7 = "002";
-                                break;
-                            case "00030":
-                            case "中级":
-                                category7 = "003";
-                                break;
-                            case "00040":
-                            case "助理级":
-                                category7 = "004";
-                                break;
-                            case "00050":
-                            case "员级":
-                                category7 = "005";
-                                break;
-                            default:
+                        if(qualification.getQuaTitleLevel().equals("00010") || qualification.getQuaTitleLevel().contains("正高级")) {
+                            category7 = "001";
+                        } else if(qualification.getQuaTitleLevel().equals("00020") || qualification.getQuaTitleLevel().contains("高级")) {
+                            category7 = "002";
+                        } else if(qualification.getQuaTitleLevel().equals("00030") || qualification.getQuaTitleLevel().contains("中级")) {
+                            category7 = "003";
+                        } else if(qualification.getQuaTitleLevel().equals("00040") || qualification.getQuaTitleLevel().contains("助理级") || qualification.getQuaTitleLevel().contains("初级")) {
+                            category7 = "004";
+                        } else if(qualification.getQuaTitleLevel().equals("00050") || qualification.getQuaTitleLevel().contains("员级")) {
+                            category7 = "005";
                         }
                     }
                 }
@@ -489,36 +477,20 @@ public class HrEmpBasicController {
                                   00050	高级工 助
                                   00060/70	中级工、初级工 员
                                  */
-                            switch (skillLevel.getSkillLevel()) {
-                                case "00010":
-                                case "首席技师":
-                                    category7 = "001";
-                                    break;
-                                case "00020":
-                                case "特级技师":
-                                    category7 = "001";
-                                    break;
-                                case "00030":
-                                case "高级技师":
-                                    category7 = "001";
-                                    break;
-                                case "00040":
-                                case "技师":
-                                    category7 = "002";
-                                    break;
-                                case "00050":
-                                case "高级工":
-                                    category7 = "003";
-                                    break;
-                                case "00060":
-                                case "中级工":
-                                    category7 = "004";
-                                    break;
-                                case "00070":
-                                case "初级工":
-                                    category7 = "005";
-                                    break;
-                                default:
+                            if(skillLevel.getSkillLevel().equals("00010") || skillLevel.getSkillLevel().contains("首席技师")) {
+                                category7 = "001";
+                            } else if(skillLevel.getSkillLevel().equals("00020") || skillLevel.getSkillLevel().contains("特级技师")) {
+                                category7 = "001";
+                            } else if(skillLevel.getSkillLevel().equals("00030") || skillLevel.getSkillLevel().contains("高级技师")) {
+                                category7 = "001";
+                            } else if(skillLevel.getSkillLevel().equals("00040") || skillLevel.getSkillLevel().contains("技师")) {
+                                category7 = "002";
+                            } else if(skillLevel.getSkillLevel().equals("00050") || skillLevel.getSkillLevel().contains("高级工")) {
+                                category7 = "003";
+                            } else if(skillLevel.getSkillLevel().equals("00060") || skillLevel.getSkillLevel().contains("中级工")) {
+                                category7 = "004";
+                            } else if(skillLevel.getSkillLevel().equals("00070") || skillLevel.getSkillLevel().contains("初级工")) {
+                                category7 = "005";
                             }
                         }
                     }
