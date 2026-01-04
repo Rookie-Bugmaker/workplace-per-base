@@ -3,6 +3,7 @@ package com.crrc.service;
 import com.crrc.api.WkDataAPi;
 import com.crrc.entity.*;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
+import com.crrc.service.impl.CodeInfoServiceImpl;
 import com.crrc.service.impl.PostCatalogInfoServiceImpl;
 import com.crrc.utils.MyBatisPlusTableUtil;
 import com.crrc.utils.OracleJdbcUtil;
@@ -36,6 +37,8 @@ public class MyBatisPlusMigrationService {
     private WkDataAPi wkDataAPi;
     @Autowired
     private PostCatalogInfoServiceImpl postCatalogInfoServiceImpl;
+    @Autowired
+    private CodeInfoServiceImpl codeInfoService;
 
     /**
      * 迁移实体表数据
@@ -1168,10 +1171,10 @@ public class MyBatisPlusMigrationService {
 
     public void migrateBasicEntity(Class<HrEmpBasic> hrEmpBasicClass) {
         // 获得部门翻译字典
-        Map<String, String> orgCodeTranslateMap = wkDataAPi.allOrganization().getData().stream().collect(Collectors.toMap(
-                OrganizationDTO::getOrgCode,
-                OrganizationDTO::getOrgName
-        ));
+        Map<String, String> orgCodeTranslateMap = codeInfoService.getTranslateMap(
+                "hr_emp_appointment",
+                "APPOINTMENT_ORG"
+        );
 
         String tableName = tableUtil.getTableName(hrEmpBasicClass);
         List<String> columns = tableUtil.getTableColumns(hrEmpBasicClass);
