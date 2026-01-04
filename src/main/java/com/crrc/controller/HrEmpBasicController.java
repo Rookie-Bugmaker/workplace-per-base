@@ -404,6 +404,39 @@ public class HrEmpBasicController {
         }
     }
 
+    @PostMapping("/syncPersonCategory7")
+    @Operation(summary = "同步人员分类，目前用定时任务每天处理")
+    @AuditLog(value = "同步人员分类，目前用定时任务每天处理", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @XxlJob("syncPersonCategory7")
+    public ResponseResult<String> syncPersonCategory7(@RequestBody(required = false) List<HrEmpBasic> userCodeList) {
+        // 现在人员分类4不需要计算，通过金蝶直接传参解决
+        try {
+            // 如果传参了且非空，就用传参，否则全量更新
+            List<HrEmpBasic> list = (userCodeList != null && !userCodeList.isEmpty())
+                    ? hrEmpBasicService.getListByUserCode(userCodeList)
+                    : hrEmpBasicService.getAllUser();
+
+            for(HrEmpBasic hrEmpBasic : list){
+                // 同步人员分类7
+                String category7 = resolveCategory7(hrEmpBasic);
+                hrEmpBasic.setCategory7(category7);
+                log.info("userCode:{},查询人员分类7完毕,值为{}", hrEmpBasic.getUserCode(), category7);
+                // 更新方法
+                log.info("准备执行更新方法，category1:{}，category7:{}，category8:{}",
+                        hrEmpBasic.getCategory1(), hrEmpBasic.getCategory7() ,hrEmpBasic.getCategory8());
+                LambdaUpdateWrapper<HrEmpBasic> wrapper = new LambdaUpdateWrapper<>();
+                wrapper.eq(HrEmpBasic::getUserCode, hrEmpBasic.getUserCode())
+                        .set(HrEmpBasic::getCategory7, hrEmpBasic.getCategory7());
+                hrEmpBasicService.update(wrapper);
+                log.info("userCode:{},更新成功", hrEmpBasic.getUserCode());
+            }
+            return new ResponseResult<>(HttpStatus.OK.value(), "人员分类同步成功");
+        } catch (Exception e) {
+            log.error("人员分类同步失败，{}", e.getMessage(), e);
+            return new ResponseResult<>(HttpStatus.EXPECTATION_FAILED.value(), "人员分类同步失败" + e.getMessage());
+        }
+    }
+
     private String resolveCategory1(HrEmpBasic hrEmpBasic) {
         try {
             String category1 = null;
