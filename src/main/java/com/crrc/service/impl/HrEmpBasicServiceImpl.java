@@ -9,8 +9,6 @@ import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
 import com.crrc.client.SysServerClient;
 import com.crrc.entity.*;
-import com.crrc.entity.dict.vo.DictItemVO;
-import com.crrc.entity.dict.vo.DictVO;
 import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
@@ -454,8 +452,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                         dto.getIsEmployed())
                 .in(ObjectUtils.isNotEmpty(dto.getDeptSet()),
                         HrEmpBasic::getDept,
-                        dto.getDeptSet()
-                );
+                        dto.getDeptSet())
+                .eq(StringUtils.isNotBlank(dto.getCategory1()),
+                        HrEmpBasic::getCategory1,
+                        dto.getCategory1());
 
         Set<String> category8StatusSet = new HashSet<>(Arrays.asList(
                 "002",
