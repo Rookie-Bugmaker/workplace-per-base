@@ -14,6 +14,7 @@ import com.crrc.handler.MultiTenantHandler;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.KingDiePersonalOrderDTO;
 import com.crrc.service.CategoryRecordService;
+import com.crrc.service.HrEmpSkillLevelService;
 import com.crrc.service.impl.*;
 import com.crrc.utils.MinIOUtils;
 import com.crrc.utils.SystemConstants;
@@ -328,6 +329,25 @@ public class ExternalController {
                 }
 
                 //职业技能等级
+                HrEmpSkillLevel hrEmpSkillLevel = dto.getHrEmpSkillLevel();
+                // 如果这里的highest是'1', 将其他的isHighest置为0
+                if("1".equals(hrEmpSkillLevel.getIsHighest())) {
+                    List<HrEmpSkillLevel> hrEmpSkillLevels = hrEmpSkillLevelService.selectMsg(hrEmpSkillLevel.getUserCode());
+                    List<HrEmpSkillLevel> list = hrEmpSkillLevels.stream().filter(e -> "是".equals(e.getIsHighest()) || "1".equals(e.getIsHighest())).collect(Collectors.toList());
+                    list.forEach(item -> {
+                        item.setIsHighest("0");
+                        hrEmpSkillLevelService.updateById(item);
+                    });
+                }
+                // 是否聘任也只保留一个
+                if("1".equals(hrEmpSkillLevel.getIsAppointed())) {
+                    List<HrEmpSkillLevel> hrEmpSkillLevels = hrEmpSkillLevelService.selectMsg(hrEmpSkillLevel.getUserCode());
+                    List<HrEmpSkillLevel> list = hrEmpSkillLevels.stream().filter(e -> "是".equals(e.getIsAppointed()) || "1".equals(e.getIsAppointed())).collect(Collectors.toList());
+                    list.forEach(item -> {
+                        item.setIsAppointed("0");
+                        hrEmpSkillLevelService.updateById(item);
+                    });
+                }
                 if (dto.getHrEmpSkillLevel() != null && dto.getHrEmpSkillLevel().getUserCode() != null) {
                     dto.getHrEmpSkillLevel().setId(IdUtil.simpleUUID());
                     boolean saveResult = hrEmpSkillLevelService.save(dto.getHrEmpSkillLevel());
