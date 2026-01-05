@@ -470,6 +470,7 @@ public class HrEmpBasicController {
 
     private String resolveCategory7(HrEmpBasic hrEmpBasic) {
         try {
+            String category7_pro = null;
             // 获取专业职务任职资格列表
             List<HrEmpProfessionalQualification> qualificationList = hrEmpProfessionalQualificationService.selectMsg(hrEmpBasic.getUserCode());
             if (!qualificationList.isEmpty()) {
@@ -477,20 +478,21 @@ public class HrEmpBasicController {
                     // 找到目前最高的任职资格，以此为判断标准
                     if (StringUtils.isNotBlank(qualification.getIsHighest()) && SystemConstants.TRUE_FLAG.equals(qualification.getIsHighest()) && StringUtils.isNotBlank(qualification.getQuaTitleLevel())) {
                         if(qualification.getQuaTitleLevel().equals("00010") || qualification.getQuaTitleLevel().contains("正高级")) {
-                            return "001";
+                            category7_pro = "001";
                         } else if(qualification.getQuaTitleLevel().equals("00020") || qualification.getQuaTitleLevel().contains("高级")) {
-                            return "002";
+                            category7_pro = "002";
                         } else if(qualification.getQuaTitleLevel().equals("00030") || qualification.getQuaTitleLevel().contains("中级")) {
-                            return "003";
+                            category7_pro = "003";
                         } else if(qualification.getQuaTitleLevel().equals("00040") || qualification.getQuaTitleLevel().contains("助理级") || qualification.getQuaTitleLevel().contains("初级")) {
-                            return "004";
+                            category7_pro = "004";
                         } else if(qualification.getQuaTitleLevel().equals("00050") || qualification.getQuaTitleLevel().contains("员级")) {
-                            return "005";
+                            category7_pro = "005";
                         }
                     }
                 }
             }
 
+            String category7_skl = null;
             // 职业技能等级
             List<HrEmpSkillLevel> skillLevelList = hrEmpSkillLevelService.selectMsg(hrEmpBasic.getUserCode());
             if (!skillLevelList.isEmpty()) {
@@ -505,23 +507,30 @@ public class HrEmpBasicController {
                                   00060/70	中级工、初级工 员
                                  */
                             if(skillLevel.getSkillLevel().equals("00010") || skillLevel.getSkillLevel().contains("首席技师")) {
-                                return "001";
+                                category7_skl = "001";
                             } else if(skillLevel.getSkillLevel().equals("00020") || skillLevel.getSkillLevel().contains("特级技师")) {
-                                return "001";
+                                category7_skl = "001";
                             } else if(skillLevel.getSkillLevel().equals("00030") || skillLevel.getSkillLevel().contains("高级技师")) {
-                                return "001";
+                                category7_skl = "001";
                             } else if(skillLevel.getSkillLevel().equals("00040") || skillLevel.getSkillLevel().contains("技师")) {
-                                return "002";
+                                category7_skl = "002";
                             } else if(skillLevel.getSkillLevel().equals("00050") || skillLevel.getSkillLevel().contains("高级工")) {
-                                return "003";
+                                category7_skl = "003";
                             } else if(skillLevel.getSkillLevel().equals("00060") || skillLevel.getSkillLevel().contains("中级工")) {
-                                return "004";
+                                category7_skl = "004";
                             } else if(skillLevel.getSkillLevel().equals("00070") || skillLevel.getSkillLevel().contains("初级工")) {
-                                return "005";
+                                category7_skl = "005";
                             }
                         }
+                        // 如果新加了码值，请处理这里的技师判断逻辑
+                        return CodeValueComparatorUtils.compareCategory7(category7_pro, category7_skl) > 0 ? category7_skl : category7_pro;
                     }
                 }
+            }
+
+            // 如果是双通道评聘，取高的一条
+            if(category7_pro != null && category7_skl != null) {
+                return Integer.parseInt(category7_pro) < Integer.parseInt(category7_skl) ? category7_pro : category7_skl;
             }
             return null;
         } catch (Exception e) {
