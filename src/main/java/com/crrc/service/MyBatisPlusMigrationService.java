@@ -597,7 +597,7 @@ public class MyBatisPlusMigrationService {
                                     "    SELECT *, " +
                                     // 先取create_time有值的
                                     "           ROW_NUMBER() OVER " +
-                                    "(PARTITION BY user_code ORDER BY CASE WHEN change_type IN ('退休', '离职', '死亡', '调出', '集团内调出', '集外内调出', '015', '016', '017', '018') THEN 0 ELSE 1 END ASC, " +
+                                    "(PARTITION BY user_code ORDER BY " +
                                     "CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC, CASE WHEN start_date IS NULL THEN 1 ELSE 0 END ASC, " +
                                     "start_date DESC, CASE WHEN end_date IS NULL THEN 1 ELSE 0 END ASC, end_date DESC) " +
                                     "AS group_rank " +
@@ -617,7 +617,8 @@ public class MyBatisPlusMigrationService {
                                     "left join code_info ci3 on ci3.code = ra.change_reason and ci3.\"type\" = 'APPOINTMENT_CHANGE_REASON' " +
                                     "left join code_info ci4 on ci4.code = ra.duty_status and ci4.\"type\" = 'APPOINTMENT_DUTY_STATUS' " +
                                     "left join code_info ci5 on ci5.code = ra.position_category and ci5.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' " +
-                                    "WHERE group_rank = 1 " +
+                                    "left join hr_emp_basic heb on heb.user_code = ra.user_code " +
+                                    "WHERE ((CASE WHEN heb.is_employed = '1' THEN 1 ELSE 0 END) = 1 AND group_rank = 1) OR (((CASE WHEN heb.is_employed = '1' THEN 1 ELSE 0 END) = 0 AND change_type IN ('退休', '离职', '死亡', '调出', '集团内调出', '集外内调出', '015', '016', '017', '018'))) " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
                             // 不从视图取值
@@ -630,7 +631,7 @@ public class MyBatisPlusMigrationService {
                                     "    SELECT *, " +
                                     // 先取create_time有值的
                                     "           ROW_NUMBER() OVER " +
-                                    "(PARTITION BY user_code ORDER BY CASE WHEN change_type IN ('退休', '离职', '死亡', '调出', '集团内调出', '集外内调出', '015', '016', '017', '018') THEN 0 ELSE 1 END ASC, CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC, CASE WHEN start_date IS NULL THEN 1 ELSE 0 END ASC, start_date DESC, CASE WHEN end_date IS NULL THEN 1 ELSE 0 END ASC, end_date DESC) " +
+                                    "(PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC, CASE WHEN start_date IS NULL THEN 1 ELSE 0 END ASC, start_date DESC, CASE WHEN end_date IS NULL THEN 1 ELSE 0 END ASC, end_date DESC) " +
                                     "AS group_rank " +
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND user_code IS NOT NULL AND user_code > ?" +
@@ -648,7 +649,8 @@ public class MyBatisPlusMigrationService {
                                     "left join code_info ci3 on ci3.code = ra.change_reason and ci3.\"type\" = 'APPOINTMENT_CHANGE_REASON' " +
                                     "left join code_info ci4 on ci4.code = ra.duty_status and ci4.\"type\" = 'APPOINTMENT_DUTY_STATUS' " +
                                     "left join code_info ci5 on ci5.code = ra.position_category and ci5.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' " +
-                                    "WHERE group_rank = 1 " +
+                                    "left join hr_emp_basic heb on heb.user_code = ra.user_code " +
+                                    "WHERE ((CASE WHEN heb.is_employed = '1' THEN 1 ELSE 0 END) = 1 AND group_rank = 1) OR (((CASE WHEN heb.is_employed = '1' THEN 1 ELSE 0 END) = 0 AND change_type IN ('退休', '离职', '死亡', '调出', '集团内调出', '集外内调出', '015', '016', '017', '018'))) " +
                                     "ORDER BY user_code " +
                                     "LIMIT ?",
                             // 不从视图取值
