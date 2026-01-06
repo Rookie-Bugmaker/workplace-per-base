@@ -128,6 +128,11 @@ public class HrEmpEducation extends BaseEntity implements Serializable {
     @Schema(description = "附件挂载Id")
     private String fileHeaderId;
 
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"手动输入的学校名称"}, index = 19)
+    @Schema(description = "手动输入的学校名称")
+    private String inputSchoolName;
+
     @Schema(description = "通过fileHeaderId，查询回的文件列表")
     @TableField(exist = false)
     private List<SysFileDTO> files;
