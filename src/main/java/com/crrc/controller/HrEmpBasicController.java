@@ -522,17 +522,13 @@ public class HrEmpBasicController {
                                 category7_skl = "005";
                             }
                         }
-                        // 如果新加了码值，请处理这里的技师判断逻辑
-                        return CodeValueComparatorUtils.compareCategory7(category7_pro, category7_skl) > 0 ? category7_skl : category7_pro;
                     }
                 }
             }
 
             // 如果是双通道评聘，取高的一条
-            if(category7_pro != null && category7_skl != null) {
-                return Integer.parseInt(category7_pro) < Integer.parseInt(category7_skl) ? category7_pro : category7_skl;
-            }
-            return null;
+            // 如果新加了码值，请处理这里的技师判断逻辑
+            return CodeValueComparatorUtils.compareCategory7(category7_pro, category7_skl) > 0 ? category7_skl : category7_pro;
         } catch (Exception e) {
             log.error("人员分类7同步失败: {}", e.getMessage(), e);
             return hrEmpBasic.getCategory7();
