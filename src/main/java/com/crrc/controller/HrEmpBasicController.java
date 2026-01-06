@@ -491,7 +491,7 @@ public class HrEmpBasicController {
                     }
                 }
             }
-
+            log.info("category7_pro: {}", category7_pro);
             String category7_skl = null;
             // 职业技能等级
             List<HrEmpSkillLevel> skillLevelList = hrEmpSkillLevelService.selectMsg(hrEmpBasic.getUserCode());
@@ -525,10 +525,10 @@ public class HrEmpBasicController {
                     }
                 }
             }
-
+            log.info("category7_skl: {}", category7_skl);
             // 如果是双通道评聘，取高的一条
             // 如果新加了码值，请处理这里的技师判断逻辑
-            return CodeValueComparatorUtils.compareCategory7(category7_pro, category7_skl) > 0 ? category7_skl : category7_pro;
+            return CodeValueComparatorUtils.compareCategory7(category7_pro, category7_skl) > 0 ? category7_pro : category7_skl;
         } catch (Exception e) {
             log.error("人员分类7同步失败: {}", e.getMessage(), e);
             return hrEmpBasic.getCategory7();
