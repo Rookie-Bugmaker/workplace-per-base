@@ -184,7 +184,7 @@ public class ExternalController {
                 }
 
                 //职业发展通道
-                if (dto.getHrEmpCareerPath() != null && dto.getHrEmpCareerPath().getUserCode() != null) {
+                if (dto.getHrEmpCareerPath() != null && dto.getHrEmpCareerPath().getUserCode() != null && StringUtils.isNotBlank(dto.getHrEmpCareerPath().getPathId()) && StringUtils.isNotBlank(dto.getHrEmpCareerPath().getLevelId())) {
                     // 将该用户其他职业发展通道设置为过期
                     String userCode = dto.getHrEmpCareerPath().getUserCode();
                     LambdaQueryWrapper<HrEmpCareerPath> wrapper = new LambdaQueryWrapper<>();
@@ -239,7 +239,7 @@ public class ExternalController {
                 }
 
                 //员工专业职务任职资格表
-                if (dto.getHrEmpProfessionalQualification() != null && dto.getHrEmpProfessionalQualification().getUserCode() != null) {
+                if (dto.getHrEmpProfessionalQualification() != null && dto.getHrEmpProfessionalQualification().getUserCode() != null && StringUtils.isNotBlank(dto.getHrEmpProfessionalQualification().getQuaApprovalUnit()) && StringUtils.isNotBlank(dto.getHrEmpProfessionalQualification().getQuaPath())) {
                     dto.getHrEmpProfessionalQualification().setId(IdUtil.simpleUUID());
                     Map<String, String> booleanTranslateMap = new HashMap<>();
                     booleanTranslateMap.put("是", "1");
