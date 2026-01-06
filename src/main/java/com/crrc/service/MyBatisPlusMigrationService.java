@@ -607,9 +607,9 @@ public class MyBatisPlusMigrationService {
                                     "SELECT start_date, end_date, case when ci2.code_value is null then change_event else ci2.code_value end as change_event, " +
                                     "case when ci1.code_value is null then change_type else ci1.code_value end as change_type, " +
                                     "case when ci3.code_value is null then change_reason else ci3.code_value end as change_reason, personnel_category, " +
-                                    "case when ci4.code_value is null then duty_status else ci4.code_value end as duty_status, org, dept, org_unit, " +
+                                    "case when ci4.code_value is null then duty_status else ci4.code_value end as duty_status, org, ra.dept, org_unit, " +
                                     "case when ci.code_value is null then \"position\" else ci.code_value end as \"position\", " +
-                                    "hierarchy_rank, position_name, position_hierarchy, case when ci5.code_value is null then position_category else ci5.code_value end as position_category, salary_group, ra.id, user_code, " +
+                                    "hierarchy_rank, position_name, position_hierarchy, case when ci5.code_value is null then position_category else ci5.code_value end as position_category, salary_group, ra.id, ra.user_code, " +
                                     "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, job_type " +
                                     "FROM ranked_data ra LEFT JOIN code_info ci ON ci.code = ra.\"position\" and ci.\"type\" = 'APPOINTMENT_POSITION' " +
                                     "left join code_info ci1 on ci1.code = ra.change_type and ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' " +
@@ -639,9 +639,9 @@ public class MyBatisPlusMigrationService {
                                     "SELECT start_date, end_date, case when ci2.code_value is null then change_event else ci2.code_value end as change_event, " +
                                     "case when ci1.code_value is null then change_type else ci1.code_value end as change_type, " +
                                     "case when ci3.code_value is null then change_reason else ci3.code_value end as change_reason, personnel_category, " +
-                                    "case when ci4.code_value is null then duty_status else ci4.code_value end as duty_status, org, dept, org_unit, " +
+                                    "case when ci4.code_value is null then duty_status else ci4.code_value end as duty_status, org, ra.dept, org_unit, " +
                                     "case when ci.code_value is null then \"position\" else ci.code_value end as \"position\", " +
-                                    "hierarchy_rank, position_name, position_hierarchy, case when ci5.code_value is null then position_category else ci5.code_value end as position_category, salary_group, ra.id, user_code, " +
+                                    "hierarchy_rank, position_name, position_hierarchy, case when ci5.code_value is null then position_category else ci5.code_value end as position_category, salary_group, ra.id, ra.user_code, " +
                                     "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, job_type " +
                                     "FROM ranked_data ra LEFT JOIN code_info ci ON ci.code = ra.\"position\" and ci.\"type\" = 'APPOINTMENT_POSITION' " +
                                     "left join code_info ci1 on ci1.code = ra.change_type and ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' " +
