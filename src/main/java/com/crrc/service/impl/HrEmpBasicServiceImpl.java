@@ -880,6 +880,8 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 JoinWrappers.lambda(HrEmpAppointment.class)
                         .selectAll()
                         .eq(HrEmpAppointment::getUserCode, userCode)
+                        .orderByDesc(HrEmpAppointment::getCreateTime)
+                        .last("NULLS LAST")
         ).stream().filter(e -> e.getStartDate() != null).sorted(
                 Comparator.comparing(HrEmpAppointment::getStartDate).reversed()
         ).collect(Collectors.toList()).get(0));
