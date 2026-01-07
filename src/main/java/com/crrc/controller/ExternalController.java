@@ -311,7 +311,8 @@ public class ExternalController {
                 }
 
                 //薪资标准
-                if (dto.getHrEmpSalaryStandard() != null && dto.getHrEmpSalaryStandard().getUserCode() != null) {
+                // 岗级不可能为空
+                if (dto.getHrEmpSalaryStandard() != null && dto.getHrEmpSalaryStandard().getUserCode() != null && dto.getHrEmpSalaryStandard().getSalaryGrade() != null && dto.getHrEmpSalaryStandard().getCoefficient() != null) {
                     dto.getHrEmpSalaryStandard().setId(IdUtil.simpleUUID());
                     String coefficient = dto.getHrEmpSalaryStandard().getCoefficient();
                     try {
