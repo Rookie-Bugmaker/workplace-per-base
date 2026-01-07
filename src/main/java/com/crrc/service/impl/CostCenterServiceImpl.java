@@ -30,41 +30,22 @@ public class CostCenterServiceImpl extends WorkServiceImpl<CostCenterMapper, Cos
     private HrEmpBasicServiceImpl hrEmpBasicService;
 
     public void queryVO(Page<CostCenter> page, CostCenter pageReqVO) {
-        Map<String, String> orgCode2Name = wkDataApi.treeOrganization().getData().stream().peek(
-                item -> item.setChildren(null)
-        ).collect(Collectors.toMap(
-                OrganizationTreeDTO::getOrgCode,
-                OrganizationTreeDTO::getOrgName
-        ));
-
         this.query(page, pageReqVO);
 
-        page.getRecords().forEach(org -> org.setCollectionName(orgCode2Name.getOrDefault(org.getCollection(), "未知公司")));
+        page.getRecords().forEach(org -> org.setCollectionName(org.getCollection()));
     }
 
     public List<CostCenter> queryVO(CostCenter queryReqVO) {
-        Map<String, String> orgCode2Name = wkDataApi.allOrganization().getData().stream().collect(Collectors.toMap(
-                OrganizationDTO::getOrgCode,
-                OrganizationDTO::getOrgName
-        ));
-
         List<CostCenter> query = this.query(queryReqVO);
 
-        query.forEach(org -> {
-            org.setCollectionName(orgCode2Name.getOrDefault(org.getCode(), "未知公司"));
-        });
+        query.forEach(org -> org.setCollectionName(org.getCollection()));
 
         return query;
     }
 
     public CostCenter getVO(Long id) {
-        Map<String, String> orgCode2Name = wkDataApi.allOrganization().getData().stream().collect(Collectors.toMap(
-                OrganizationDTO::getOrgCode,
-                OrganizationDTO::getOrgName
-        ));
-
         CostCenter costCenter = this.getById(id);
-        costCenter.setCollectionName(orgCode2Name.getOrDefault(costCenter.getCode(), "未知公司"));
+        costCenter.setCollectionName(costCenter.getCollection());
 
         return costCenter;
     }
