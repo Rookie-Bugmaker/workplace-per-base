@@ -1503,6 +1503,17 @@ public class MyBatisPlusMigrationService {
                     break;
                 }
 
+                // 手动翻译部门
+                // 获得部门翻译字典
+                Map<String, String> orgCodeTranslateMap = codeInfoService.getTranslateMap(
+                        "hr_emp_appointment",
+                        "APPOINTMENT_ORG"
+                );
+
+                // 翻译部门字段
+                batchData.forEach(item -> item.computeIfPresent("org", (k, v) -> orgCodeTranslateMap.getOrDefault(String.valueOf(v), String.valueOf(v))));
+                batchData.forEach(item -> item.computeIfPresent("dept", (k, v) -> orgCodeTranslateMap.getOrDefault(String.valueOf(v), String.valueOf(v))));
+
                 // 批量插入目标表
                 try (PreparedStatement pstmt = oracleConn.prepareStatement(insertSql)) {
                     for (Map<String, Object> row : batchData) {
