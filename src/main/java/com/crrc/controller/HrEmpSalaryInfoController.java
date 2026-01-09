@@ -44,6 +44,7 @@ import java.util.List;
 @RequestMapping("/hrEmpSalaryInfo")
 @RefreshScope
 @Tag(name = "员工薪资信息表", description = "员工薪资信息表")
+// TODO: 需要自然年+1！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！工龄标准
 public class HrEmpSalaryInfoController {
 
     @Autowired

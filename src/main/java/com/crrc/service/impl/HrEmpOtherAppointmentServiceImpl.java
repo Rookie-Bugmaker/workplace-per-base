@@ -40,10 +40,9 @@ public class HrEmpOtherAppointmentServiceImpl extends WorkServiceImpl<HrEmpOther
     public List<HrEmpOtherAppointment> selectUndoneApp(String userCode) {
         MPJLambdaWrapper<HrEmpOtherAppointment> wrapper = new MPJLambdaWrapper<HrEmpOtherAppointment>()
                 .eq(HrEmpOtherAppointment::getUserCode, userCode)
-                .or(w -> w
-                        .isNull(HrEmpAppointment::getEndDate)
-                        .gt(HrEmpAppointment::getEndDate, "2198-01-01")
-                );
+                .isNull(HrEmpAppointment::getEndDate)
+                .or()
+                .gt(HrEmpAppointment::getEndDate, "2198-01-01");
         List<HrEmpOtherAppointment> result = hrEmpOtherAppointmentMapper.selectList(wrapper);
         if (result == null || result.isEmpty()) {
             return null;

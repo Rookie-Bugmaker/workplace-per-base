@@ -60,11 +60,10 @@ MERGE INTO HR_EMP_BASIC b
                      dept,
                      ROW_NUMBER() OVER(
         PARTITION BY user_code
-        ORDER BY start_date DESC NULLS LAST, id DESC
+        ORDER BY start_date DESC NULLS LAST, end_date DESC NULLS first, id DESC
       ) rn
                  FROM HR_EMP_APPOINTMENT
                  WHERE start_date IS NOT NULL
-                 AND dept IS NOT NULL
              ) t
         WHERE t.rn = 1
     ) a

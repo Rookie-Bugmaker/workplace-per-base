@@ -30,41 +30,22 @@ public class CostCenterServiceImpl extends WorkServiceImpl<CostCenterMapper, Cos
     private HrEmpBasicServiceImpl hrEmpBasicService;
 
     public void queryVO(Page<CostCenter> page, CostCenter pageReqVO) {
-        Map<String, String> orgCode2Name = wkDataApi.treeOrganization().getData().stream().peek(
-                item -> item.setChildren(null)
-        ).collect(Collectors.toMap(
-                OrganizationTreeDTO::getOrgCode,
-                OrganizationTreeDTO::getOrgName
-        ));
-
         this.query(page, pageReqVO);
 
-        page.getRecords().forEach(org -> org.setCollectionName(orgCode2Name.getOrDefault(org.getCollection(), "未知公司")));
+        page.getRecords().forEach(org -> org.setCollectionName(org.getCollection()));
     }
 
     public List<CostCenter> queryVO(CostCenter queryReqVO) {
-        Map<String, String> orgCode2Name = wkDataApi.allOrganization().getData().stream().collect(Collectors.toMap(
-                OrganizationDTO::getOrgCode,
-                OrganizationDTO::getOrgName
-        ));
-
         List<CostCenter> query = this.query(queryReqVO);
 
-        query.forEach(org -> {
-            org.setCollectionName(orgCode2Name.getOrDefault(org.getCode(), "未知公司"));
-        });
+        query.forEach(org -> org.setCollectionName(org.getCollection()));
 
         return query;
     }
 
     public CostCenter getVO(Long id) {
-        Map<String, String> orgCode2Name = wkDataApi.allOrganization().getData().stream().collect(Collectors.toMap(
-                OrganizationDTO::getOrgCode,
-                OrganizationDTO::getOrgName
-        ));
-
         CostCenter costCenter = this.getById(id);
-        costCenter.setCollectionName(orgCode2Name.getOrDefault(costCenter.getCode(), "未知公司"));
+        costCenter.setCollectionName(costCenter.getCollection());
 
         return costCenter;
     }
@@ -83,13 +64,13 @@ public class CostCenterServiceImpl extends WorkServiceImpl<CostCenterMapper, Cos
     public List<HrBasicCostCenterDetailVO> queryDetails(Long id) {
         CostCenter costCenter = this.getById(id);
         HrEmpBasic hrEmpBasic = new HrEmpBasic();
-        hrEmpBasic.setCostCenter(id.toString());
+        hrEmpBasic.setCostCenter(costCenter.getCode());
         // 根据cost center查询所有的人员信息
-        List<String> userCodeList = hrEmpBasicService.query(hrEmpBasic).stream().map(HrEmpBasic::getUserCode).collect(Collectors.toList());
-        // 根据人员信息查询(带翻译)
-        List<HrEmpBasicDTO> query = hrEmpBasicService.selectMsgList(userCodeList);
-        hrEmpBasicService.resolveFieldsList(query);
-        return query.stream().map(basic -> {
+        List<HrEmpBasic> userCodeList = hrEmpBasicService.query(hrEmpBasic);
+//        // 根据人员信息查询(带翻译)
+//        List<HrEmpBasicDTO> query = hrEmpBasicService.selectMsgList(userCodeList);
+//        hrEmpBasicService.resolveFieldsList(query);
+        return userCodeList.stream().map(basic -> {
             HrBasicCostCenterDetailVO hrBasicCostCenterDetailVO = new HrBasicCostCenterDetailVO();
             hrBasicCostCenterDetailVO.setCostCenterCode(costCenter.getCode());
             hrBasicCostCenterDetailVO.setCostCenterName(costCenter.getName());

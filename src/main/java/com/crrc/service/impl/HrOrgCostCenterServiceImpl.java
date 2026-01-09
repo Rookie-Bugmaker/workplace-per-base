@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
  * @since 2025-08-26 08:51:30
  */
 @Service
+@Deprecated
 public class HrOrgCostCenterServiceImpl extends WorkServiceImpl<HrOrgCostCenterMapper, HrOrgCostCenter> implements HrOrgCostCenterService {
 
 }

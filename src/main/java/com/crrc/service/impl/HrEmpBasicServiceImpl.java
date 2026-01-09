@@ -9,8 +9,6 @@ import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
 import com.crrc.client.SysServerClient;
 import com.crrc.entity.*;
-import com.crrc.entity.dict.vo.DictItemVO;
-import com.crrc.entity.dict.vo.DictVO;
 import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
@@ -345,7 +343,8 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         // 这里的 buildFuzzyConditions 需要只使用 HrEmpBasic 上的字段做条件
         buildFuzzyConditions(basicWrapper, dto);
 
-        basicWrapper.orderByAsc(HrEmpBasic::getUserCode);
+        // 按照是否包含0132排序，这样可以让正常工号显示在前面
+        basicWrapper.last("ORDER BY CASE WHEN user_code LIKE '0132%' THEN 0 ELSE 1 END ASC, user_code ASC");
 
         IPage<HrEmpBasic> empPage = hrEmpBasicMapper.selectPage(basicPage, basicWrapper);
 
@@ -384,14 +383,18 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 .leftJoin(HrEmpEducation.class,
                         on -> on.eq(HrEmpEducation::getUserCode, HrEmpBasic::getUserCode)
                                 .eq(HrEmpEducation::getIsHighestEducation, SystemConstants.TRUE_FLAG)
+                                .eq(HrEmpEducation::getIsHighestDegree, SystemConstants.TRUE_FLAG)
                 )
-                .leftJoin(HrEmpAppointment.class, HrEmpAppointment::getUserCode, HrEmpBasic::getUserCode)
+                // .leftJoin(HrEmpAppointment.class, HrEmpAppointment::getUserCode, HrEmpBasic::getUserCode)
                 // 关键：只查本页的员工，避免全表 join
                 .in(HrEmpBasic::getUserCode, userCodes)
                 .orderByAsc(HrEmpBasic::getUserCode);
 
         // 这里不再分页，因为 userCode 已经是分页后的结果，数据量很小
         List<HrEmpBasicDTO> dtoList = hrEmpBasicMapper.selectJoinList(HrEmpBasicDTO.class, joinWrapper);
+
+        // 翻译部门
+        dtoList.forEach(item -> item.setDepartmentName(DeptUtils.getDeptNameByCode(item.getDept())));
 
         // ========= 4. 组装 IPage<HrEmpBasicDTO>，保持分页信息一致 =========
 
@@ -450,8 +453,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                         dto.getIsEmployed())
                 .in(ObjectUtils.isNotEmpty(dto.getDeptSet()),
                         HrEmpBasic::getDept,
-                        dto.getDeptSet()
-                );
+                        dto.getDeptSet())
+                .eq(StringUtils.isNotBlank(dto.getCategory1()),
+                        HrEmpBasic::getCategory1,
+                        dto.getCategory1());
 
         Set<String> category8StatusSet = new HashSet<>(Arrays.asList(
                 "002",
@@ -875,6 +880,8 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 JoinWrappers.lambda(HrEmpAppointment.class)
                         .selectAll()
                         .eq(HrEmpAppointment::getUserCode, userCode)
+                        .orderByDesc(HrEmpAppointment::getCreateTime)
+                        .last("NULLS LAST")
         ).stream().filter(e -> e.getStartDate() != null).sorted(
                 Comparator.comparing(HrEmpAppointment::getStartDate).reversed()
         ).collect(Collectors.toList()).get(0));

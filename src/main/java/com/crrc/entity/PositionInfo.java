@@ -2,10 +2,12 @@ package com.crrc.entity;
 
 import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
-import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -59,7 +61,6 @@ public class PositionInfo extends BaseEntity {
     @Schema(description = "生效日期")
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"生效日期"})
-    @JsonFormat(pattern = "yyyy-MM-dd")
     private Date effectiveDate;
 
     /** 关联职务 */
@@ -74,6 +75,18 @@ public class PositionInfo extends BaseEntity {
     @ExcelProperty(value = {"职种"})
     private String jobType;
 
+    /** 部门代码 */
+    @Schema(description = "部门代码")
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"部门代码"})
+    private String deptCode;
+
+    /** 部门名称 */
+    @Schema(description = "部门名称")
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"部门名称"})
+    private String deptName;
+
     /** 上级职位编码 */
     @Schema(description = "上级职位编码")
     @QueryMethod(method = QueryType.EQ)
@@ -85,66 +98,4 @@ public class PositionInfo extends BaseEntity {
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"上级职位名称"})
     private String parentPositionName;
-
-    /** 审批状态 */
-    @Schema(description = "审批状态")
-    @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"审批状态"})
-    private String auditStatus;
-
-    /** 职层 */
-    @Schema(description = "职层")
-    @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"职层"})
-    private String positionLevel;
-
-    /** 职级 */
-    @Schema(description = "职级")
-    @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"职级"})
-    private String jobGrade;
-
-    /** 编制人数 */
-    @Schema(description = "编制人数")
-    @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"编制人数"})
-    private String staffingSize;
-
-    /** 控编模式 */
-    @Schema(description = "控编模式")
-    @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"控编模式"})
-    private String hcCtrlMode;
-
-    /** 撤销日期 */
-    @Schema(description = "撤销日期")
-    @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"撤销日期"})
-    private String revocationDate;
-
-    /** 版本 */
-    @Schema(description = "版本")
-    @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"版本"})
-    private String version;
-
-    /** 审批状态翻译 */
-    @TableField(exist = false)
-    private String auditStatusValue;
-
-    /** 职类翻译 */
-    @TableField(exist = false)
-    private String jobCategoryValue;
-
-    /** 职群翻译 */
-    @TableField(exist = false)
-    private String jobGroupValue;
-
-    /** 职种翻译 */
-    @TableField(exist = false)
-    private String jobTypeValue;
-
-    /** 职层翻译 */
-    @TableField(exist = false)
-    private String positionLevelValue;
 }

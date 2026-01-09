@@ -38,6 +38,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/hrOrgCostCenter")
 @RefreshScope
+@Deprecated
 public class HrOrgCostCenterController {
 
     @Autowired

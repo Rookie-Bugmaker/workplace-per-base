@@ -27,6 +27,7 @@ import java.io.Serializable;
 @Schema(description ="成本中心表")
 @Data
 @NoArgsConstructor
+@Deprecated
 public class HrOrgCostCenter extends BaseEntity implements Serializable {
     @Schema(description = "主键")
     @TableId(value = "id", type = IdType.AUTO)

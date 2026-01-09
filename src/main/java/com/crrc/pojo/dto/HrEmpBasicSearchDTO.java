@@ -40,4 +40,8 @@ public class HrEmpBasicSearchDTO {
     @QueryMethod(method = QueryType.EQ)
     @Schema(description = "在岗状态")
     private String dutyStatus;
+
+    @QueryMethod(method = QueryType.EQ)
+    @Schema(description = "人员分类1")
+    private String category1;
 }

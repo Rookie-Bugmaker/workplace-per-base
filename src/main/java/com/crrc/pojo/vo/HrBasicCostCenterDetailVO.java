@@ -16,7 +16,7 @@ public class HrBasicCostCenterDetailVO extends HrEmpBasicDTO {
     String costCenterName;
     String costCenterCode;
     /**
-     * 其实是公司名(编码)
+     * 其实是公司名
      */
     @QueryMethod(method = QueryType.EQ)
     private String collection;

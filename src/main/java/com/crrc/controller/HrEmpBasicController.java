@@ -404,6 +404,37 @@ public class HrEmpBasicController {
         }
     }
 
+    @PostMapping("/syncPersonCategory7")
+    @Operation(summary = "同步人员分类，目前用定时任务每天处理")
+    @AuditLog(value = "同步人员分类，目前用定时任务每天处理", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @XxlJob("syncPersonCategory7")
+    public ResponseResult<String> syncPersonCategory7(@RequestBody(required = false) List<HrEmpBasic> userCodeList) {
+        // 现在人员分类4不需要计算，通过金蝶直接传参解决
+        try {
+            // 如果传参了且非空，就用传参，否则全量更新
+            List<HrEmpBasic> list = (userCodeList != null && !userCodeList.isEmpty())
+                    ? hrEmpBasicService.getListByUserCode(userCodeList)
+                    : hrEmpBasicService.getAllUser();
+
+            for(HrEmpBasic hrEmpBasic : list){
+                // 同步人员分类7
+                String category7 = resolveCategory7(hrEmpBasic);
+                log.info("userCode:{},查询人员分类7完毕,值为{}", hrEmpBasic.getUserCode(), category7);
+                // 更新方法
+                log.info("准备执行更新方法，category7:{}", category7);
+                LambdaUpdateWrapper<HrEmpBasic> wrapper = new LambdaUpdateWrapper<>();
+                wrapper.eq(HrEmpBasic::getUserCode, hrEmpBasic.getUserCode())
+                        .set(HrEmpBasic::getCategory7, category7);
+                hrEmpBasicService.update(wrapper);
+                log.info("userCode:{},更新成功", hrEmpBasic.getUserCode());
+            }
+            return new ResponseResult<>(HttpStatus.OK.value(), "人员分类同步成功");
+        } catch (Exception e) {
+            log.error("人员分类同步失败，{}", e.getMessage(), e);
+            return new ResponseResult<>(HttpStatus.EXPECTATION_FAILED.value(), "人员分类同步失败" + e.getMessage());
+        }
+    }
+
     private String resolveCategory1(HrEmpBasic hrEmpBasic) {
         try {
             String category1 = null;
@@ -439,43 +470,29 @@ public class HrEmpBasicController {
 
     private String resolveCategory7(HrEmpBasic hrEmpBasic) {
         try {
-            String category7 = null;
+            String category7_pro = null;
             // 获取专业职务任职资格列表
             List<HrEmpProfessionalQualification> qualificationList = hrEmpProfessionalQualificationService.selectMsg(hrEmpBasic.getUserCode());
             if (!qualificationList.isEmpty()) {
                 for (HrEmpProfessionalQualification qualification : qualificationList) {
                     // 找到目前最高的任职资格，以此为判断标准
                     if (StringUtils.isNotBlank(qualification.getIsHighest()) && SystemConstants.TRUE_FLAG.equals(qualification.getIsHighest()) && StringUtils.isNotBlank(qualification.getQuaTitleLevel())) {
-                        switch (qualification.getQuaTitleLevel()) {
-                            case "00010":
-                            case "正高级":
-                                category7 = "001";
-                                break;
-                            case "00020":
-                            case "高级":
-                                category7 = "002";
-                                break;
-                            case "00030":
-                            case "中级":
-                                category7 = "003";
-                                break;
-                            case "00040":
-                            case "助理级":
-                                category7 = "004";
-                                break;
-                            case "00050":
-                            case "员级":
-                                category7 = "005";
-                                break;
-                            default:
+                        if(qualification.getQuaTitleLevel().equals("00010") || qualification.getQuaTitleLevel().contains("正高级")) {
+                            category7_pro = "001";
+                        } else if(qualification.getQuaTitleLevel().equals("00020") || qualification.getQuaTitleLevel().contains("高级")) {
+                            category7_pro = "002";
+                        } else if(qualification.getQuaTitleLevel().equals("00030") || qualification.getQuaTitleLevel().contains("中级")) {
+                            category7_pro = "003";
+                        } else if(qualification.getQuaTitleLevel().equals("00040") || qualification.getQuaTitleLevel().contains("助理级") || qualification.getQuaTitleLevel().contains("初级")) {
+                            category7_pro = "004";
+                        } else if(qualification.getQuaTitleLevel().equals("00050") || qualification.getQuaTitleLevel().contains("员级")) {
+                            category7_pro = "005";
                         }
                     }
                 }
             }
-            if (category7 != null) {
-                return category7;
-            }
-
+            log.info("category7_pro: {}", category7_pro);
+            String category7_skl = null;
             // 职业技能等级
             List<HrEmpSkillLevel> skillLevelList = hrEmpSkillLevelService.selectMsg(hrEmpBasic.getUserCode());
             if (!skillLevelList.isEmpty()) {
@@ -489,42 +506,29 @@ public class HrEmpBasicController {
                                   00050	高级工 助
                                   00060/70	中级工、初级工 员
                                  */
-                            switch (skillLevel.getSkillLevel()) {
-                                case "00010":
-                                case "首席技师":
-                                    category7 = "001";
-                                    break;
-                                case "00020":
-                                case "特级技师":
-                                    category7 = "001";
-                                    break;
-                                case "00030":
-                                case "高级技师":
-                                    category7 = "001";
-                                    break;
-                                case "00040":
-                                case "技师":
-                                    category7 = "002";
-                                    break;
-                                case "00050":
-                                case "高级工":
-                                    category7 = "003";
-                                    break;
-                                case "00060":
-                                case "中级工":
-                                    category7 = "004";
-                                    break;
-                                case "00070":
-                                case "初级工":
-                                    category7 = "005";
-                                    break;
-                                default:
+                            if(skillLevel.getSkillLevel().equals("00010") || skillLevel.getSkillLevel().contains("首席技师")) {
+                                category7_skl = "001";
+                            } else if(skillLevel.getSkillLevel().equals("00020") || skillLevel.getSkillLevel().contains("特级技师")) {
+                                category7_skl = "001";
+                            } else if(skillLevel.getSkillLevel().equals("00030") || skillLevel.getSkillLevel().contains("高级技师")) {
+                                category7_skl = "001";
+                            } else if(skillLevel.getSkillLevel().equals("00040") || skillLevel.getSkillLevel().contains("技师")) {
+                                category7_skl = "002";
+                            } else if(skillLevel.getSkillLevel().equals("00050") || skillLevel.getSkillLevel().contains("高级工")) {
+                                category7_skl = "003";
+                            } else if(skillLevel.getSkillLevel().equals("00060") || skillLevel.getSkillLevel().contains("中级工")) {
+                                category7_skl = "004";
+                            } else if(skillLevel.getSkillLevel().equals("00070") || skillLevel.getSkillLevel().contains("初级工")) {
+                                category7_skl = "005";
                             }
                         }
                     }
                 }
             }
-            return category7;
+            log.info("category7_skl: {}", category7_skl);
+            // 如果是双通道评聘，取高的一条
+            // 如果新加了码值，请处理这里的技师判断逻辑
+            return CodeValueComparatorUtils.compareCategory7(category7_pro, category7_skl) > 0 ? category7_pro : category7_skl;
         } catch (Exception e) {
             log.error("人员分类7同步失败: {}", e.getMessage(), e);
             return hrEmpBasic.getCategory7();

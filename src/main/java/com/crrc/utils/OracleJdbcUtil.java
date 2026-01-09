@@ -8,8 +8,8 @@ import java.util.Properties;
 
 public class OracleJdbcUtil {
     private static final String URL = "jdbc:oracle:thin:@172.22.112.57:1521/ORCL";
-    private static final String USERNAME = "hcmtest";
-    private static final String PASSWORD = "hcm_test_001";
+    private static final String USERNAME = "hcmdbcenter";
+    private static final String PASSWORD = "Crchcm_2022";
 
     static {
         try {

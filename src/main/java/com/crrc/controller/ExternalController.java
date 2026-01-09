@@ -14,6 +14,7 @@ import com.crrc.handler.MultiTenantHandler;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.KingDiePersonalOrderDTO;
 import com.crrc.service.CategoryRecordService;
+import com.crrc.service.HrEmpSkillLevelService;
 import com.crrc.service.impl.*;
 import com.crrc.utils.MinIOUtils;
 import com.crrc.utils.SystemConstants;
@@ -183,7 +184,7 @@ public class ExternalController {
                 }
 
                 //职业发展通道
-                if (dto.getHrEmpCareerPath() != null && dto.getHrEmpCareerPath().getUserCode() != null) {
+                if (dto.getHrEmpCareerPath() != null && dto.getHrEmpCareerPath().getUserCode() != null && StringUtils.isNotBlank(dto.getHrEmpCareerPath().getPathId()) && StringUtils.isNotBlank(dto.getHrEmpCareerPath().getLevelId())) {
                     // 将该用户其他职业发展通道设置为过期
                     String userCode = dto.getHrEmpCareerPath().getUserCode();
                     LambdaQueryWrapper<HrEmpCareerPath> wrapper = new LambdaQueryWrapper<>();
@@ -238,7 +239,7 @@ public class ExternalController {
                 }
 
                 //员工专业职务任职资格表
-                if (dto.getHrEmpProfessionalQualification() != null && dto.getHrEmpProfessionalQualification().getUserCode() != null) {
+                if (dto.getHrEmpProfessionalQualification() != null && dto.getHrEmpProfessionalQualification().getUserCode() != null && StringUtils.isNotBlank(dto.getHrEmpProfessionalQualification().getQuaApprovalUnit()) && StringUtils.isNotBlank(dto.getHrEmpProfessionalQualification().getQuaPath())) {
                     dto.getHrEmpProfessionalQualification().setId(IdUtil.simpleUUID());
                     Map<String, String> booleanTranslateMap = new HashMap<>();
                     booleanTranslateMap.put("是", "1");
@@ -249,7 +250,7 @@ public class ExternalController {
                     String appointed = booleanTranslateMap.getOrDefault(hrEmpProfessionalQualification.getIsAppointed(), hrEmpProfessionalQualification.getIsAppointed());
                     hrEmpProfessionalQualification.setIsHighest(highest);
                     hrEmpProfessionalQualification.setIsAppointed(appointed);
-                    // 将其他的isHighest置为0
+                    // 如果这里的highest是'1', 将其他的isHighest置为0
                     if("1".equals(hrEmpProfessionalQualification.getIsHighest())) {
                         List<HrEmpProfessionalQualification> hrEmpProfessionalQualifications = hrEmpProfessionalQualificationService.selectMsg(hrEmpProfessionalQualification.getUserCode());
                         List<HrEmpProfessionalQualification> list = hrEmpProfessionalQualifications.stream().filter(e -> "是".equals(e.getIsHighest()) || "1".equals(e.getIsHighest())).collect(Collectors.toList());
@@ -272,10 +273,9 @@ public class ExternalController {
                     HrEmpResume hrEmpResume = dto.getHrEmpResumes().get(0);
                     // 选择所有该工号，结束时间为null，或者结束时间在2198年之后的的数据
                     LambdaQueryWrapper<HrEmpResume> queryWrapper = new LambdaQueryWrapper<>();
-                    queryWrapper.or(w -> w
-                            .isNull(HrEmpResume::getEndDate)
-                            .gt(HrEmpResume::getEndDate, "2198-01-01")
-                    );
+                    queryWrapper.isNull(HrEmpResume::getEndDate)
+                            .or()
+                            .gt(HrEmpResume::getEndDate, "2198-01-01");
                     queryWrapper.eq(HrEmpResume::getUserCode, hrEmpResume.getUserCode());
                     List<HrEmpResume> hrEmpResumeList = hrEmpResumeService.getBaseMapper().selectList(queryWrapper);
                     if(!ObjectUtils.isEmpty(hrEmpResumeList)) {
@@ -310,7 +310,8 @@ public class ExternalController {
                 }
 
                 //薪资标准
-                if (dto.getHrEmpSalaryStandard() != null && dto.getHrEmpSalaryStandard().getUserCode() != null) {
+                // 岗级不可能为空
+                if (dto.getHrEmpSalaryStandard() != null && dto.getHrEmpSalaryStandard().getUserCode() != null && dto.getHrEmpSalaryStandard().getSalaryGrade() != null && dto.getHrEmpSalaryStandard().getCoefficient() != null) {
                     dto.getHrEmpSalaryStandard().setId(IdUtil.simpleUUID());
                     String coefficient = dto.getHrEmpSalaryStandard().getCoefficient();
                     try {
@@ -329,6 +330,27 @@ public class ExternalController {
 
                 //职业技能等级
                 if (dto.getHrEmpSkillLevel() != null && dto.getHrEmpSkillLevel().getUserCode() != null) {
+                    HrEmpSkillLevel hrEmpSkillLevel = dto.getHrEmpSkillLevel();
+
+                    // 如果这里的highest是'1', 将其他的isHighest置为0
+                    if("1".equals(hrEmpSkillLevel.getIsHighest())) {
+                        List<HrEmpSkillLevel> hrEmpSkillLevels = hrEmpSkillLevelService.selectMsg(hrEmpSkillLevel.getUserCode());
+                        List<HrEmpSkillLevel> list = hrEmpSkillLevels.stream().filter(e -> "是".equals(e.getIsHighest()) || "1".equals(e.getIsHighest())).collect(Collectors.toList());
+                        list.forEach(item -> {
+                            item.setIsHighest("0");
+                            hrEmpSkillLevelService.updateById(item);
+                        });
+                    }
+                    // 是否聘任也只保留一个
+                    if("1".equals(hrEmpSkillLevel.getIsAppointed())) {
+                        List<HrEmpSkillLevel> hrEmpSkillLevels = hrEmpSkillLevelService.selectMsg(hrEmpSkillLevel.getUserCode());
+                        List<HrEmpSkillLevel> list = hrEmpSkillLevels.stream().filter(e -> "是".equals(e.getIsAppointed()) || "1".equals(e.getIsAppointed())).collect(Collectors.toList());
+                        list.forEach(item -> {
+                            item.setIsAppointed("0");
+                            hrEmpSkillLevelService.updateById(item);
+                        });
+                    }
+
                     dto.getHrEmpSkillLevel().setId(IdUtil.simpleUUID());
                     boolean saveResult = hrEmpSkillLevelService.save(dto.getHrEmpSkillLevel());
                     if (!saveResult) {
@@ -451,7 +473,6 @@ public class ExternalController {
     @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
     @Parameter(name = "pageNo", description = "页码", example = "1")
     @Parameter(name = "pageSize", description = "条数", example = "10")
-    @IgnoreTenant
     public ResponseResult<Page<HrEmpBasic>> pageForPerSelf(@Validated @RequestBody(required = false) HrEmpBasic pageReqVO,
                                                            @RequestParam(required = false, defaultValue = "1") int pageNo,
                                                            @RequestParam(required = false, defaultValue = "10") int pageSize) {
@@ -469,7 +490,6 @@ public class ExternalController {
     @GetMapping("/getDept")
     @Operation(summary = "获得员工所属部门")
     @AuditLog(value = "获得员工所属部门", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    @IgnoreTenant
     public ResponseResult<String> getDept(@RequestParam String userCode) {
         try {
             String dept = hrEmpBasicService.getDept(userCode);
