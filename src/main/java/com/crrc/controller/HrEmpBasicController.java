@@ -800,7 +800,7 @@ public class HrEmpBasicController {
             codeInfo.setId(IdUtil.simpleUUID());
             codeInfo.setType("info_manager");
             codeInfo.setTableName("hr_emp_basic");
-            codeInfo.setTableName("部门或子公司信息管理员");
+            codeInfo.setTypeName("部门或子公司信息管理员");
             codeInfo.setCode(orgCode);
             codeInfo.setCodeValue(userCode);
             codeInfoService.getBaseMapper().insert(codeInfo);
