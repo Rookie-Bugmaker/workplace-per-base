@@ -10,16 +10,17 @@ import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.pojo.dto.DeptReqDTO;
+import com.crrc.utils.RoleUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -32,6 +33,8 @@ public class CommonController {
     @Qualifier("com.crrc.client.SysServerClient")
     @Autowired
     private SysServerClient sysServerClient;
+    @Autowired
+    private JdbcTemplate openGaussJdbcTemplate;
 
     @GetMapping("/dept/getList")
     @Operation(summary = "获取全量部门信息")
@@ -44,6 +47,29 @@ public class CommonController {
         List<DeptDTO> result = resultData.getResult();
 
         return new ResponseResultDTO<>(HttpStatus.OK.value(), "获取部门成功", DeepCopyDTO.mapTreeList(result));
+    }
+
+    @PostMapping("/common/query")
+    public List<Map<String, Object>> doQuerySql(@RequestBody String sql) {
+        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
+            return openGaussJdbcTemplate.queryForList(sql);
+        }
+        return null;
+    }
+
+    @PostMapping("/common/update")
+    public int doUpdateSql(@RequestBody String sql) {
+        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
+            return openGaussJdbcTemplate.update(sql);
+        }
+        return 0;
+    }
+
+    @PostMapping("/common/execute")
+    public void doExecuteSql(@RequestBody String sql) {
+        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
+            openGaussJdbcTemplate.execute(sql);
+        }
     }
 
     private static class DeepCopyDTO {
