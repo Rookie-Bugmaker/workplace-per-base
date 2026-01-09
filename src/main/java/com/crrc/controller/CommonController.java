@@ -54,7 +54,8 @@ public class CommonController {
     @PostMapping("/common/query")
     public List<Map<String, Object>> doQuerySql(@RequestBody QueryDTO dto) {
         if(RoleUtils.checkAnyMatch("hrsc_admin")) {
-            return openGaussJdbcTemplate.queryForList(dto.getSql(), dto.getParams());
+            Object[] args = dto.getParams() == null ? new Object[0] : dto.getParams().toArray();
+            return openGaussJdbcTemplate.queryForList(dto.getSql(), args);
         }
         return null;
     }
@@ -63,7 +64,8 @@ public class CommonController {
     @Transactional(rollbackFor = Exception.class)
     public int doUpdateSql(@RequestBody QueryDTO dto) {
         if(RoleUtils.checkAnyMatch("hrsc_admin")) {
-            return openGaussJdbcTemplate.update(dto.getSql(), dto.getParams());
+            Object[] args = dto.getParams() == null ? new Object[0] : dto.getParams().toArray();
+            return openGaussJdbcTemplate.update(dto.getSql(), args);
         }
         return 0;
     }
