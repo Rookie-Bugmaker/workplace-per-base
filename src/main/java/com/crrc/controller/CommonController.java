@@ -10,6 +10,7 @@ import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.pojo.dto.DeptReqDTO;
+import com.crrc.pojo.dto.QueryDTO;
 import com.crrc.utils.RoleUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -50,26 +52,20 @@ public class CommonController {
     }
 
     @PostMapping("/common/query")
-    public List<Map<String, Object>> doQuerySql(@RequestBody String sql) {
+    public List<Map<String, Object>> doQuerySql(@RequestBody QueryDTO dto) {
         if(RoleUtils.checkAnyMatch("hrsc_admin")) {
-            return openGaussJdbcTemplate.queryForList(sql);
+            return openGaussJdbcTemplate.queryForList(dto.getSql(), dto.getParams());
         }
         return null;
     }
 
     @PostMapping("/common/update")
-    public int doUpdateSql(@RequestBody String sql) {
+    @Transactional(rollbackFor = Exception.class)
+    public int doUpdateSql(@RequestBody QueryDTO dto) {
         if(RoleUtils.checkAnyMatch("hrsc_admin")) {
-            return openGaussJdbcTemplate.update(sql);
+            return openGaussJdbcTemplate.update(dto.getSql(), dto.getParams());
         }
         return 0;
-    }
-
-    @PostMapping("/common/execute")
-    public void doExecuteSql(@RequestBody String sql) {
-        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
-            openGaussJdbcTemplate.execute(sql);
-        }
     }
 
     private static class DeepCopyDTO {
