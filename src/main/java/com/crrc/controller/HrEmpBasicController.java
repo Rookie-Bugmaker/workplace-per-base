@@ -766,6 +766,20 @@ public class HrEmpBasicController {
         }
     }
 
+    @GetMapping("/grantPermission")
+    public ResponseResult<Boolean> grantPermission(String userCode, String orgCode) {
+        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
+            CodeInfo codeInfo = new CodeInfo();
+            codeInfo.setType("info_manager");
+            codeInfo.setTableName("hr_emp_basic");
+            codeInfo.setTableName("部门或子公司信息管理员");
+            codeInfo.setCode(orgCode);
+            codeInfo.setCodeValue(userCode);
+            codeInfoService.getBaseMapper().insert(codeInfo);
+        }
+        return new ResponseResult<>(HttpStatus.OK.value(), "OK");
+    }
+
     @PostMapping("/pageForPerSelf")
     @Operation(summary = "获取员工基本信息表列表(支持模糊查询)")
     @AuditLog(value = "获取员工基本信息表列表(模糊查询)", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
