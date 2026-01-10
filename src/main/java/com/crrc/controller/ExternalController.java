@@ -405,28 +405,30 @@ public class ExternalController {
         // 设置租户id
         MultiTenantHandler.tenantId.set("438");
         try {
-            List<HrEmpBasic> userList = dtoList.stream().map(KingDiePersonalOrderDTO::getHrEmpBasic).collect(Collectors.toList());
-            // 统计之前的人员分类1、4、7、8
-            List<HrEmpBasic> categoryInfoList = hrEmpBasicService.getCategoryInfo(userList);
-            Map<String, HrEmpBasic> hrEmpBasicMap = categoryInfoList.stream().collect(Collectors.toMap(
-                    HrEmpBasic::getUserCode,
-                    hrEmpBasic -> hrEmpBasic
-            ));
+            if(!ObjectUtils.isEmpty(dtoList.stream().filter(e -> e.getHrEmpBasic() != null).collect(Collectors.toList()))) {
+                List<HrEmpBasic> userList = dtoList.stream().map(KingDiePersonalOrderDTO::getHrEmpBasic).collect(Collectors.toList());
+                // 统计之前的人员分类1、4、7、8
+                List<HrEmpBasic> categoryInfoList = hrEmpBasicService.getCategoryInfo(userList);
+                Map<String, HrEmpBasic> hrEmpBasicMap = categoryInfoList.stream().collect(Collectors.toMap(
+                        HrEmpBasic::getUserCode,
+                        hrEmpBasic -> hrEmpBasic
+                ));
 
-            log.info("旧人员分类统计完毕，数量：{}", hrEmpBasicMap.size());
-            hrEmpBasicController.syncPersonCategory(userList);
-            // 统计之后的人员分类1、4、7、8
-            List<HrEmpBasic> categoryInfoNewList = hrEmpBasicService.getCategoryInfo(userList);
-            List<CategoryRecord> categoryRecordList = new ArrayList<>();
-            categoryInfoNewList.forEach(newRecord -> {
-                HrEmpBasic oldRecord = hrEmpBasicMap.get(newRecord.getUserCode());
-                categoryRecordList.add(CategoryRecord.of(newRecord.getUserCode(), oldRecord, newRecord));
-            });
-            log.info("新人员分类统计完毕，数量：{}", categoryRecordList.size());
+                log.info("旧人员分类统计完毕，数量：{}", hrEmpBasicMap.size());
+                hrEmpBasicController.syncPersonCategory(userList);
+                // 统计之后的人员分类1、4、7、8
+                List<HrEmpBasic> categoryInfoNewList = hrEmpBasicService.getCategoryInfo(userList);
+                List<CategoryRecord> categoryRecordList = new ArrayList<>();
+                categoryInfoNewList.forEach(newRecord -> {
+                    HrEmpBasic oldRecord = hrEmpBasicMap.get(newRecord.getUserCode());
+                    categoryRecordList.add(CategoryRecord.of(newRecord.getUserCode(), oldRecord, newRecord));
+                });
+                log.info("新人员分类统计完毕，数量：{}", categoryRecordList.size());
 
-            categoryRecordService.saveBatch(categoryRecordList);
+                categoryRecordService.saveBatch(categoryRecordList);
 
-            log.info("日志保存完毕");
+                log.info("日志保存完毕");
+            }
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw new RuntimeException("处理人事令信息异常：" + e.getMessage());
