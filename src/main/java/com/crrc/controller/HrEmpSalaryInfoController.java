@@ -14,6 +14,7 @@ import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.service.impl.HrEmpSalaryInfoServiceImpl;
+import com.crrc.utils.RoleUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -63,6 +64,17 @@ public class HrEmpSalaryInfoController {
         Page<HrEmpSalaryInfo> page = new Page<>(pageNo, pageSize);
         hrEmpSalaryInfoService.query(page, pageReqVO);
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工薪资信息表列表 page成功", page);
+    }
+
+    @GetMapping("/addSalaryInfoSenYear")
+    public ResponseResult<Boolean> addSalaryInfoSenYear() {
+        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
+            List<HrEmpSalaryInfo> hrEmpSalaryInfos = hrEmpSalaryInfoService.getBaseMapper().selectList(new LambdaQueryWrapper<>());
+            hrEmpSalaryInfos.stream().filter(item -> item.getSeniorityStandard() != null)
+                    .forEach(item -> item.setSeniorityStandard("0".equals(item.getSeniorityStandard()) ? "0" : String.valueOf((Integer.parseInt(item.getSeniorityStandard()) + 1))));
+            hrEmpSalaryInfoService.updateBatchById(hrEmpSalaryInfos);
+        }
+        return new ResponseResult<>(HttpStatus.OK.value(), "OK");
     }
 
     @PostMapping("/query")
