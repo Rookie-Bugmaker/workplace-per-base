@@ -29,9 +29,12 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -70,9 +73,17 @@ public class HrEmpSalaryInfoController {
     public ResponseResult<Boolean> addSalaryInfoSenYear() {
         if(RoleUtils.checkAnyMatch("hrsc_admin")) {
             List<HrEmpSalaryInfo> hrEmpSalaryInfos = hrEmpSalaryInfoService.getBaseMapper().selectList(new LambdaQueryWrapper<>());
-            hrEmpSalaryInfos.stream().filter(item -> item.getSeniorityStandard() != null)
-                    .forEach(item -> item.setSeniorityStandard("0".equals(item.getSeniorityStandard()) ? "0" : String.valueOf((Integer.parseInt(item.getSeniorityStandard()) + 1))));
-            hrEmpSalaryInfoService.updateBatchById(hrEmpSalaryInfos);
+            List<HrEmpSalaryInfo> collect1 = hrEmpSalaryInfos.stream().filter(item -> item.getSeniorityStandard() != null && "0.00".equals(item.getSeniorityStandard()))
+                    .peek(item -> item.setSeniorityStandard(
+                            new BigDecimal(item.getSeniorityStandard()).add(BigDecimal.ONE).setScale(0, RoundingMode.DOWN).toString())
+                    ).collect(Collectors.toList());
+            hrEmpSalaryInfoService.updateBatchById(collect1);
+
+            List<HrEmpSalaryInfo> collect2 = hrEmpSalaryInfos.stream().filter(item -> "0.00".equals(item.getSeniorityStandard())).peek(item ->
+                    item.setSeniorityStandard("0")
+            ).collect(Collectors.toList());
+
+            hrEmpSalaryInfoService.updateBatchById(collect2);
         }
         return new ResponseResult<>(HttpStatus.OK.value(), "OK");
     }
