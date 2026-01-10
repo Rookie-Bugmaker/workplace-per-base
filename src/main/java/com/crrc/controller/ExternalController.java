@@ -11,10 +11,10 @@ import com.crrc.entity.*;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.handler.MultiTenantHandler;
+import com.crrc.mapper.HrEmpSalaryInfoMapper;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.KingDiePersonalOrderDTO;
 import com.crrc.service.CategoryRecordService;
-import com.crrc.service.HrEmpSkillLevelService;
 import com.crrc.service.impl.*;
 import com.crrc.utils.MinIOUtils;
 import com.crrc.utils.SystemConstants;
@@ -76,6 +76,8 @@ public class ExternalController {
     private CategoryRecordService categoryRecordService;
     @Autowired
     private MinIOUtils minioUtils;
+    @Autowired
+    private HrEmpSalaryInfoMapper hrEmpSalaryInfoMapper;
 
     @PostMapping("/receiveKingDieMsg")
     @Operation(summary = "接收金蝶传递人事令信息")
@@ -504,6 +506,20 @@ public class ExternalController {
         } catch (Exception e) {
             log.error("获得员工所属部门失败{}", e.getMessage(), e);
             return new ResponseResult<>(HttpStatus.OK.value(), "获得员工所属部门失败，使用默认部门流程与数字化部", SystemConstants.DEFAULT_DEPT_CODE);
+        }
+    }
+
+    @PostMapping("/updateSalaryInfoName")
+    @Operation(summary = "更新员工薪酬信息姓名")
+    @AuditLog(value = "更新员工薪酬信息姓名", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @IgnoreTenant
+    public ResponseResult<String> updateSalaryInfoName() {
+        try {
+            hrEmpSalaryInfoMapper.syncNameFromBasic();
+            return new ResponseResult<>(HttpStatus.OK.value(), "更新员工薪酬信息姓名成功");
+        } catch (Exception e) {
+            log.error("更新员工薪酬信息姓名失败", e);
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "更新员工薪酬信息姓名失败");
         }
     }
 }

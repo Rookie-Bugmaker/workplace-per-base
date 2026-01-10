@@ -3,6 +3,7 @@ package com.crrc.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.crrc.entity.HrEmpSalaryInfo;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Update;
 
 /**
  * <p>
@@ -14,5 +15,10 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface HrEmpSalaryInfoMapper extends BaseMapper<HrEmpSalaryInfo> {
+    @Update("UPDATE hr_emp_salary_info i " +
+            "SET name = b.name " +
+            "FROM hr_emp_basic b " +
+            "WHERE i.user_code = b.user_code")
+    void syncNameFromBasic();
 
 }
