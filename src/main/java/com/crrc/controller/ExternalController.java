@@ -428,7 +428,7 @@ public class ExternalController {
 
             log.info("日志保存完毕");
         } catch (Exception e) {
-            log.error(e.getMessage());
+            log.error(e.getMessage(), e);
             throw new RuntimeException("处理人事令信息异常：" + e.getMessage());
         } finally {
             MultiTenantHandler.tenantId.remove();
