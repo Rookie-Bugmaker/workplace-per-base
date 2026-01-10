@@ -73,13 +73,17 @@ public class HrEmpSalaryInfoController {
     public ResponseResult<Boolean> addSalaryInfoSenYear() {
         if(RoleUtils.checkAnyMatch("hrsc_admin")) {
             List<HrEmpSalaryInfo> hrEmpSalaryInfos = hrEmpSalaryInfoService.getBaseMapper().selectList(new LambdaQueryWrapper<>());
-            List<HrEmpSalaryInfo> collect1 = hrEmpSalaryInfos.stream().filter(item -> item.getSeniorityStandard() != null && "0.00".equals(item.getSeniorityStandard()))
+            List<HrEmpSalaryInfo> collect1 = hrEmpSalaryInfos.stream().filter(
+                    item -> item.getSeniorityStandard() != null && !"0.00".equals(item.getSeniorityStandard())
+                    )
                     .peek(item -> item.setSeniorityStandard(
                             new BigDecimal(item.getSeniorityStandard()).add(BigDecimal.ONE).setScale(0, RoundingMode.DOWN).toString())
                     ).collect(Collectors.toList());
             hrEmpSalaryInfoService.updateBatchById(collect1);
 
-            List<HrEmpSalaryInfo> collect2 = hrEmpSalaryInfos.stream().filter(item -> "0.00".equals(item.getSeniorityStandard())).peek(item ->
+            List<HrEmpSalaryInfo> collect2 = hrEmpSalaryInfos.stream().filter(
+                    item -> "0.00".equals(item.getSeniorityStandard())
+            ).peek(item ->
                     item.setSeniorityStandard("0")
             ).collect(Collectors.toList());
 
