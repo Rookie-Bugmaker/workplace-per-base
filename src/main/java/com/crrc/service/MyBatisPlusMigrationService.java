@@ -222,7 +222,7 @@ public class MyBatisPlusMigrationService {
                                     "case when ci.code_value is not null then ci.code_value else education end as education, " +
                                     "case when ci4.code_value is null then \"degree\" else ci4.code_value end as \"degree\", " +
                                     "is_highest_degree, is_highest_education, completion_status, ra.deleted, ra.create_time, ra.create_by, " +
-                                    "ra.update_time, ra.update_by, ra.tenant_id, degree_major, is_updating, " +
+                                    "ra.update_time, ra.update_by, ra.tenant_id, degree_major, is_updating, ra.input_school_name, ra.input_major_name, " +
                                     "case when ci2.code_value is null then school_code else ci2.code_value end as school_code, file_header_id " +
                                     "FROM ranked_data ra " +
                                     "left join code_info ci on ci.code = ra.education and ci.\"type\" = 'EDU_EDU' " +
@@ -250,7 +250,7 @@ public class MyBatisPlusMigrationService {
                                     "case when ci.code_value is not null then ci.code_value else education end as education, " +
                                     "case when ci4.code_value is null then \"degree\" else ci4.code_value end as \"degree\", " +
                                     "is_highest_degree, is_highest_education, completion_status, ra.deleted, ra.create_time, ra.create_by, " +
-                                    "ra.update_time, ra.update_by, ra.tenant_id, degree_major, is_updating, " +
+                                    "ra.update_time, ra.update_by, ra.tenant_id, degree_major, is_updating, ra.input_school_name, ra.input_major_name, " +
                                     "case when ci2.code_value is null then school_code else ci2.code_value end as school_code, file_header_id " +
                                     "FROM ranked_data ra " +
                                     "left join code_info ci on ci.code = ra.education and ci.\"type\" = 'EDU_EDU' " +
