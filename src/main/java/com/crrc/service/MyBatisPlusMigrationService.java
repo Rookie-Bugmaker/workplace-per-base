@@ -1185,6 +1185,8 @@ public class MyBatisPlusMigrationService {
         String primaryKey = tableUtil.getPrimaryKey(hrEmpBasicClass);
         columns.add(primaryKey);
 
+        columns.add("department_code");
+
         log.info("开始迁移表: " + tableName);
         log.info("主键列: " + primaryKey);
         log.info("迁移列: " + String.join(", ", columns));
@@ -1364,6 +1366,9 @@ public class MyBatisPlusMigrationService {
                 if (batchData.isEmpty()) {
                     break;
                 }
+
+                // 复制部门字段用于RSL_GZK的列支单位
+                batchData.forEach(item -> item.put("department_code", item.get("dept")));
 
                 // 翻译部门字段
                 batchData.forEach(item -> item.computeIfPresent("dept", (k, v) -> orgCodeTranslateMap.get(String.valueOf(v))));
