@@ -275,9 +275,11 @@ public class ExternalController {
                     HrEmpResume hrEmpResume = dto.getHrEmpResumes().get(0);
                     // 选择所有该工号，结束时间为null，或者结束时间在2198年之后的的数据
                     LambdaQueryWrapper<HrEmpResume> queryWrapper = new LambdaQueryWrapper<>();
-                    queryWrapper.isNull(HrEmpResume::getEndDate)
+                    queryWrapper.and(
+                            w -> w.isNull(HrEmpResume::getEndDate)
                             .or()
-                            .gt(HrEmpResume::getEndDate, "2198-01-01");
+                            .gt(HrEmpResume::getEndDate, "2198-01-01")
+                    );
                     queryWrapper.eq(HrEmpResume::getUserCode, hrEmpResume.getUserCode());
                     List<HrEmpResume> hrEmpResumeList = hrEmpResumeService.getBaseMapper().selectList(queryWrapper);
                     if(!ObjectUtils.isEmpty(hrEmpResumeList)) {
