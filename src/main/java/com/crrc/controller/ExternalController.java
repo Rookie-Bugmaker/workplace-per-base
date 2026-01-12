@@ -1,6 +1,8 @@
 package com.crrc.controller;
 
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
@@ -11,10 +13,10 @@ import com.crrc.entity.*;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.handler.MultiTenantHandler;
+import com.crrc.mapper.HrEmpSalaryInfoMapper;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.KingDiePersonalOrderDTO;
 import com.crrc.service.CategoryRecordService;
-import com.crrc.service.HrEmpSkillLevelService;
 import com.crrc.service.impl.*;
 import com.crrc.utils.MinIOUtils;
 import com.crrc.utils.SystemConstants;
@@ -76,6 +78,8 @@ public class ExternalController {
     private CategoryRecordService categoryRecordService;
     @Autowired
     private MinIOUtils minioUtils;
+    @Autowired
+    private HrEmpSalaryInfoMapper hrEmpSalaryInfoMapper;
 
     @PostMapping("/receiveKingDieMsg")
     @Operation(summary = "接收金蝶传递人事令信息")
@@ -273,9 +277,11 @@ public class ExternalController {
                     HrEmpResume hrEmpResume = dto.getHrEmpResumes().get(0);
                     // 选择所有该工号，结束时间为null，或者结束时间在2198年之后的的数据
                     LambdaQueryWrapper<HrEmpResume> queryWrapper = new LambdaQueryWrapper<>();
-                    queryWrapper.isNull(HrEmpResume::getEndDate)
+                    queryWrapper.and(
+                            w -> w.isNull(HrEmpResume::getEndDate)
                             .or()
-                            .gt(HrEmpResume::getEndDate, "2198-01-01");
+                            .gt(HrEmpResume::getEndDate, "2198-01-01")
+                    );
                     queryWrapper.eq(HrEmpResume::getUserCode, hrEmpResume.getUserCode());
                     List<HrEmpResume> hrEmpResumeList = hrEmpResumeService.getBaseMapper().selectList(queryWrapper);
                     if(!ObjectUtils.isEmpty(hrEmpResumeList)) {
@@ -372,12 +378,13 @@ public class ExternalController {
                     HrEmpSalaryInfo existingRecord = hrEmpSalaryInfoService.getOne(queryWrapper);
 
                     if (existingRecord != null) {
+                        BeanUtil.copyProperties(dto.getHrEmpSalaryInfo(), existingRecord, CopyOptions.create().setIgnoreNullValue(true));
                         // 如果存在记录，执行更新操作
-                        UpdateWrapper<HrEmpSalaryInfo> updateWrapper = UpdateWrapperUtils
-                                .buildNonNullUpdateWrapper(salaryInfo, "id", "userCode")
-                                .eq("user_code", salaryInfo.getUserCode());
+//                        UpdateWrapper<HrEmpSalaryInfo> updateWrapper = UpdateWrapperUtils
+//                                .buildNonNullUpdateWrapper(salaryInfo, "id", "userCode")
+//                                .eq("user_code", salaryInfo.getUserCode());
 
-                        boolean updateResult = hrEmpSalaryInfoService.update(updateWrapper);
+                        boolean updateResult = hrEmpSalaryInfoService.updateById(existingRecord);
                         if (!updateResult) {
                             log.error("更新员工薪资信息失败，工号：{}", salaryInfo.getUserCode());
                             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "更新员工薪资信息失败!");
@@ -504,6 +511,47 @@ public class ExternalController {
         } catch (Exception e) {
             log.error("获得员工所属部门失败{}", e.getMessage(), e);
             return new ResponseResult<>(HttpStatus.OK.value(), "获得员工所属部门失败，使用默认部门流程与数字化部", SystemConstants.DEFAULT_DEPT_CODE);
+        }
+    }
+
+    @PostMapping("/updateSalaryInfoName")
+    @Operation(summary = "更新员工薪酬信息姓名")
+    @AuditLog(value = "更新员工薪酬信息姓名", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @IgnoreTenant
+    public ResponseResult<String> updateSalaryInfoName() {
+        try {
+            hrEmpSalaryInfoMapper.syncNameFromBasic();
+            return new ResponseResult<>(HttpStatus.OK.value(), "更新员工薪酬信息姓名成功");
+        } catch (Exception e) {
+            log.error("更新员工薪酬信息姓名失败", e);
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "更新员工薪酬信息姓名失败");
+        }
+    }
+
+    @PostMapping("/updateCategory8")
+    @Operation(summary = "单独重算指定人员的人员分类8")
+    @AuditLog(value = "更新员工薪酬信息姓名", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @IgnoreTenant
+    public ResponseResult<String> updateCategory8(@RequestBody List<String> userCodeList, @RequestParam(required = false) String category8) {
+        try {
+            StringBuilder result = new StringBuilder();
+
+            for(String userCode : userCodeList) {
+                HrEmpBasic entity = hrEmpBasicService.getByUserCode(userCode);
+                if(StringUtils.isNotBlank(category8)) {
+                    entity.setCategory8(category8);
+                    result.append("档案号：").append(userCode).append(" 人员分类8：").append(category8);
+                } else {
+                    String category8Mark = hrEmpBasicController.resolveCategory8(entity);
+                    entity.setCategory8(category8Mark);
+                    result.append("档案号：").append(userCode).append(" 人员分类8：").append(category8Mark);
+                }
+                hrEmpBasicService.updateById(entity);
+            }
+            return new ResponseResult<>(HttpStatus.OK.value(), "重算指定人员的人员分类8成功" + result);
+        } catch (Exception e) {
+            log.error("重算指定人员的人员分类8失败", e);
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "重算指定人员的人员分类8失败");
         }
     }
 }

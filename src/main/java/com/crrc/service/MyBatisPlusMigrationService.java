@@ -222,7 +222,7 @@ public class MyBatisPlusMigrationService {
                                     "case when ci.code_value is not null then ci.code_value else education end as education, " +
                                     "case when ci4.code_value is null then \"degree\" else ci4.code_value end as \"degree\", " +
                                     "is_highest_degree, is_highest_education, completion_status, ra.deleted, ra.create_time, ra.create_by, " +
-                                    "ra.update_time, ra.update_by, ra.tenant_id, degree_major, is_updating, " +
+                                    "ra.update_time, ra.update_by, ra.tenant_id, degree_major, is_updating, ra.input_school_name, ra.input_major_name, " +
                                     "case when ci2.code_value is null then school_code else ci2.code_value end as school_code, file_header_id " +
                                     "FROM ranked_data ra " +
                                     "left join code_info ci on ci.code = ra.education and ci.\"type\" = 'EDU_EDU' " +
@@ -250,7 +250,7 @@ public class MyBatisPlusMigrationService {
                                     "case when ci.code_value is not null then ci.code_value else education end as education, " +
                                     "case when ci4.code_value is null then \"degree\" else ci4.code_value end as \"degree\", " +
                                     "is_highest_degree, is_highest_education, completion_status, ra.deleted, ra.create_time, ra.create_by, " +
-                                    "ra.update_time, ra.update_by, ra.tenant_id, degree_major, is_updating, " +
+                                    "ra.update_time, ra.update_by, ra.tenant_id, degree_major, is_updating, ra.input_school_name, ra.input_major_name, " +
                                     "case when ci2.code_value is null then school_code else ci2.code_value end as school_code, file_header_id " +
                                     "FROM ranked_data ra " +
                                     "left join code_info ci on ci.code = ra.education and ci.\"type\" = 'EDU_EDU' " +
@@ -1185,6 +1185,8 @@ public class MyBatisPlusMigrationService {
         String primaryKey = tableUtil.getPrimaryKey(hrEmpBasicClass);
         columns.add(primaryKey);
 
+        columns.add("department_code");
+
         log.info("开始迁移表: " + tableName);
         log.info("主键列: " + primaryKey);
         log.info("迁移列: " + String.join(", ", columns));
@@ -1364,6 +1366,9 @@ public class MyBatisPlusMigrationService {
                 if (batchData.isEmpty()) {
                     break;
                 }
+
+                // 复制部门字段用于RSL_GZK的列支单位
+                batchData.forEach(item -> item.put("department_code", item.get("dept")));
 
                 // 翻译部门字段
                 batchData.forEach(item -> item.computeIfPresent("dept", (k, v) -> orgCodeTranslateMap.get(String.valueOf(v))));
@@ -1872,6 +1877,8 @@ public class MyBatisPlusMigrationService {
                 if (batchData.isEmpty()) {
                     break;
                 }
+
+                batchData.forEach(item -> item.replaceAll((k, v) -> v == null && !"create_time".equals(k)  && !"update_time".equals(k) ? "0" : v));
 
                 // 薪酬表不清空全部数据，仅删除与源表user_code匹配的记录
                 try (PreparedStatement deleteStmt = oracleConn.prepareStatement(

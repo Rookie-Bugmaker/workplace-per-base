@@ -10,7 +10,6 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
-import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
 import com.crrc.api.WkWorkflowApi;
 import com.crrc.client.UserProfileImageClient;
@@ -468,7 +467,7 @@ public class HrEmpBasicController {
         }
     }
 
-    private String resolveCategory7(HrEmpBasic hrEmpBasic) {
+    public String resolveCategory7(HrEmpBasic hrEmpBasic) {
         try {
             String category7_pro = null;
             // 获取专业职务任职资格列表
@@ -535,7 +534,7 @@ public class HrEmpBasicController {
         }
     }
 
-    private String resolveCategory8(HrEmpBasic hrEmpBasic) {
+    public String resolveCategory8(HrEmpBasic hrEmpBasic) {
         try {
             // 先判断借调、外派、助勤
             // 查找duty_status不为空的其他任职信息
@@ -765,34 +764,31 @@ public class HrEmpBasicController {
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "查询异常: " + e.getMessage());
         }
     }
-    //    {
-//        "tenant_id": "438",
-//            "create_by": null,
-//            "type_name": "组织",
-//            "update_time": null,
-//            "code": "01320402",
-//            "create_time": null,
-//            "code_value": "国家轨道客车工程研究中心",
-//            "id": "2f5a2c68-7b0b-4985-9d54-cd1118da5eeb",
-//            "type": "APPOINTMENT_ORG",
-//            "update_by": null,
-//            "table_name": "hr_emp_appointment"
+
+    @PostMapping("/setCategory4")
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseResult<Boolean> setIsEmployed2Zero(@RequestBody MultipartFile file) throws IOException {
+    EasyExcel.read(file.getInputStream(), HrEmpBasic.class,
+                    new Category4ImportListener(hrEmpBasicService))
+            .headRowNumber(1)
+            .sheet()
+            .doRead();
+
+    return new ResponseResult<>(HttpStatus.OK.value(), true);
+    }
+
+//    @PostMapping("/setIsEmployed2Zero")
+//    @Transactional(rollbackFor = Exception.class)
+//    public ResponseResult<Boolean> setIsEmployed2Zero(@RequestBody MultipartFile file) throws IOException {
+//        EasyExcel.read(file.getInputStream(), HrEmpBasic.class,
+//                        new Emp2ZeroImportListener(hrEmpBasicService))
+//                .headRowNumber(1)
+//                .sheet()
+//                .doRead();
+//
+//        return new ResponseResult<>(HttpStatus.OK.value(), true);
 //    }
-//    [
-//    {
-//        "tenant_id": "438",
-//            "create_by": null,
-//            "type_name": "部门或子公司信息管理员",
-//            "update_time": null,
-//            "code": "01320311_3",
-//            "create_time": null,
-//            "code_value": "013200027539",
-//            "id": "infomanager0033",
-//            "type": "info_manager",
-//            "update_by": null,
-//            "table_name": "hr_emp_basic"
-//    }
-//]
+
     @GetMapping("/grantPermission")
     public ResponseResult<Boolean> grantPermission(String userCode, String orgCode) {
         if(RoleUtils.checkAnyMatch("hrsc_admin")) {

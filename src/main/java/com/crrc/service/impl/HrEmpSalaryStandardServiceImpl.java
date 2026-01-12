@@ -1,5 +1,6 @@
 package com.crrc.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.crrc.entity.HrEmpSalaryStandard;
 import com.crrc.mapper.HrEmpSalaryStandardMapper;
 import com.crrc.service.HrEmpSalaryStandardService;
@@ -24,8 +25,8 @@ public class HrEmpSalaryStandardServiceImpl extends WorkServiceImpl<HrEmpSalaryS
     private HrEmpSalaryStandardMapper hrEmpSalaryStandardMapper;
 
     public List<HrEmpSalaryStandard> selectMsg(String userCode) {
-        MPJLambdaWrapper<HrEmpSalaryStandard> wrapper = new MPJLambdaWrapper<HrEmpSalaryStandard>()
-                .selectAll(HrEmpSalaryStandard.class)
+        LambdaQueryWrapper<HrEmpSalaryStandard> wrapper = new LambdaQueryWrapper<>();
+        wrapper
                 .eq(HrEmpSalaryStandard::getUserCode, userCode)
                 // 添加条件：薪档,薪级,执行系数/金额同时未null时，不进行查询
                 .not(innerWrapper -> innerWrapper
@@ -33,6 +34,8 @@ public class HrEmpSalaryStandardServiceImpl extends WorkServiceImpl<HrEmpSalaryS
                         .isNull(HrEmpSalaryStandard::getSalaryLevel)
                         .isNull(HrEmpSalaryStandard::getCoefficient)
                 );
+
+        wrapper.last("ORDER BY create_time DESC NULLS LAST");
         return hrEmpSalaryStandardMapper.selectList(wrapper);
     }
 }

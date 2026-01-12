@@ -29,9 +29,13 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -66,12 +70,16 @@ public class HrEmpSalaryInfoController {
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工薪资信息表列表 page成功", page);
     }
 
-    @GetMapping("/addSalaryInfoSenYear")
-    public ResponseResult<Boolean> addSalaryInfoSenYear() {
+    @PostMapping("/addSalaryInfoSenYear")
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseResult<Boolean> addSalaryInfoSenYear(@RequestBody List<String> userCodes) {
         if(RoleUtils.checkAnyMatch("hrsc_admin")) {
-            List<HrEmpSalaryInfo> hrEmpSalaryInfos = hrEmpSalaryInfoService.getBaseMapper().selectList(new LambdaQueryWrapper<>());
-            hrEmpSalaryInfos.stream().filter(item -> item.getSeniorityStandard() != null)
-                    .forEach(item -> item.setSeniorityStandard("0".equals(item.getSeniorityStandard()) ? "0" : String.valueOf((Integer.parseInt(item.getSeniorityStandard()) + 1))));
+            LambdaQueryWrapper<HrEmpSalaryInfo> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.in(HrEmpSalaryInfo::getUserCode, userCodes);
+            List<HrEmpSalaryInfo> hrEmpSalaryInfos = hrEmpSalaryInfoService.getBaseMapper().selectList(queryWrapper);
+
+            hrEmpSalaryInfos.forEach(item -> item.setSeniorityStandard(String.valueOf(Integer.parseInt(item.getSeniorityStandard()) + 1)));
+
             hrEmpSalaryInfoService.updateBatchById(hrEmpSalaryInfos);
         }
         return new ResponseResult<>(HttpStatus.OK.value(), "OK");
