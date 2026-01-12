@@ -1,6 +1,8 @@
 package com.crrc.controller;
 
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
@@ -23,6 +25,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -376,12 +379,13 @@ public class ExternalController {
                     HrEmpSalaryInfo existingRecord = hrEmpSalaryInfoService.getOne(queryWrapper);
 
                     if (existingRecord != null) {
+                        BeanUtil.copyProperties(dto.getHrEmpSalaryInfo(), existingRecord, CopyOptions.create().setIgnoreNullValue(true));
                         // 如果存在记录，执行更新操作
-                        UpdateWrapper<HrEmpSalaryInfo> updateWrapper = UpdateWrapperUtils
-                                .buildNonNullUpdateWrapper(salaryInfo, "id", "userCode")
-                                .eq("user_code", salaryInfo.getUserCode());
+//                        UpdateWrapper<HrEmpSalaryInfo> updateWrapper = UpdateWrapperUtils
+//                                .buildNonNullUpdateWrapper(salaryInfo, "id", "userCode")
+//                                .eq("user_code", salaryInfo.getUserCode());
 
-                        boolean updateResult = hrEmpSalaryInfoService.update(updateWrapper);
+                        boolean updateResult = hrEmpSalaryInfoService.updateById(existingRecord);
                         if (!updateResult) {
                             log.error("更新员工薪资信息失败，工号：{}", salaryInfo.getUserCode());
                             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "更新员工薪资信息失败!");
