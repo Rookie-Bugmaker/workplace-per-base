@@ -72,7 +72,7 @@ public class HrEmpSalaryInfoController {
 
     @PostMapping("/addSalaryInfoSenYear")
     @Transactional(rollbackFor = Exception.class)
-    public ResponseResult<Boolean> addSalaryInfoSenYear(@RequestBody ArrayList<String> userCodes) {
+    public ResponseResult<Boolean> addSalaryInfoSenYear(@RequestBody List<String> userCodes) {
         if(RoleUtils.checkAnyMatch("hrsc_admin")) {
             LambdaQueryWrapper<HrEmpSalaryInfo> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.in(HrEmpSalaryInfo::getUserCode, userCodes);
