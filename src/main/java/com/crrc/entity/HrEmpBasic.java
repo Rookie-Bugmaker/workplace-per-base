@@ -249,7 +249,7 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     private String profilePicture;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"用户人脸识别（考勤打卡）的图片id"}, index = 38)
+    @ExcelProperty(value = {"用户人脸识别（考勤打卡）的图片id"}, index = 39)
     @Schema(description = "用户人脸识别（考勤打卡）的图片id")
     private String attendanceImageId;
 }
