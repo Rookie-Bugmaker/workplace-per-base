@@ -767,17 +767,14 @@ public class HrEmpBasicController {
 
     @PostMapping("/setIsEmployed2Zero")
     @Transactional(rollbackFor = Exception.class)
-    public ResponseResult<Boolean> addSalaryInfoSenYear(@RequestBody List<String> userCodes) {
-        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
-            LambdaQueryWrapper<HrEmpBasic> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.in(HrEmpBasic::getUserCode, userCodes);
-            List<HrEmpBasic> hrEmpBasics = hrEmpBasicService.getBaseMapper().selectList(queryWrapper);
+    public ResponseResult<Boolean> addSalaryInfoSenYear(@RequestBody MultipartFile file) throws IOException {
+        EasyExcel.read(file.getInputStream(), HrEmpBasic.class,
+                        new Emp2ZeroImportListener(hrEmpBasicService))
+                .headRowNumber(1)
+                .sheet()
+                .doRead();
 
-            hrEmpBasics.forEach(item -> item.setIsEmployed("0"));
-
-            hrEmpBasicService.updateBatchById(hrEmpBasics);
-        }
-        return new ResponseResult<>(HttpStatus.OK.value(), "OK");
+        return new ResponseResult<>(HttpStatus.OK.value(), true);
     }
 
     @GetMapping("/grantPermission")
