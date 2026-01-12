@@ -765,6 +765,18 @@ public class HrEmpBasicController {
         }
     }
 
+    @PostMapping("/setCategory4")
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseResult<Boolean> setIsEmployed2Zero(@RequestBody MultipartFile file) throws IOException {
+    EasyExcel.read(file.getInputStream(), HrEmpBasic.class,
+                    new Category4ImportListener(hrEmpBasicService))
+            .headRowNumber(1)
+            .sheet()
+            .doRead();
+
+    return new ResponseResult<>(HttpStatus.OK.value(), true);
+    }
+
 //    @PostMapping("/setIsEmployed2Zero")
 //    @Transactional(rollbackFor = Exception.class)
 //    public ResponseResult<Boolean> setIsEmployed2Zero(@RequestBody MultipartFile file) throws IOException {

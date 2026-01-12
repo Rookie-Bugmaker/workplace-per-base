@@ -51,7 +51,7 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     private Integer deleted;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"工号"}, index = 1)
+    @ExcelProperty(value = {"工号"})
     @Schema(description = "工号")
     private String userCode;
     
@@ -132,6 +132,7 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"身份类型"}, index = 16)
     @Schema(description = "身份类型")
+
     /**
      * 001 干 002 工 一定要按001、002、003...顺序增加， 否则TSDA会出错
      */
@@ -184,7 +185,7 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     private String category1;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"人员分类4"}, index = 26)
+    @ExcelProperty(value = {"人员分类4"})
     @Schema(description = "人员分类4")
     private String category4;
 

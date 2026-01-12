@@ -7,6 +7,7 @@ import com.crrc.service.impl.HrEmpBasicServiceImpl;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -14,23 +15,23 @@ import java.util.regex.Pattern;
  * @author myy
  * @since 2026-1-12
  */
-public class Emp2ZeroImportListener implements ReadListener<HrEmpBasic> {
+public class Category4ImportListener implements ReadListener<HrEmpBasic> {
 
     private static final int BATCH_SIZE = 1000;
-    private final LinkedHashSet<String> buffer = new LinkedHashSet<>();
+    private final List<HrEmpBasic> buffer = new LinkedList<>();
     private final List<String> errors = new ArrayList<>();
     private int rowIndex = 0;
     private final HrEmpBasicServiceImpl hrEmpBasicService;
     private final Pattern DIGITS = Pattern.compile("^\\d{1,50}$"); // 只允许数字
 
-    public Emp2ZeroImportListener(HrEmpBasicServiceImpl hrEmpBasicService) {
+    public Category4ImportListener(HrEmpBasicServiceImpl hrEmpBasicService) {
         this.hrEmpBasicService = hrEmpBasicService;
     }
 
     @Override
-    public void invoke(HrEmpBasic hrEmpBasic, AnalysisContext analysisContext) {
+    public void invoke(HrEmpBasic row, AnalysisContext analysisContext) {
         rowIndex++;
-        String raw = (hrEmpBasic == null) ? null : hrEmpBasic.getUserCode();
+        String raw = (row == null) ? null : row.getUserCode();
         String val = raw == null ? null : raw.trim();
 
         if (val == null || val.isEmpty()) {
@@ -41,8 +42,8 @@ public class Emp2ZeroImportListener implements ReadListener<HrEmpBasic> {
             errors.add("第 " + rowIndex + " 行：档案号必须为纯数字（实际为：" + val + "）");
             return;
         }
-        // 去重：LinkedHashSet 保持原有顺序
-        buffer.add(val);
+
+        buffer.add(row);
 
         if (buffer.size() >= BATCH_SIZE) {
             flush();
@@ -53,18 +54,17 @@ public class Emp2ZeroImportListener implements ReadListener<HrEmpBasic> {
         if (buffer.isEmpty()) {
             return;
         }
-        ArrayList<String> userCodeList = new ArrayList<>(buffer);
+        ArrayList<HrEmpBasic> basicArrayList = new ArrayList<>(buffer);
 
         List<HrEmpBasic> data = new ArrayList<>();
 
-        for (String userCode : userCodeList) {
-            HrEmpBasic hrEmpBasic = hrEmpBasicService.getByUserCode(userCode);
-            hrEmpBasic.setIsEmployed("0");
+        for (HrEmpBasic datum : basicArrayList) {
+            HrEmpBasic hrEmpBasic = hrEmpBasicService.getByUserCode(datum.getUserCode());
+            hrEmpBasic.setCategory4(datum.getCategory4());
             data.add(hrEmpBasic);
         }
 
         hrEmpBasicService.updateBatchById(data);
-        hrEmpBasicService.removeBatchByIds(data);
 
         buffer.clear();
     }
