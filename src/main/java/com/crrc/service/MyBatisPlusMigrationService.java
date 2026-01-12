@@ -1878,6 +1878,8 @@ public class MyBatisPlusMigrationService {
                     break;
                 }
 
+                batchData.forEach(item -> item.replaceAll((k, v) -> v == null && !"create_time".equals(k)  && !"update_time".equals(k) ? "0" : v));
+
                 // 薪酬表不清空全部数据，仅删除与源表user_code匹配的记录
                 try (PreparedStatement deleteStmt = oracleConn.prepareStatement(
                         "DELETE FROM " + tableName + " WHERE user_code IN (" +
