@@ -765,34 +765,7 @@ public class HrEmpBasicController {
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "查询异常: " + e.getMessage());
         }
     }
-    //    {
-//        "tenant_id": "438",
-//            "create_by": null,
-//            "type_name": "组织",
-//            "update_time": null,
-//            "code": "01320402",
-//            "create_time": null,
-//            "code_value": "国家轨道客车工程研究中心",
-//            "id": "2f5a2c68-7b0b-4985-9d54-cd1118da5eeb",
-//            "type": "APPOINTMENT_ORG",
-//            "update_by": null,
-//            "table_name": "hr_emp_appointment"
-//    }
-//    [
-//    {
-//        "tenant_id": "438",
-//            "create_by": null,
-//            "type_name": "部门或子公司信息管理员",
-//            "update_time": null,
-//            "code": "01320311_3",
-//            "create_time": null,
-//            "code_value": "013200027539",
-//            "id": "infomanager0033",
-//            "type": "info_manager",
-//            "update_by": null,
-//            "table_name": "hr_emp_basic"
-//    }
-//]
+
     @GetMapping("/grantPermission")
     public ResponseResult<Boolean> grantPermission(String userCode, String orgCode) {
         if(RoleUtils.checkAnyMatch("hrsc_admin")) {

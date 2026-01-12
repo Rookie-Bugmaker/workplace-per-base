@@ -69,25 +69,17 @@ public class HrEmpSalaryInfoController {
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工薪资信息表列表 page成功", page);
     }
 
-    @GetMapping("/addSalaryInfoSenYear")
-    public ResponseResult<Boolean> addSalaryInfoSenYear() {
+    @PostMapping("/addSalaryInfoSenYear")
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseResult<Boolean> addSalaryInfoSenYear(List<String> userCodes) {
         if(RoleUtils.checkAnyMatch("hrsc_admin")) {
-            List<HrEmpSalaryInfo> hrEmpSalaryInfos = hrEmpSalaryInfoService.getBaseMapper().selectList(new LambdaQueryWrapper<>());
-            List<HrEmpSalaryInfo> collect1 = hrEmpSalaryInfos.stream().filter(
-                    item -> item.getSeniorityStandard() != null && !"0.00".equals(item.getSeniorityStandard())
-                    )
-                    .peek(item -> item.setSeniorityStandard(
-                            new BigDecimal(item.getSeniorityStandard()).add(BigDecimal.ONE).setScale(0, RoundingMode.DOWN).toString())
-                    ).collect(Collectors.toList());
-            hrEmpSalaryInfoService.updateBatchById(collect1);
+            LambdaQueryWrapper<HrEmpSalaryInfo> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.in(HrEmpSalaryInfo::getUserCode, userCodes);
+            List<HrEmpSalaryInfo> hrEmpSalaryInfos = hrEmpSalaryInfoService.getBaseMapper().selectList(queryWrapper);
 
-            List<HrEmpSalaryInfo> collect2 = hrEmpSalaryInfos.stream().filter(
-                    item -> "0.00".equals(item.getSeniorityStandard())
-            ).peek(item ->
-                    item.setSeniorityStandard("0")
-            ).collect(Collectors.toList());
+            hrEmpSalaryInfos.forEach(item -> item.setSeniorityStandard(String.valueOf(Integer.parseInt(item.getSeniorityStandard()) + 1)));
 
-            hrEmpSalaryInfoService.updateBatchById(collect2);
+            hrEmpSalaryInfoService.updateBatchById(hrEmpSalaryInfos);
         }
         return new ResponseResult<>(HttpStatus.OK.value(), "OK");
     }
