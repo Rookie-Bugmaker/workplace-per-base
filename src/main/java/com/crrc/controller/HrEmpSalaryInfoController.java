@@ -33,6 +33,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -71,7 +72,7 @@ public class HrEmpSalaryInfoController {
 
     @PostMapping("/addSalaryInfoSenYear")
     @Transactional(rollbackFor = Exception.class)
-    public ResponseResult<Boolean> addSalaryInfoSenYear(List<String> userCodes) {
+    public ResponseResult<Boolean> addSalaryInfoSenYear(ArrayList<String> userCodes) {
         if(RoleUtils.checkAnyMatch("hrsc_admin")) {
             LambdaQueryWrapper<HrEmpSalaryInfo> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.in(HrEmpSalaryInfo::getUserCode, userCodes);
