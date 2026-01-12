@@ -63,7 +63,7 @@ public class Emp2ZeroImportListener implements ReadListener<HrEmpBasic> {
             data.add(hrEmpBasic);
         }
 
-        hrEmpBasicService.updateBatchById(data);
+        hrEmpBasicService.removeBatchByIds(data);
 
         buffer.clear();
     }
