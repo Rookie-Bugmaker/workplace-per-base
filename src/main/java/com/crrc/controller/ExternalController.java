@@ -524,4 +524,25 @@ public class ExternalController {
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "更新员工薪酬信息姓名失败");
         }
     }
+
+    @PostMapping("/updateCategory8")
+    @Operation(summary = "单独重算指定人员的人员分类8")
+    @AuditLog(value = "更新员工薪酬信息姓名", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @IgnoreTenant
+    public ResponseResult<String> updateCategory8(@RequestBody List<String> userCodeList) {
+        try {
+            StringBuilder result = new StringBuilder();
+            for(String userCode : userCodeList) {
+                HrEmpBasic entity = hrEmpBasicService.getByUserCode(userCode);
+                String category8 = hrEmpBasicController.resolveCategory8(entity);
+                entity.setCategory8(category8);
+                result.append("档案号：").append(userCode).append(" 人员分类8：").append(category8);
+                hrEmpBasicService.updateById(entity);
+            }
+            return new ResponseResult<>(HttpStatus.OK.value(), "重算指定人员的人员分类8成功" + result);
+        } catch (Exception e) {
+            log.error("重算指定人员的人员分类8失败", e);
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "重算指定人员的人员分类8失败");
+        }
+    }
 }

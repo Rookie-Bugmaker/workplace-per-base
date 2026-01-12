@@ -10,7 +10,6 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
-import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
 import com.crrc.api.WkWorkflowApi;
 import com.crrc.client.UserProfileImageClient;
@@ -468,7 +467,7 @@ public class HrEmpBasicController {
         }
     }
 
-    private String resolveCategory7(HrEmpBasic hrEmpBasic) {
+    public String resolveCategory7(HrEmpBasic hrEmpBasic) {
         try {
             String category7_pro = null;
             // 获取专业职务任职资格列表
@@ -535,7 +534,7 @@ public class HrEmpBasicController {
         }
     }
 
-    private String resolveCategory8(HrEmpBasic hrEmpBasic) {
+    public String resolveCategory8(HrEmpBasic hrEmpBasic) {
         try {
             // 先判断借调、外派、助勤
             // 查找duty_status不为空的其他任职信息
