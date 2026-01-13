@@ -777,17 +777,18 @@ public class HrEmpBasicController {
 //    return new ResponseResult<>(HttpStatus.OK.value(), true);
 //    }
 
-//    @PostMapping("/setIsEmployed2Zero")
-//    @Transactional(rollbackFor = Exception.class)
-//    public ResponseResult<Boolean> setIsEmployed2Zero(@RequestBody MultipartFile file) throws IOException {
-//        EasyExcel.read(file.getInputStream(), HrEmpBasic.class,
-//                        new Emp2ZeroImportListener(hrEmpBasicService))
-//                .headRowNumber(1)
-//                .sheet()
-//                .doRead();
-//
-//        return new ResponseResult<>(HttpStatus.OK.value(), true);
-//    }
+    @PostMapping("/setIsEmployed2Zero")
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseResult<Boolean> setIsEmployed2Zero(@RequestBody MultipartFile file) throws IOException {
+        if(RoleUtils.checkAnyMatch("hrs_admin")) {
+            EasyExcel.read(file.getInputStream(), HrEmpBasic.class,
+                            new Emp2ZeroImportListener(hrEmpBasicService))
+                    .headRowNumber(1)
+                    .sheet()
+                    .doRead();
+        }
+        return new ResponseResult<>(HttpStatus.OK.value(), true);
+    }
 
     @GetMapping("/grantPermission")
     public ResponseResult<Boolean> grantPermission(String userCode, String orgCode) {
