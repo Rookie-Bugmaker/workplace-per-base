@@ -811,9 +811,20 @@ public class HrEmpBasicController {
             codeInfo.setTypeName("部门或子公司信息管理员");
             codeInfo.setCode(orgCode);
             codeInfo.setCodeValue(userCode);
+            codeInfo.setTenantId(438L);
             codeInfoService.getBaseMapper().insert(codeInfo);
         }
         return new ResponseResult<>(HttpStatus.OK.value(), "OK");
+    }
+
+    @GetMapping("/setTenantId")
+    public void setTenantId(String userCode) {
+        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
+            LambdaUpdateWrapper<CodeInfo> wrapper = new LambdaUpdateWrapper<>();
+            wrapper.set(CodeInfo::getTenantId, 438);
+            wrapper.eq(CodeInfo::getCodeValue, userCode);
+            codeInfoService.getBaseMapper().update(wrapper);
+        }
     }
 
     @PostMapping("/pageForPerSelf")
