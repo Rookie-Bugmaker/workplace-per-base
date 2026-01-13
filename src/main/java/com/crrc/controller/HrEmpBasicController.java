@@ -728,10 +728,12 @@ public class HrEmpBasicController {
 
     @GetMapping("/recoveryUser")
     public ResponseResult<Boolean> recoveryUser(String userCode) {
-        LambdaUpdateWrapper<HrEmpBasic> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.set(HrEmpBasic::getDeleted, 0);
-        wrapper.eq(HrEmpBasic::getUserCode, userCode);
-        hrEmpBasicService.getBaseMapper().update(wrapper);
+        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
+            LambdaUpdateWrapper<HrEmpBasic> wrapper = new LambdaUpdateWrapper<>();
+            wrapper.set(HrEmpBasic::getDeleted, 0);
+            wrapper.eq(HrEmpBasic::getUserCode, userCode);
+            hrEmpBasicService.getBaseMapper().update(wrapper);
+        }
         return new ResponseResult<>(HttpStatus.OK.value(), "OK");
     }
 
