@@ -12,14 +12,17 @@ import com.crrc.annotation.AuditLog;
 import com.crrc.api.WkDataAPi;
 import com.crrc.entity.HrEmpAppointment;
 import com.crrc.entity.HrEmpBasic;
+import com.crrc.entity.PositionInfo;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.mapper.HrEmpBasicMapper;
+import com.crrc.mapper.PositionInfoMapper;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.service.impl.CodeInfoServiceImpl;
 import com.crrc.service.impl.HrEmpAppointmentServiceImpl;
+import com.crrc.utils.RoleUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -66,6 +69,8 @@ public class HrEmpAppointmentController {
     private WkDataAPi wkDataApi;
     @Autowired
     private HrEmpBasicMapper hrEmpBasicMapper;
+    @Autowired
+    private PositionInfoMapper positionInfoMapper;
 
     @GetMapping("/isCadre")
     @Operation(summary = "检查是否中干")
@@ -89,6 +94,25 @@ public class HrEmpAppointmentController {
         ));
 
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", cadreSet.contains(basicList.get(0).getCategory4()));
+    }
+
+    @PostMapping("/setJobTypeBatch")
+    public ResponseResult<Boolean> setJobTypeBatch() {
+        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
+            List<PositionInfo> positionInfos = positionInfoMapper.selectList(new LambdaQueryWrapper<>());
+            Map<String, String> position2JobTypeMap = positionInfos.stream().collect(Collectors.toMap(
+                    PositionInfo::getCode,
+                    PositionInfo::getJobType,
+                    (a, b) -> a
+            ));
+
+            List<HrEmpAppointment> hrEmpAppointments = hrEmpAppointmentService.getBaseMapper().selectList(new LambdaQueryWrapper<>());
+
+            hrEmpAppointments.forEach(item -> item.setJobType(position2JobTypeMap.getOrDefault(item.getPosition(), item.getJobType())));
+            hrEmpAppointmentService.updateBatchById(hrEmpAppointments);
+        }
+
+        return new ResponseResult<>(HttpStatus.OK.value(), true);
     }
 
     @GetMapping("/getCadrePosition")
