@@ -380,9 +380,9 @@ public class HrEmpBasicController {
                 hrEmpBasic.setCategory7(category7);
                 log.info("userCode:{},查询人员分类7完毕,值为{}", hrEmpBasic.getUserCode(), category7);
                 // 同步人员分类8
-                String category8 = resolveCategory8(hrEmpBasic);
-                hrEmpBasic.setCategory8(category8);
-                log.info("userCode:{},查询人员分类8完毕,值为{}", hrEmpBasic.getUserCode(), category8);
+                //String category8 = resolveCategory8(hrEmpBasic);
+                //hrEmpBasic.setCategory8(category8);
+                //log.info("userCode:{},查询人员分类8完毕,值为{}", hrEmpBasic.getUserCode(), category8);
 
                 // 更新方法
                 log.info("准备执行更新方法，category1:{}，category7:{}，category8:{}",

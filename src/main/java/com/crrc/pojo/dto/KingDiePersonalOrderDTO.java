@@ -13,6 +13,9 @@ import java.util.List;
  */
 @Data
 public class KingDiePersonalOrderDTO {
+    @QueryMethod(method = QueryType.EQ)
+    @Schema(description = "人事令类型")
+    private String hrOrderType;
 
     @QueryMethod(method = QueryType.EQ)
     @Schema(description = "任职信息")
