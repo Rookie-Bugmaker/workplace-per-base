@@ -37,7 +37,7 @@ public class PositionInfoImportListener implements ReadListener<PositionInfo> {
     public void invoke(PositionInfo row, AnalysisContext analysisContext) {
         rowIndex++;
 
-        if (row == null || StringUtils.hasText(row.getCode())) {
+        if (row == null || !StringUtils.hasText(row.getCode())) {
             errors.add("第 " + rowIndex + " 行：职位编码为空");
             return;
         }
