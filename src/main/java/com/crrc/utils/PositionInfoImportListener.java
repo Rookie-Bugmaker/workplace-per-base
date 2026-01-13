@@ -27,7 +27,6 @@ public class PositionInfoImportListener implements ReadListener<PositionInfo> {
     private final List<String> errors = new ArrayList<>();
     private int rowIndex = 0;
     private final PositionInfoServiceImpl positionInfoService;
-    private final Pattern DIGITS = Pattern.compile("^\\d{1,50}$"); // 只允许数字
 
     public PositionInfoImportListener(PositionInfoServiceImpl positionInfoService) {
         this.positionInfoService = positionInfoService;
@@ -41,9 +40,9 @@ public class PositionInfoImportListener implements ReadListener<PositionInfo> {
             errors.add("第 " + rowIndex + " 行：职位编码为空");
             return;
         }
-        if (!DIGITS.matcher(row.getCode()).matches()) {
-            errors.add("第 " + rowIndex + " 行：职位编码必须为纯数字（实际为：" + row.getCode() + "）");
-            return;
+
+        if(row.getCode().startsWith("-")) {
+            row.setCode(row.getCode().replaceFirst("-", ""));
         }
 
         buffer.add(row);
