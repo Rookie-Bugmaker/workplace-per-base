@@ -726,6 +726,15 @@ public class HrEmpBasicController {
 //        }
 //    }
 
+    @GetMapping("/recoveryUser")
+    public ResponseResult<Boolean> recoveryUser(String userCode) {
+        LambdaUpdateWrapper<HrEmpBasic> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.set(HrEmpBasic::getDeleted, 0);
+        wrapper.eq(HrEmpBasic::getUserCode, userCode);
+        hrEmpBasicService.getBaseMapper().update(wrapper);
+        return new ResponseResult<>(HttpStatus.OK.value(), "OK");
+    }
+
     @GetMapping("/getDetails")
     @Operation(summary = "获得员工基本信息表实体")
     @AuditLog(value = "获得员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
