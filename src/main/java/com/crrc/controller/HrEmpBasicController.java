@@ -780,7 +780,7 @@ public class HrEmpBasicController {
     @PostMapping("/setIsEmployed2Zero")
     @Transactional(rollbackFor = Exception.class)
     public ResponseResult<Boolean> setIsEmployed2Zero(@RequestBody MultipartFile file) throws IOException {
-        if(RoleUtils.checkAnyMatch("hrs_admin")) {
+        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
             EasyExcel.read(file.getInputStream(), HrEmpBasic.class,
                             new Emp2ZeroImportListener(hrEmpBasicService))
                     .headRowNumber(1)
