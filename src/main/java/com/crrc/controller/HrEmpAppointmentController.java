@@ -97,8 +97,11 @@ public class HrEmpAppointmentController {
     }
 
     @PostMapping("/setJobTypeBatch")
+    @Transactional(rollbackFor = Exception.class)
     public ResponseResult<Boolean> setJobTypeBatch() {
         if(RoleUtils.checkAnyMatch("hrsc_admin")) {
+            final int BATCH_SIZE = 10000;
+
             List<PositionInfo> positionInfos = positionInfoMapper.selectList(new LambdaQueryWrapper<>());
             Map<String, String> position2JobTypeMap = positionInfos.stream().collect(Collectors.toMap(
                     PositionInfo::getCode,
@@ -109,7 +112,8 @@ public class HrEmpAppointmentController {
             List<HrEmpAppointment> hrEmpAppointments = hrEmpAppointmentService.getBaseMapper().selectList(new LambdaQueryWrapper<>());
 
             hrEmpAppointments.forEach(item -> item.setJobType(position2JobTypeMap.getOrDefault(item.getPosition(), item.getJobType())));
-            hrEmpAppointmentService.updateBatchById(hrEmpAppointments);
+
+            hrEmpAppointmentService.updateBatchById(hrEmpAppointments, BATCH_SIZE);
         }
 
         return new ResponseResult<>(HttpStatus.OK.value(), true);
