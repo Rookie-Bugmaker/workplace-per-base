@@ -6,12 +6,16 @@ import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.entity.HrEmpBasic;
 import com.crrc.entity.PositionInfo;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.service.impl.PositionInfoServiceImpl;
+import com.crrc.utils.Category4ImportListener;
+import com.crrc.utils.PositionInfoImportListener;
+import com.crrc.utils.RoleUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -123,6 +127,21 @@ public class PositionInfoController {
                 .excelType(typeEnum)
                 .sheet("报表")
                 .doWrite(positionInfoList);
+    }
+
+    @PostMapping("/setJobType")
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseResult<Boolean> setJobType(@RequestBody MultipartFile file) throws IOException {
+        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
+            EasyExcel.read(file.getInputStream(), PositionInfo.class,
+                            new PositionInfoImportListener(positionInfoService))
+                    .headRowNumber(1)
+                    .sheet()
+                    .doRead();
+
+            return new ResponseResult<>(HttpStatus.OK.value(), true);
+        }
+        return new ResponseResult<>(HttpStatus.OK.value(), false);
     }
 
     @PostMapping("/import")

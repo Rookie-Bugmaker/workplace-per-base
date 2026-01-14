@@ -32,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import com.crrc.constants.HrOrderType;
 
 import javax.servlet.http.HttpServletResponse;
 import java.math.BigDecimal;
@@ -92,6 +93,56 @@ public class ExternalController {
             try {
                 MultiTenantHandler.tenantId.set("438");
                 // 员工基本信息表 - 按工号更新或新增，先查询，如果没有该档案号数据就新增
+                // 处理人员分类8，如果dto.getHrOrderType()为空说明不需要动人员分类8
+                if(StringUtils.isNotBlank(dto.getHrOrderType())) {
+                    switch(dto.getHrOrderType()) {
+                        // 长病
+                        case HrOrderType.LONG_ILLNESS:
+                            // 劳
+                            dto.getHrEmpBasic().setCategory8("003");
+                            break;
+                        // 长伤
+                        case HrOrderType.LONG_INJURY:
+                            // 伤
+                            dto.getHrEmpBasic().setCategory8("005");
+                            break;
+                        // 借调
+                        case HrOrderType.LOAN_ASSIGNMENT:
+                            // 借
+                            dto.getHrEmpBasic().setCategory8("002");
+                            break;
+                        // 外派
+                        case HrOrderType.EXPATRIATE_ASSIGNMENT:
+                            // 派
+                            dto.getHrEmpBasic().setCategory8("004");
+                            break;
+                        // 挂职/助勤
+                        case HrOrderType.SUPPORT_ASSIGNMENT:
+                            // 助
+                            dto.getHrEmpBasic().setCategory8("008");
+                            break;
+                        // 下岗
+                        case HrOrderType.OFF_POST:
+                            // 待
+                            dto.getHrEmpBasic().setCategory8("001");
+                            break;
+                        // 退养
+                        case HrOrderType.RETIREMENT:
+                            // 养
+                            dto.getHrEmpBasic().setCategory8("007");
+                            break;
+                        case HrOrderType.LONG_ILLNESS_END:
+                        case HrOrderType.LONG_INJURY_END:
+                        case HrOrderType.LOAN_ASSIGNMENT_END:
+                        case HrOrderType.EXPATRIATE_ASSIGNMENT_END:
+                        case HrOrderType.SUPPORT_ASSIGNMENT_END:
+                        case HrOrderType.UP_POST:
+                            // 现
+                            dto.getHrEmpBasic().setCategory8("006");
+                            break;
+                    }
+                }
+
                 // 这里会更新人员身份（人员分类4）
                 if (dto.getHrEmpBasic() != null) {
                     HrEmpBasic basic = dto.getHrEmpBasic();
@@ -415,26 +466,27 @@ public class ExternalController {
             if(!ObjectUtils.isEmpty(dtoList.stream().filter(e -> e.getHrEmpBasic() != null).collect(Collectors.toList()))) {
                 List<HrEmpBasic> userList = dtoList.stream().map(KingDiePersonalOrderDTO::getHrEmpBasic).collect(Collectors.toList());
                 // 统计之前的人员分类1、4、7、8
-                List<HrEmpBasic> categoryInfoList = hrEmpBasicService.getCategoryInfo(userList);
-                Map<String, HrEmpBasic> hrEmpBasicMap = categoryInfoList.stream().collect(Collectors.toMap(
-                        HrEmpBasic::getUserCode,
-                        hrEmpBasic -> hrEmpBasic
-                ));
-
-                log.info("旧人员分类统计完毕，数量：{}", hrEmpBasicMap.size());
+//                List<HrEmpBasic> categoryInfoList = hrEmpBasicService.getCategoryInfo(userList);
+//                Map<String, HrEmpBasic> hrEmpBasicMap = categoryInfoList.stream().collect(Collectors.toMap(
+//                        HrEmpBasic::getUserCode,
+//                        hrEmpBasic -> hrEmpBasic
+//                ));
+//
+//                log.info("旧人员分类统计完毕，数量：{}", hrEmpBasicMap.size());
+                // 处理人员分类1和7
                 hrEmpBasicController.syncPersonCategory(userList);
                 // 统计之后的人员分类1、4、7、8
-                List<HrEmpBasic> categoryInfoNewList = hrEmpBasicService.getCategoryInfo(userList);
-                List<CategoryRecord> categoryRecordList = new ArrayList<>();
-                categoryInfoNewList.forEach(newRecord -> {
-                    HrEmpBasic oldRecord = hrEmpBasicMap.get(newRecord.getUserCode());
-                    categoryRecordList.add(CategoryRecord.of(newRecord.getUserCode(), oldRecord, newRecord));
-                });
-                log.info("新人员分类统计完毕，数量：{}", categoryRecordList.size());
+//                List<HrEmpBasic> categoryInfoNewList = hrEmpBasicService.getCategoryInfo(userList);
+//                List<CategoryRecord> categoryRecordList = new ArrayList<>();
+//                categoryInfoNewList.forEach(newRecord -> {
+//                    HrEmpBasic oldRecord = hrEmpBasicMap.get(newRecord.getUserCode());
+//                    categoryRecordList.add(CategoryRecord.of(newRecord.getUserCode(), oldRecord, newRecord));
+//                });
+//                log.info("新人员分类统计完毕，数量：{}", categoryRecordList.size());
+//
+//                categoryRecordService.saveBatch(categoryRecordList);
 
-                categoryRecordService.saveBatch(categoryRecordList);
-
-                log.info("日志保存完毕");
+                //log.info("日志保存完毕");
             }
         } catch (Exception e) {
             log.error(e.getMessage(), e);
@@ -528,30 +580,30 @@ public class ExternalController {
         }
     }
 
-    @PostMapping("/updateCategory8")
-    @Operation(summary = "单独重算指定人员的人员分类8")
-    @AuditLog(value = "更新员工薪酬信息姓名", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    @IgnoreTenant
-    public ResponseResult<String> updateCategory8(@RequestBody List<String> userCodeList, @RequestParam(required = false) String category8) {
-        try {
-            StringBuilder result = new StringBuilder();
-
-            for(String userCode : userCodeList) {
-                HrEmpBasic entity = hrEmpBasicService.getByUserCode(userCode);
-                if(StringUtils.isNotBlank(category8)) {
-                    entity.setCategory8(category8);
-                    result.append("档案号：").append(userCode).append(" 人员分类8：").append(category8);
-                } else {
-                    String category8Mark = hrEmpBasicController.resolveCategory8(entity);
-                    entity.setCategory8(category8Mark);
-                    result.append("档案号：").append(userCode).append(" 人员分类8：").append(category8Mark);
-                }
-                hrEmpBasicService.updateById(entity);
-            }
-            return new ResponseResult<>(HttpStatus.OK.value(), "重算指定人员的人员分类8成功" + result);
-        } catch (Exception e) {
-            log.error("重算指定人员的人员分类8失败", e);
-            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "重算指定人员的人员分类8失败");
-        }
-    }
+//    @PostMapping("/updateCategory8")
+//    @Operation(summary = "单独重算指定人员的人员分类8")
+//    @AuditLog(value = "更新员工薪酬信息姓名", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+//    @IgnoreTenant
+//    public ResponseResult<String> updateCategory8(@RequestBody List<String> userCodeList, @RequestParam(required = false) String category8) {
+//        try {
+//            StringBuilder result = new StringBuilder();
+//
+//            for(String userCode : userCodeList) {
+//                HrEmpBasic entity = hrEmpBasicService.getByUserCode(userCode);
+//                if(StringUtils.isNotBlank(category8)) {
+//                    entity.setCategory8(category8);
+//                    result.append("档案号：").append(userCode).append(" 人员分类8：").append(category8);
+//                } else {
+//                    String category8Mark = hrEmpBasicController.resolveCategory8(entity);
+//                    entity.setCategory8(category8Mark);
+//                    result.append("档案号：").append(userCode).append(" 人员分类8：").append(category8Mark);
+//                }
+//                hrEmpBasicService.updateById(entity);
+//            }
+//            return new ResponseResult<>(HttpStatus.OK.value(), "重算指定人员的人员分类8成功" + result);
+//        } catch (Exception e) {
+//            log.error("重算指定人员的人员分类8失败", e);
+//            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "重算指定人员的人员分类8失败");
+//        }
+//    }
 }
