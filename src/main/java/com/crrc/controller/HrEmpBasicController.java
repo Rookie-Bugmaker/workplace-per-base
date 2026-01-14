@@ -38,6 +38,7 @@ import com.xxl.job.core.handler.annotation.XxlJob;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import kotlin.jvm.internal.Lambda;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -735,6 +736,18 @@ public class HrEmpBasicController {
             hrEmpBasicService.getBaseMapper().update(wrapper);
         }
         return new ResponseResult<>(HttpStatus.OK.value(), "OK");
+    }
+
+    @PostMapping("/setCategory8Batch/{category8Code}")
+    public ResponseResult<Integer> setCategory8Batch(@RequestBody List<String> userCodes, @PathVariable String category8Code) {
+        int update = 0;
+        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
+            LambdaUpdateWrapper<HrEmpBasic> wrapper = new LambdaUpdateWrapper<>();
+            wrapper.set(HrEmpBasic::getCategory8, category8Code);
+            wrapper.in(HrEmpBasic::getUserCode, userCodes);
+            update = hrEmpBasicService.getBaseMapper().update(wrapper);
+        }
+        return new ResponseResult<>(HttpStatus.OK.value(), update);
     }
 
     @GetMapping("/getDetails")
