@@ -38,6 +38,7 @@ import com.xxl.job.core.handler.annotation.XxlJob;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import kotlin.jvm.internal.Lambda;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -737,6 +738,18 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), "OK");
     }
 
+    @PostMapping("/setCategory8Batch")
+    public ResponseResult<Boolean> setCategory8Batch(@RequestBody MultipartFile file) throws IOException {
+        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
+            EasyExcel.read(file.getInputStream(), HrEmpBasic.class,
+                    new CategoryImportListener(hrEmpBasicService))
+            .headRowNumber(1)
+            .sheet()
+            .doRead();
+        }
+        return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
+    }
+
     @GetMapping("/getDetails")
     @Operation(summary = "获得员工基本信息表实体")
     @AuditLog(value = "获得员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
@@ -817,15 +830,15 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), "OK");
     }
 
-    @GetMapping("/setTenantId")
-    public void setTenantId(String userCode) {
-        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
-            LambdaUpdateWrapper<CodeInfo> wrapper = new LambdaUpdateWrapper<>();
-            wrapper.set(CodeInfo::getTenantId, 438);
-            wrapper.eq(CodeInfo::getCodeValue, userCode);
-            codeInfoService.getBaseMapper().update(wrapper);
-        }
-    }
+//    @GetMapping("/setTenantId")
+//    public void setTenantId(String userCode) {
+//        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
+//            LambdaUpdateWrapper<CodeInfo> wrapper = new LambdaUpdateWrapper<>();
+//            wrapper.set(CodeInfo::getTenantId, 438);
+//            wrapper.eq(CodeInfo::getCodeValue, userCode);
+//            codeInfoService.getBaseMapper().update(wrapper);
+//        }
+//    }
 
     @PostMapping("/pageForPerSelf")
     @Operation(summary = "获取员工基本信息表列表(支持模糊查询)")

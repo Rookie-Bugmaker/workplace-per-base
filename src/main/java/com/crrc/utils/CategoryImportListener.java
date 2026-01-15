@@ -1,21 +1,22 @@
 package com.crrc.utils;
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.bean.copier.CopyOptions;
 import com.alibaba.excel.context.AnalysisContext;
 import com.alibaba.excel.read.listener.ReadListener;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.crrc.entity.HrEmpBasic;
 import com.crrc.service.impl.HrEmpBasicServiceImpl;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * @author myy
  * @since 2026-1-12
  */
-public class Category4ImportListener implements ReadListener<HrEmpBasic> {
+public class CategoryImportListener implements ReadListener<HrEmpBasic> {
 
     private static final int BATCH_SIZE = 1000;
     private final List<HrEmpBasic> buffer = new LinkedList<>();
@@ -24,7 +25,7 @@ public class Category4ImportListener implements ReadListener<HrEmpBasic> {
     private final HrEmpBasicServiceImpl hrEmpBasicService;
     private final Pattern DIGITS = Pattern.compile("^\\d{1,50}$"); // 只允许数字
 
-    public Category4ImportListener(HrEmpBasicServiceImpl hrEmpBasicService) {
+    public CategoryImportListener(HrEmpBasicServiceImpl hrEmpBasicService) {
         this.hrEmpBasicService = hrEmpBasicService;
     }
 
@@ -56,15 +57,24 @@ public class Category4ImportListener implements ReadListener<HrEmpBasic> {
         }
         ArrayList<HrEmpBasic> basicArrayList = new ArrayList<>(buffer);
 
-        List<HrEmpBasic> data = new ArrayList<>();
+        List<String> userCodeList = basicArrayList.stream().map(HrEmpBasic::getUserCode).collect(Collectors.toList());
+
+        LambdaQueryWrapper<HrEmpBasic> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(HrEmpBasic::getUserCode, userCodeList);
+        Map<String, HrEmpBasic> hrEmpBasicMap = hrEmpBasicService.getBaseMapper().selectList(wrapper).stream().collect(
+                Collectors.toMap(
+                        HrEmpBasic::getUserCode,
+                        e -> e,
+                        (a, b) -> a
+                )
+        );
 
         for (HrEmpBasic datum : basicArrayList) {
-            HrEmpBasic hrEmpBasic = hrEmpBasicService.getByUserCode(datum.getUserCode());
-            hrEmpBasic.setCategory4(datum.getCategory4());
-            data.add(hrEmpBasic);
+            HrEmpBasic hrEmpBasic = hrEmpBasicMap.get(datum.getUserCode());
+            BeanUtil.copyProperties(datum, hrEmpBasic, CopyOptions.create().setIgnoreNullValue(true));
         }
 
-        hrEmpBasicService.updateBatchById(data);
+        hrEmpBasicService.updateBatchById(hrEmpBasicMap.values());
 
         buffer.clear();
     }
