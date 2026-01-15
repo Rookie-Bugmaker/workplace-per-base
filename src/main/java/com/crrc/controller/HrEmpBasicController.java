@@ -830,15 +830,15 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), "OK");
     }
 
-    @GetMapping("/setTenantId")
-    public void setTenantId(String userCode) {
-        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
-            LambdaUpdateWrapper<CodeInfo> wrapper = new LambdaUpdateWrapper<>();
-            wrapper.set(CodeInfo::getTenantId, 438);
-            wrapper.eq(CodeInfo::getCodeValue, userCode);
-            codeInfoService.getBaseMapper().update(wrapper);
-        }
-    }
+//    @GetMapping("/setTenantId")
+//    public void setTenantId(String userCode) {
+//        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
+//            LambdaUpdateWrapper<CodeInfo> wrapper = new LambdaUpdateWrapper<>();
+//            wrapper.set(CodeInfo::getTenantId, 438);
+//            wrapper.eq(CodeInfo::getCodeValue, userCode);
+//            codeInfoService.getBaseMapper().update(wrapper);
+//        }
+//    }
 
     @PostMapping("/pageForPerSelf")
     @Operation(summary = "获取员工基本信息表列表(支持模糊查询)")
