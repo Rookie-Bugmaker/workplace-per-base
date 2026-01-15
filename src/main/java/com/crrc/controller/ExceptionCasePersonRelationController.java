@@ -1,17 +1,26 @@
 package com.crrc.controller;
 
 
+import cn.hutool.core.util.IdUtil;
+import com.alibaba.nacos.client.naming.utils.CollectionUtils;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.entity.ExceptionCasePerson;
 import com.crrc.entity.ExceptionCasePersonRelation;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.dto.ExceptionCasePersonDTO;
+import com.crrc.pojo.vo.ExceptionCasePersonVO;
 import com.crrc.service.impl.ExceptionCasePersonRelationServiceImpl;
+import com.crrc.service.impl.ExceptionCasePersonServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
@@ -24,6 +33,8 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -37,10 +48,104 @@ import java.util.List;
 @RequestMapping("/exceptionCasePersonRelation")
 @RefreshScope
 @Tag(name = "额外人员信息关联表", description = "额外人员信息关联表")
+@Slf4j
 public class ExceptionCasePersonRelationController {
 
     @Autowired
     private ExceptionCasePersonRelationServiceImpl exceptionCasePersonRelationService;
+    @Autowired
+    private ExceptionCasePersonServiceImpl exceptionCasePersonService;
+
+    @PostMapping("/getPersonRelationInfo")
+    @Operation(summary = "获得额外人员信息关联表实体")
+    @AuditLog(value = "获得额外人员信息关联表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResult<ExceptionCasePersonVO> getPersonRelationInfo(@Validated @RequestBody ExceptionCasePersonRelation personRelation,
+                                                            @RequestParam(required = false, defaultValue = "1") int pageNo,
+                                                            @RequestParam(required = false, defaultValue = "10")int pageSize) {
+        try {
+            // 传入的是表头的id，表头的id会和ExceptionCasePerson中的id关联
+            if(ObjectUtils.isNotEmpty(personRelation) && StringUtils.isNotBlank(personRelation.getId())){
+                // 查出表头
+                ExceptionCasePersonRelation exceptionCasePersonRelation = exceptionCasePersonRelationService.getById(personRelation.getId());
+
+                // 关联人员进行分页处理
+                Page<ExceptionCasePerson> page = new Page<>(pageNo, pageSize);
+                ExceptionCasePerson pageReqVO = new ExceptionCasePerson();
+                pageReqVO.setRelationId(personRelation.getId());
+                exceptionCasePersonService.query(page, pageReqVO);
+
+                // 构造返回结果
+                ExceptionCasePersonVO result = new ExceptionCasePersonVO();
+                result.setRelation(exceptionCasePersonRelation);
+                result.setPersonList(page);
+
+                return new ResponseResult<>(HttpStatus.OK.value(), "获取额外人员信息成功", result);
+
+            } else {
+                return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "未传入有效的表头id");
+            }
+        } catch (Exception e) {
+            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "查询异常");
+        }
+    }
+
+
+    @PostMapping("/saveOrUpdate")
+    @Operation(summary = "保存或更新额外人员信息关联表实体")
+    @AuditLog(value = "保存或更新额外人员信息关联表实体",
+            logType = LogType.TYPE_OPERATE,
+            operateType = OperateType.TYPE_ADD)
+    @Transactional
+    public ResponseResult<String> saveOrUpdatePersonInfo(@Validated @RequestBody ExceptionCasePersonDTO personDTO) {
+        if (ObjectUtils.isEmpty(personDTO.getRelation())) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "未传入有效的表头信息");
+        }
+        if (CollectionUtils.isEmpty(personDTO.getPersonList())) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "人员列表不能为空");
+        }
+        try {
+            // 处理表头ID
+            String relationId = StringUtils.isNotBlank(personDTO.getRelation().getId())
+                    ? personDTO.getRelation().getId()
+                    : IdUtil.simpleUUID();
+            personDTO.getRelation().setId(relationId);
+
+            // 保存/更新表头
+            exceptionCasePersonRelationService.saveOrUpdate(personDTO.getRelation());
+
+            // 获取已存在的人员ID集合
+            Set<String> existIds = exceptionCasePersonService.selectByRelationId(relationId)
+                    .stream()
+                    .map(ExceptionCasePerson::getId)
+                    .collect(Collectors.toSet());
+
+            // 处理人员列表
+            personDTO.getPersonList().forEach(person -> {
+                if (StringUtils.isBlank(person.getId())) {
+                    person.setId(IdUtil.simpleUUID());
+                } else {
+                    existIds.remove(person.getId());
+                }
+                if (StringUtils.isBlank(person.getRelationId())) {
+                    person.setRelationId(relationId);
+                }
+            });
+
+            // 批量保存人员
+            exceptionCasePersonService.saveOrUpdateBatch(personDTO.getPersonList());
+
+            // 批量删除不再关联的人员
+            if (!existIds.isEmpty()) {
+                exceptionCasePersonService.removeByIds(existIds);
+            }
+            return new ResponseResult<>(HttpStatus.OK.value(), "保存额外人员信息成功");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "保存失败", e.getMessage());
+        }
+    }
+
 
     @PostMapping("/page")
     @Operation(summary = "获取额外人员信息关联表列表 page")
