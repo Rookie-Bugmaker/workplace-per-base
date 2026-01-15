@@ -11,7 +11,6 @@ import com.crrc.annotation.IgnoreTenant;
 import com.crrc.client.SysServerClient;
 import com.crrc.common.ResultData;
 import com.crrc.constants.AuditConstants;
-import com.crrc.entity.ExceptionCasePerson;
 import com.crrc.entity.ExceptionCasePersonRelation;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
@@ -41,7 +40,6 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -169,6 +167,7 @@ public class ExceptionCasePersonRelationController {
                 return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "未传入有效的表头id");
             }
         } catch (Exception e) {
+            e.printStackTrace();
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "查询异常");
         }
     }
