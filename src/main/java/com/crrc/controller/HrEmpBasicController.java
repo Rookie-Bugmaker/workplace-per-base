@@ -738,16 +738,16 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), "OK");
     }
 
-    @PostMapping("/setCategory8Batch/{category8Code}")
-    public ResponseResult<Integer> setCategory8Batch(@RequestBody List<String> userCodes, @PathVariable String category8Code) {
-        int update = 0;
+    @PostMapping("/setCategory8Batch")
+    public ResponseResult<Boolean> setCategory8Batch(@RequestBody MultipartFile file) throws IOException {
         if(RoleUtils.checkAnyMatch("hrsc_admin")) {
-            LambdaUpdateWrapper<HrEmpBasic> wrapper = new LambdaUpdateWrapper<>();
-            wrapper.set(HrEmpBasic::getCategory8, category8Code);
-            wrapper.in(HrEmpBasic::getUserCode, userCodes);
-            update = hrEmpBasicService.getBaseMapper().update(wrapper);
+            EasyExcel.read(file.getInputStream(), HrEmpBasic.class,
+                    new CategoryImportListener(hrEmpBasicService))
+            .headRowNumber(1)
+            .sheet()
+            .doRead();
         }
-        return new ResponseResult<>(HttpStatus.OK.value(), update);
+        return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
     }
 
     @GetMapping("/getDetails")
