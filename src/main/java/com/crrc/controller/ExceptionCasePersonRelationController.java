@@ -7,12 +7,20 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
 import com.crrc.entity.ExceptionCasePerson;
+import com.crrc.annotation.IgnoreTenant;
+import com.crrc.client.SysServerClient;
+import com.crrc.common.ResultData;
+import com.crrc.constants.AuditConstants;
+import com.crrc.entity.ExceptionCasePerson;
 import com.crrc.entity.ExceptionCasePersonRelation;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.ExceptionCasePersonDTO;
 import com.crrc.pojo.vo.ExceptionCasePersonVO;
+import com.crrc.pojo.dto.SysUserDTO;
+import com.crrc.pojo.dto.WorkflowUserPageDTO;
+import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.service.impl.ExceptionCasePersonRelationServiceImpl;
 import com.crrc.service.impl.ExceptionCasePersonServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +41,8 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -53,6 +64,79 @@ public class ExceptionCasePersonRelationController {
 
     @Autowired
     private ExceptionCasePersonRelationServiceImpl exceptionCasePersonRelationService;
+    @Qualifier("com.crrc.client.SysServerClient")
+    @Autowired
+    private SysServerClient sysServerClient;
+
+    /**
+     * 工作流回写
+     *
+     * @param param 参数
+     */
+    @PutMapping("/write-back")
+    @IgnoreTenant
+    public ResponseResult<Boolean> writeBack(@RequestBody WorkflowWriteBackParamDTO param) {
+        ExceptionCasePersonRelation po = new ExceptionCasePersonRelation();
+        po.setId(param.getBizId());
+        po.setWfid(param.getWfId());
+        po.setProcessInstanceId(param.getProcessInstanceId());
+        Integer processInstanceStatus = param.getProcessInstanceStatus();
+
+        if (processInstanceStatus == 1) {
+            // 进行中
+            po.setStatus(AuditConstants.STATUS_AUDIT);
+        } else if (processInstanceStatus == 2) {
+            // 已结束
+            po.setStatus(AuditConstants.STATUS_AUDIT_PASS);
+
+        } else if (processInstanceStatus == 3) {
+            // 已拒绝
+            po.setStatus(AuditConstants.STATUS_REJECT);
+            log.info("已拒绝");
+        } else if (processInstanceStatus == 4) {
+            // 已重置
+            log.info("已重置");
+            po.setStatus(AuditConstants.STATUS_DRAFT);
+            po.setProcessInstanceId(null);
+        }
+        boolean result = exceptionCasePersonRelationService.updateById(po);
+        if (!result) {
+            log.error("工作流回写失败");
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "回写失败", false);
+        }
+        return new ResponseResult<>(HttpStatus.OK.value(), "回写成功", true);
+    }
+
+    @PostMapping
+    @GetMapping("/findApproval")
+    public ResponseResult<WorkflowUserPageDTO> findUserByAgreementCode(Integer page, Integer pageSize) {
+        try {
+            WorkflowUserPageDTO workflowUserPage = new WorkflowUserPageDTO();
+            if (ObjectUtils.isEmpty(page) || ObjectUtils.isEmpty(pageSize)) {
+                //不需要分页查询
+                page = 1;
+                pageSize = 0;
+            }
+            //根据agreementCode查询部门人员列表
+            List<SysUserDTO> rows = new ArrayList<>();
+
+            ResultData<List<SysUserDTO>> userByRoleId = sysServerClient.findUserByRoleId(424928747026169856L);
+
+            if(userByRoleId == null || ObjectUtils.isEmpty(userByRoleId.getResult())) {
+                return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "角色下用户为空");
+            }
+
+            rows.addAll(userByRoleId.getResult());
+
+            workflowUserPage.setTotal((long) rows.size());
+            workflowUserPage.setRows(rows);
+
+            return ResponseResult.success(workflowUserPage);
+        } catch (Exception e) {
+            log.error("审批人查询错误", e);
+            return ResponseResult.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), "ERROR");
+        }
+    }
     @Autowired
     private ExceptionCasePersonServiceImpl exceptionCasePersonService;
 

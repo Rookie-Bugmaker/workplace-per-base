@@ -41,7 +41,6 @@ public class ExceptionCasePersonController {
 
     @Autowired
     private ExceptionCasePersonServiceImpl exceptionCasePersonService;
-
     @PostMapping("/page")
     @Operation(summary = "获取额外人员信息表列表 page")
     @AuditLog(value = "获取额外人员信息表列表 page", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
@@ -90,6 +89,14 @@ public class ExceptionCasePersonController {
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
     public ResponseResult<Boolean> updateExceptionCasePerson(@Valid @RequestBody ExceptionCasePerson updateReqVO) {
         return new ResponseResult<>(HttpStatus.OK.value(), "更新额外人员信息表实体成功", exceptionCasePersonService.saveOrUpdate(updateReqVO));
+    }
+
+    @PostMapping("/batchUpdate")
+    @Operation(summary = "批量更新额外人员信息")
+    @AuditLog(value = "批量更新额外人员信息", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
+    @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
+    public ResponseResult<Boolean> updateExceptionCasePerson(@Valid @RequestBody List<ExceptionCasePerson> updateReqVOList) {
+        return new ResponseResult<>(HttpStatus.OK.value(), "更新额外人员信息表实体成功", exceptionCasePersonService.updateBatchById(updateReqVOList));
     }
 
     @Transactional
