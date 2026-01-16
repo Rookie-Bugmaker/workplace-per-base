@@ -6,6 +6,6 @@ import java.util.List;
 
 @Data
 public class QueryDTO {
-    String sql;
-    List<String> params;
+    String a;
+    List<String> b;
 }
