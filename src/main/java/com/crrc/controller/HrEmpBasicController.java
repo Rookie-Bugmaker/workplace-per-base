@@ -877,9 +877,11 @@ public class HrEmpBasicController {
             Page<ExceptionPersonQueryDTO> result = hrEmpBasicService.queryExceptionPersonFuzzy(page, pageReqVO);
             List<ExceptionPersonQueryDTO> basicList = result.getRecords();
             for(ExceptionPersonQueryDTO dto : basicList) {
-                dto.setDeptName(DeptUtils.getDeptNameByCode(dto.getDept()));
-                dto.setOrg(DeptUtils.getCompanyCodeByDeptCode(dto.getDept()).get());
-                dto.setOrgName(codeInfoService.translateCode(dto.getOrg(), "hr_emp_appointment", "APPOINTMENT_ORG"));
+                if(StringUtils.isNotBlank(dto.getDept())) {
+                    dto.setDeptName(DeptUtils.getDeptNameByCode(dto.getDept()));
+                    dto.setOrg(DeptUtils.getCompanyCodeByDeptCode(dto.getDept()).get());
+                    dto.setOrgName(codeInfoService.translateCode(dto.getOrg(), "hr_emp_appointment", "APPOINTMENT_ORG"));
+                }
             }
             return ResponseResult.success(result);
         } catch (Exception e) {
