@@ -9,18 +9,21 @@ import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
 import com.crrc.annotation.IgnoreTenant;
+import com.crrc.constants.AuditConstants;
 import com.crrc.entity.*;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.handler.MultiTenantHandler;
 import com.crrc.mapper.HrEmpSalaryInfoMapper;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.KingDiePersonalOrderDTO;
 import com.crrc.service.CategoryRecordService;
 import com.crrc.service.impl.*;
 import com.crrc.utils.MinIOUtils;
 import com.crrc.utils.SystemConstants;
 import com.crrc.utils.UpdateWrapperUtils;
+import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import lombok.extern.slf4j.Slf4j;
@@ -37,10 +40,7 @@ import com.crrc.constants.HrOrderType;
 import javax.servlet.http.HttpServletResponse;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -81,6 +81,8 @@ public class ExternalController {
     private MinIOUtils minioUtils;
     @Autowired
     private HrEmpSalaryInfoMapper hrEmpSalaryInfoMapper;
+    @Autowired
+    private ExceptionCasePersonServiceImpl exceptionCasePersonService;
 
     @PostMapping("/receiveKingDieMsg")
     @Operation(summary = "接收金蝶传递人事令信息")
@@ -496,6 +498,36 @@ public class ExternalController {
         }
 
         return new ResponseResult<>(HttpStatus.OK.value(), "人事令下达成功，信息已变更！ 变更数量： " + updateFlag);
+    }
+
+    @PostMapping("/query/exception/person")
+    @IgnoreTenant
+    public ResponseResult<List<HrEmpBasicDTO>> queryAllExceptionPerson() {
+        MPJLambdaWrapper<ExceptionCasePerson> wrapper = new MPJLambdaWrapper<>();
+        Date now = new Date();
+
+        wrapper.leftJoin(
+                ExceptionCasePersonRelation.class,
+                on -> on.eq(ExceptionCasePerson::getRelationId, ExceptionCasePersonRelation::getId)
+        ).selectAll(ExceptionCasePersonRelation.class);
+
+        wrapper.ge(ExceptionCasePerson::getStartDate, now);
+        wrapper.le(ExceptionCasePerson::getEndDate, now);
+        wrapper.eq(ExceptionCasePersonRelation::getStatus, AuditConstants.STATUS_AUDIT_PASS);
+
+        List<ExceptionCasePerson> exceptionCasePeople = exceptionCasePersonService.getBaseMapper().selectList(wrapper);
+
+        List<String> userCodeList = exceptionCasePeople.stream().map(ExceptionCasePerson::getUserCode).collect(Collectors.toList());
+
+        Map<String, HrEmpBasicDTO> hrEmpBasicDTOS = hrEmpBasicService.selectMsgList(userCodeList).stream().collect(Collectors.toMap(
+                HrEmpBasicDTO::getUserCode,
+                e -> e,
+                (a, b) -> a
+        ));
+
+        exceptionCasePeople.forEach(item -> hrEmpBasicDTOS.computeIfPresent(item.getUserCode(), (k, v) -> {BeanUtil.copyProperties(item, v, CopyOptions.create().setIgnoreNullValue(true)); return v;}));
+
+        return new ResponseResult<>(HttpStatus.OK.value(), new ArrayList<>(hrEmpBasicDTOS.values()));
     }
 
     /**
