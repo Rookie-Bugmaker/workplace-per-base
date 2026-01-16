@@ -10,6 +10,7 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StreamUtils;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.RequestBodyAdviceAdapter;
 
 import javax.crypto.SecretKey;
@@ -22,7 +23,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * 解密流
  */
-@Controller
+@ControllerAdvice
 public class DecryptBodyRequestAdvice extends RequestBodyAdviceAdapter {
     private final SecretKey aesKey;
 
