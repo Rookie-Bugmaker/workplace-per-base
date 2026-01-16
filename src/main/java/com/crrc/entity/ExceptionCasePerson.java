@@ -54,21 +54,41 @@ public class ExceptionCasePerson extends BaseEntity implements Serializable {
     @ExcelMethod(method = ExcelType.BOTH, header = "原属公司", sorted = 3)
     @Schema(description = "原属公司", example = "")
     private String formerCompany;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelMethod(method = ExcelType.BOTH, header = "原属公司编码")
+    @Schema(description = "原属公司编码")
+    private String formerCompanyCode;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelMethod(method = ExcelType.BOTH, header = "原属部门", sorted = 4)
     @Schema(description = "原属部门", example = "")
     private String formerDept;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelMethod(method = ExcelType.BOTH, header = "原属部门编码")
+    @Schema(description = "原属部门编码")
+    private String formerDeptCode;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelMethod(method = ExcelType.BOTH, header = "新属公司", sorted = 5)
     @Schema(description = "新属公司", example = "")
     private String newCompany;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelMethod(method = ExcelType.BOTH, header = "新属公司编码")
+    @Schema(description = "新属公司编码")
+    private String newCompanyCode;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelMethod(method = ExcelType.BOTH, header = "新属部门", sorted = 6)
     @Schema(description = "新属部门", example = "")
     private String newDept;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelMethod(method = ExcelType.BOTH, header = "新属部门编码")
+    @Schema(description = "新属部门编码")
+    private String newDeptCode;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelMethod(method = ExcelType.BOTH, header = "新属职位，手动输入", sorted = 7)

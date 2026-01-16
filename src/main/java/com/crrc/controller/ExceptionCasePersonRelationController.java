@@ -65,6 +65,8 @@ public class ExceptionCasePersonRelationController {
     @Qualifier("com.crrc.client.SysServerClient")
     @Autowired
     private SysServerClient sysServerClient;
+    @Autowired
+    private ExceptionCasePersonServiceImpl exceptionCasePersonService;
 
     /**
      * 工作流回写
@@ -135,8 +137,6 @@ public class ExceptionCasePersonRelationController {
             return ResponseResult.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), "ERROR");
         }
     }
-    @Autowired
-    private ExceptionCasePersonServiceImpl exceptionCasePersonService;
 
     @PostMapping("/getPersonRelationInfo")
     @Operation(summary = "获得额外人员信息关联表实体")
