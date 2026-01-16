@@ -2,12 +2,14 @@ package com.crrc.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 import com.crrc.annotation.ExcelMethod;
 import com.crrc.annotation.QueryMethod;
+import com.crrc.annotation.TimeFormatMethod;
 import com.crrc.enums.ExcelType;
 import com.crrc.enums.QueryType;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -98,11 +100,15 @@ public class ExceptionCasePerson extends BaseEntity implements Serializable {
 	@QueryMethod(method = QueryType.EQ)
     @ExcelMethod(method = ExcelType.BOTH, header = "开始时间", sorted = 8)
     @Schema(description = "开始时间", example = "")
-    private LocalDateTime startDate;
+    @TimeFormatMethod(format = "yyyy-MM-dd")
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
+    private LocalDate startDate;
 
 	@QueryMethod(method = QueryType.EQ)
     @ExcelMethod(method = ExcelType.BOTH, header = "结束时间", sorted = 9)
     @Schema(description = "结束时间", example = "")
-    private LocalDateTime endDate;
+    @TimeFormatMethod(format = "yyyy-MM-dd")
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
+    private LocalDate endDate;
 
 }
