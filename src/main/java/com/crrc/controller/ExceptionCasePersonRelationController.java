@@ -16,6 +16,7 @@ import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.ExceptionCasePersonDTO;
+import com.crrc.pojo.vo.ExceptionCasePersonRelationQueryVO;
 import com.crrc.pojo.vo.ExceptionCasePersonVO;
 import com.crrc.pojo.dto.SysUserDTO;
 import com.crrc.pojo.dto.WorkflowUserPageDTO;
@@ -263,12 +264,12 @@ public class ExceptionCasePersonRelationController {
     @Parameter(name = "pageReqVO",description = "包含查询条件的实体对象", required = false)
     @Parameter(name = "pageNo", description = "页码", required = false, example = "1")
     @Parameter(name = "pageSize", description = "条数", required = false, example = "10")
-    public ResponseResult<IPage> pageExceptionCasePersonRelation(@Validated @RequestBody(required = false) ExceptionCasePersonRelation pageReqVO,
+    public ResponseResult<IPage> pageExceptionCasePersonRelation(@Validated @RequestBody(required = false) ExceptionCasePersonRelationQueryVO queryVO,
                                              @RequestParam(required = false, defaultValue = "1") int pageNo,
                                              @RequestParam(required = false, defaultValue = "10")int pageSize) {
-        pageReqVO = (pageReqVO == null) ? new ExceptionCasePersonRelation() : pageReqVO;
+        queryVO = (queryVO == null) ? new ExceptionCasePersonRelationQueryVO() : queryVO;
         Page<ExceptionCasePersonRelation> page = new Page<>(pageNo, pageSize);
-        exceptionCasePersonRelationService.query(page, pageReqVO);
+        exceptionCasePersonRelationService.queryByVO(page, queryVO);
         return new ResponseResult<>(HttpStatus.OK.value(), "获取额外人员信息关联表列表 page成功", page);
     }
 
@@ -308,12 +309,12 @@ public class ExceptionCasePersonRelationController {
     }
 
     @Transactional
-    @GetMapping("/delete")
+    @PostMapping("/delete")
     @Operation(summary = "删除额外人员信息关联表实体")
     @AuditLog(value = "删除额外人员信息关联表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_DELETE)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
-    public ResponseResult<Boolean> deleteExceptionCasePersonRelation(@RequestParam("id") Long id) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "删除额外人员信息关联表实体成功", exceptionCasePersonRelationService.removeById(id));
+    public ResponseResult<Boolean> deleteExceptionCasePersonRelation(@RequestBody List<String> ids) {
+        return new ResponseResult<>(HttpStatus.OK.value(), "删除额外人员信息关联表实体成功", exceptionCasePersonRelationService.removeBatchByIds(ids));
     }
     
     @PostMapping("/export")

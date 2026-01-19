@@ -1,9 +1,14 @@
 package com.crrc.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.entity.ExceptionCasePersonRelation;
 import com.crrc.mapper.ExceptionCasePersonRelationMapper;
+import com.crrc.pojo.vo.ExceptionCasePersonRelationQueryVO;
 import com.crrc.service.ExceptionCasePersonRelationService;
+import kotlin.jvm.internal.Lambda;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
 
 /**
  * <p>
@@ -16,4 +21,10 @@ import org.springframework.stereotype.Service;
 @Service
 public class ExceptionCasePersonRelationServiceImpl extends WorkServiceImpl<ExceptionCasePersonRelationMapper, ExceptionCasePersonRelation> implements ExceptionCasePersonRelationService {
 
+    @Override
+    public void queryByVO(Page<ExceptionCasePersonRelation> page, ExceptionCasePersonRelationQueryVO queryVO) {
+        LambdaQueryWrapper<ExceptionCasePersonRelation> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(!ObjectUtils.isEmpty(queryVO.getContainsSet()), ExceptionCasePersonRelation::getUserType, queryVO.getContainsSet());
+        baseMapper.selectPage(page, wrapper);
+    }
 }

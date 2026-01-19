@@ -25,7 +25,7 @@ public class ExceptionCasePersonServiceImpl extends WorkServiceImpl<ExceptionCas
 
     public List<ExceptionCasePerson> selectByRelationId(String relationId) {
         MPJLambdaWrapper<ExceptionCasePerson> wrapper = new MPJLambdaWrapper<>();
-        wrapper.select(ExceptionCasePerson::getId)
+        wrapper.selectAll(ExceptionCasePerson.class)
                 .eq(ExceptionCasePerson::getRelationId, relationId);
         return exceptionCasePersonMapper.selectList(wrapper);
     }

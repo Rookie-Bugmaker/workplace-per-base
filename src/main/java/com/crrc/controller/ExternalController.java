@@ -506,13 +506,14 @@ public class ExternalController {
         MPJLambdaWrapper<ExceptionCasePerson> wrapper = new MPJLambdaWrapper<>();
         Date now = new Date();
 
+        wrapper.selectAll(ExceptionCasePerson.class);
         wrapper.leftJoin(
                 ExceptionCasePersonRelation.class,
                 on -> on.eq(ExceptionCasePerson::getRelationId, ExceptionCasePersonRelation::getId)
         ).selectAll(ExceptionCasePersonRelation.class);
 
-        wrapper.ge(ExceptionCasePerson::getStartDate, now);
-        wrapper.le(ExceptionCasePerson::getEndDate, now);
+        wrapper.le(ExceptionCasePerson::getStartDate, now);
+        wrapper.ge(ExceptionCasePerson::getEndDate, now);
         wrapper.eq(ExceptionCasePersonRelation::getStatus, AuditConstants.STATUS_AUDIT_PASS);
 
         List<ExceptionCasePerson> exceptionCasePeople = exceptionCasePersonService.getBaseMapper().selectList(wrapper);
@@ -524,7 +525,7 @@ public class ExternalController {
                 e -> e,
                 (a, b) -> a
         ));
-
+        hrEmpBasicService.resolveFieldsList(new ArrayList<>(hrEmpBasicDTOS.values()));
         exceptionCasePeople.forEach(item -> hrEmpBasicDTOS.computeIfPresent(item.getUserCode(), (k, v) -> {BeanUtil.copyProperties(item, v, CopyOptions.create().setIgnoreNullValue(true)); return v;}));
 
         return new ResponseResult<>(HttpStatus.OK.value(), new ArrayList<>(hrEmpBasicDTOS.values()));
