@@ -5,6 +5,8 @@ import com.crrc.entity.ExceptionCasePerson;
 import com.crrc.entity.ExceptionCasePersonRelation;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class ExceptionCasePersonVO {
 
@@ -16,5 +18,10 @@ public class ExceptionCasePersonVO {
     /**
      *  人员列表
      */
-    private Page<ExceptionCasePerson> personList;
+    private Page<ExceptionCasePerson> personPage;
+
+    /**
+     *  人员列表
+     */
+    private List<ExceptionCasePerson> personList;
 }
