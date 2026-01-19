@@ -107,9 +107,8 @@ public class ExceptionCasePersonRelationController {
         return new ResponseResult<>(HttpStatus.OK.value(), "回写成功", true);
     }
 
-    @PostMapping
     @GetMapping("/findApproval")
-    public ResponseResult<WorkflowUserPageDTO> findUserByAgreementCode(Integer page, Integer pageSize) {
+    public ResponseResult<WorkflowUserPageDTO> findApproval(Integer page, Integer pageSize) {
         try {
             WorkflowUserPageDTO workflowUserPage = new WorkflowUserPageDTO();
             if (ObjectUtils.isEmpty(page) || ObjectUtils.isEmpty(pageSize)) {
@@ -138,6 +137,34 @@ public class ExceptionCasePersonRelationController {
         }
     }
 
+    @PostMapping("/getFull")
+    @Operation(summary = "获得额外人员信息关联表实体")
+    @AuditLog(value = "获得额外人员信息关联表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResult<ExceptionCasePersonVO> getFullDetails(@Validated @RequestBody ExceptionCasePersonRelation personRelation,
+                                                                       @RequestParam(required = false, defaultValue = "1") int pageNo,
+                                                                       @RequestParam(required = false, defaultValue = "10")int pageSize) {
+        try {
+            // 传入的是表头的id，表头的id会和ExceptionCasePerson中的id关联
+            if(ObjectUtils.isNotEmpty(personRelation) && StringUtils.isNotBlank(personRelation.getId())){
+                // 查出表头
+                ExceptionCasePersonRelation exceptionCasePersonRelation = exceptionCasePersonRelationService.getById(personRelation.getId());
+
+                // 查出所有下面的明细
+                List<ExceptionCasePerson> exceptionCasePeople = exceptionCasePersonService.selectByRelationId(exceptionCasePersonRelation.getId());
+                ExceptionCasePersonVO exceptionCasePersonVO = new ExceptionCasePersonVO();
+                exceptionCasePersonVO.setPersonList(exceptionCasePeople);
+                exceptionCasePersonVO.setRelation(exceptionCasePersonRelation);
+                return new ResponseResult<>(HttpStatus.OK.value(), "获取额外人员信息成功", exceptionCasePersonVO);
+
+            } else {
+                return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "未传入有效的表头id");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "查询异常");
+        }
+    }
+
     @PostMapping("/getPersonRelationInfo")
     @Operation(summary = "获得额外人员信息关联表实体")
     @AuditLog(value = "获得额外人员信息关联表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
@@ -159,7 +186,7 @@ public class ExceptionCasePersonRelationController {
                 // 构造返回结果
                 ExceptionCasePersonVO result = new ExceptionCasePersonVO();
                 result.setRelation(exceptionCasePersonRelation);
-                result.setPersonList(page);
+                result.setPersonPage(page);
 
                 return new ResponseResult<>(HttpStatus.OK.value(), "获取额外人员信息成功", result);
 
