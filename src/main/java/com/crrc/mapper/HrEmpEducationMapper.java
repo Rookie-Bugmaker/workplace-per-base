@@ -1,7 +1,7 @@
 package com.crrc.mapper;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.crrc.entity.HrEmpEducation;
+import com.github.yulichang.base.MPJBaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
@@ -13,6 +13,6 @@ import org.apache.ibatis.annotations.Mapper;
  * @since 2025-07-26 16:18:11
  */
 @Mapper
-public interface HrEmpEducationMapper extends BaseMapper<HrEmpEducation> {
+public interface HrEmpEducationMapper extends MPJBaseMapper<HrEmpEducation> {
 
 }

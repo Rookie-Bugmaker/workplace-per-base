@@ -13,6 +13,7 @@ import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.mapper.*;
+import com.crrc.pojo.dto.ExceptionPersonQueryDTO;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
 import com.crrc.service.HrEmpBasicService;
@@ -119,6 +120,25 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
         // 执行分页查询
         return baseMapper.selectJoinPage(page, HrEmpBasic.class, wrapper);
+    }
+
+    // 模糊分页查询，用于给外部派入人员系统按姓名或档案号模糊查询
+    public Page<ExceptionPersonQueryDTO> queryExceptionPersonFuzzy(Page<ExceptionPersonQueryDTO> page, ExceptionPersonQueryDTO queryReqVO) {
+        MPJLambdaWrapper<HrEmpBasic> wrapper = new MPJLambdaWrapper<>();
+
+        // 基础查询条件
+        wrapper.select(HrEmpBasic::getUserCode, HrEmpBasic::getName, HrEmpBasic::getDept);
+
+        // 模糊查询条件
+        if (StringUtils.isNotBlank(queryReqVO.getUserCode())) {
+            wrapper.like(HrEmpBasic::getUserCode, queryReqVO.getUserCode());
+        }
+        if (StringUtils.isNotBlank(queryReqVO.getName())) {
+            wrapper.like(HrEmpBasic::getName, queryReqVO.getName());
+        }
+
+        // 执行分页查询
+        return baseMapper.selectJoinPage(page, ExceptionPersonQueryDTO.class, wrapper);
     }
 
     public List<HrEmpBasic> getCategoryInfo(List<HrEmpBasic> hrEmpBasicList) {

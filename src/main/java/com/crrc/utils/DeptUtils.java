@@ -2,13 +2,17 @@ package com.crrc.utils;
 
 
 import com.crrc.api.WkCoreAPi;
+import com.crrc.api.WkDataAPi;
 import com.crrc.entity.dto.DeptDTO;
+import com.crrc.entity.dto.ResponseResultDTO;
+import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.service.impl.CodeInfoServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -19,13 +23,15 @@ import java.util.Optional;
 @Component
 public class DeptUtils {
 
+    private static WkDataAPi wkDataApi;
     private static WkCoreAPi wkCoreApi;
     private static CodeInfoServiceImpl codeInfoService;
 
     @Autowired
-    public void setWkCoreApi(WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService) {
+    public void setWkCoreApi(WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataApi) {
         DeptUtils.wkCoreApi = wkCoreApi;
         DeptUtils.codeInfoService = codeInfoService;
+        DeptUtils.wkDataApi = wkDataApi;
     }
 
     /**
@@ -63,5 +69,30 @@ public class DeptUtils {
             log.warn("getDeptIdByCode部门名称查询失败, orgCode: {}", code, e);
             return Optional.empty();
         }
+    }
+
+    /**
+     * 根据部门code获得公司code
+     * @param deptCode 部门code
+     * @return 公司code
+     */
+    public static Optional<String> getCompanyCodeByDeptCode(String deptCode) {
+        ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataApi.treeOrganization();
+        if (listResponseResultDTO == null || org.apache.commons.lang3.ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+            log.error("外部接口错误，获取树形组织信息失败");
+            return Optional.empty();
+        }
+        List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+        String parentCode = null;
+        for(OrganizationTreeDTO root : data) {
+            if (TreeUtils.containsBfs(root, n -> (deptCode != null) && deptCode.equals(n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
+                parentCode = root.getOrgCode();
+                break;
+            }
+        }
+        if (parentCode != null) {
+            return Optional.of(parentCode);
+        }
+        return Optional.empty();
     }
 }

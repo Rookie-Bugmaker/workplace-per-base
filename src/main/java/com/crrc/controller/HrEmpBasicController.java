@@ -860,6 +860,35 @@ public class HrEmpBasicController {
         }
     }
 
+
+    @PostMapping("/pageForException")
+    @Operation(summary = "获取员工基本信息表列表,为外部排入，借出接口提供(支持模糊查询)")
+    @AuditLog(value = "获取员工基本信息表列表(模糊查询)", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
+    @Parameter(name = "pageNo", description = "页码", example = "1")
+    @Parameter(name = "pageSize", description = "条数", example = "10")
+    public ResponseResult<Page<ExceptionPersonQueryDTO>> pageForException(@Validated @RequestBody(required = false) ExceptionPersonQueryDTO pageReqVO,
+                                                           @RequestParam(required = false, defaultValue = "1") int pageNo,
+                                                           @RequestParam(required = false, defaultValue = "10") int pageSize) {
+        pageReqVO = (pageReqVO == null) ? new ExceptionPersonQueryDTO() : pageReqVO;
+        try {
+            Page<ExceptionPersonQueryDTO> page = new Page<>(pageNo, pageSize);
+            // 在service层实现模糊查询逻辑
+            Page<ExceptionPersonQueryDTO> result = hrEmpBasicService.queryExceptionPersonFuzzy(page, pageReqVO);
+            List<ExceptionPersonQueryDTO> basicList = result.getRecords();
+            for(ExceptionPersonQueryDTO dto : basicList) {
+                if(StringUtils.isNotBlank(dto.getDept())) {
+                    dto.setDeptName(DeptUtils.getDeptNameByCode(dto.getDept()));
+                    dto.setOrg(DeptUtils.getCompanyCodeByDeptCode(dto.getDept()).get());
+                    dto.setOrgName(codeInfoService.translateCode(dto.getOrg(), "hr_emp_appointment", "APPOINTMENT_ORG"));
+                }
+            }
+            return ResponseResult.success(result);
+        } catch (Exception e) {
+            return ResponseResult.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), "查询异常: " + e.getMessage());
+        }
+    }
+
     @PostMapping("/query")
     @Operation(summary = "获取员工基本信息表列表")
     @AuditLog(value = "获取员工基本信息表列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)

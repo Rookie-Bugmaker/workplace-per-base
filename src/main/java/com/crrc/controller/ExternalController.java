@@ -9,18 +9,21 @@ import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
 import com.crrc.annotation.IgnoreTenant;
+import com.crrc.constants.AuditConstants;
 import com.crrc.entity.*;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.handler.MultiTenantHandler;
 import com.crrc.mapper.HrEmpSalaryInfoMapper;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.KingDiePersonalOrderDTO;
 import com.crrc.service.CategoryRecordService;
 import com.crrc.service.impl.*;
 import com.crrc.utils.MinIOUtils;
 import com.crrc.utils.SystemConstants;
 import com.crrc.utils.UpdateWrapperUtils;
+import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import lombok.extern.slf4j.Slf4j;
@@ -37,10 +40,7 @@ import com.crrc.constants.HrOrderType;
 import javax.servlet.http.HttpServletResponse;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -81,6 +81,8 @@ public class ExternalController {
     private MinIOUtils minioUtils;
     @Autowired
     private HrEmpSalaryInfoMapper hrEmpSalaryInfoMapper;
+    @Autowired
+    private ExceptionCasePersonServiceImpl exceptionCasePersonService;
 
     @PostMapping("/receiveKingDieMsg")
     @Operation(summary = "接收金蝶传递人事令信息")
@@ -498,6 +500,37 @@ public class ExternalController {
         return new ResponseResult<>(HttpStatus.OK.value(), "人事令下达成功，信息已变更！ 变更数量： " + updateFlag);
     }
 
+    @PostMapping("/query/exception/person")
+    @IgnoreTenant
+    public ResponseResult<List<HrEmpBasicDTO>> queryAllExceptionPerson() {
+        MPJLambdaWrapper<ExceptionCasePerson> wrapper = new MPJLambdaWrapper<>();
+        Date now = new Date();
+
+        wrapper.selectAll(ExceptionCasePerson.class);
+        wrapper.leftJoin(
+                ExceptionCasePersonRelation.class,
+                on -> on.eq(ExceptionCasePerson::getRelationId, ExceptionCasePersonRelation::getId)
+        ).selectAll(ExceptionCasePersonRelation.class);
+
+        wrapper.le(ExceptionCasePerson::getStartDate, now);
+        wrapper.ge(ExceptionCasePerson::getEndDate, now);
+        wrapper.eq(ExceptionCasePersonRelation::getStatus, AuditConstants.STATUS_AUDIT_PASS);
+
+        List<ExceptionCasePerson> exceptionCasePeople = exceptionCasePersonService.getBaseMapper().selectList(wrapper);
+
+        List<String> userCodeList = exceptionCasePeople.stream().map(ExceptionCasePerson::getUserCode).collect(Collectors.toList());
+
+        Map<String, HrEmpBasicDTO> hrEmpBasicDTOS = hrEmpBasicService.selectMsgList(userCodeList).stream().collect(Collectors.toMap(
+                HrEmpBasicDTO::getUserCode,
+                e -> e,
+                (a, b) -> a
+        ));
+        hrEmpBasicService.resolveFieldsList(new ArrayList<>(hrEmpBasicDTOS.values()));
+        exceptionCasePeople.forEach(item -> hrEmpBasicDTOS.computeIfPresent(item.getUserCode(), (k, v) -> {BeanUtil.copyProperties(item, v, CopyOptions.create().setIgnoreNullValue(true)); return v;}));
+
+        return new ResponseResult<>(HttpStatus.OK.value(), new ArrayList<>(hrEmpBasicDTOS.values()));
+    }
+
     /**
      * 使用用户名获得用户人脸识别的图片url
      * @param userCode 用户档案号
@@ -580,31 +613,31 @@ public class ExternalController {
         }
     }
 
-//    @PostMapping("/updateCategory8")
-//    @Operation(summary = "单独重算指定人员的人员分类8")
-//    @AuditLog(value = "更新员工薪酬信息姓名", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-//    @IgnoreTenant
-//    public ResponseResult<String> updateCategory8(@RequestBody List<String> userCodeList, @RequestParam(required = false) String category8) {
-//        try {
-//            StringBuilder result = new StringBuilder();
-//
-//            for(String userCode : userCodeList) {
-//                HrEmpBasic entity = hrEmpBasicService.getByUserCode(userCode);
-//                if(StringUtils.isNotBlank(category8)) {
-//                    entity.setCategory8(category8);
-//                    result.append("档案号：").append(userCode).append(" 人员分类8：").append(category8);
-//                } else {
-////                    String category8Mark = hrEmpBasicController.resolveCategory8(entity);
-////                    entity.setCategory8(category8Mark);
-////                    result.append("档案号：").append(userCode).append(" 人员分类8：").append(category8Mark);
-//                    throw new RuntimeException("未传入人员分类8");
-//                }
-//                hrEmpBasicService.updateById(entity);
-//            }
-//            return new ResponseResult<>(HttpStatus.OK.value(), "重算指定人员的人员分类8成功" + result);
-//        } catch (Exception e) {
-//            log.error("重算指定人员的人员分类8失败", e);
-//            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "重算指定人员的人员分类8失败");
-//        }
-//    }
+    @PostMapping("/updateCategory8")
+    @Operation(summary = "单独重算指定人员的人员分类8")
+    @AuditLog(value = "更新员工薪酬信息姓名", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @IgnoreTenant
+    public ResponseResult<String> updateCategory8(@RequestBody List<String> userCodeList, @RequestParam(required = false) String category8) {
+        try {
+            StringBuilder result = new StringBuilder();
+
+            for(String userCode : userCodeList) {
+                HrEmpBasic entity = hrEmpBasicService.getByUserCode(userCode);
+                if(StringUtils.isNotBlank(category8)) {
+                    entity.setCategory8(category8);
+                    result.append("档案号：").append(userCode).append(" 人员分类8：").append(category8);
+                } else {
+//                    String category8Mark = hrEmpBasicController.resolveCategory8(entity);
+//                    entity.setCategory8(category8Mark);
+//                    result.append("档案号：").append(userCode).append(" 人员分类8：").append(category8Mark);
+                    throw new RuntimeException("未传入人员分类8");
+                }
+                hrEmpBasicService.updateById(entity);
+            }
+            return new ResponseResult<>(HttpStatus.OK.value(), "重算指定人员的人员分类8成功" + result);
+        } catch (Exception e) {
+            log.error("重算指定人员的人员分类8失败", e);
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "重算指定人员的人员分类8失败");
+        }
+    }
 }

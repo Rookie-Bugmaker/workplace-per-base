@@ -1,7 +1,6 @@
 package com.crrc.controller;
 
 import com.crrc.annotation.AuditLog;
-import com.crrc.annotation.DecryptBody;
 import com.crrc.api.WkCoreAPi;
 import com.crrc.client.SysServerClient;
 import com.crrc.common.ResultData;
@@ -22,7 +21,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -40,10 +38,6 @@ public class CommonController {
     @Autowired
     private JdbcTemplate openGaussJdbcTemplate;
 
-    private final static int IV_LEN = 12;
-
-    private final static int TAG_LEN_BIT = 128;
-
     @GetMapping("/dept/getList")
     @Operation(summary = "获取全量部门信息")
     @AuditLog(value = "获取全量部门信息", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
@@ -58,20 +52,20 @@ public class CommonController {
     }
 
     @PostMapping("/common/query")
-    public List<Map<String, Object>> doQuerySql(@DecryptBody(aadMode = DecryptBody.AadMode.NONE) @RequestBody QueryDTO dto) {
+    public List<Map<String, Object>> doQuerySql(@RequestBody QueryDTO dto) {
         if(RoleUtils.checkAnyMatch("hrsc_admin")) {
-            Object[] args = dto.getB() == null ? new Object[0] : dto.getB().toArray();
-            return openGaussJdbcTemplate.queryForList(dto.getA(), args);
+            Object[] args = dto.getParams() == null ? new Object[0] : dto.getParams().toArray();
+            return openGaussJdbcTemplate.queryForList(dto.getSql(), args);
         }
         return null;
     }
 
     @PostMapping("/common/update")
     @Transactional(rollbackFor = Exception.class)
-    public int doUpdateSql(@DecryptBody(aadMode = DecryptBody.AadMode.NONE) @RequestBody QueryDTO dto) {
+    public int doUpdateSql(@RequestBody QueryDTO dto) {
         if(RoleUtils.checkAnyMatch("hrsc_admin")) {
-            Object[] args = dto.getB() == null ? new Object[0] : dto.getB().toArray();
-            return openGaussJdbcTemplate.update(dto.getA(), args);
+            Object[] args = dto.getParams() == null ? new Object[0] : dto.getParams().toArray();
+            return openGaussJdbcTemplate.update(dto.getSql(), args);
         }
         return 0;
     }
