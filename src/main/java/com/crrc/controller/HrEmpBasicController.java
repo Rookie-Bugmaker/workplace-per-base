@@ -879,7 +879,9 @@ public class HrEmpBasicController {
             for(ExceptionPersonQueryDTO dto : basicList) {
                 if(StringUtils.isNotBlank(dto.getDept())) {
                     dto.setDeptName(DeptUtils.getDeptNameByCode(dto.getDept()));
-                    dto.setOrg(DeptUtils.getCompanyCodeByDeptCode(dto.getDept()).get());
+                    if(DeptUtils.getCompanyCodeByDeptCode(dto.getDept()).isPresent()) {
+                        dto.setOrg(DeptUtils.getCompanyCodeByDeptCode(dto.getDept()).get());
+                    }
                     dto.setOrgName(codeInfoService.translateCode(dto.getOrg(), "hr_emp_appointment", "APPOINTMENT_ORG"));
                 }
             }
