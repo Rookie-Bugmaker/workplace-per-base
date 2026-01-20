@@ -7,23 +7,24 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.api.WkCoreAPi;
+import com.crrc.client.WorkFlowClient;
 import com.crrc.entity.ExceptionCasePerson;
 import com.crrc.annotation.IgnoreTenant;
 import com.crrc.client.SysServerClient;
 import com.crrc.common.ResultData;
 import com.crrc.constants.AuditConstants;
 import com.crrc.entity.ExceptionCasePersonRelation;
+import com.crrc.entity.dto.SysOrgPersonDTO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.pojo.ResponseResult;
-import com.crrc.pojo.dto.ExceptionCasePersonDTO;
+import com.crrc.pojo.dto.*;
 import com.crrc.pojo.vo.ExceptionCasePersonRelationQueryVO;
 import com.crrc.pojo.vo.ExceptionCasePersonVO;
-import com.crrc.pojo.dto.SysUserDTO;
-import com.crrc.pojo.dto.WorkflowUserPageDTO;
-import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.service.impl.ExceptionCasePersonRelationServiceImpl;
 import com.crrc.service.impl.ExceptionCasePersonServiceImpl;
+import com.crrc.utils.SecurityFrameworkUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -69,6 +70,10 @@ public class ExceptionCasePersonRelationController {
     private SysServerClient sysServerClient;
     @Autowired
     private ExceptionCasePersonServiceImpl exceptionCasePersonService;
+    @Autowired
+    private WorkFlowClient workFlowClient;
+    @Autowired
+    private WkCoreAPi wkCoreAPi;
 
     /**
      * 工作流回写
@@ -152,12 +157,33 @@ public class ExceptionCasePersonRelationController {
         try {
             // 传入的是表头的id，表头的id会和ExceptionCasePerson中的id关联
             if(ObjectUtils.isNotEmpty(personRelation) && StringUtils.isNotBlank(personRelation.getId())){
+                ExceptionCasePersonVO exceptionCasePersonVO = new ExceptionCasePersonVO();
+                exceptionCasePersonVO.setEditable("0");
+
                 // 查出表头
                 ExceptionCasePersonRelation exceptionCasePersonRelation = exceptionCasePersonRelationService.getById(personRelation.getId());
+                if(exceptionCasePersonRelation.getStatus() == null || exceptionCasePersonRelation.getStatus().equals(AuditConstants.STATUS_DRAFT)) {
+                    exceptionCasePersonVO.setEditable("1");
+                } else if(exceptionCasePersonRelation.getStatus().equals(AuditConstants.STATUS_AUDIT) && exceptionCasePersonRelation.getProcessInstanceId() != null) {
+                    ResultData<List<ProcessStatusDTO>> processStatusByProcessInstanceId = workFlowClient.getProcessStatusByProcessInstanceId(exceptionCasePersonRelation.getProcessInstanceId());
+                    if(processStatusByProcessInstanceId != null) {
+                        List<SysUserDTO> users = processStatusByProcessInstanceId.getResult().stream()
+                                .filter(e -> "1".equals(e.getProcessStatus()))
+                                .flatMap(e -> e.getUserList().stream()).collect(Collectors.toList());
+
+                        Set<String> collect = users.stream().map(u -> {
+                            com.crrc.entity.dto.response.ResultData<SysOrgPersonDTO> personByUserId = wkCoreAPi.findPersonByUserId(u.getUserId(), "zh-CN");
+                            return personByUserId.getResult().getJobNo();
+                        }).collect(Collectors.toSet());
+
+                        if(collect.contains(SecurityFrameworkUtils.getLoginUser().getUser().getJobNo())) {
+                            exceptionCasePersonVO.setEditable("1");
+                        }
+                    }
+                }
 
                 // 查出所有下面的明细
                 List<ExceptionCasePerson> exceptionCasePeople = exceptionCasePersonService.selectByRelationId(exceptionCasePersonRelation.getId());
-                ExceptionCasePersonVO exceptionCasePersonVO = new ExceptionCasePersonVO();
                 exceptionCasePersonVO.setPersonList(exceptionCasePeople);
                 exceptionCasePersonVO.setRelation(exceptionCasePersonRelation);
                 return new ResponseResult<>(HttpStatus.OK.value(), "获取额外人员信息成功", exceptionCasePersonVO);

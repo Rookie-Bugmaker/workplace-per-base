@@ -16,6 +16,11 @@ public class ExceptionCasePersonVO {
     private ExceptionCasePersonRelation relation;
 
     /**
+     * 是否可编辑
+     */
+    private String editable;
+
+    /**
      *  人员列表
      */
     private Page<ExceptionCasePerson> personPage;
