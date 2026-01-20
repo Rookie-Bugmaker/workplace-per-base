@@ -3,6 +3,7 @@ package com.crrc.controller;
 
 import cn.hutool.core.util.IdUtil;
 import com.alibaba.nacos.client.naming.utils.CollectionUtils;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
@@ -98,7 +99,11 @@ public class ExceptionCasePersonRelationController {
             // 已重置
             log.info("已重置");
             po.setStatus(AuditConstants.STATUS_DRAFT);
-            po.setProcessInstanceId(null);
+            LambdaUpdateWrapper<ExceptionCasePersonRelation> wrapper = new LambdaUpdateWrapper<>();
+            // 重置状态
+            wrapper.set(ExceptionCasePersonRelation::getProcessInstanceId, null);
+            wrapper.eq(ExceptionCasePersonRelation::getId, po.getId());
+            exceptionCasePersonRelationService.getBaseMapper().update(wrapper);
         }
         boolean result = exceptionCasePersonRelationService.updateById(po);
         if (!result) {
