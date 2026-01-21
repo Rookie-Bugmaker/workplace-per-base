@@ -17,6 +17,7 @@ import com.crrc.entity.*;
 import com.crrc.entity.dto.ProcessInstanceVo;
 import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.StartProcessInstanceDTO;
+import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.entity.dto.response.ResultData;
 import com.crrc.enums.LogType;
@@ -876,13 +877,28 @@ public class HrEmpBasicController {
             // 在service层实现模糊查询逻辑
             Page<ExceptionPersonQueryDTO> result = hrEmpBasicService.queryExceptionPersonFuzzy(page, pageReqVO);
             List<ExceptionPersonQueryDTO> basicList = result.getRecords();
+
+            ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
+            if (listResponseResultDTO == null || org.apache.commons.lang3.ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+                log.error("外部接口错误，获取树形组织信息失败");
+                throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
+            }
+            List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+
+            Map<String, String> orgCode2Name = codeInfoService.getTranslateMap("hr_emp_appointment", "APPOINTMENT_ORG");
+
             for(ExceptionPersonQueryDTO dto : basicList) {
                 if(StringUtils.isNotBlank(dto.getDept())) {
-                    dto.setDeptName(DeptUtils.getDeptNameByCode(dto.getDept()));
-                    if(DeptUtils.getCompanyCodeByDeptCode(dto.getDept()).isPresent()) {
-                        dto.setOrg(DeptUtils.getCompanyCodeByDeptCode(dto.getDept()).get());
+                    dto.setDeptName(orgCode2Name.getOrDefault(dto.getDept(), dto.getDept()));
+                    String parentCode = null;
+                    for(OrganizationTreeDTO root : data) {
+                        if (TreeUtils.containsBfs(root, n -> (dto.getDept() != null) && dto.getDept().equals(n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
+                            parentCode = root.getOrgCode();
+                            break;
+                        }
                     }
-                    dto.setOrgName(codeInfoService.translateCode(dto.getOrg(), "hr_emp_appointment", "APPOINTMENT_ORG"));
+                    dto.setOrg(parentCode);
+                    dto.setOrgName(codeInfoService.translateCode(parentCode, "hr_emp_appointment", "APPOINTMENT_ORG"));
                 }
             }
             return ResponseResult.success(result);
