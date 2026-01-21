@@ -36,9 +36,9 @@ public final class HrOrderType {
     /**
      * 借调
      */
-    public static final String LOAN_ASSIGNMENT = "loanAssigment";
+    public static final String LOAN_ASSIGNMENT = "loanAssignment";
     public static final String LOAN_ASSIGNMENT_DESC = "借调";
-    public static final String LOAN_ASSIGNMENT_END = "loanAssigmentEnd";
+    public static final String LOAN_ASSIGNMENT_END = "loanAssignmentEnd";
     public static final String LOAN_ASSIGNMENT_END_DESC = "借调结束";
     /**
      * 退养

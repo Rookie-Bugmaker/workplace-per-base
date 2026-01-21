@@ -25,6 +25,7 @@ public class ExceptionCasePersonRelationServiceImpl extends WorkServiceImpl<Exce
     public void queryByVO(Page<ExceptionCasePersonRelation> page, ExceptionCasePersonRelationQueryVO queryVO) {
         LambdaQueryWrapper<ExceptionCasePersonRelation> wrapper = new LambdaQueryWrapper<>();
         wrapper.in(!ObjectUtils.isEmpty(queryVO.getContainsSet()), ExceptionCasePersonRelation::getUserType, queryVO.getContainsSet());
+        wrapper.orderByDesc(ExceptionCasePersonRelation::getCreateTime);
         baseMapper.selectPage(page, wrapper);
     }
 }

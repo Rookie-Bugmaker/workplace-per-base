@@ -17,6 +17,7 @@ import com.crrc.entity.*;
 import com.crrc.entity.dto.ProcessInstanceVo;
 import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.StartProcessInstanceDTO;
+import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.entity.dto.response.ResultData;
 import com.crrc.enums.LogType;
@@ -862,7 +863,7 @@ public class HrEmpBasicController {
 
 
     @PostMapping("/pageForException")
-    @Operation(summary = "获取员工基本信息表列表,为外部排入，借出接口提供(支持模糊查询)")
+    @Operation(summary = "获取员工基本信息表列表,为外部派入，借出接口提供(支持模糊查询)")
     @AuditLog(value = "获取员工基本信息表列表(模糊查询)", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
     @Parameter(name = "pageNo", description = "页码", example = "1")
@@ -876,11 +877,28 @@ public class HrEmpBasicController {
             // 在service层实现模糊查询逻辑
             Page<ExceptionPersonQueryDTO> result = hrEmpBasicService.queryExceptionPersonFuzzy(page, pageReqVO);
             List<ExceptionPersonQueryDTO> basicList = result.getRecords();
+
+            ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
+            if (listResponseResultDTO == null || org.apache.commons.lang3.ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+                log.error("外部接口错误，获取树形组织信息失败");
+                throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
+            }
+            List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+
+            Map<String, String> orgCode2Name = codeInfoService.getTranslateMap("hr_emp_appointment", "APPOINTMENT_ORG");
+
             for(ExceptionPersonQueryDTO dto : basicList) {
                 if(StringUtils.isNotBlank(dto.getDept())) {
-                    dto.setDeptName(DeptUtils.getDeptNameByCode(dto.getDept()));
-                    dto.setOrg(DeptUtils.getCompanyCodeByDeptCode(dto.getDept()).get());
-                    dto.setOrgName(codeInfoService.translateCode(dto.getOrg(), "hr_emp_appointment", "APPOINTMENT_ORG"));
+                    dto.setDeptName(orgCode2Name.getOrDefault(dto.getDept(), dto.getDept()));
+                    String parentCode = null;
+                    for(OrganizationTreeDTO root : data) {
+                        if (TreeUtils.containsBfs(root, n -> (dto.getDept() != null) && dto.getDept().equals(n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
+                            parentCode = root.getOrgCode();
+                            break;
+                        }
+                    }
+                    dto.setOrg(parentCode);
+                    dto.setOrgName(codeInfoService.translateCode(parentCode, "hr_emp_appointment", "APPOINTMENT_ORG"));
                 }
             }
             return ResponseResult.success(result);
