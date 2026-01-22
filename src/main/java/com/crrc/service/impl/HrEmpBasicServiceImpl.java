@@ -405,6 +405,8 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                                 .eq(HrEmpEducation::getIsHighestEducation, SystemConstants.TRUE_FLAG)
                                 .eq(HrEmpEducation::getIsHighestDegree, SystemConstants.TRUE_FLAG)
                 )
+                .selectAll(HrEmpSalaryInfo.class)
+                .leftJoin(HrEmpSalaryInfo.class, on -> on.eq(HrEmpSalaryInfo::getUserCode, HrEmpBasic::getUserCode))
                 // .leftJoin(HrEmpAppointment.class, HrEmpAppointment::getUserCode, HrEmpBasic::getUserCode)
                 // 关键：只查本页的员工，避免全表 join
                 .in(HrEmpBasic::getUserCode, userCodes)

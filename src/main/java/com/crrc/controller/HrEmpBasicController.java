@@ -790,6 +790,61 @@ public class HrEmpBasicController {
         }
     }
 
+    @PostMapping("/pageFullForOrder")
+    @Operation(summary = "获取员工基本信息表列表,为外部派入，借出接口提供(支持模糊查询)")
+    @AuditLog(value = "获取员工基本信息表列表(模糊查询)", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
+    @Parameter(name = "pageNo", description = "页码", example = "1")
+    @Parameter(name = "pageSize", description = "条数", example = "10")
+    public ResponseResult<IPage<HrEmpBasicDTO>> pageFullForOrder(@Validated @RequestBody(required = false) HrEmpBasicSearchDTO searchDTO,
+                                                                          @RequestParam(required = false, defaultValue = "1") int pageNo,
+                                                                          @RequestParam(required = false, defaultValue = "10") int pageSize) {
+        searchDTO = (searchDTO == null) ? new HrEmpBasicSearchDTO() : searchDTO;
+        try {
+            Page<HrEmpBasicDTO> page = new Page<>(pageNo, pageSize);
+            // 在service层实现模糊查询逻辑
+            IPage<HrEmpBasicDTO> result = hrEmpBasicService.listData(page, searchDTO);
+
+            List<HrEmpBasicDTO> basicList = result.getRecords();
+
+            ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
+            if (listResponseResultDTO == null || org.apache.commons.lang3.ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+                log.error("外部接口错误，获取树形组织信息失败");
+                throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
+            }
+            List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+
+            Map<String, String> orgCode2Name = codeInfoService.getTranslateMap("hr_emp_appointment", "APPOINTMENT_ORG");
+            Map<String, String> cache = new HashMap<>();
+
+            for(HrEmpBasicDTO dto : basicList) {
+                if(StringUtils.isNotBlank(dto.getDept())) {
+                    dto.setDepartmentName(orgCode2Name.getOrDefault(dto.getDept(), dto.getDept()));
+                    if(!cache.containsKey(dto.getDept())) {
+                        String parentCode = null;
+                        for(OrganizationTreeDTO root : data) {
+
+                            if (TreeUtils.containsBfs(root, n -> (dto.getDept() != null) && dto.getDept().equals(n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
+                                parentCode = root.getOrgCode();
+                                break;
+                            }
+                        }
+                        dto.setOrg(parentCode);
+                        dto.setOrgCode(parentCode);
+                        cache.put(dto.getDept(), parentCode);
+                    } else {
+                        dto.setOrg(cache.get(dto.getDept()));
+                    }
+
+                    dto.setOrgName(orgCode2Name.get(dto.getOrg()));
+                }
+            }
+            return ResponseResult.success(result);
+        } catch (Exception e) {
+            return ResponseResult.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), "查询异常: " + e.getMessage());
+        }
+    }
+
 //    @PostMapping("/setCategory4")
 //    @Transactional(rollbackFor = Exception.class)
 //    public ResponseResult<Boolean> setIsEmployed2Zero(@RequestBody MultipartFile file) throws IOException {

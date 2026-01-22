@@ -86,4 +86,39 @@ public class HrEmpBasicDTO extends HrEmpBasic {
     @Schema(description = "部门名称")
     private String departmentName;
 
+    @Schema(description = "薪资矩阵")
+    private String salaryMatrix;
+
+    @Schema(description = "岗级")
+    private String salaryGrade;
+
+    @Schema(description = "岗位工资")
+    private String positionSalary;
+
+    @Schema(description = "工龄标准")
+    private Integer seniorityStandard;
+
+    @Schema(description = "外语补偿金")
+    private String languageAllowance;
+
+    @Schema(description = "伤残津贴")
+    private String disabilityAllowance;
+
+    @Schema(description = "车辆补偿金")
+    private String vehicleAllowance;
+
+    @Schema(description = "技师补偿金")
+    private String technicianAllowance;
+
+    @Schema(description = "人才补偿金")
+    private String talentAllowance;
+
+    @Schema(description = "基础工资")
+    private String basicSalary;
+
+    @Schema(description = "组织/公司")
+    private String org;
+
+    @Schema(description = "组织/公司名称")
+    private String orgName;
 }
