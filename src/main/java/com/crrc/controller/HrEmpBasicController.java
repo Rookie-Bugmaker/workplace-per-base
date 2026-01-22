@@ -508,17 +508,17 @@ public class HrEmpBasicController {
                                   00060/70	中级工、初级工 员
                                  */
                             if(skillLevel.getSkillLevel().equals("00010") || skillLevel.getSkillLevel().contains("首席技师")) {
-                                category7_skl = "001";
-                            } else if(skillLevel.getSkillLevel().equals("00020") || skillLevel.getSkillLevel().contains("特级技师")) {
-                                category7_skl = "001";
-                            } else if(skillLevel.getSkillLevel().equals("00030") || skillLevel.getSkillLevel().contains("高级技师")) {
-                                category7_skl = "001";
-                            } else if(skillLevel.getSkillLevel().equals("00040") || skillLevel.getSkillLevel().contains("技师")) {
                                 category7_skl = "002";
-                            } else if(skillLevel.getSkillLevel().equals("00050") || skillLevel.getSkillLevel().contains("高级工")) {
+                            } else if(skillLevel.getSkillLevel().equals("00020") || skillLevel.getSkillLevel().contains("特级技师")) {
+                                category7_skl = "002";
+                            } else if(skillLevel.getSkillLevel().equals("00030") || skillLevel.getSkillLevel().contains("高级技师")) {
+                                category7_skl = "002";
+                            } else if(skillLevel.getSkillLevel().equals("00040") || skillLevel.getSkillLevel().contains("技师")) {
                                 category7_skl = "003";
-                            } else if(skillLevel.getSkillLevel().equals("00060") || skillLevel.getSkillLevel().contains("中级工")) {
+                            } else if(skillLevel.getSkillLevel().equals("00050") || skillLevel.getSkillLevel().contains("高级工")) {
                                 category7_skl = "004";
+                            } else if(skillLevel.getSkillLevel().equals("00060") || skillLevel.getSkillLevel().contains("中级工")) {
+                                category7_skl = "005";
                             } else if(skillLevel.getSkillLevel().equals("00070") || skillLevel.getSkillLevel().contains("初级工")) {
                                 category7_skl = "005";
                             }
@@ -747,6 +747,19 @@ public class HrEmpBasicController {
             .headRowNumber(1)
             .sheet()
             .doRead();
+        }
+        return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @PostMapping("/setCategory7Batch")
+    public ResponseResult<Boolean> setCategory7Batch(@RequestBody MultipartFile file) throws IOException {
+        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
+            EasyExcel.read(file.getInputStream(), HrEmpBasic.class,
+                            new CategoryResolveImportListener(this, hrEmpBasicService))
+                    .headRowNumber(1)
+                    .sheet()
+                    .doRead();
         }
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
     }
