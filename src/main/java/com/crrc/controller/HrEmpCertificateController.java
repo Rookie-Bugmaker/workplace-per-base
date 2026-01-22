@@ -14,6 +14,7 @@ import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.service.impl.HrEmpCertificateServiceImpl;
+import com.crrc.utils.CertiImportListener;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -163,7 +164,7 @@ public class HrEmpCertificateController {
     @Operation(summary = "导入员工证件信息表报表")
     public ResponseResult<Boolean> imports(MultipartFile file) throws IOException {
         EasyExcel.read(file.getInputStream(), HrEmpCertificate.class,
-                new ImportExcelListener<HrEmpCertificate, HrEmpCertificateServiceImpl>(hrEmpCertificateService))
+                new CertiImportListener(hrEmpCertificateService))
                 .headRowNumber(1)
                 .sheet()
                 .doRead();
