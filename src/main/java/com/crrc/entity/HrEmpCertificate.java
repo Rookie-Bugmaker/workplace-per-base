@@ -40,17 +40,17 @@ public class HrEmpCertificate extends BaseEntity implements Serializable {
     private Integer deleted;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"工号"}, index = 1)
+    @ExcelProperty(value = {"工号"})
     @Schema(description = "工号")
     private String userCode;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"证件类型"}, index = 2)
+    @ExcelProperty(value = {"证件类型"})
     @Schema(description = "证件类型")
     private String certiType;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"证件号码"}, index = 3)
+    @ExcelProperty(value = {"证件号码"})
     @Schema(description = "证件号码")
     private String certiId;
 }
