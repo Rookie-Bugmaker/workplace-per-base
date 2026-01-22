@@ -886,19 +886,27 @@ public class HrEmpBasicController {
             List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
 
             Map<String, String> orgCode2Name = codeInfoService.getTranslateMap("hr_emp_appointment", "APPOINTMENT_ORG");
+            Map<String, String> cache = new HashMap<>();
 
             for(ExceptionPersonQueryDTO dto : basicList) {
                 if(StringUtils.isNotBlank(dto.getDept())) {
                     dto.setDeptName(orgCode2Name.getOrDefault(dto.getDept(), dto.getDept()));
-                    String parentCode = null;
-                    for(OrganizationTreeDTO root : data) {
-                        if (TreeUtils.containsBfs(root, n -> (dto.getDept() != null) && dto.getDept().equals(n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
-                            parentCode = root.getOrgCode();
-                            break;
+                    if(!cache.containsKey(dto.getDept())) {
+                        String parentCode = null;
+                        for(OrganizationTreeDTO root : data) {
+
+                            if (TreeUtils.containsBfs(root, n -> (dto.getDept() != null) && dto.getDept().equals(n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
+                                parentCode = root.getOrgCode();
+                                break;
+                            }
                         }
+                        dto.setOrg(parentCode);
+                        cache.put(dto.getDept(), parentCode);
+                    } else {
+                        dto.setOrg(cache.get(dto.getDept()));
                     }
-                    dto.setOrg(parentCode);
-                    dto.setOrgName(codeInfoService.translateCode(parentCode, "hr_emp_appointment", "APPOINTMENT_ORG"));
+
+                    dto.setOrgName(orgCode2Name.get(dto.getOrg()));
                 }
             }
             return ResponseResult.success(result);
