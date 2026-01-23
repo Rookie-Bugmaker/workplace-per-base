@@ -3,6 +3,7 @@ package com.crrc.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.crrc.entity.HrEmpSalaryInfo;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
 
 /**
@@ -20,5 +21,13 @@ public interface HrEmpSalaryInfoMapper extends BaseMapper<HrEmpSalaryInfo> {
             "FROM hr_emp_basic b " +
             "WHERE i.user_code = b.user_code")
     void syncNameFromBasic();
+
+    /**
+     * 更新员工考勤人脸图片（从个人资料图片同步）
+     */
+    @Update("UPDATE hr_emp_basic i " +
+            "SET attendance_image_id = profile_picture " +
+            "WHERE user_code = #{userCode}")
+    void updateattendanceImage(@Param("userCode") String userCode);
 
 }

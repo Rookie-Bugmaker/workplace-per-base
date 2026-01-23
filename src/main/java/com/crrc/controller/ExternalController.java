@@ -316,6 +316,15 @@ public class ExternalController {
                             hrEmpProfessionalQualificationService.updateById(item);
                         });
                     }
+                    // 如果这里的appointed是'1', 将其他的isAppointed置为0
+                    if("1".equals(hrEmpProfessionalQualification.getIsAppointed())) {
+                        List<HrEmpProfessionalQualification> hrEmpProfessionalQualifications = hrEmpProfessionalQualificationService.selectMsg(hrEmpProfessionalQualification.getUserCode());
+                        List<HrEmpProfessionalQualification> list = hrEmpProfessionalQualifications.stream().filter(e -> "是".equals(e.getIsAppointed()) || "1".equals(e.getIsAppointed())).collect(Collectors.toList());
+                        list.forEach(item -> {
+                            item.setIsAppointed("0");
+                            hrEmpProfessionalQualificationService.updateById(item);
+                        });
+                    }
                     // 如果存在
                     boolean saveResult = hrEmpProfessionalQualificationService.save(dto.getHrEmpProfessionalQualification());
                     if (!saveResult) {
@@ -638,6 +647,20 @@ public class ExternalController {
         } catch (Exception e) {
             log.error("重算指定人员的人员分类8失败", e);
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "重算指定人员的人员分类8失败");
+        }
+    }
+
+    @PostMapping("/updateattendanceImage")
+    @Operation(summary = "更新用户人脸识别（考勤打卡）的图片")
+    @AuditLog(value = "更新用户人脸识别（考勤打卡）的图片", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @IgnoreTenant
+    public ResponseResult<String> updateattendanceImage(@RequestParam String userCode) {
+        try {
+            hrEmpSalaryInfoMapper.updateattendanceImage(userCode);
+            return new ResponseResult<>(HttpStatus.OK.value(), "更新用户人脸识别（考勤打卡）的图片成功");
+        } catch (Exception e) {
+            log.error("更新用户人脸识别（考勤打卡）的图片失败", e);
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "更新用户人脸识别（考勤打卡）的图片失败");
         }
     }
 }
