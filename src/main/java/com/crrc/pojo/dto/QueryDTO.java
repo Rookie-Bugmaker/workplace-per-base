@@ -7,5 +7,5 @@ import java.util.List;
 @Data
 public class QueryDTO {
     String a;
-    List<String> b;
+    List<Object> b;
 }
