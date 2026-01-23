@@ -316,6 +316,15 @@ public class ExternalController {
                             hrEmpProfessionalQualificationService.updateById(item);
                         });
                     }
+                    // 如果这里的appointed是'1', 将其他的isAppointed置为0
+                    if("1".equals(hrEmpProfessionalQualification.getIsAppointed())) {
+                        List<HrEmpProfessionalQualification> hrEmpProfessionalQualifications = hrEmpProfessionalQualificationService.selectMsg(hrEmpProfessionalQualification.getUserCode());
+                        List<HrEmpProfessionalQualification> list = hrEmpProfessionalQualifications.stream().filter(e -> "是".equals(e.getIsAppointed()) || "1".equals(e.getIsAppointed())).collect(Collectors.toList());
+                        list.forEach(item -> {
+                            item.setIsAppointed("0");
+                            hrEmpProfessionalQualificationService.updateById(item);
+                        });
+                    }
                     // 如果存在
                     boolean saveResult = hrEmpProfessionalQualificationService.save(dto.getHrEmpProfessionalQualification());
                     if (!saveResult) {
