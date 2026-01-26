@@ -2,19 +2,13 @@ package com.crrc.utils;
 
 import com.alibaba.excel.context.AnalysisContext;
 import com.alibaba.excel.read.listener.ReadListener;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.crrc.entity.HrEmpBasic;
 import com.crrc.entity.PositionInfo;
-import com.crrc.service.impl.HrEmpBasicServiceImpl;
 import com.crrc.service.impl.PositionInfoServiceImpl;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * @author myy
@@ -57,20 +51,7 @@ public class PositionInfoImportListener implements ReadListener<PositionInfo> {
             return;
         }
 
-        List<Long> ids = buffer.stream().map(PositionInfo::getId).collect(Collectors.toList());
-
-        Map<String, String> code2JobTypeMap = buffer.stream().collect(Collectors.toMap(
-                PositionInfo::getCode,
-                PositionInfo::getJobType,
-                (a, b) -> a
-        ));
-        LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.in(PositionInfo::getId, ids);
-        List<PositionInfo> positionInfos = positionInfoService.getBaseMapper().selectList(wrapper);
-
-        positionInfos.forEach(item -> item.setJobType(code2JobTypeMap.getOrDefault(item.getCode(), item.getJobType())));
-
-        positionInfoService.updateBatchById(positionInfos);
+        positionInfoService.saveBatch(buffer);
 
         buffer.clear();
     }
