@@ -831,6 +831,19 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), true);
     }
 
+    @PostMapping("/importProQua")
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseResult<Boolean> importProQua(@RequestBody MultipartFile file) throws IOException {
+        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
+            EasyExcel.read(file.getInputStream(), HrEmpProfessionalQualification.class,
+                            new ProQuaImportListener(hrEmpProfessionalQualificationService, hrEmpBasicService, hrEmpSkillLevelService))
+                    .headRowNumber(1)
+                    .sheet()
+                    .doRead();
+        }
+        return new ResponseResult<>(HttpStatus.OK.value(), true);
+    }
+
     @GetMapping("/grantPermission")
     public ResponseResult<Boolean> grantPermission(String userCode, String orgCode) {
         if(RoleUtils.checkAnyMatch("hrsc_admin")) {
