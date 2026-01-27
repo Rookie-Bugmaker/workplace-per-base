@@ -478,13 +478,13 @@ public class HrEmpBasicController {
                 for (HrEmpProfessionalQualification qualification : qualificationList) {
                     // 找到目前最高的任职资格，以此为判断标准
                     if (StringUtils.isNotBlank(qualification.getIsHighest()) && SystemConstants.TRUE_FLAG.equals(qualification.getIsHighest()) && StringUtils.isNotBlank(qualification.getQuaTitleLevel())) {
-                        if(qualification.getQuaTitleLevel().equals("00010") || qualification.getQuaTitleLevel().contains("正高级")) {
+                        if(qualification.getQuaTitleLevel().equals("00010") || qualification.getQuaTitleLevel().contains("正高")) {
                             category7_pro = "001";
-                        } else if(qualification.getQuaTitleLevel().equals("00020") || qualification.getQuaTitleLevel().contains("高级")) {
+                        } else if(qualification.getQuaTitleLevel().equals("00020") || qualification.getQuaTitleLevel().contains("副高")) {
                             category7_pro = "002";
                         } else if(qualification.getQuaTitleLevel().equals("00030") || qualification.getQuaTitleLevel().contains("中级")) {
                             category7_pro = "003";
-                        } else if(qualification.getQuaTitleLevel().equals("00040") || qualification.getQuaTitleLevel().contains("助理级") || qualification.getQuaTitleLevel().contains("初级")) {
+                        } else if(qualification.getQuaTitleLevel().equals("00040") || qualification.getQuaTitleLevel().contains("助理级")) {
                             category7_pro = "004";
                         } else if(qualification.getQuaTitleLevel().equals("00050") || qualification.getQuaTitleLevel().contains("员级")) {
                             category7_pro = "005";
