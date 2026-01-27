@@ -484,7 +484,7 @@ public class ExternalController {
 //                ));
 //
 //                log.info("旧人员分类统计完毕，数量：{}", hrEmpBasicMap.size());
-                // 处理人员分类1和7
+                // 处理人员分类7
                 hrEmpBasicController.syncPersonCategory(userList);
                 // 统计之后的人员分类1、4、7、8
 //                List<HrEmpBasic> categoryInfoNewList = hrEmpBasicService.getCategoryInfo(userList);

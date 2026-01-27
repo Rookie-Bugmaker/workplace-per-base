@@ -365,14 +365,14 @@ public class HrEmpBasicController {
                     ? hrEmpBasicService.getListByUserCode(userCodeList)
                     : hrEmpBasicService.getAllUser();
 
-            Map<String, String> position2ValueMap = codeInfoService.getTranslateMap("hr_emp_appointment", "APPOINTMENT_POSITION");
+            // Map<String, String> position2ValueMap = codeInfoService.getTranslateMap("hr_emp_appointment", "APPOINTMENT_POSITION");
 
             for(HrEmpBasic hrEmpBasic : list){
 
                 // 同步人员分类1
-                String category1 = resolveCategory1(hrEmpBasic);
-                hrEmpBasic.setCategory1(category1);
-                log.info("userCode:{},查询人员分类1完毕,值为{}", hrEmpBasic.getUserCode(), category1);
+//                String category1 = resolveCategory1(hrEmpBasic);
+//                hrEmpBasic.setCategory1(category1);
+//                log.info("userCode:{},查询人员分类1完毕,值为{}", hrEmpBasic.getUserCode(), category1);
                 // 同步人员分类4
 //                String category4 = resolveCategory4(hrEmpBasic, position2ValueMap);
 //                hrEmpBasic.setCategory4(category4);
@@ -387,14 +387,13 @@ public class HrEmpBasicController {
                 //log.info("userCode:{},查询人员分类8完毕,值为{}", hrEmpBasic.getUserCode(), category8);
 
                 // 更新方法
-                log.info("准备执行更新方法，category1:{}，category7:{}，category8:{}",
-                        hrEmpBasic.getCategory1(), hrEmpBasic.getCategory7() ,hrEmpBasic.getCategory8());
+                log.info("准备执行更新方法，category7:{}", hrEmpBasic.getCategory7());
                 LambdaUpdateWrapper<HrEmpBasic> wrapper = new LambdaUpdateWrapper<>();
                 wrapper.eq(HrEmpBasic::getUserCode, hrEmpBasic.getUserCode())
-                        .set(HrEmpBasic::getCategory1, hrEmpBasic.getCategory1())
+                        //.set(HrEmpBasic::getCategory1, hrEmpBasic.getCategory1())
 //                        .set(HrEmpBasic::getCategory4, hrEmpBasic.getCategory4())
-                        .set(HrEmpBasic::getCategory7, hrEmpBasic.getCategory7())
-                        .set(HrEmpBasic::getCategory8, hrEmpBasic.getCategory8());
+                        .set(HrEmpBasic::getCategory7, hrEmpBasic.getCategory7());
+                        //.set(HrEmpBasic::getCategory8, hrEmpBasic.getCategory8());
                 hrEmpBasicService.update(wrapper);
                 log.info("userCode:{},更新成功", hrEmpBasic.getUserCode());
             }
@@ -436,38 +435,42 @@ public class HrEmpBasicController {
         }
     }
 
-    private String resolveCategory1(HrEmpBasic hrEmpBasic) {
-        try {
-            String category1 = null;
-            // 同步人员分类1，根据基本信息的身份类型判断人员分类1，
-            // 员工基本信息→身份类型→干部  干
-            // 员工基本信息→身份类型→工人  工
-            if (StringUtils.isNotBlank(hrEmpBasic.getIdentityType())) {
-                log.info("当前身份类型{}", hrEmpBasic.getIdentityType());
-                switch (hrEmpBasic.getIdentityType()) {
-                    // 身份类型 干部
-                    case "1":
-                    case "干部":
-                        // 人员分类1 “干”对应的码值
-                        category1 = "001";
-                        break;
-
-                    // 身份类型 工人
-                    case "2":
-                    case "工人":
-                        // 人员分类1 “工”对应的码值
-                        category1 = "002";
-                        break;
-
-                    default:
-                }
-            }
-            return category1;
-        } catch (Exception e) {
-            log.error("人员分类1同步失败: {}", e.getMessage(), e);
-            return hrEmpBasic.getCategory1();
-        }
-    }
+//    /**
+//     * @deprecated 不会重算人员分类1
+//     */
+//    @Deprecated
+//    private String resolveCategory1(HrEmpBasic hrEmpBasic) {
+//        try {
+//            String category1 = null;
+//            // 同步人员分类1，根据基本信息的身份类型判断人员分类1，
+//            // 员工基本信息→身份类型→干部  干
+//            // 员工基本信息→身份类型→工人  工
+//            if (StringUtils.isNotBlank(hrEmpBasic.getIdentityType())) {
+//                log.info("当前身份类型{}", hrEmpBasic.getIdentityType());
+//                switch (hrEmpBasic.getIdentityType()) {
+//                    // 身份类型 干部
+//                    case "1":
+//                    case "干部":
+//                        // 人员分类1 “干”对应的码值
+//                        category1 = "001";
+//                        break;
+//
+//                    // 身份类型 工人
+//                    case "2":
+//                    case "工人":
+//                        // 人员分类1 “工”对应的码值
+//                        category1 = "002";
+//                        break;
+//
+//                    default:
+//                }
+//            }
+//            return category1;
+//        } catch (Exception e) {
+//            log.error("人员分类1同步失败: {}", e.getMessage(), e);
+//            return hrEmpBasic.getCategory1();
+//        }
+//    }
 
     public String resolveCategory7(HrEmpBasic hrEmpBasic) {
         try {
