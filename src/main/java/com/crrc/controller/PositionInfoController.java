@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -41,15 +42,18 @@ public class PositionInfoController {
     @Autowired
     private PositionInfoServiceImpl positionInfoService;
 
+    @Autowired
+    private JdbcTemplate openGaussJdbcTemplate;
+
     @PostMapping("/page")
     @Operation(summary = "获取列表 page")
     @AuditLog(value = "获取列表 page", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    @Parameter(name = "pageReqVO",description = "包含查询条件的实体对象", required = false)
+    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象", required = false)
     @Parameter(name = "pageNo", description = "页码", required = false, example = "1")
     @Parameter(name = "pageSize", description = "条数", required = false, example = "10")
     public ResponseResult<IPage> pagePositionInfo(@Validated @RequestBody(required = false) PositionInfo pageReqVO,
-                                                     @RequestParam(required = false, defaultValue = "1") int pageNo,
-                                                     @RequestParam(required = false, defaultValue = "10")int pageSize) {
+                                                  @RequestParam(required = false, defaultValue = "1") int pageNo,
+                                                  @RequestParam(required = false, defaultValue = "10") int pageSize) {
         pageReqVO = (pageReqVO == null) ? new PositionInfo() : pageReqVO;
         Page<PositionInfo> page = new Page<>(pageNo, pageSize);
         positionInfoService.query(page, pageReqVO);
@@ -104,9 +108,9 @@ public class PositionInfoController {
     @AuditLog(value = "导出报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
     @Operation(summary = "导出报表")
     public void exportPositionInfo(@Validated @RequestBody(required = false) PositionInfo exportReqVO,
-                                      @RequestParam(required = false, defaultValue = "xlsx") String type,
-                                      HttpServletResponse response) throws IOException {
-        String contentType = "csv".equals(type) ?  "text/csv;charset=UTF-8" :
+                                   @RequestParam(required = false, defaultValue = "xlsx") String type,
+                                   HttpServletResponse response) throws IOException {
+        String contentType = "csv".equals(type) ? "text/csv;charset=UTF-8" :
                 ("xls".equals(type) ? "application/vnd.ms-excel" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setContentType(contentType);
         response.setCharacterEncoding("utf-8");
@@ -114,11 +118,11 @@ public class PositionInfoController {
         String fileName = URLEncoder.encode("报表-" + new SimpleDateFormat("yyyyMMddhhmmss")
                         .format(System.currentTimeMillis()), "UTF-8")
                 .replaceAll("\\+", "%20");
-        response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." +type);
+        response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." + type);
 
         exportReqVO = (exportReqVO == null) ? new PositionInfo() : exportReqVO;
         List<PositionInfo> positionInfoList = positionInfoService.query(exportReqVO);
-        ExcelTypeEnum typeEnum = "csv".equals(type) ?  ExcelTypeEnum.CSV : ("xls".equals(type) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
+        ExcelTypeEnum typeEnum = "csv".equals(type) ? ExcelTypeEnum.CSV : ("xls".equals(type) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
         EasyExcel.write(response.getOutputStream(), PositionInfo.class)
                 .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
                 .autoCloseStream(true)
@@ -127,10 +131,28 @@ public class PositionInfoController {
                 .doWrite(positionInfoList);
     }
 
-    @PostMapping("/setJobType")
-    @Transactional(rollbackFor = Exception.class)
-    public ResponseResult<Boolean> setJobType(@RequestBody MultipartFile file) throws IOException {
-        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
+//    @PostMapping("/setJobType")
+//    @Transactional(rollbackFor = Exception.class)
+//    public ResponseResult<Boolean> setJobType(@RequestBody MultipartFile file) throws IOException {
+//        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
+//            EasyExcel.read(file.getInputStream(), PositionInfo.class,
+//                            new PositionInfoImportListener(positionInfoService))
+//                    .headRowNumber(1)
+//                    .sheet()
+//                    .doRead();
+//
+//            return new ResponseResult<>(HttpStatus.OK.value(), true);
+//        }
+//        return new ResponseResult<>(HttpStatus.OK.value(), false);
+//    }
+
+    @PostMapping("/truncate/import")
+    @AuditLog(value = "导入报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
+    @Operation(summary = "导入报表")
+    public ResponseResult<Boolean> imports(MultipartFile file) throws IOException {
+        if (RoleUtils.checkAnyMatch("hrsc_admin")) {
+            openGaussJdbcTemplate.execute("TRUNCATE TABLE position_info");
+
             EasyExcel.read(file.getInputStream(), PositionInfo.class,
                             new PositionInfoImportListener(positionInfoService))
                     .headRowNumber(1)
@@ -141,16 +163,6 @@ public class PositionInfoController {
         }
         return new ResponseResult<>(HttpStatus.OK.value(), false);
     }
-
-    @PostMapping("/import")
-    @AuditLog(value = "导入报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
-    @Operation(summary = "导入报表")
-    public ResponseResult<Boolean> imports(MultipartFile file) throws IOException {
-        EasyExcel.read(file.getInputStream(), PositionInfo.class,
-                        new ImportExcelListener<PositionInfo, PositionInfoServiceImpl>(positionInfoService))
-                .headRowNumber(1)
-                .sheet()
-                .doRead();
-        return new ResponseResult<>(HttpStatus.OK.value(), "导入报表成功");
-    }
 }
+
+
