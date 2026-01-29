@@ -130,7 +130,7 @@ public class ExceptionCasePersonRelationController {
             //根据agreementCode查询部门人员列表
             List<SysUserDTO> rows = new ArrayList<>();
 
-            ResultData<List<SysUserDTO>> userByRoleId = sysServerClient.findUserByRoleId(424928747026169856L);
+            ResultData<List<SysUserDTO>> userByRoleId = sysServerClient.findUserByRoleId(463017387932581888L);
 
             if(userByRoleId == null || ObjectUtils.isEmpty(userByRoleId.getResult())) {
                 return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "角色下用户为空");
