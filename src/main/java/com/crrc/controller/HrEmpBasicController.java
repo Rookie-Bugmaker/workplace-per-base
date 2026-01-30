@@ -58,6 +58,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -829,6 +830,12 @@ public class HrEmpBasicController {
         try {
             Page<HrEmpBasicDTO> page = new Page<>(pageNo, pageSize);
             // 在service层实现模糊查询逻辑
+            // 如果全是数字，说明是档案号
+            Pattern dig = Pattern.compile("^\\d{1,50}$");
+            if(dig.matcher(searchDTO.getName()).matches()) {
+                searchDTO.setUserCode(searchDTO.getName());
+                searchDTO.setName(null);
+            }
             IPage<HrEmpBasicDTO> result = hrEmpBasicService.listData(page, searchDTO);
 
             List<HrEmpBasicDTO> basicList = result.getRecords();
