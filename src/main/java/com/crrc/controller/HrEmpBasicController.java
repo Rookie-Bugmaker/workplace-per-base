@@ -754,6 +754,16 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
     }
 
+    @PostMapping("/getFullData")
+    public ResponseResult<List<HrFullDataDTO>> setCategory7Batch(@RequestBody List<String> userCodes) {
+        try {
+            return new ResponseResult<>(HttpStatus.OK.value(), "OK", hrEmpBasicService.getFullData(userCodes));
+        } catch (Exception e) {
+            log.error("查询出错", e);
+            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "ERROR");
+        }
+    }
+
     @Transactional(rollbackFor = Exception.class)
     @PostMapping("/setCategory7Batch")
     public ResponseResult<Boolean> setCategory7Batch(@RequestBody MultipartFile file) throws IOException {

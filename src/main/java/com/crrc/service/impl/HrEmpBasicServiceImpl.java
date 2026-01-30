@@ -13,9 +13,11 @@ import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.mapper.*;
+import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.ExceptionPersonQueryDTO;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
+import com.crrc.pojo.dto.HrFullDataDTO;
 import com.crrc.service.HrEmpBasicService;
 import com.crrc.utils.*;
 import com.github.yulichang.toolkit.JoinWrappers;
@@ -85,9 +87,13 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     private final DictTypeUtils dictTypeUtils;
     private final HrEmpAppointmentMapper hrEmpAppointmentMapper;
     private final DictUtils dictUtils;
+    private final HrEmpOtherAppointmentMapper hrEmpOtherAppointmentMapper;
+    private final HrEmpCareerPathMapper hrEmpCareerPathMapper;
+    private final HrEmpSalaryInfoMapper hrEmpSalaryInfoMapper;
+    private final HrEmpSalaryStandardMapper hrEmpSalaryStandardMapper;
 
     @Autowired
-    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataApi, @Qualifier("com.crrc.client.SysServerClient") SysServerClient sysServerClient, DictTypeUtils dictTypeUtils, HrEmpAppointmentMapper hrEmpAppointmentMapper, DictUtils dictUtils) {
+    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataApi, @Qualifier("com.crrc.client.SysServerClient") SysServerClient sysServerClient, DictTypeUtils dictTypeUtils, HrEmpAppointmentMapper hrEmpAppointmentMapper, DictUtils dictUtils, HrEmpOtherAppointmentMapper hrEmpOtherAppointmentMapper, HrEmpCareerPathMapper hrEmpCareerPathMapper, HrEmpSalaryInfoMapper hrEmpSalaryInfoMapper, HrEmpSalaryStandardMapper hrEmpSalaryStandardMapper) {
         this.hrEmpBasicMapper = hrEmpBasicMapper;
         this.hrEmpEducationMapper = hrEmpEducationMapper;
         this.hrEmpSchoolInfoService = hrEmpSchoolInfoService;
@@ -101,6 +107,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         this.dictTypeUtils = dictTypeUtils;
         this.hrEmpAppointmentMapper = hrEmpAppointmentMapper;
         this.dictUtils = dictUtils;
+        this.hrEmpOtherAppointmentMapper = hrEmpOtherAppointmentMapper;
+        this.hrEmpCareerPathMapper = hrEmpCareerPathMapper;
+        this.hrEmpSalaryInfoMapper = hrEmpSalaryInfoMapper;
+        this.hrEmpSalaryStandardMapper = hrEmpSalaryStandardMapper;
     }
 
     // 模糊分页查询，用于给考勤打卡系统按姓名或档案号模糊查询
@@ -540,6 +550,84 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             return queryBaseInfoWithJoins(userCode);
         }
 
+    }
+
+    @Override
+    public List<HrFullDataDTO> getFullData(List<String> userCodes) {
+        // 查询出这些人的基本信息数据
+        LambdaQueryWrapper<HrEmpBasic> basicWrapper = new LambdaQueryWrapper<>();
+        basicWrapper.in(HrEmpBasic::getUserCode, userCodes);
+        List<HrEmpBasic> hrEmpBasicList = hrEmpBasicMapper.selectList(basicWrapper);
+        // 查询个人任职信息数据，并收集为userCode -> hrEmpAppointment的格式
+        Map<String, HrEmpAppointment> hrEmpAppointments = hrEmpAppointmentMapper.selectLatestByUserCodes(userCodes)
+                .stream().collect(Collectors.toMap(
+                        HrEmpAppointment::getUserCode,
+                        e -> e,
+                        (a, b) -> a)
+                );
+        // 查询个人其他任职信息数据，并收集为userCode -> hrEmpOtherAppointment的格式
+        Map<String, HrEmpOtherAppointment> hrEmpOtherAppointments = hrEmpOtherAppointmentMapper.selectLatestByUserCodes(userCodes)
+                .stream().collect(Collectors.toMap(
+                        HrEmpOtherAppointment::getUserCode,
+                        e -> e,
+                        (a, b) -> a)
+                );
+
+        // 查询专业技术职务任职资格
+        Map<String, HrEmpProfessionalQualification> hrEmpProQualifications = hrEmpProfessionalQualificationMapper.selectLatestByUserCodes(userCodes)
+                .stream().collect(Collectors.toMap(
+                        HrEmpProfessionalQualification::getUserCode,
+                        e -> e,
+                        (a, b) -> a)
+                );
+
+        // 查询职业技能等级
+        Map<String, HrEmpSkillLevel> hrEmpSkillLevels = hrEmpSkillLevelMapper.selectLatestByUserCodes(userCodes)
+                .stream().collect(Collectors.toMap(
+                        HrEmpSkillLevel::getUserCode,
+                        e -> e,
+                        (a, b) -> a)
+                );
+
+        // 查询职业发展通道
+        Map<String, HrEmpCareerPath> hrEmpCareerPaths = hrEmpCareerPathMapper.selectLatestByUserCodes(userCodes)
+                .stream().collect(Collectors.toMap(
+                        HrEmpCareerPath::getUserCode,
+                        e -> e,
+                        (a, b) -> a)
+                );
+
+        // 查询薪资信息，一个人只会有一条薪资信息
+        LambdaQueryWrapper<HrEmpSalaryInfo> salaryInfoWrapper = new LambdaQueryWrapper<>();
+        salaryInfoWrapper.in(HrEmpSalaryInfo::getUserCode, userCodes);
+        Map<String, HrEmpSalaryInfo> hrEmpSalaryInfos = hrEmpSalaryInfoMapper.selectList(salaryInfoWrapper)
+                .stream().collect(Collectors.toMap(
+                        HrEmpSalaryInfo::getUserCode,
+                        e -> e,
+                        (a, b) -> a)
+                );
+
+        // 查询薪资标准
+        Map<String, HrEmpSalaryStandard> hrEmpSalaryStandards = hrEmpSalaryStandardMapper.selectLatestByUserCodes(userCodes)
+                .stream().collect(Collectors.toMap(
+                        HrEmpSalaryStandard::getUserCode,
+                        e -> e,
+                        (a, b) -> a)
+                );
+
+        // 组装DTO
+        return hrEmpBasicList.stream().map(basic -> {
+            HrFullDataDTO hrFullDataDTO = new HrFullDataDTO();
+            hrFullDataDTO.setHrEmpBasic(basic);
+            hrFullDataDTO.setHrEmpAppointment(hrEmpAppointments.get(basic.getUserCode()));
+            hrFullDataDTO.setHrEmpOtherAppointment(hrEmpOtherAppointments.get(basic.getUserCode()));
+            hrFullDataDTO.setHrEmpProQualification(hrEmpProQualifications.get(basic.getUserCode()));
+            hrFullDataDTO.setHrEmpSkillLevel(hrEmpSkillLevels.get(basic.getUserCode()));
+            hrFullDataDTO.setHrEmpCareerPath(hrEmpCareerPaths.get(basic.getUserCode()));
+            hrFullDataDTO.setHrEmpSalaryInfo(hrEmpSalaryInfos.get(basic.getUserCode()));
+            hrFullDataDTO.setHrEmpSalaryStandard(hrEmpSalaryStandards.get(basic.getUserCode()));
+            return hrFullDataDTO;
+        }).collect(Collectors.toList());
     }
 
     public void resolveFields(HrEmpBasicDTO basic) {
