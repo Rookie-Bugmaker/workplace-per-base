@@ -210,7 +210,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         queryWrapper.selectAll(HrEmpBasic.class)
                 .eq(HrEmpBasic::getUserCode, userCode);
         try{
-            return hrEmpBasicMapper.selectOne(queryWrapper);
+            return hrEmpBasicMapper.selectList(queryWrapper).get(0);
         } catch (Exception e) {
             return null;
         }
