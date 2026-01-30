@@ -558,6 +558,36 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         LambdaQueryWrapper<HrEmpBasic> basicWrapper = new LambdaQueryWrapper<>();
         basicWrapper.in(HrEmpBasic::getUserCode, userCodes);
         List<HrEmpBasic> hrEmpBasicList = hrEmpBasicMapper.selectList(basicWrapper);
+
+        Map<String, String> orgCode2Name = codeInfoService.getTranslateMap("hr_emp_appointment", "APPOINTMENT_ORG");
+        Map<String, String> cache = new HashMap<>();
+
+        ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
+        if (listResponseResultDTO == null || org.apache.commons.lang3.ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+            log.error("外部接口错误，获取树形组织信息失败: {}", listResponseResultDTO);
+            throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
+        }
+
+        List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+
+        for(HrEmpBasic basic : hrEmpBasicList) {
+            if(StringUtils.isNotBlank(basic.getDept())) {
+                if(!cache.containsKey(basic.getDept())) {
+                    String parentCode = null;
+                    for(OrganizationTreeDTO root : data) {
+                        if (TreeUtils.containsBfs(root, n -> (basic.getDept() != null) && basic.getDept().equals(n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
+                            parentCode = root.getOrgCode();
+                            break;
+                        }
+                    }
+                    basic.setOrgCode(parentCode);
+                    cache.put(basic.getDept(), parentCode);
+                } else {
+                    basic.setOrgCode(cache.get(basic.getDept()));
+                }
+            }
+        }
+
         // 查询个人任职信息数据，并收集为userCode -> hrEmpAppointment的格式
         Map<String, HrEmpAppointment> hrEmpAppointments = hrEmpAppointmentMapper.selectLatestByUserCodes(userCodes)
                 .stream().collect(Collectors.toMap(
