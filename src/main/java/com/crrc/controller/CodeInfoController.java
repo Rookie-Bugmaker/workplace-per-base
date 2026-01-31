@@ -61,6 +61,7 @@ public class CodeInfoController {
             codeInfo.setType("APPOINTMENT_ORG");
             codeInfo.setTypeName("组织");
             codeInfo.setTableName("hr_emp_appointment");
+            codeInfo.setTenantId(438L);
             return codeInfo;
         }).collect(Collectors.toList());
 
