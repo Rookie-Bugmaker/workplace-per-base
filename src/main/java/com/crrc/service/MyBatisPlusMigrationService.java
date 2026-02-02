@@ -608,7 +608,7 @@ public class MyBatisPlusMigrationService {
                                     "case when ci1.code_value is null then change_type else ci1.code_value end as change_type, " +
                                     "case when ci3.code_value is null then change_reason else ci3.code_value end as change_reason, ra.personnel_category, " +
                                     "case when ci4.code_value is null then duty_status else ci4.code_value end as duty_status, ra.org, ra.dept, ra.org_unit, " +
-                                    "case when ci.code_value is null then \"position\" else ci.code_value end as \"position\", " +
+                                    "case when pi.\"name\" is null then \"position\" else pi.\"name\" end as \"position\", " +
                                     "ra.hierarchy_rank, ra.position_name, ra.position_hierarchy, case when ci5.code_value is null then position_category else ci5.code_value end as position_category, ra.salary_group, ra.id, ra.user_code, " +
                                     "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, pi.job_type as job_type " +
                                     "FROM ranked_data ra LEFT JOIN code_info ci ON ci.code = ra.\"position\" and ci.\"type\" = 'APPOINTMENT_POSITION' " +
@@ -641,7 +641,7 @@ public class MyBatisPlusMigrationService {
                                     "case when ci1.code_value is null then change_type else ci1.code_value end as change_type, " +
                                     "case when ci3.code_value is null then change_reason else ci3.code_value end as change_reason, ra.personnel_category, " +
                                     "case when ci4.code_value is null then duty_status else ci4.code_value end as duty_status, ra.org, ra.dept, ra.org_unit, " +
-                                    "case when ci.code_value is null then \"position\" else ci.code_value end as \"position\", " +
+                                    "case when pi.\"name\" is null then \"position\" else pi.\"name\" end as \"position\", " +
                                     "ra.hierarchy_rank, ra.position_name, ra.position_hierarchy, case when ci5.code_value is null then position_category else ci5.code_value end as position_category, ra.salary_group, ra.id, ra.user_code, " +
                                     "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, pi.job_type as job_type " +
                                     "FROM ranked_data ra LEFT JOIN code_info ci ON ci.code = ra.\"position\" and ci.\"type\" = 'APPOINTMENT_POSITION' " +
