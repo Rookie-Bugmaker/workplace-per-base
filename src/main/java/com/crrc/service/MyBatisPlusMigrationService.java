@@ -617,6 +617,7 @@ public class MyBatisPlusMigrationService {
                                     "left join code_info ci3 on ci3.code = ra.change_reason and ci3.\"type\" = 'APPOINTMENT_CHANGE_REASON' " +
                                     "left join code_info ci4 on ci4.code = ra.duty_status and ci4.\"type\" = 'APPOINTMENT_DUTY_STATUS' " +
                                     "left join code_info ci5 on ci5.code = ra.position_category and ci5.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' " +
+                                    "left join position_info pi on pi.code = ra.position " +
                                     "left join hr_emp_basic heb on heb.user_code = ra.user_code " +
                                     "WHERE (heb.is_employed = '1' AND group_rank = 1) OR (heb.is_employed = '0' AND change_type IN ('退休', '离职', '死亡', '调出', '集团内调出', '集团外调出', '015', '016', '017', '018')) " +
                                     "ORDER BY ra.user_code " +
