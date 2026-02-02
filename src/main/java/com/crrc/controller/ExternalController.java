@@ -96,6 +96,13 @@ public class ExternalController {
                 MultiTenantHandler.tenantId.set("438");
                 // 员工基本信息表 - 按工号更新或新增，先查询，如果没有该档案号数据就新增
                 // 处理人员分类8，如果dto.getHrOrderType()为空说明不需要动人员分类8
+                // TODO 切换到REQUIRE后，这个方法应该不需要了
+                // TODO @Deprecated ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ @Deprecated 切换到REQUIRE后，这个方法就不需要了
+                // TODO @Deprecated ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ @Deprecated 切换到REQUIRE后，这个方法就不需要了
+                // TODO @Deprecated ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ @Deprecated 切换到REQUIRE后，这个方法就不需要了
+                // TODO @Deprecated ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ @Deprecated 切换到REQUIRE后，这个方法就不需要了
+                // TODO @Deprecated ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ @Deprecated 切换到REQUIRE后，这个方法就不需要了
+                // TODO @Deprecated ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ @Deprecated 切换到REQUIRE后，这个方法就不需要了
                 if(StringUtils.isNotBlank(dto.getHrOrderType())) {
                     switch(dto.getHrOrderType()) {
                         // 长病
@@ -144,6 +151,12 @@ public class ExternalController {
                             break;
                     }
                 }
+                // TODO @Deprecated ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ @Deprecated 切换到REQUIRE后，这个方法就不需要了
+                // TODO @Deprecated ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ @Deprecated 切换到REQUIRE后，这个方法就不需要了
+                // TODO @Deprecated ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ @Deprecated 切换到REQUIRE后，这个方法就不需要了
+                // TODO @Deprecated ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ @Deprecated 切换到REQUIRE后，这个方法就不需要了
+                // TODO @Deprecated ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ @Deprecated 切换到REQUIRE后，这个方法就不需要了
+                // TODO @Deprecated ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ @Deprecated 切换到REQUIRE后，这个方法就不需要了
 
                 // 这里会更新人员身份（人员分类4）
                 if (dto.getHrEmpBasic() != null) {
