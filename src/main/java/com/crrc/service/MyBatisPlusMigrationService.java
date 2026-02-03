@@ -604,19 +604,20 @@ public class MyBatisPlusMigrationService {
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND user_code IS NOT NULL" +
                                     ") " +
-                                    "SELECT start_date, end_date, case when ci2.code_value is null then change_event else ci2.code_value end as change_event, " +
+                                    "SELECT ra.start_date, ra.end_date, case when ci2.code_value is null then change_event else ci2.code_value end as change_event, " +
                                     "case when ci1.code_value is null then change_type else ci1.code_value end as change_type, " +
-                                    "case when ci3.code_value is null then change_reason else ci3.code_value end as change_reason, personnel_category, " +
-                                    "case when ci4.code_value is null then duty_status else ci4.code_value end as duty_status, org, ra.dept, org_unit, " +
-                                    "case when ci.code_value is null then \"position\" else ci.code_value end as \"position\", " +
-                                    "hierarchy_rank, position_name, position_hierarchy, case when ci5.code_value is null then position_category else ci5.code_value end as position_category, salary_group, ra.id, ra.user_code, " +
-                                    "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, job_type " +
+                                    "case when ci3.code_value is null then change_reason else ci3.code_value end as change_reason, ra.personnel_category, " +
+                                    "case when ci4.code_value is null then duty_status else ci4.code_value end as duty_status, ra.org, ra.dept, ra.org_unit, " +
+                                    "case when pi.\"name\" is null then \"position\" else pi.\"name\" end as \"position\", " +
+                                    "ra.hierarchy_rank, ra.position_name, ra.position_hierarchy, case when ci5.code_value is null then position_category else ci5.code_value end as position_category, ra.salary_group, ra.id, ra.user_code, " +
+                                    "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, CASE WHEN pi.job_type IS NULL THEN ra.job_type ELSE pi.job_type END as job_type " +
                                     "FROM ranked_data ra LEFT JOIN code_info ci ON ci.code = ra.\"position\" and ci.\"type\" = 'APPOINTMENT_POSITION' " +
                                     "left join code_info ci1 on ci1.code = ra.change_type and ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' " +
                                     "left join code_info ci2 on ci2.code = ra.change_event and ci2.\"type\" = 'APPOINTMENT_CHANGE_EVENT' " +
                                     "left join code_info ci3 on ci3.code = ra.change_reason and ci3.\"type\" = 'APPOINTMENT_CHANGE_REASON' " +
                                     "left join code_info ci4 on ci4.code = ra.duty_status and ci4.\"type\" = 'APPOINTMENT_DUTY_STATUS' " +
                                     "left join code_info ci5 on ci5.code = ra.position_category and ci5.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' " +
+                                    "left join position_info pi on pi.code = ra.position " +
                                     "left join hr_emp_basic heb on heb.user_code = ra.user_code " +
                                     "WHERE (heb.is_employed = '1' AND group_rank = 1) OR (heb.is_employed = '0' AND change_type IN ('退休', '离职', '死亡', '调出', '集团内调出', '集团外调出', '015', '016', '017', '018')) " +
                                     "ORDER BY ra.user_code " +
@@ -636,19 +637,20 @@ public class MyBatisPlusMigrationService {
                                     "    FROM %s " +
                                     "    WHERE DELETED = '0' AND user_code IS NOT NULL AND user_code > ?" +
                                     ") " +
-                                    "SELECT start_date, end_date, case when ci2.code_value is null then change_event else ci2.code_value end as change_event, " +
+                                    "SELECT ra.start_date, ra.end_date, case when ci2.code_value is null then change_event else ci2.code_value end as change_event, " +
                                     "case when ci1.code_value is null then change_type else ci1.code_value end as change_type, " +
-                                    "case when ci3.code_value is null then change_reason else ci3.code_value end as change_reason, personnel_category, " +
-                                    "case when ci4.code_value is null then duty_status else ci4.code_value end as duty_status, org, ra.dept, org_unit, " +
-                                    "case when ci.code_value is null then \"position\" else ci.code_value end as \"position\", " +
-                                    "hierarchy_rank, position_name, position_hierarchy, case when ci5.code_value is null then position_category else ci5.code_value end as position_category, salary_group, ra.id, ra.user_code, " +
-                                    "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, job_type " +
+                                    "case when ci3.code_value is null then change_reason else ci3.code_value end as change_reason, ra.personnel_category, " +
+                                    "case when ci4.code_value is null then duty_status else ci4.code_value end as duty_status, ra.org, ra.dept, ra.org_unit, " +
+                                    "case when pi.\"name\" is null then \"position\" else pi.\"name\" end as \"position\", " +
+                                    "ra.hierarchy_rank, ra.position_name, ra.position_hierarchy, case when ci5.code_value is null then position_category else ci5.code_value end as position_category, ra.salary_group, ra.id, ra.user_code, " +
+                                    "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, CASE WHEN pi.job_type IS NULL THEN ra.job_type ELSE pi.job_type END as job_type " +
                                     "FROM ranked_data ra LEFT JOIN code_info ci ON ci.code = ra.\"position\" and ci.\"type\" = 'APPOINTMENT_POSITION' " +
                                     "left join code_info ci1 on ci1.code = ra.change_type and ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' " +
                                     "left join code_info ci2 on ci2.code = ra.change_event and ci2.\"type\" = 'APPOINTMENT_CHANGE_EVENT' " +
                                     "left join code_info ci3 on ci3.code = ra.change_reason and ci3.\"type\" = 'APPOINTMENT_CHANGE_REASON' " +
                                     "left join code_info ci4 on ci4.code = ra.duty_status and ci4.\"type\" = 'APPOINTMENT_DUTY_STATUS' " +
                                     "left join code_info ci5 on ci5.code = ra.position_category and ci5.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' " +
+                                    "left join position_info pi on pi.code = ra.position " +
                                     "left join hr_emp_basic heb on heb.user_code = ra.user_code " +
                                     "WHERE (heb.is_employed = '1' AND group_rank = 1) OR (heb.is_employed = '0' AND change_type IN ('退休', '离职', '死亡', '调出', '集团内调出', '集团外调出', '015', '016', '017', '018')) " +
                                     "ORDER BY ra.user_code " +
