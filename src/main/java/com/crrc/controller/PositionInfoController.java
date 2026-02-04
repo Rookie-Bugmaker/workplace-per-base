@@ -51,7 +51,7 @@ public class PositionInfoController {
     @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象", required = false)
     @Parameter(name = "pageNo", description = "页码", required = false, example = "1")
     @Parameter(name = "pageSize", description = "条数", required = false, example = "10")
-    public ResponseResult<IPage> pagePositionInfo(@Validated @RequestBody(required = false) PositionInfo pageReqVO,
+    public ResponseResult<IPage<PositionInfo>> pagePositionInfo(@Validated @RequestBody(required = false) PositionInfo pageReqVO,
                                                   @RequestParam(required = false, defaultValue = "1") int pageNo,
                                                   @RequestParam(required = false, defaultValue = "10") int pageSize) {
         pageReqVO = (pageReqVO == null) ? new PositionInfo() : pageReqVO;

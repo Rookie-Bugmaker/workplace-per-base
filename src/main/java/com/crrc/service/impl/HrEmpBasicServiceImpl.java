@@ -91,9 +91,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     private final HrEmpCareerPathMapper hrEmpCareerPathMapper;
     private final HrEmpSalaryInfoMapper hrEmpSalaryInfoMapper;
     private final HrEmpSalaryStandardMapper hrEmpSalaryStandardMapper;
+    private final PositionInfoServiceImpl positionInfoServiceImpl;
 
     @Autowired
-    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataApi, @Qualifier("com.crrc.client.SysServerClient") SysServerClient sysServerClient, DictTypeUtils dictTypeUtils, HrEmpAppointmentMapper hrEmpAppointmentMapper, DictUtils dictUtils, HrEmpOtherAppointmentMapper hrEmpOtherAppointmentMapper, HrEmpCareerPathMapper hrEmpCareerPathMapper, HrEmpSalaryInfoMapper hrEmpSalaryInfoMapper, HrEmpSalaryStandardMapper hrEmpSalaryStandardMapper) {
+    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataApi, @Qualifier("com.crrc.client.SysServerClient") SysServerClient sysServerClient, DictTypeUtils dictTypeUtils, HrEmpAppointmentMapper hrEmpAppointmentMapper, DictUtils dictUtils, HrEmpOtherAppointmentMapper hrEmpOtherAppointmentMapper, HrEmpCareerPathMapper hrEmpCareerPathMapper, HrEmpSalaryInfoMapper hrEmpSalaryInfoMapper, HrEmpSalaryStandardMapper hrEmpSalaryStandardMapper, PositionInfoServiceImpl positionInfoServiceImpl) {
         this.hrEmpBasicMapper = hrEmpBasicMapper;
         this.hrEmpEducationMapper = hrEmpEducationMapper;
         this.hrEmpSchoolInfoService = hrEmpSchoolInfoService;
@@ -111,6 +112,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         this.hrEmpCareerPathMapper = hrEmpCareerPathMapper;
         this.hrEmpSalaryInfoMapper = hrEmpSalaryInfoMapper;
         this.hrEmpSalaryStandardMapper = hrEmpSalaryStandardMapper;
+        this.positionInfoServiceImpl = positionInfoServiceImpl;
     }
 
     // 模糊分页查询，用于给考勤打卡系统按姓名或档案号模糊查询
@@ -559,8 +561,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         basicWrapper.in(HrEmpBasic::getUserCode, userCodes);
         List<HrEmpBasic> hrEmpBasicList = hrEmpBasicMapper.selectList(basicWrapper);
 
-        Map<String, String> orgCode2Name = codeInfoService.getTranslateMap("hr_emp_appointment", "APPOINTMENT_ORG");
-        Map<String, String> cache = new HashMap<>();
+        Map<String, String> orgCache = new HashMap<>();
 
         ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
         if (listResponseResultDTO == null || org.apache.commons.lang3.ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
@@ -572,7 +573,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
         for(HrEmpBasic basic : hrEmpBasicList) {
             if(StringUtils.isNotBlank(basic.getDept())) {
-                if(!cache.containsKey(basic.getDept())) {
+                if(!orgCache.containsKey(basic.getDept())) {
                     String parentCode = null;
                     for(OrganizationTreeDTO root : data) {
                         if (TreeUtils.containsBfs(root, n -> (basic.getDept() != null) && basic.getDept().equals(n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
@@ -581,9 +582,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                         }
                     }
                     basic.setOrgCode(parentCode);
-                    cache.put(basic.getDept(), parentCode);
+                    orgCache.put(basic.getDept(), parentCode);
                 } else {
-                    basic.setOrgCode(cache.get(basic.getDept()));
+                    basic.setOrgCode(orgCache.get(basic.getDept()));
                 }
             }
         }
@@ -595,6 +596,20 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                         e -> e,
                         (a, b) -> a)
                 );
+
+        Set<String> positionSet = hrEmpAppointments.values().stream().map(HrEmpAppointment::getPosition).collect(Collectors.toSet());
+        LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(PositionInfo::getCode, positionSet);
+        Map<String, String> positionMap = positionInfoServiceImpl.getBaseMapper().selectList(wrapper).stream().collect(Collectors.toMap(
+                PositionInfo::getCode,
+                PositionInfo::getName,
+                (a, b) -> a
+        ));
+
+        hrEmpAppointments.values().forEach(
+                item -> item.setPositionValue(positionMap.getOrDefault(item.getPosition(), item.getPosition()))
+        );
+
         // 查询个人其他任职信息数据，并收集为userCode -> hrEmpOtherAppointment的格式
         Map<String, HrEmpOtherAppointment> hrEmpOtherAppointments = hrEmpOtherAppointmentMapper.selectLatestByUserCodes(userCodes)
                 .stream().collect(Collectors.toMap(
