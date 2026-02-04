@@ -10,11 +10,11 @@ public class CodeValueComparatorUtils {
      */
     public static int compareCategory7(String t1, String t2) {
         if(t1 == null && t2 != null) {
-            return -1;
+            return 1;
         }
 
         if(t1 != null && t2 == null) {
-            return 1;
+            return -1;
         }
 
         if(t1 == null) {

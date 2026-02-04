@@ -3,6 +3,7 @@ package com.crrc.controller;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
@@ -67,6 +68,16 @@ public class PositionInfoController {
     public ResponseResult<List<PositionInfo>> queryPositionInfo(@Validated @RequestBody(required = false) PositionInfo queryReqVO) {
         queryReqVO = (queryReqVO == null) ? new PositionInfo() : queryReqVO;
         return new ResponseResult<>(HttpStatus.OK.value(), "获取列表成功", positionInfoService.query(queryReqVO));
+    }
+
+    @PostMapping("/queryList")
+    @Operation(summary = "获取列表")
+    @AuditLog(value = "获取列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象", required = false)
+    public ResponseResult<List<PositionInfo>> queryPositionInfoByList(@Validated @RequestBody(required = false) List<String> codeList) {
+        LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(PositionInfo::getCode, codeList);
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取列表成功", positionInfoService.getBaseMapper().selectList(wrapper));
     }
 
     @GetMapping("/get")
