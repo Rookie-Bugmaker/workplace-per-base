@@ -103,54 +103,54 @@ public class ExternalController {
                 // TODO @Deprecated ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ @Deprecated 切换到REQUIRE后，这个方法就不需要了
                 // TODO @Deprecated ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ @Deprecated 切换到REQUIRE后，这个方法就不需要了
                 // TODO @Deprecated ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ @Deprecated 切换到REQUIRE后，这个方法就不需要了
-                if(StringUtils.isNotBlank(dto.getHrOrderType())) {
-                    switch(dto.getHrOrderType()) {
-                        // 长病
-                        case HrOrderType.LONG_ILLNESS:
-                            // 劳
-                            dto.getHrEmpBasic().setCategory8("003");
-                            break;
-                        // 长伤
-                        case HrOrderType.LONG_INJURY:
-                            // 伤
-                            dto.getHrEmpBasic().setCategory8("005");
-                            break;
-                        // 借调
-                        case HrOrderType.LOAN_ASSIGNMENT:
-                            // 借
-                            dto.getHrEmpBasic().setCategory8("002");
-                            break;
-                        // 外派
-                        case HrOrderType.EXPATRIATE_ASSIGNMENT:
-                            // 派
-                            dto.getHrEmpBasic().setCategory8("004");
-                            break;
-                        // 挂职/助勤
-                        case HrOrderType.SUPPORT_ASSIGNMENT:
-                            // 助
-                            dto.getHrEmpBasic().setCategory8("008");
-                            break;
-                        // 下岗
-                        case HrOrderType.OFF_POST:
-                            // 待
-                            dto.getHrEmpBasic().setCategory8("001");
-                            break;
-                        // 退养
-                        case HrOrderType.RETIREMENT:
-                            // 养
-                            dto.getHrEmpBasic().setCategory8("007");
-                            break;
-                        case HrOrderType.LONG_ILLNESS_END:
-                        case HrOrderType.LONG_INJURY_END:
-                        case HrOrderType.LOAN_ASSIGNMENT_END:
-                        case HrOrderType.EXPATRIATE_ASSIGNMENT_END:
-                        case HrOrderType.SUPPORT_ASSIGNMENT_END:
-                        case HrOrderType.UP_POST:
-                            // 现
-                            dto.getHrEmpBasic().setCategory8("006");
-                            break;
-                    }
-                }
+//                if(StringUtils.isNotBlank(dto.getHrOrderType())) {
+//                    switch(dto.getHrOrderType()) {
+//                        // 长病
+//                        case HrOrderType.LONG_ILLNESS:
+//                            // 劳
+//                            dto.getHrEmpBasic().setCategory8("003");
+//                            break;
+//                        // 长伤
+//                        case HrOrderType.LONG_INJURY:
+//                            // 伤
+//                            dto.getHrEmpBasic().setCategory8("005");
+//                            break;
+//                        // 借调
+//                        case HrOrderType.LOAN_ASSIGNMENT:
+//                            // 借
+//                            dto.getHrEmpBasic().setCategory8("002");
+//                            break;
+//                        // 外派
+//                        case HrOrderType.EXPATRIATE_ASSIGNMENT:
+//                            // 派
+//                            dto.getHrEmpBasic().setCategory8("004");
+//                            break;
+//                        // 挂职/助勤
+//                        case HrOrderType.SUPPORT_ASSIGNMENT:
+//                            // 助
+//                            dto.getHrEmpBasic().setCategory8("008");
+//                            break;
+//                        // 下岗
+//                        case HrOrderType.OFF_POST:
+//                            // 待
+//                            dto.getHrEmpBasic().setCategory8("001");
+//                            break;
+//                        // 退养
+//                        case HrOrderType.RETIREMENT:
+//                            // 养
+//                            dto.getHrEmpBasic().setCategory8("007");
+//                            break;
+//                        case HrOrderType.LONG_ILLNESS_END:
+//                        case HrOrderType.LONG_INJURY_END:
+//                        case HrOrderType.LOAN_ASSIGNMENT_END:
+//                        case HrOrderType.EXPATRIATE_ASSIGNMENT_END:
+//                        case HrOrderType.SUPPORT_ASSIGNMENT_END:
+//                        case HrOrderType.UP_POST:
+//                            // 现
+//                            dto.getHrEmpBasic().setCategory8("006");
+//                            break;
+//                    }
+//                }
                 // TODO @Deprecated ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ @Deprecated 切换到REQUIRE后，这个方法就不需要了
                 // TODO @Deprecated ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ @Deprecated 切换到REQUIRE后，这个方法就不需要了
                 // TODO @Deprecated ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ @Deprecated 切换到REQUIRE后，这个方法就不需要了

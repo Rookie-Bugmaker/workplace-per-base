@@ -166,7 +166,7 @@ public class ExceptionCasePersonRelationController {
 
                 // 查出表头
                 ExceptionCasePersonRelation exceptionCasePersonRelation = exceptionCasePersonRelationService.getById(personRelation.getId());
-                if(exceptionCasePersonRelation.getStatus() == null || exceptionCasePersonRelation.getStatus().equals(AuditConstants.STATUS_DRAFT)) {
+                if(exceptionCasePersonRelation.getStatus() == null || AuditConstants.STATUS_DRAFT.equals(exceptionCasePersonRelation.getStatus())) {
                     exceptionCasePersonVO.setEditable("1");
                 } else if(exceptionCasePersonRelation.getStatus().equals(AuditConstants.STATUS_AUDIT) && exceptionCasePersonRelation.getProcessInstanceId() != null) {
                     ResultData<List<ProcessStatusDTO>> processStatusByProcessInstanceId = workFlowClient.getProcessStatusByProcessInstanceId(exceptionCasePersonRelation.getProcessInstanceId());
