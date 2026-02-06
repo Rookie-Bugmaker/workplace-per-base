@@ -598,13 +598,18 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 );
 
         Set<String> positionSet = hrEmpAppointments.values().stream().map(HrEmpAppointment::getPosition).collect(Collectors.toSet());
-        LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.in(PositionInfo::getCode, positionSet);
-        Map<String, String> positionMap = positionInfoServiceImpl.getBaseMapper().selectList(wrapper).stream().collect(Collectors.toMap(
-                PositionInfo::getCode,
-                PositionInfo::getName,
-                (a, b) -> a
-        ));
+        Map<String, String> positionMap;
+        if(!positionSet.isEmpty()) {
+            LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
+            wrapper.in(positionSet.isEmpty(), PositionInfo::getCode, positionSet);
+            positionMap = positionInfoServiceImpl.getBaseMapper().selectList(wrapper).stream().collect(Collectors.toMap(
+                    PositionInfo::getCode,
+                    PositionInfo::getName,
+                    (a, b) -> a
+            ));
+        } else {
+            positionMap = Collections.emptyMap();
+        }
 
         hrEmpAppointments.values().forEach(
                 item -> item.setPositionValue(positionMap.getOrDefault(item.getPosition(), item.getPosition()))
