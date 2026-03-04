@@ -1,6 +1,9 @@
 package com.crrc.controller;
 
 
+import cn.hutool.core.date.DateTime;
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
@@ -8,7 +11,9 @@ import com.crrc.entity.ExceptionCasePerson;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.vo.ExceptionCasePersonPlusVO;
 import com.crrc.service.impl.ExceptionCasePersonServiceImpl;
+import com.crrc.utils.WebServiceUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -41,6 +46,103 @@ public class ExceptionCasePersonController {
 
     @Autowired
     private ExceptionCasePersonServiceImpl exceptionCasePersonService;
+    @Autowired
+    private WebServiceUtil webServiceUtil;
+
+
+    @PostMapping("/queryForKingdie")
+    @Operation(summary = "金蝶webservice ,获取额外人员信息表列表")
+    @AuditLog(value = "获取额外人员信息表列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResult queryForKingdie() {
+        List<ExceptionCasePersonPlusVO> effectiveList = exceptionCasePersonService.selectEffectivePerson();
+
+        // 组装XML报文
+        StringBuilder xmlBuilder = new StringBuilder();
+        xmlBuilder.append("<USERS>\n");
+
+        for (ExceptionCasePersonPlusVO person : effectiveList) {
+
+            // 处理职能标识
+            String userType;
+            switch (person.getUserType()) {
+                case "EXT_SEC":
+                    userType = "外部派入";
+                    break;
+                case "INT_LOAN":
+                    userType = "借用";
+                    break;
+                default:
+                    userType = "未知类型";
+            }
+
+            xmlBuilder.append("    <USER>\n")
+                    .append("        <USER_CODE>").append(person.getUserCode()).append("</USER_CODE>\n")
+                    .append("        <NAME>").append(person.getName()).append("</NAME>\n")
+                    .append("        <ORG>").append(person.getNewCompanyCode()).append("</ORG>\n")
+                    .append("        <DEPT>").append(person.getNewDeptCode()).append("</DEPT>\n")
+                    // EXT_SEC→外部派入，INT_LOAN→借用，其它为未知类型
+                    .append("        <DUTYPE>").append(userType).append("</DUTYPE>\n")  // todo 可能要换成中文的职能标识
+                    .append("    </USER>\n");
+        }
+
+        xmlBuilder.append("</USERS>");
+
+        // 发送WebService请求
+        String messageCode = "013200HRC000003###"; // todo 需要修改为真实消息号
+        String xmlMsg = webServiceUtil.sendByWebService(xmlBuilder.toString(), messageCode);
+
+        // 处理返回结果
+        String result = webServiceUtil.xmlTransformer(xmlMsg);
+        JSONObject jsonObject = JSONUtil.parseObj(result);
+
+        if("S".equals(jsonObject.get("M_TYPE"))) {
+            return new ResponseResult<>(HttpStatus.OK.value(), DateTime.now() + "金蝶接收成功", jsonObject);
+        } else {
+            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), DateTime.now() + "金蝶接收失败", jsonObject);
+        }
+    }
+
+    @PostMapping("/queryForSap")
+    @Operation(summary = "SAP webservice, 获取额外人员信息表列表")
+    @AuditLog(value = "获取额外人员信息表列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResult queryForSap() {
+        List<ExceptionCasePersonPlusVO> effectiveList = exceptionCasePersonService.selectEffectivePerson();
+
+        // 组装XML报文
+        StringBuilder xmlBuilder = new StringBuilder();
+        xmlBuilder.append("<USERS>\n");
+
+        for (ExceptionCasePersonPlusVO person : effectiveList) {
+//            // 处理GENDER
+//            String gender = "女".equals(person.getGender()) ? "女士" : "先生";
+
+            xmlBuilder.append("    <USER>\n")
+                    .append("        <USERID>").append(person.getUserCode()).append("</USERID>\n")
+                    .append("        <NAME>").append(person.getName()).append("</NAME>\n")
+                    .append("        <COMPANY>").append(person.getNewCompanyCode()).append("</COMPANY>\n")
+                    .append("        <DEPARTMENT>").append(person.getNewDeptCode()).append("</DEPARTMENT>\n")
+                    .append("        <DEPARTNAME>").append(person.getNewDept()).append("</DEPARTNAME>\n")
+                    .append("        <GENDER>").append("1").append("</GENDER>\n") // todo 目前没有收集性别信息，默认全传
+                    .append("    </USER>\n");
+        }
+
+        xmlBuilder.append("</USERS>");
+
+        // 发送WebService请求
+        String messageCode = "013200HRC000004###"; // todo SAP专用消息号，需修改为真实消息号
+        String xmlMsg = webServiceUtil.sendByWebService(xmlBuilder.toString(), messageCode);
+
+        // 处理返回结果
+        String result = webServiceUtil.xmlTransformer(xmlMsg);
+        JSONObject jsonObject = JSONUtil.parseObj(result);
+
+        if("S".equals(jsonObject.get("M_TYPE"))) {
+            return new ResponseResult<>(HttpStatus.OK.value(), DateTime.now() + "SAP接收成功", jsonObject);
+        } else {
+            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), DateTime.now() + "SAP接收失败", jsonObject);
+        }
+    }
+
     @PostMapping("/page")
     @Operation(summary = "获取额外人员信息表列表 page")
     @AuditLog(value = "获取额外人员信息表列表 page", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)

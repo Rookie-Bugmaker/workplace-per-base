@@ -40,7 +40,7 @@ public class ExceptionCasePersonRelation extends BaseEntity implements Serializa
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelMethod(method = ExcelType.BOTH, header = "借用类型，外部派入/借用", sorted = 1)
-    @Schema(description = "借用类型，外部派入/借用", example = "")
+    @Schema(description = "EXT_SEC→外部派入，INT_LOAN→借用，借用类型，外部派入/借用", example = "")
     private String userType;
     
     @QueryMethod(method = QueryType.EQ)
