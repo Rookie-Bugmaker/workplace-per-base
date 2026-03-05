@@ -1,25 +1,37 @@
 package com.crrc.controller;
 
 
+import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.entity.PersonnelSecondmentRequest;
 import com.crrc.entity.PersonnelSecondmentRequestRelation;
+import com.crrc.pojo.dto.PersonnelSecondmentRequestRelationDetailDTO;
+import com.crrc.entity.filedata.vo.FileDataStream;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.vo.PersonnelSecondmentRequestRelationTemplateVO;
+import com.crrc.pojo.vo.PersonnelSecondmentRequestTemplateVO;
+import com.crrc.service.impl.FileServiceImpl;
 import com.crrc.service.impl.PersonnelSecondmentRequestRelationServiceImpl;
+import com.crrc.service.impl.PersonnelSecondmentRequestServiceImpl;
+import com.crrc.utils.WordTemplateProcessor;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,7 +41,10 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -47,6 +62,10 @@ public class PersonnelSecondmentRequestRelationController {
 
     @Autowired
     private PersonnelSecondmentRequestRelationServiceImpl personnelSecondmentRequestRelationService;
+    @Autowired
+    private FileServiceImpl fileService;
+    @Autowired
+    private PersonnelSecondmentRequestServiceImpl personnelSecondmentRequestService;
 
     @PostMapping("/page")
     @Operation(summary = "获取借调（借用）人员需求计划申请表表头列表 page")
@@ -54,7 +73,7 @@ public class PersonnelSecondmentRequestRelationController {
     @Parameter(name = "pageReqVO",description = "包含查询条件的实体对象", required = false)
     @Parameter(name = "pageNo", description = "页码", required = false, example = "1")
     @Parameter(name = "pageSize", description = "条数", required = false, example = "10")
-    public ResponseResult<IPage> pagePersonnelSecondmentRequestRelation(@Validated @RequestBody(required = false) PersonnelSecondmentRequestRelation pageReqVO,
+    public ResponseResult<IPage<PersonnelSecondmentRequestRelation>> pagePersonnelSecondmentRequestRelation(@Validated @RequestBody(required = false) PersonnelSecondmentRequestRelation pageReqVO,
                                              @RequestParam(required = false, defaultValue = "1") int pageNo,
                                              @RequestParam(required = false, defaultValue = "10")int pageSize) {
         pageReqVO = (pageReqVO == null) ? new PersonnelSecondmentRequestRelation() : pageReqVO;
@@ -76,8 +95,13 @@ public class PersonnelSecondmentRequestRelationController {
     @Operation(summary = "获得借调（借用）人员需求计划申请表表头实体")
     @AuditLog(value = "获得借调（借用）人员需求计划申请表表头实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
-    public ResponseResult<PersonnelSecondmentRequestRelation> getPersonnelSecondmentRequestRelation(@RequestParam("id") Long id) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取借调（借用）人员需求计划申请表表头实体成功", personnelSecondmentRequestRelationService.getById(id));
+    public ResponseResult<PersonnelSecondmentRequestRelationDetailDTO> getPersonnelSecondmentRequestRelation(@RequestParam("id") String id) {
+        PersonnelSecondmentRequestRelation relation = personnelSecondmentRequestRelationService.getById(id);
+        List<PersonnelSecondmentRequest> requestList = personnelSecondmentRequestService.getByRelationId(id);
+        PersonnelSecondmentRequestRelationDetailDTO detailDTO = new PersonnelSecondmentRequestRelationDetailDTO();
+        detailDTO.setRelation(relation);
+        detailDTO.setRequestList(requestList);
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取借调（借用）人员需求计划申请表表头实体成功", detailDTO);
     }
 
     @Transactional
@@ -86,25 +110,15 @@ public class PersonnelSecondmentRequestRelationController {
     @AuditLog(value = "借调（借用）人员需求计划申请表表头实体保存", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
     @Parameter(name = "reqVO", description = "实体对象", required = true)
     public ResponseResult<Boolean> savePersonnelSecondmentRequestRelation(@Valid @RequestBody PersonnelSecondmentRequestRelation reqVO) {
-    
+
+        if(!StringUtils.hasText(reqVO.getId())) {
+            reqVO.setId(IdUtil.randomUUID());
+        }
+
         boolean result = personnelSecondmentRequestRelationService.saveOrUpdate(reqVO);
     
         return new ResponseResult<>(HttpStatus.OK.value(), "保存借调（借用）人员需求计划申请表表头实体成功", result);
     }
-
-//    @Transactional
-//    @PostMapping("/saveByUserCode")
-//    @Operation(summary = "根据档案号保存借调（借用）人员需求计划申请表表头实体")
-//    @AuditLog(value = "借调（借用）人员需求计划申请表表头实体保存", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
-//    @Parameter(name = "reqVO", description = "实体对象", required = true)
-//    public ResponseResult<Boolean> saveByUserCode(@Valid @RequestBody PersonnelSecondmentRequestRelation reqVO) {
-//
-//        LambdaQueryWrapper<PersonnelSecondmentRequestRelation> wrapper = new LambdaQueryWrapper<>();
-//        wrapper.eq(PersonnelSecondmentRequestRelation::getUserCode, reqVO.getUserCode());
-//        boolean result = personnelSecondmentRequestRelationService.saveOrUpdate(reqVO, wrapper);
-//
-//        return new ResponseResult<>(HttpStatus.OK.value(), "保存借调（借用）人员需求计划申请表表头实体成功", result);
-//    }
 
     @Transactional
     @GetMapping("/delete")
@@ -113,6 +127,46 @@ public class PersonnelSecondmentRequestRelationController {
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<Boolean> deletePersonnelSecondmentRequestRelation(@RequestParam("id") Long id) {
         return new ResponseResult<>(HttpStatus.OK.value(), "删除借调（借用）人员需求计划申请表表头实体成功", personnelSecondmentRequestRelationService.removeById(id));
+    }
+
+    @PostMapping("/generateRequestWord")
+    public ResponseResult<String> generateRequestWordTest(@RequestParam String id) throws Exception {
+        PersonnelSecondmentRequestRelation relation = personnelSecondmentRequestRelationService.getById(id);
+
+        PersonnelSecondmentRequestRelationTemplateVO relationVO = new PersonnelSecondmentRequestRelationTemplateVO();
+        BeanUtils.copyProperties(relation, relationVO);
+
+        LocalDate date = LocalDate.now();
+
+        relationVO.setDay(String.valueOf(date.getDayOfMonth()));
+        relationVO.setMonth(String.valueOf(date.getMonth()));
+        relationVO.setYear(String.valueOf(date.getYear()));
+
+        LambdaQueryWrapper<PersonnelSecondmentRequest> wrapper = new LambdaQueryWrapper<>();
+        List<PersonnelSecondmentRequest> requestList = personnelSecondmentRequestService.getBaseMapper().selectList(wrapper);
+        final int[] index = {1};
+        List<PersonnelSecondmentRequestTemplateVO> requestVOList = requestList.stream().map(request -> {
+            PersonnelSecondmentRequestTemplateVO vo = new PersonnelSecondmentRequestTemplateVO();
+            BeanUtils.copyProperties(request, vo);
+
+            DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy年MM月dd日");
+            vo.setStartEndDate(String.format("%s至%s", request.getStartDate().format(dateTimeFormatter), request.getEndDate().format(dateTimeFormatter)));
+            vo.setIndex(index[0]);
+            index[0] = index[0] + 1;
+            return vo;
+        }).collect(Collectors.toList());
+
+        FileDataStream fileStream = fileService.getFileStream("06f33eed-10c1-4dc4-a541-e8b73c06c0ae");
+        String fileId;
+        try {
+            MultipartFile docx = WordTemplateProcessor.processTemplate(fileStream.getStream(), relationVO, requestVOList);
+            fileId = fileService.upload(docx);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+
+        return new ResponseResult<>(HttpStatus.OK.value(), "OK", fileId);
     }
     
     @PostMapping("/export")
