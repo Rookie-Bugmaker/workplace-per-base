@@ -22,6 +22,7 @@ import com.crrc.mapper.PositionInfoMapper;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.service.impl.CodeInfoServiceImpl;
 import com.crrc.service.impl.HrEmpAppointmentServiceImpl;
+import com.crrc.utils.AppointmentCoverImportListener;
 import com.crrc.utils.RoleUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -341,4 +342,13 @@ public class HrEmpAppointmentController {
         return new ResponseResult<>(HttpStatus.OK.value(), "导入任职信息报表成功");
     }
 
+    @PostMapping("/tempChangeTemp")
+    public ResponseResult<Boolean> tempChangeTemp(MultipartFile file) throws IOException {
+        EasyExcel.read(file.getInputStream(), HrEmpAppointment.class,
+                        new AppointmentCoverImportListener(hrEmpAppointmentService))
+                .headRowNumber(1)
+                .sheet()
+                .doRead();
+        return new ResponseResult<>(HttpStatus.OK.value(), "导入员工基本信息表报表成功");
+    }
 }

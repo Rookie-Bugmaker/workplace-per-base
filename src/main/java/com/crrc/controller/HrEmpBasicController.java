@@ -1257,15 +1257,4 @@ public class HrEmpBasicController {
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
     }
-
-    @PostMapping("/tempChangeTemp")
-    public ResponseResult<Boolean> tempChangeTemp(MultipartFile file) throws IOException {
-        EasyExcel.read(file.getInputStream(), HrEmpSkillLevel.class,
-                        new SkillLevelChangeListener(hrEmpSkillLevelService))
-                .headRowNumber(1)
-                .sheet()
-                .doRead();
-        return new ResponseResult<>(HttpStatus.OK.value(), "导入员工基本信息表报表成功");
-    }
-
 }
