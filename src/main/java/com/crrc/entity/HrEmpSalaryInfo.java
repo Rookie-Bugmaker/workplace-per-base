@@ -10,6 +10,7 @@ import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import lombok.experimental.Accessors;
 
 /**
  * <p>
@@ -22,6 +23,7 @@ import lombok.Data;
 @ExcelIgnoreUnannotated
 @TableName("hr_emp_salary_info")
 @Schema(description = "员工薪资信息表")
+@Accessors(chain=false)
 @Data
 public class HrEmpSalaryInfo extends BaseEntity {
 
