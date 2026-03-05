@@ -43,6 +43,7 @@ import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -79,13 +80,14 @@ public class PersonnelSecondmentRequestRelationController {
         pageReqVO = (pageReqVO == null) ? new PersonnelSecondmentRequestRelation() : pageReqVO;
         Page<PersonnelSecondmentRequestRelation> page = new Page<>(pageNo, pageSize);
         personnelSecondmentRequestRelationService.query(page, pageReqVO);
+        personnelSecondmentRequestRelationService.resolveFields(page.getRecords());
         return new ResponseResult<>(HttpStatus.OK.value(), "获取借调（借用）人员需求计划申请表表头列表 page成功", page);
     }
 
     @PostMapping("/query")
     @Operation(summary = "获取借调（借用）人员需求计划申请表表头列表")
     @AuditLog(value = "获取借调（借用）人员需求计划申请表表头列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象", required = false)
+    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
     public ResponseResult<List<PersonnelSecondmentRequestRelation>> queryPersonnelSecondmentRequestRelation(@Validated @RequestBody(required = false) PersonnelSecondmentRequestRelation queryReqVO) {
         queryReqVO = (queryReqVO == null) ? new PersonnelSecondmentRequestRelation() : queryReqVO;
         return new ResponseResult<>(HttpStatus.OK.value(), "获取借调（借用）人员需求计划申请表表头列表成功", personnelSecondmentRequestRelationService.query(queryReqVO));
@@ -97,6 +99,7 @@ public class PersonnelSecondmentRequestRelationController {
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<PersonnelSecondmentRequestRelationDetailDTO> getPersonnelSecondmentRequestRelation(@RequestParam("id") String id) {
         PersonnelSecondmentRequestRelation relation = personnelSecondmentRequestRelationService.getById(id);
+        personnelSecondmentRequestRelationService.resolveFields(Collections.singletonList(relation));
         List<PersonnelSecondmentRequest> requestList = personnelSecondmentRequestService.getByRelationId(id);
         PersonnelSecondmentRequestRelationDetailDTO detailDTO = new PersonnelSecondmentRequestRelationDetailDTO();
         detailDTO.setRelation(relation);
@@ -133,13 +136,18 @@ public class PersonnelSecondmentRequestRelationController {
     public ResponseResult<String> generateRequestWordTest(@RequestParam String id) throws Exception {
         PersonnelSecondmentRequestRelation relation = personnelSecondmentRequestRelationService.getById(id);
 
+        // 翻译部门
+        personnelSecondmentRequestRelationService.resolveFields(Collections.singletonList(relation));
+
         PersonnelSecondmentRequestRelationTemplateVO relationVO = new PersonnelSecondmentRequestRelationTemplateVO();
         BeanUtils.copyProperties(relation, relationVO);
+        // 需要单独把relation的翻译结果copy到relationVO中
+        relationVO.setRequestingDepartment(relation.getRequestingDepartmentValue());
 
         LocalDate date = LocalDate.now();
 
         relationVO.setDay(String.valueOf(date.getDayOfMonth()));
-        relationVO.setMonth(String.valueOf(date.getMonth()));
+        relationVO.setMonth(String.valueOf(date.getMonth().getValue()));
         relationVO.setYear(String.valueOf(date.getYear()));
 
         LambdaQueryWrapper<PersonnelSecondmentRequest> wrapper = new LambdaQueryWrapper<>();
@@ -156,7 +164,7 @@ public class PersonnelSecondmentRequestRelationController {
             return vo;
         }).collect(Collectors.toList());
 
-        FileDataStream fileStream = fileService.getFileStream("06f33eed-10c1-4dc4-a541-e8b73c06c0ae");
+        FileDataStream fileStream = fileService.getFileStream("abed7f9f-382c-4daf-a83b-adcf457c7fe5");
         String fileId;
         try {
             MultipartFile docx = WordTemplateProcessor.processTemplate(fileStream.getStream(), relationVO, requestVOList);
