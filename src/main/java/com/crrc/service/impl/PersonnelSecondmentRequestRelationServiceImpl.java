@@ -3,7 +3,12 @@ package com.crrc.service.impl;
 import com.crrc.entity.PersonnelSecondmentRequestRelation;
 import com.crrc.mapper.PersonnelSecondmentRequestRelationMapper;
 import com.crrc.service.PersonnelSecondmentRequestRelationService;
+import com.crrc.utils.DeptUtils;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -16,4 +21,18 @@ import org.springframework.stereotype.Service;
 @Service
 public class PersonnelSecondmentRequestRelationServiceImpl extends WorkServiceImpl<PersonnelSecondmentRequestRelationMapper, PersonnelSecondmentRequestRelation> implements PersonnelSecondmentRequestRelationService {
 
+    @Override
+    public void resolveFields(List<PersonnelSecondmentRequestRelation> records) {
+        Map<String, String> translateMap = records.stream().map(PersonnelSecondmentRequestRelation::getRequestingDepartment).distinct().collect(Collectors.toMap(
+                k -> k,
+                DeptUtils::getDeptNameByCode,
+                (a, b) -> a
+        ));
+
+        records.forEach(item ->
+            item.setRequestingDepartmentValue(
+                translateMap.getOrDefault(item.getRequestingDepartment(), item.getRequestingDepartment())
+            )
+        );
+    }
 }

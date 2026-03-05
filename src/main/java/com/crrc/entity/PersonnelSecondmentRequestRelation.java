@@ -35,6 +35,9 @@ public class PersonnelSecondmentRequestRelation extends BaseEntity{
     @ExcelProperty(value = {"需求单位"})
     @Schema(description = "需求单位")
     private String requestingDepartment;
+
+    @TableField(exist = false)
+    private String requestingDepartmentValue;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"需求项目"})
