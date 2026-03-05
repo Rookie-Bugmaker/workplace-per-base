@@ -42,62 +42,62 @@ public class HrEmpSkillLevel extends BaseEntity implements Serializable {
     private Integer deleted;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"工种"}, index = 0)
+    @ExcelProperty(value = {"工种"})
     @Schema(description = "工种")
     private String jobId;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"技能等级"}, index = 1)
+    @ExcelProperty(value = {"技能等级"})
     @Schema(description = "技能等级")
     private String skillLevel;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"取得方式"}, index = 2)
+    @ExcelProperty(value = {"取得方式"})
     @Schema(description = "取得方式")
     private String getMethod;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"取得时间"}, index = 3)
+    @ExcelProperty(value = {"取得时间"})
     @Schema(description = "取得时间")
     private LocalDate getDate;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"是否最高"}, index = 4)
+    @ExcelProperty(value = {"是否最高"})
     @Schema(description = "是否最高")
     private String isHighest;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"是否聘任"}, index = 5)
+    @ExcelProperty(value = {"是否聘任"})
     @Schema(description = "是否聘任")
     private String isAppointed;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"聘任起始时间"}, index = 6)
+    @ExcelProperty(value = {"聘任起始时间"})
     @Schema(description = "聘任起始时间")
     private LocalDate appointedStartDate;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"聘任结束时间"}, index = 7)
+    @ExcelProperty(value = {"聘任结束时间"})
     @Schema(description = "聘任结束时间")
     private LocalDate appointedEndDate;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"发证机构"}, index = 8)
+    @ExcelProperty(value = {"发证机构"})
     @Schema(description = "发证机构")
     private String grantUnit;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"证书编号"}, index = 9)
+    @ExcelProperty(value = {"证书编号"})
     @Schema(description = "证书编号")
     private String certiId;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"工号"}, index = 11)
+    @ExcelProperty(value = {"工号"})
     @Schema(description = "工号")
     private String userCode;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"是否存在正在被修改的状态"}, index = 12)
+    @ExcelProperty(value = {"是否存在正在被修改的状态"})
     @Schema(description = "是否存在正在被修改的状态，0为否，1为是")
     private String isUpdating;
 }
