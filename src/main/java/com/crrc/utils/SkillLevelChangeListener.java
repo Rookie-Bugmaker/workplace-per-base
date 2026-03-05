@@ -63,6 +63,7 @@ public class SkillLevelChangeListener implements ReadListener<HrEmpSkillLevel> {
             // 找到该用户前一条巨鹿
             HrEmpSkillLevel skillLevel = new HrEmpSkillLevel();
             skillLevel.setJobId(level.getJobId());
+            skillLevel.setUserCode(level.getUserCode());
             String levelTemp = level.getSkillLevel();
             int i = Integer.parseInt(levelTemp);
             i = i + 10;
