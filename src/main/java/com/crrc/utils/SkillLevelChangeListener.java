@@ -59,8 +59,7 @@ public class SkillLevelChangeListener implements ReadListener<HrEmpSkillLevel> {
         }
         ArrayList<HrEmpSkillLevel> skillLevels = new ArrayList<>(buffer);
 
-        skillLevels.forEach(level -> {
-            // 找到该用户前一条巨鹿
+        for (HrEmpSkillLevel level : skillLevels) {// 找到该用户前一条记录
             HrEmpSkillLevel skillLevel = new HrEmpSkillLevel();
             skillLevel.setJobId(level.getJobId());
             skillLevel.setUserCode(level.getUserCode());
@@ -71,11 +70,13 @@ public class SkillLevelChangeListener implements ReadListener<HrEmpSkillLevel> {
 
             skillLevel.setSkillLevel(format);
             List<HrEmpSkillLevel> list = hrEmpSkillLevelService.query(skillLevel);
-            if(list.isEmpty()) {
-                throw new IllegalArgumentException("未找到匹配的数据");
+            if (list.isEmpty()) {
+                errors.add(String.format("未找到匹配的数据: %s, %s, %s", skillLevel.getJobId(), skillLevel.getUserCode(), skillLevel.getSkillLevel()));
+                continue;
             }
-            if(list.size() > 1) {
-                throw new IllegalArgumentException("查询出了重复的数据");
+            if (list.size() > 1) {
+                errors.add(String.format("查询出了重复的数据: %s, %s, %s", skillLevel.getJobId(), skillLevel.getUserCode(), skillLevel.getSkillLevel()));
+                continue;
             }
 
             list.get(0).setIsAppointed("1");
@@ -93,7 +94,7 @@ public class SkillLevelChangeListener implements ReadListener<HrEmpSkillLevel> {
             hrEmpSkillLevelService.updateBatchById(query);
 
             hrEmpSkillLevelService.updateById(list.get(0));
-        });
+        }
 
         buffer.clear();
     }
