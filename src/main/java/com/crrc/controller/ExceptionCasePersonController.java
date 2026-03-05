@@ -50,6 +50,26 @@ public class ExceptionCasePersonController {
     private WebServiceUtil webServiceUtil;
 
 
+    /**
+     * 处理职能标识
+     * @param userType 职能标识编码
+     * @return 转换后的职能标识汉字
+     */
+    private String resolveUserType(String userType) {
+        // todo 如果后面换了逻辑，记得处理这里
+        switch (userType) {
+            case "EXT_SEC":
+                userType = "外派股东";
+                break;
+            case "INT_LOAN":
+                userType = "借用";
+                break;
+            default:
+                userType = "未知类型";
+        }
+        return userType;
+    }
+
     @PostMapping("/queryForKingdie")
     @Operation(summary = "金蝶webservice ,获取额外人员信息表列表")
     @AuditLog(value = "获取额外人员信息表列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
@@ -61,27 +81,13 @@ public class ExceptionCasePersonController {
         xmlBuilder.append("<USERS>\n");
 
         for (ExceptionCasePersonPlusVO person : effectiveList) {
-
-            // 处理职能标识
-            String userType;
-            switch (person.getUserType()) {
-                case "EXT_SEC":
-                    userType = "外部派入";
-                    break;
-                case "INT_LOAN":
-                    userType = "借用";
-                    break;
-                default:
-                    userType = "未知类型";
-            }
-
             xmlBuilder.append("    <USER>\n")
                     .append("        <USER_CODE>").append(person.getUserCode()).append("</USER_CODE>\n")
                     .append("        <NAME>").append(person.getName()).append("</NAME>\n")
                     .append("        <ORG>").append(person.getNewCompanyCode()).append("</ORG>\n")
                     .append("        <DEPT>").append(person.getNewDeptCode()).append("</DEPT>\n")
-                    // EXT_SEC→外部派入，INT_LOAN→借用，其它为未知类型
-                    .append("        <DUTYPE>").append(userType).append("</DUTYPE>\n")  // todo 可能要换成中文的职能标识
+                    // EXT_SEC→外部派入，INT_LOAN→借用，其它为未知类型 todo 如果后面换了逻辑，记得处理这里
+                    .append("        <DUTYPE>").append(resolveUserType(person.getUserType())).append("</DUTYPE>\n")  // todo 可能要换成中文的职能标识
                     .append("    </USER>\n");
         }
 
@@ -110,23 +116,22 @@ public class ExceptionCasePersonController {
 
         // 组装XML报文
         StringBuilder xmlBuilder = new StringBuilder();
-        xmlBuilder.append("<USERS>\n");
+        xmlBuilder.append("<Objects>\n");
 
         for (ExceptionCasePersonPlusVO person : effectiveList) {
-//            // 处理GENDER
-//            String gender = "女".equals(person.getGender()) ? "女士" : "先生";
-
-            xmlBuilder.append("    <USER>\n")
+            xmlBuilder.append("    <item>\n")
                     .append("        <USERID>").append(person.getUserCode()).append("</USERID>\n")
                     .append("        <NAME>").append(person.getName()).append("</NAME>\n")
                     .append("        <COMPANY>").append(person.getNewCompanyCode()).append("</COMPANY>\n")
                     .append("        <DEPARTMENT>").append(person.getNewDeptCode()).append("</DEPARTMENT>\n")
                     .append("        <DEPARTNAME>").append(person.getNewDept()).append("</DEPARTNAME>\n")
-                    .append("        <GENDER>").append("1").append("</GENDER>\n") // todo 目前没有收集性别信息，默认全传
-                    .append("    </USER>\n");
+                    .append("        <GENDER>").append("1").append("</GENDER>\n") // todo 目前没有收集性别信息，默认全传1
+                    // EXT_SEC→外部派入，INT_LOAN→借用，其它为未知类型 todo 如果后面换了逻辑，记得处理这里
+                    .append("        <CLASS>").append(person.getUserType()).append("</CLASS>\n")
+                    .append("    </item>\n");
         }
 
-        xmlBuilder.append("</USERS>");
+        xmlBuilder.append("</Objects>");
 
         // 发送WebService请求
         String messageCode = "013200HRC000004###"; // todo SAP专用消息号，需修改为真实消息号
