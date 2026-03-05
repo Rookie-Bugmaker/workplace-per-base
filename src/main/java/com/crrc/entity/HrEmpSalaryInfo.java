@@ -35,7 +35,7 @@ public class HrEmpSalaryInfo extends BaseEntity {
 
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"工号"})
-    @Schema(description = "工号", example = "")
+    @Schema(description = "工号")
     private String userCode;
     
     @QueryMethod(method = QueryType.EQ)
