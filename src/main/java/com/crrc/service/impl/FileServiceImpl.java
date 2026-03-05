@@ -31,7 +31,7 @@ public class FileServiceImpl {
     public String upload(MultipartFile file) throws Exception {
         String fileId;
         try {
-            fileId = minIoUtils.upload(file);
+            fileId = minIoUtils.saveFile(file);
         } catch (Exception e) {
             throw new Exception(e.getMessage());
         }

@@ -13,7 +13,6 @@ import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.mapper.*;
-import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.ExceptionPersonQueryDTO;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
@@ -192,13 +191,25 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         }
     }
 
+    /**
+     * 根据传入的档案号列表查询用户信息列表
+     * @param userCodeList 包含userCode的员工基本信息列表
+     * @return 用户信息list
+     */
+    public List<HrEmpBasic> getListByUserCode(List<String> userCodeList) {
+        // 构建查询条件
+        MPJLambdaWrapper<HrEmpBasic> queryWrapper = new MPJLambdaWrapper<>();
+        queryWrapper.selectAll(HrEmpBasic.class)
+                .in(HrEmpBasic::getUserCode, userCodeList);
+        return hrEmpBasicMapper.selectList(queryWrapper);
+    }
 
     /**
      * 根据传入的档案号列表查询用户信息列表
      * @param userCodeList 包含userCode的员工基本信息列表
      * @return 用户信息list
      */
-    public List<HrEmpBasic> getListByUserCode(List<HrEmpBasic> userCodeList) {
+    public List<HrEmpBasic> getListByHrEmpBasic(List<HrEmpBasic> userCodeList) {
         // 1. 从参数中提取userCode列表
         List<String> codes = userCodeList.stream()
                 .map(HrEmpBasic::getUserCode)
@@ -598,22 +609,20 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 );
 
         Set<String> positionSet = hrEmpAppointments.values().stream().map(HrEmpAppointment::getPosition).collect(Collectors.toSet());
-        Map<String, String> positionMap;
-        if(!positionSet.isEmpty()) {
+        // 如果positionSet不为空，说明有需要翻译的position，反之没有需要翻译的position。直接不翻译全部
+        if(!positionSet.isEmpty() && positionSet.stream().allMatch(Objects::nonNull)) {
             LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
-            wrapper.in(positionSet.isEmpty(), PositionInfo::getCode, positionSet);
-            positionMap = positionInfoServiceImpl.getBaseMapper().selectList(wrapper).stream().collect(Collectors.toMap(
+            wrapper.in(PositionInfo::getCode, positionSet);
+            Map<String, String> positionMap = positionInfoServiceImpl.getBaseMapper().selectList(wrapper).stream().collect(Collectors.toMap(
                     PositionInfo::getCode,
                     PositionInfo::getName,
                     (a, b) -> a
             ));
-        } else {
-            positionMap = Collections.emptyMap();
-        }
 
-        hrEmpAppointments.values().forEach(
-                item -> item.setPositionValue(positionMap.getOrDefault(item.getPosition(), item.getPosition()))
-        );
+            hrEmpAppointments.values().forEach(
+                    item -> item.setPositionValue(positionMap.getOrDefault(item.getPosition(), item.getPosition()))
+            );
+        }
 
         // 查询个人其他任职信息数据，并收集为userCode -> hrEmpOtherAppointment的格式
         Map<String, HrEmpOtherAppointment> hrEmpOtherAppointments = hrEmpOtherAppointmentMapper.selectLatestByUserCodes(userCodes)

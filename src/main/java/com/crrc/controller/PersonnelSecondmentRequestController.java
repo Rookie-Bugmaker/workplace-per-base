@@ -1,6 +1,7 @@
 package com.crrc.controller;
 
 
+import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
@@ -20,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -51,10 +53,10 @@ public class PersonnelSecondmentRequestController {
     @PostMapping("/page")
     @Operation(summary = "获取借调（借用）人员需求计划申请明细表列表 page")
     @AuditLog(value = "获取借调（借用）人员需求计划申请明细表列表 page", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    @Parameter(name = "pageReqVO",description = "包含查询条件的实体对象", required = false)
-    @Parameter(name = "pageNo", description = "页码", required = false, example = "1")
-    @Parameter(name = "pageSize", description = "条数", required = false, example = "10")
-    public ResponseResult<IPage> pagePersonnelSecondmentRequest(@Validated @RequestBody(required = false) PersonnelSecondmentRequest pageReqVO,
+    @Parameter(name = "pageReqVO",description = "包含查询条件的实体对象")
+    @Parameter(name = "pageNo", description = "页码", example = "1")
+    @Parameter(name = "pageSize", description = "条数", example = "10")
+    public ResponseResult<IPage<PersonnelSecondmentRequest>> pagePersonnelSecondmentRequest(@Validated @RequestBody(required = false) PersonnelSecondmentRequest pageReqVO,
                                              @RequestParam(required = false, defaultValue = "1") int pageNo,
                                              @RequestParam(required = false, defaultValue = "10")int pageSize) {
         pageReqVO = (pageReqVO == null) ? new PersonnelSecondmentRequest() : pageReqVO;
@@ -66,7 +68,7 @@ public class PersonnelSecondmentRequestController {
     @PostMapping("/query")
     @Operation(summary = "获取借调（借用）人员需求计划申请明细表列表")
     @AuditLog(value = "获取借调（借用）人员需求计划申请明细表列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象", required = false)
+    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
     public ResponseResult<List<PersonnelSecondmentRequest>> queryPersonnelSecondmentRequest(@Validated @RequestBody(required = false) PersonnelSecondmentRequest queryReqVO) {
         queryReqVO = (queryReqVO == null) ? new PersonnelSecondmentRequest() : queryReqVO;
         return new ResponseResult<>(HttpStatus.OK.value(), "获取借调（借用）人员需求计划申请明细表列表成功", personnelSecondmentRequestService.query(queryReqVO));
@@ -81,18 +83,27 @@ public class PersonnelSecondmentRequestController {
     }
 
     @Transactional
-    @PostMapping("/save")
+    @PostMapping("/save/{relationId}")
     @Operation(summary = "保存借调（借用）人员需求计划申请明细表实体")
     @AuditLog(value = "借调（借用）人员需求计划申请明细表实体保存", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
     @Parameter(name = "reqVO", description = "实体对象", required = true)
-    public ResponseResult<Boolean> savePersonnelSecondmentRequest(@Valid @RequestBody PersonnelSecondmentRequest reqVO) {
-    
-        boolean result = personnelSecondmentRequestService.saveOrUpdate(reqVO);
-    
+    public ResponseResult<Boolean> savePersonnelSecondmentRequest(@Valid @RequestBody List<PersonnelSecondmentRequest> reqVOList, @PathVariable String relationId) {
+
+        reqVOList.forEach(
+                item -> {
+                    if(!StringUtils.hasText(item.getId())) {
+                        item.setId(IdUtil.randomUUID());
+                        item.setRelationId(relationId);
+                    }
+                }
+        );
+
+        boolean result = personnelSecondmentRequestService.saveDetails(relationId, reqVOList);
+
         return new ResponseResult<>(HttpStatus.OK.value(), "保存借调（借用）人员需求计划申请明细表实体成功", result);
     }
 
-//    @Transactional
+    //    @Transactional
 //    @PostMapping("/saveByUserCode")
 //    @Operation(summary = "根据档案号保存借调（借用）人员需求计划申请明细表实体")
 //    @AuditLog(value = "借调（借用）人员需求计划申请明细表实体保存", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)

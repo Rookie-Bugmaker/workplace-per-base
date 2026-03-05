@@ -17,7 +17,6 @@ import com.crrc.entity.*;
 import com.crrc.entity.dto.ProcessInstanceVo;
 import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.StartProcessInstanceDTO;
-import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.entity.dto.response.ResultData;
 import com.crrc.enums.LogType;
@@ -39,7 +38,6 @@ import com.xxl.job.core.handler.annotation.XxlJob;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import kotlin.jvm.internal.Lambda;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -363,7 +361,7 @@ public class HrEmpBasicController {
         try {
             // 如果传参了且非空，就用传参，否则全量更新
             List<HrEmpBasic> list = (userCodeList != null && !userCodeList.isEmpty())
-                    ? hrEmpBasicService.getListByUserCode(userCodeList)
+                    ? hrEmpBasicService.getListByHrEmpBasic(userCodeList)
                     : hrEmpBasicService.getAllUser();
 
             // Map<String, String> position2ValueMap = codeInfoService.getTranslateMap("hr_emp_appointment", "APPOINTMENT_POSITION");
@@ -414,7 +412,7 @@ public class HrEmpBasicController {
         try {
             // 如果传参了且非空，就用传参，否则全量更新
             List<HrEmpBasic> list = (userCodeList != null && !userCodeList.isEmpty())
-                    ? hrEmpBasicService.getListByUserCode(userCodeList)
+                    ? hrEmpBasicService.getListByHrEmpBasic(userCodeList)
                     : hrEmpBasicService.getAllUser();
 
             for(HrEmpBasic hrEmpBasic : list){
@@ -778,6 +776,15 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
     }
 
+    @PostMapping("/getList")
+    @Operation(summary = "获得员工基本信息表实体")
+    @AuditLog(value = "获得员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "id", description = "主键编号", required = true, example = "1")
+    public ResponseResult<List<HrEmpBasic>> getList(@RequestBody List<String> userCodeList) {
+        List<HrEmpBasic> hrEmpBasicDTOS = hrEmpBasicService.getListByUserCode(userCodeList);
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工基本信息表实体成功", hrEmpBasicDTOS);
+    }
+
     @GetMapping("/getDetails")
     @Operation(summary = "获得员工基本信息表实体")
     @AuditLog(value = "获得员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
@@ -828,6 +835,7 @@ public class HrEmpBasicController {
                                                                           @RequestParam(required = false, defaultValue = "10") int pageSize) {
         searchDTO = (searchDTO == null) ? new HrEmpBasicSearchDTO() : searchDTO;
         try {
+            pageNo = 1;
             Page<HrEmpBasicDTO> page = new Page<>(pageNo, pageSize);
             // 在service层实现模糊查询逻辑
             // 如果全是数字，说明是档案号
@@ -836,6 +844,11 @@ public class HrEmpBasicController {
                 searchDTO.setUserCode(searchDTO.getName());
                 searchDTO.setName(null);
             }
+
+            if(StringUtils.isBlank(searchDTO.getName())) {
+                searchDTO.setName(null);
+            }
+
             IPage<HrEmpBasicDTO> result = hrEmpBasicService.listData(page, searchDTO);
 
             List<HrEmpBasicDTO> basicList = result.getRecords();

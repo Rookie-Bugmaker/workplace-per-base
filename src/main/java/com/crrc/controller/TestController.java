@@ -42,7 +42,7 @@ public class TestController {
 
         // 1. 获取待检查数据（传参优先，否则全量）
         List<HrEmpBasic> list = (userCodeList != null && !userCodeList.isEmpty())
-                ? hrEmpBasicService.getListByUserCode(userCodeList)
+                ? hrEmpBasicService.getListByHrEmpBasic(userCodeList)
                 : hrEmpBasicService.getAllUser();
 
         // 2. 检查并记录非法日期
