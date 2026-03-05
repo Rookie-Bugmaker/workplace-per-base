@@ -59,12 +59,16 @@ public class SkillLevelChangeListener implements ReadListener<HrEmpSkillLevel> {
         }
         ArrayList<HrEmpSkillLevel> skillLevels = new ArrayList<>(buffer);
 
-        for (HrEmpSkillLevel level : skillLevels) {// 找到该用户前一条记录
+        for (HrEmpSkillLevel level : skillLevels) {
+            // 临时处理
             List<HrEmpSkillLevel> query1 = hrEmpSkillLevelService.query(level);
-            query1.get(0).setIsHighest("0");
-            query1.get(0).setIsAppointed("0");
-            hrEmpSkillLevelService.updateById(query1.get(0));
+            if(!query1.isEmpty()) {
+                query1.get(0).setIsHighest("0");
+                query1.get(0).setIsAppointed("0");
+                hrEmpSkillLevelService.updateById(query1.get(0));
+            }
 
+            // 找到该用户前一条记录
             HrEmpSkillLevel skillLevel = new HrEmpSkillLevel();
             skillLevel.setJobId(level.getJobId());
             skillLevel.setUserCode(level.getUserCode());
