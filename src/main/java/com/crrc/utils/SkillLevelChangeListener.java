@@ -60,8 +60,16 @@ public class SkillLevelChangeListener implements ReadListener<HrEmpSkillLevel> {
         ArrayList<HrEmpSkillLevel> skillLevels = new ArrayList<>(buffer);
 
         skillLevels.forEach(level -> {
-            // 找到这条记录
-            List<HrEmpSkillLevel> list = hrEmpSkillLevelService.query(level);
+            // 找到该用户前一条巨鹿
+            HrEmpSkillLevel skillLevel = new HrEmpSkillLevel();
+            skillLevel.setJobId(level.getJobId());
+            String levelTemp = level.getSkillLevel();
+            int i = Integer.parseInt(levelTemp);
+            i = i + 10;
+            String format = String.format("%05d", i);
+
+            skillLevel.setSkillLevel(format);
+            List<HrEmpSkillLevel> list = hrEmpSkillLevelService.query(skillLevel);
             if(list.isEmpty()) {
                 throw new IllegalArgumentException("未找到匹配的数据");
             }
@@ -76,13 +84,12 @@ public class SkillLevelChangeListener implements ReadListener<HrEmpSkillLevel> {
             HrEmpSkillLevel hrEmpSkillLevel = new HrEmpSkillLevel();
             hrEmpSkillLevel.setUserCode(level.getUserCode());
             List<HrEmpSkillLevel> query = hrEmpSkillLevelService.query(hrEmpSkillLevel);
-            List<HrEmpSkillLevel> collect = query.stream().filter(item -> "1".equals(item.getIsAppointed()) || "是".equals(item.getIsAppointed())).collect(Collectors.toList());
-            collect.forEach(item -> {
+            query.forEach(item -> {
                 item.setIsAppointed("0");
                 item.setIsHighest("0");
             });
 
-            hrEmpSkillLevelService.updateBatchById(collect);
+            hrEmpSkillLevelService.updateBatchById(query);
 
             hrEmpSkillLevelService.updateById(list.get(0));
         });
