@@ -6,6 +6,7 @@ import com.crrc.entity.PersonnelSecondmentRequestRelation;
 import com.crrc.entity.dto.SysUserDTO;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -45,4 +46,11 @@ public interface PersonnelSecondmentRequestRelationService extends IService<Pers
      * @return 是否提交成功
      */
     ResponseResult<Boolean> submit(String id);
+
+    /**
+     * 生成需求计划表
+     * @param id 主键
+     * @return 生成后的fileId
+     */
+    String generateRequestWord(@RequestParam String id) throws Exception;
 }

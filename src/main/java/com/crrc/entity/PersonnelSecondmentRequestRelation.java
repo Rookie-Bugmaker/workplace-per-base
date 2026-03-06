@@ -4,7 +4,6 @@ import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
 import com.baomidou.mybatisplus.annotation.*;
 import com.crrc.annotation.QueryMethod;
-import com.crrc.annotation.WordTemplateRequire;
 import com.crrc.enums.QueryType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -68,4 +67,9 @@ public class PersonnelSecondmentRequestRelation extends BaseEntity{
     @ExcelProperty(value = {"审批状态"})
     @Schema(description = "审批状态")
     private String orderStatus;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"文件id"})
+    @Schema(description = "文件id")
+    private String fileId;
 }
