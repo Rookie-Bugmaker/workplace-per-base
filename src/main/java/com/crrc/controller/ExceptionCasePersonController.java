@@ -87,14 +87,14 @@ public class ExceptionCasePersonController {
                     .append("        <ORG>").append(person.getNewCompanyCode()).append("</ORG>\n")
                     .append("        <DEPT>").append(person.getNewDeptCode()).append("</DEPT>\n")
                     // EXT_SEC→外部派入，INT_LOAN→借用，其它为未知类型 todo 如果后面换了逻辑，记得处理这里
-                    .append("        <DUTYPE>").append(resolveUserType(person.getUserType())).append("</DUTYPE>\n")  // todo 可能要换成中文的职能标识
+                    .append("        <DUTYPE>").append(resolveUserType(person.getUserType())).append("</DUTYPE>\n")
                     .append("    </USER>\n");
         }
 
         xmlBuilder.append("</USERS>");
 
         // 发送WebService请求
-        String messageCode = "013200HRC000003###"; // todo 需要修改为真实消息号
+        String messageCode = "013200MDP000039";
         String xmlMsg = webServiceUtil.sendByWebService(xmlBuilder.toString(), messageCode);
 
         // 处理返回结果
@@ -134,7 +134,7 @@ public class ExceptionCasePersonController {
         xmlBuilder.append("</Objects>");
 
         // 发送WebService请求
-        String messageCode = "013200HRC000004###"; // todo SAP专用消息号，需修改为真实消息号
+        String messageCode = "013200HRC000005";
         String xmlMsg = webServiceUtil.sendByWebService(xmlBuilder.toString(), messageCode);
 
         // 处理返回结果
