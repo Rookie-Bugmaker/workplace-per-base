@@ -31,11 +31,13 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -61,14 +63,16 @@ public class PersonnelSecondmentRequestRelationServiceImpl extends WorkServiceIm
     @Autowired
     private HrEmpBasicMapper hrEmpBasicMapper;
     @Autowired
-    private PersonnelSecondmentRequestMapper personnelSecondmentRequestMapper;
-    @Autowired
-    private FileServiceImpl fileService;
+    TemplateGenerateServiceImpl templateGenerateService;
 
-    @Value("${crrc.file.template.borrow.id}")
-    private String templateFileId;
-    @Value("${crrc.role.borrow.leader.id}")
+    @Value("${crrc.role.leader.borrow.id}")
     private long borrowLeaderRoleId;
+    @Value("${crrc.role.hr.admin.quota.id}")
+    private long quotaApprovalRoleId;
+    @Value("${crrc.role.hr.admin.dispatch.id}")
+    private long dispatchApprovalRoleId;
+    @Value("${crrc.role.hr.deputy.minister.id}")
+    private long deputyMinisterRoleId;
 
     @Override
     public void resolveFields(List<PersonnelSecondmentRequestRelation> records) {
@@ -187,60 +191,41 @@ public class PersonnelSecondmentRequestRelationServiceImpl extends WorkServiceIm
         // 更新审批状态
         relation.setOrderStatus(AuditConstants.STATUS_AUDIT);
 
-        // 生成协议书
-        try {
-            String fileId = generateRequestWord(id);
-            relation.setFileId(fileId);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("需求计划申请表生成出现错误");
-        }
-
         saveOrUpdate(relation);
+
+        // 生成表单
+        templateGenerateService.generateRequestWordAndUpdate(id);
         log.info("流程测试success");
         return new ResponseResult<>(HttpStatus.OK.value(), "审批流发起成功", true);
     }
 
-    public String generateRequestWord(@RequestParam String id) throws Exception {
-        PersonnelSecondmentRequestRelation relation = getById(id);
 
-        // 翻译部门
-        resolveFields(Collections.singletonList(relation));
 
-        PersonnelSecondmentRequestRelationTemplateVO relationVO = new PersonnelSecondmentRequestRelationTemplateVO();
-        BeanUtils.copyProperties(relation, relationVO);
-        // 需要单独把relation的翻译结果copy到relationVO中
-        relationVO.setRequestingDepartment(relation.getRequestingDepartmentValue());
+    @Override
+    public ResponseResult<PaginationGrid<SysUserDTO>> findHrAuditApproval() {
+        // 定额管理人员与调配管理人员会签
+        List<SysUserDTO> quotaApproval = wkCoreAPi.getRoleUserListByRoleId(quotaApprovalRoleId);
+        List<SysUserDTO> dispatchApproval = wkCoreAPi.getRoleUserListByRoleId(dispatchApprovalRoleId);
 
-        LocalDate date = LocalDate.now();
+        quotaApproval.addAll(dispatchApproval);
 
-        relationVO.setDay(String.valueOf(date.getDayOfMonth()));
-        relationVO.setMonth(String.valueOf(date.getMonth().getValue()));
-        relationVO.setYear(String.valueOf(date.getYear()));
+        PaginationGrid<SysUserDTO> result = new PaginationGrid<>();
 
-        LambdaQueryWrapper<PersonnelSecondmentRequest> wrapper = new LambdaQueryWrapper<>();
-        List<PersonnelSecondmentRequest> requestList = personnelSecondmentRequestMapper.selectList(wrapper);
-        final int[] index = {1};
-        List<PersonnelSecondmentRequestTemplateVO> requestVOList = requestList.stream().map(request -> {
-            PersonnelSecondmentRequestTemplateVO vo = new PersonnelSecondmentRequestTemplateVO();
-            BeanUtils.copyProperties(request, vo);
+        result.setRows(quotaApproval);
+        result.setTotal((long) quotaApproval.size());
 
-            DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy年MM月dd日");
-            vo.setStartEndDate(String.format("%s至%s", request.getStartDate().format(dateTimeFormatter), request.getEndDate().format(dateTimeFormatter)));
-            vo.setIndex(index[0]);
-            index[0] = index[0] + 1;
-            return vo;
-        }).collect(Collectors.toList());
+        return ResponseResult.success(result);
+    }
 
-        FileDataStream fileStream = fileService.getFileStream(templateFileId);
-        String fileId;
-        try {
-            MultipartFile docx = WordTemplateProcessor.processTemplate(fileStream.getStream(), relationVO, requestVOList);
-            fileId = fileService.upload(docx);
-        } catch (Exception e) {
-            log.error("模板生成出现错误", e);
-            throw e;
-        }
+    @Override
+    public ResponseResult<PaginationGrid<SysUserDTO>> findHrDeputyMinisterApproval() {
+        List<SysUserDTO> rows = wkCoreAPi.getRoleUserListByRoleId(deputyMinisterRoleId);
 
-        return fileId;
+        PaginationGrid<SysUserDTO> result = new PaginationGrid<>();
+
+        result.setRows(rows);
+        result.setTotal((long) rows.size());
+
+        return ResponseResult.success(result);
     }
 }

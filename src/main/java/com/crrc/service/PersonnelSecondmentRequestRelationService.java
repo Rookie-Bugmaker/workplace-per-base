@@ -8,6 +8,7 @@ import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -48,9 +49,14 @@ public interface PersonnelSecondmentRequestRelationService extends IService<Pers
     ResponseResult<Boolean> submit(String id);
 
     /**
-     * 生成需求计划表
-     * @param id 主键
-     * @return 生成后的fileId
+     * 定额管理人员与调配管理人员进行审核
+     * @return 用人领导
      */
-    String generateRequestWord(@RequestParam String id) throws Exception;
+    ResponseResult<PaginationGrid<SysUserDTO>> findHrAuditApproval();
+
+    /**
+     * 人力资源副部长审核
+     * @return 副部长
+     */
+    ResponseResult<PaginationGrid<SysUserDTO>> findHrDeputyMinisterApproval();
 }
