@@ -9,14 +9,18 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.api.WkCoreAPi;
+import com.crrc.common.PaginationGrid;
 import com.crrc.entity.PersonnelSecondmentRequest;
 import com.crrc.entity.PersonnelSecondmentRequestRelation;
+import com.crrc.entity.dto.SysUserDTO;
 import com.crrc.pojo.dto.PersonnelSecondmentRequestRelationDetailDTO;
 import com.crrc.entity.filedata.vo.FileDataStream;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.pojo.vo.PersonnelSecondmentRequestRelationTemplateVO;
 import com.crrc.pojo.vo.PersonnelSecondmentRequestTemplateVO;
 import com.crrc.service.impl.FileServiceImpl;
@@ -26,6 +30,7 @@ import com.crrc.utils.WordTemplateProcessor;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import oracle.jdbc.proxy.annotation.Post;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
@@ -68,6 +73,32 @@ public class PersonnelSecondmentRequestRelationController {
     @Autowired
     private PersonnelSecondmentRequestServiceImpl personnelSecondmentRequestService;
 
+    @GetMapping("/findBorrowLeaderApproval")
+    public ResponseResult<PaginationGrid<SysUserDTO>> findBorrowLeaderApproval(
+            Integer page, Integer pageSize,
+            @RequestParam("id") String id
+    ) {
+        return personnelSecondmentRequestRelationService.findBorrowLeaderApproval(id);
+    }
+
+    @PostMapping("/submit")
+    public ResponseResult<Boolean> submitRequestRelation(@RequestParam("id") String id) {
+        try {
+            return personnelSecondmentRequestRelationService.submit(id);
+        } catch (Exception e) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
+    }
+
+    /**
+     * 人事令工作流回调接口
+     */
+    @Transactional
+    @PutMapping("/write-back")
+    public ResponseResult<Boolean> writeBack(@RequestBody WorkflowWriteBackParamDTO param) {
+        return personnelSecondmentRequestRelationService.writeBack(param);
+    }
+
     @PostMapping("/page")
     @Operation(summary = "获取借调（借用）人员需求计划申请表表头列表 page")
     @AuditLog(value = "获取借调（借用）人员需求计划申请表表头列表 page", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
@@ -81,7 +112,7 @@ public class PersonnelSecondmentRequestRelationController {
         Page<PersonnelSecondmentRequestRelation> page = new Page<>(pageNo, pageSize);
         personnelSecondmentRequestRelationService.query(page, pageReqVO);
         personnelSecondmentRequestRelationService.resolveFields(page.getRecords());
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取借调（借用）人员需求计划申请表表头列表 page成功", page);
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取借调（借用）人员需求计划申请表列表 page成功", page);
     }
 
     @PostMapping("/query")
@@ -90,7 +121,7 @@ public class PersonnelSecondmentRequestRelationController {
     @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
     public ResponseResult<List<PersonnelSecondmentRequestRelation>> queryPersonnelSecondmentRequestRelation(@Validated @RequestBody(required = false) PersonnelSecondmentRequestRelation queryReqVO) {
         queryReqVO = (queryReqVO == null) ? new PersonnelSecondmentRequestRelation() : queryReqVO;
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取借调（借用）人员需求计划申请表表头列表成功", personnelSecondmentRequestRelationService.query(queryReqVO));
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取借调（借用）人员需求计划申请表列表成功", personnelSecondmentRequestRelationService.query(queryReqVO));
 	}
 
     @GetMapping("/get")
@@ -104,7 +135,7 @@ public class PersonnelSecondmentRequestRelationController {
         PersonnelSecondmentRequestRelationDetailDTO detailDTO = new PersonnelSecondmentRequestRelationDetailDTO();
         detailDTO.setRelation(relation);
         detailDTO.setRequestList(requestList);
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取借调（借用）人员需求计划申请表表头实体成功", detailDTO);
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取借调（借用）人员需求计划申请表成功", detailDTO);
     }
 
     @Transactional
@@ -120,7 +151,34 @@ public class PersonnelSecondmentRequestRelationController {
 
         boolean result = personnelSecondmentRequestRelationService.saveOrUpdate(reqVO);
     
-        return new ResponseResult<>(HttpStatus.OK.value(), "保存借调（借用）人员需求计划申请表表头实体成功", result);
+        return new ResponseResult<>(HttpStatus.OK.value(), "保存借调（借用）人员需求计划申请表成功", result);
+    }
+
+    @Transactional
+    @PostMapping("/saveDetail")
+    @Operation(summary = "保存借调（借用）人员需求计划申请明细表实体")
+    @AuditLog(value = "借调（借用）人员需求计划申请明细表实体保存", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
+    @Parameter(name = "reqVO", description = "实体对象", required = true)
+    public ResponseResult<Boolean> savePersonnelSecondmentRequest(@Valid @RequestBody PersonnelSecondmentRequestRelationDetailDTO requestDTO, @PathVariable String relationId) {
+
+        PersonnelSecondmentRequestRelation relation = requestDTO.getRelation();
+
+        personnelSecondmentRequestRelationService.updateById(relation);
+
+        List<PersonnelSecondmentRequest> reqVOList = requestDTO.getRequestList();
+
+        reqVOList.forEach(
+                item -> {
+                    if(!StringUtils.hasText(item.getId())) {
+                        item.setId(IdUtil.randomUUID());
+                        item.setRelationId(relationId);
+                    }
+                }
+        );
+
+        boolean result = personnelSecondmentRequestService.saveDetails(relationId, reqVOList);
+
+        return new ResponseResult<>(HttpStatus.OK.value(), "保存借调（借用）人员需求计划申请明细表实体成功", result);
     }
 
     @Transactional
@@ -128,8 +186,8 @@ public class PersonnelSecondmentRequestRelationController {
     @Operation(summary = "删除借调（借用）人员需求计划申请表表头实体")
     @AuditLog(value = "删除借调（借用）人员需求计划申请表表头实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_DELETE)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
-    public ResponseResult<Boolean> deletePersonnelSecondmentRequestRelation(@RequestParam("id") Long id) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "删除借调（借用）人员需求计划申请表表头实体成功", personnelSecondmentRequestRelationService.removeById(id));
+    public ResponseResult<Boolean> deletePersonnelSecondmentRequestRelation(@RequestParam("id") String id) {
+        return new ResponseResult<>(HttpStatus.OK.value(), "删除借调（借用）人员需求计划申请表成功", personnelSecondmentRequestRelationService.removeById(id));
     }
 
     @PostMapping("/generateRequestWord")
