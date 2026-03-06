@@ -1,7 +1,11 @@
 package com.crrc.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.crrc.common.PaginationGrid;
 import com.crrc.entity.PersonnelSecondmentRequestRelation;
+import com.crrc.entity.dto.SysUserDTO;
+import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 
 import java.util.List;
 
@@ -20,4 +24,25 @@ public interface PersonnelSecondmentRequestRelationService extends IService<Pers
      * @param records 需要翻译的记录
      */
      void resolveFields(List<PersonnelSecondmentRequestRelation> records);
- }
+
+    /**
+     * 查询需求单位用人领导
+     * @param id 需要查询的审批计划id
+     * @return 用人领导
+     */
+    ResponseResult<PaginationGrid<SysUserDTO>> findBorrowLeaderApproval(String id);
+
+    /**
+     * 审批流回写
+     * @param param 审批流回写参数
+     * @return 审批结果
+     */
+    ResponseResult<Boolean> writeBack(WorkflowWriteBackParamDTO param);
+
+    /**
+     * 提交审批
+     * @param id 需要提交审批的审批计划id
+     * @return 是否提交成功
+     */
+    ResponseResult<Boolean> submit(String id);
+}

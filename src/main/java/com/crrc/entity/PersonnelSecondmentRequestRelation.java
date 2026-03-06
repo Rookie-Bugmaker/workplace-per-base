@@ -53,4 +53,19 @@ public class PersonnelSecondmentRequestRelation extends BaseEntity{
     @ExcelProperty(value = {"工作地点"})
     @Schema(description = "工作地点")
     private String workLocation;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"流程模板id"})
+    @Schema(description = "流程模板id")
+    private String wfId;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"流程实例id"})
+    @Schema(description = "流程实例id")
+    private String processInstanceId;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"审批状态"})
+    @Schema(description = "审批状态")
+    private String orderStatus;
 }

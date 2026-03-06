@@ -82,27 +82,6 @@ public class PersonnelSecondmentRequestController {
         return new ResponseResult<>(HttpStatus.OK.value(), "获取借调（借用）人员需求计划申请明细表实体成功", personnelSecondmentRequestService.getById(id));
     }
 
-    @Transactional
-    @PostMapping("/save/{relationId}")
-    @Operation(summary = "保存借调（借用）人员需求计划申请明细表实体")
-    @AuditLog(value = "借调（借用）人员需求计划申请明细表实体保存", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
-    @Parameter(name = "reqVO", description = "实体对象", required = true)
-    public ResponseResult<Boolean> savePersonnelSecondmentRequest(@Valid @RequestBody List<PersonnelSecondmentRequest> reqVOList, @PathVariable String relationId) {
-
-        reqVOList.forEach(
-                item -> {
-                    if(!StringUtils.hasText(item.getId())) {
-                        item.setId(IdUtil.randomUUID());
-                        item.setRelationId(relationId);
-                    }
-                }
-        );
-
-        boolean result = personnelSecondmentRequestService.saveDetails(relationId, reqVOList);
-
-        return new ResponseResult<>(HttpStatus.OK.value(), "保存借调（借用）人员需求计划申请明细表实体成功", result);
-    }
-
     //    @Transactional
 //    @PostMapping("/saveByUserCode")
 //    @Operation(summary = "根据档案号保存借调（借用）人员需求计划申请明细表实体")
