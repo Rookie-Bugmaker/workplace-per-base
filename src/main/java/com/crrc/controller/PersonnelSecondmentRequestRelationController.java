@@ -91,6 +91,12 @@ public class PersonnelSecondmentRequestRelationController {
         return personnelSecondmentRequestRelationService.findHrDeputyMinisterApproval();
     }
 
+    @TenantIgnore
+    @PostMapping("/sendToSourceDept/{id}")
+    public ResponseResult<Boolean> sendToSourceDept(@PathVariable("id") String id, @RequestBody List<String> deptList) {
+        return ResponseResult.success(personnelSecondmentRequestRelationService.sendToSourceDept(id, deptList));
+    }
+
     @PostMapping("/submit")
     public ResponseResult<Boolean> submitRequestRelation(@RequestParam("id") String id) {
         try {

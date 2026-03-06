@@ -1,14 +1,13 @@
 package com.crrc.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.crrc.common.PaginationGrid;
 import com.crrc.entity.PersonnelSecondmentRequestRelation;
 import com.crrc.entity.dto.SysUserDTO;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
-import org.springframework.web.bind.annotation.RequestParam;
 
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -59,4 +58,19 @@ public interface PersonnelSecondmentRequestRelationService extends IService<Pers
      * @return 副部长
      */
     ResponseResult<PaginationGrid<SysUserDTO>> findHrDeputyMinisterApproval();
+
+    /**
+     * 推送到目标部门
+     * @param id 需要推送的申请表
+     * @param deptList 目标部门列表
+     * @return 是否成功
+     */
+    Boolean sendToSourceDept(String id, List<String> deptList);
+
+    /**
+     * 根据目标部门进行分页查询
+     * @param page 分页信息
+     * @param pageReqVO 查询条件
+     */
+    void pageBySourceDept(Page<PersonnelSecondmentRequestRelation> page, PersonnelSecondmentRequestRelation pageReqVO);
 }
