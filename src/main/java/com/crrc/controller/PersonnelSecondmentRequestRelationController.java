@@ -8,6 +8,8 @@ import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.annotation.TenantIgnore;
+import com.crrc.annotation.TenantScope;
 import com.crrc.common.PaginationGrid;
 import com.crrc.constants.AuditConstants;
 import com.crrc.entity.PersonnelSecondmentRequest;
@@ -54,6 +56,7 @@ import java.util.List;
 @RequestMapping("/personnelSecondmentRequestRelation")
 @RefreshScope
 @Tag(name = "借调（借用）人员需求计划申请表表头", description = "借调（借用）人员需求计划申请表表头")
+@TenantScope(filterRoleCode = {"DISPATCH_ADMIN", "QUOTA_ADMIN", "hrsc_deputy_minister"}, tenantLevel = TenantScope.TenantLevel.DEPT)
 public class PersonnelSecondmentRequestRelationController {
 
     @Autowired
@@ -63,12 +66,29 @@ public class PersonnelSecondmentRequestRelationController {
     @Autowired
     private PersonnelSecondmentRequestServiceImpl personnelSecondmentRequestService;
 
+    @TenantIgnore
     @GetMapping("/findBorrowLeaderApproval")
     public ResponseResult<PaginationGrid<SysUserDTO>> findBorrowLeaderApproval(
             Integer page, Integer pageSize,
             @RequestParam("id") String id
     ) {
         return personnelSecondmentRequestRelationService.findBorrowLeaderApproval(id);
+    }
+
+    @TenantIgnore
+    @GetMapping("/findHrAuditApproval")
+    public ResponseResult<PaginationGrid<SysUserDTO>> findHrAuditApproval(
+            Integer page, Integer pageSize
+    ) {
+        return personnelSecondmentRequestRelationService.findHrAuditApproval();
+    }
+
+    @TenantIgnore
+    @GetMapping("/findHrDeputyMinisterApproval")
+    public ResponseResult<PaginationGrid<SysUserDTO>> findHrDeputyMinisterApproval(
+            Integer page, Integer pageSize
+    ) {
+        return personnelSecondmentRequestRelationService.findHrDeputyMinisterApproval();
     }
 
     @PostMapping("/submit")
@@ -83,6 +103,7 @@ public class PersonnelSecondmentRequestRelationController {
     /**
      * 人事令工作流回调接口
      */
+    @TenantIgnore
     @Transactional
     @PutMapping("/write-back")
     public ResponseResult<Boolean> writeBack(@RequestBody WorkflowWriteBackParamDTO param) {
@@ -129,23 +150,6 @@ public class PersonnelSecondmentRequestRelationController {
     }
 
     @Transactional
-    @PostMapping("/save")
-    @Operation(summary = "保存借调（借用）人员需求计划申请表表头实体")
-    @AuditLog(value = "借调（借用）人员需求计划申请表表头实体保存", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
-    @Parameter(name = "reqVO", description = "实体对象", required = true)
-    public ResponseResult<Boolean> savePersonnelSecondmentRequestRelation(@Valid @RequestBody PersonnelSecondmentRequestRelation reqVO) {
-
-        if(!StringUtils.hasText(reqVO.getId())) {
-            reqVO.setId(IdUtil.randomUUID());
-            reqVO.setOrderStatus(AuditConstants.STATUS_DRAFT);
-        }
-
-        boolean result = personnelSecondmentRequestRelationService.saveOrUpdate(reqVO);
-    
-        return new ResponseResult<>(HttpStatus.OK.value(), "保存借调（借用）人员需求计划申请表成功", result);
-    }
-
-    @Transactional
     @PostMapping("/saveDetail")
     @Operation(summary = "保存借调（借用）人员需求计划申请明细表实体")
     @AuditLog(value = "借调（借用）人员需求计划申请明细表实体保存", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
@@ -154,7 +158,12 @@ public class PersonnelSecondmentRequestRelationController {
 
         PersonnelSecondmentRequestRelation relation = requestDTO.getRelation();
 
-        personnelSecondmentRequestRelationService.updateById(relation);
+        if(!StringUtils.hasText(relation.getId())) {
+            relation.setId(IdUtil.randomUUID());
+            relation.setOrderStatus(AuditConstants.STATUS_DRAFT);
+        }
+
+        personnelSecondmentRequestRelationService.saveOrUpdate(relation);
 
         List<PersonnelSecondmentRequest> reqVOList = requestDTO.getRequestList();
 
@@ -172,6 +181,7 @@ public class PersonnelSecondmentRequestRelationController {
         return new ResponseResult<>(HttpStatus.OK.value(), "保存借调（借用）人员需求计划申请明细表实体成功", result);
     }
 
+
     @Transactional
     @GetMapping("/delete")
     @Operation(summary = "删除借调（借用）人员需求计划申请表表头实体")
@@ -180,44 +190,4 @@ public class PersonnelSecondmentRequestRelationController {
     public ResponseResult<Boolean> deletePersonnelSecondmentRequestRelation(@RequestParam("id") String id) {
         return new ResponseResult<>(HttpStatus.OK.value(), "删除借调（借用）人员需求计划申请表成功", personnelSecondmentRequestRelationService.removeById(id));
     }
-    
-    @PostMapping("/export")
-    @AuditLog(value = "导出借调（借用）人员需求计划申请表表头报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
-    @Operation(summary = "导出借调（借用）人员需求计划申请表表头报表")
-    public void exportPersonnelSecondmentRequestRelation(@Validated @RequestBody(required = false) PersonnelSecondmentRequestRelation exportReqVO,
-                              @RequestParam(required = false, defaultValue = "xlsx") String type,
-                           HttpServletResponse response) throws IOException {
-        String contentType = "csv".equals(type) ?  "text/csv;charset=UTF-8" :
-                ("xls".equals(type) ? "application/vnd.ms-excel" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        response.setContentType(contentType);
-        response.setCharacterEncoding("utf-8");
-        // 这里URLEncoder.encode可以防止中文乱码
-        String fileName = URLEncoder.encode("借调（借用）人员需求计划申请表表头报表-" + new SimpleDateFormat("yyyyMMddhhmmss")
-                        .format(System.currentTimeMillis()), "UTF-8")
-                .replaceAll("\\+", "%20");
-        response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." +type);
-
-        exportReqVO = (exportReqVO == null) ? new PersonnelSecondmentRequestRelation() : exportReqVO;
-        List<PersonnelSecondmentRequestRelation> personnelSecondmentRequestRelationList = personnelSecondmentRequestRelationService.query(exportReqVO);
-        ExcelTypeEnum typeEnum = "csv".equals(type) ?  ExcelTypeEnum.CSV : ("xls".equals(type) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
-        EasyExcel.write(response.getOutputStream(), PersonnelSecondmentRequestRelation.class)
-                .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
-                .autoCloseStream(true)
-                .excelType(typeEnum)
-                .sheet("借调（借用）人员需求计划申请表表头报表")
-                .doWrite(personnelSecondmentRequestRelationList);
-    }
-
-    @PostMapping("/import")
-    @AuditLog(value = "导入借调（借用）人员需求计划申请表表头报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
-    @Operation(summary = "导入借调（借用）人员需求计划申请表表头报表")
-    public ResponseResult<Boolean> imports(MultipartFile file) throws IOException {
-        EasyExcel.read(file.getInputStream(), PersonnelSecondmentRequestRelation.class,
-                new ImportExcelListener<PersonnelSecondmentRequestRelation, PersonnelSecondmentRequestRelationServiceImpl>(personnelSecondmentRequestRelationService))
-                .headRowNumber(1)
-                .sheet()
-                .doRead();
-        return new ResponseResult<>(HttpStatus.OK.value(), "导入借调（借用）人员需求计划申请表表头报表成功");
-    }
-
 }

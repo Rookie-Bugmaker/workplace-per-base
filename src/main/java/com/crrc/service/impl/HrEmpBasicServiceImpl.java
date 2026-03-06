@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.crrc.annotation.IgnoreTenant;
+import com.crrc.annotation.TenantIgnore;
 import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
 import com.crrc.client.SysServerClient;
@@ -174,7 +174,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
      * @param userCode 档案号
      * @return 部门Code
      */
-    @IgnoreTenant
+    @TenantIgnore
     public String getDept(String userCode){
         MPJLambdaWrapper<HrEmpBasic> queryWrapper = new MPJLambdaWrapper<>();
         queryWrapper.select(HrEmpBasic::getDept)
