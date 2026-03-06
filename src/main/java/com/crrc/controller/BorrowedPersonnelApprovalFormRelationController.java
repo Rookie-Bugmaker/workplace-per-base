@@ -7,12 +7,15 @@ import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.annotation.TenantScope;
 import com.crrc.entity.BorrowedPersonnelApprovalFormRelation;
+import com.crrc.entity.PersonnelSecondmentRequestRelation;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.service.impl.BorrowedPersonnelApprovalFormRelationServiceImpl;
+import com.crrc.service.impl.PersonnelSecondmentRequestRelationServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -43,10 +46,13 @@ import java.util.List;
 @RequestMapping("/borrowedPersonnelApprovalFormRelation")
 @RefreshScope
 @Tag(name = "借调（借用）人员审批表", description = "借调（借用）人员审批表")
+@TenantScope(filterRoleCode = {"DISPATCH_ADMIN", "QUOTA_ADMIN", "hrsc_deputy_minister"}, tenantLevel = TenantScope.TenantLevel.DEPT)
 public class BorrowedPersonnelApprovalFormRelationController {
 
     @Autowired
     private BorrowedPersonnelApprovalFormRelationServiceImpl borrowedPersonnelApprovalFormRelationService;
+    @Autowired
+    private PersonnelSecondmentRequestRelationServiceImpl personnelSecondmentRequestRelationService;
 
     @PostMapping("/page")
     @Operation(summary = "获取借调（借用）人员审批表列表 page")
@@ -54,12 +60,14 @@ public class BorrowedPersonnelApprovalFormRelationController {
     @Parameter(name = "pageReqVO",description = "包含查询条件的实体对象", required = false)
     @Parameter(name = "pageNo", description = "页码", required = false, example = "1")
     @Parameter(name = "pageSize", description = "条数", required = false, example = "10")
-    public ResponseResult<IPage> pageBorrowedPersonnelApprovalFormRelation(@Validated @RequestBody(required = false) BorrowedPersonnelApprovalFormRelation pageReqVO,
-                                             @RequestParam(required = false, defaultValue = "1") int pageNo,
-                                             @RequestParam(required = false, defaultValue = "10")int pageSize) {
-        pageReqVO = (pageReqVO == null) ? new BorrowedPersonnelApprovalFormRelation() : pageReqVO;
-        Page<BorrowedPersonnelApprovalFormRelation> page = new Page<>(pageNo, pageSize);
-        borrowedPersonnelApprovalFormRelationService.query(page, pageReqVO);
+    public ResponseResult<IPage<PersonnelSecondmentRequestRelation>> pageBorrowedPersonnelApprovalFormRelation(
+            @Validated @RequestBody(required = false) PersonnelSecondmentRequestRelation pageReqVO,
+            @RequestParam(required = false, defaultValue = "1") int pageNo,
+            @RequestParam(required = false, defaultValue = "10")int pageSize
+    ) {
+        pageReqVO = (pageReqVO == null) ? new PersonnelSecondmentRequestRelation() : pageReqVO;
+        Page<PersonnelSecondmentRequestRelation> page = new Page<>(pageNo, pageSize);
+        personnelSecondmentRequestRelationService.pageBySourceDept(page, pageReqVO);
         return new ResponseResult<>(HttpStatus.OK.value(), "获取借调（借用）人员审批表列表 page成功", page);
     }
 
