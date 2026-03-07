@@ -74,6 +74,24 @@ public class HrEmpResumeServiceImpl extends WorkServiceImpl<HrEmpResumeMapper, H
             if(hrEmpResume.getEndDate() != null && hrEmpResume.getEndDate().isAfter(LocalDate.parse("2198-01-01"))) {
                 hrEmpResume.setEndDate(null);
             }
+
+            // 处理工作单位
+            String originUnitCode = hrEmpResume.getUnit();
+            if (StringUtils.isNotBlank(originUnitCode)) {
+                String deptCode = originUnitCode.matches("^\\d.*") ?
+                        codeInfoService.translateCode(originUnitCode, "hr_emp_appointment", "APPOINTMENT_ORG") : originUnitCode;
+                hrEmpResume.setUnit(deptCode);
+            }
+
+            // 处理工作部门
+            String originDeptCode = hrEmpResume.getDepartment();
+            if (StringUtils.isNotBlank(originDeptCode)) {
+                String deptCode = originDeptCode.matches("^\\d.*") ?
+                        codeInfoService.translateCode(originDeptCode, "hr_emp_appointment", "APPOINTMENT_ORG") : originDeptCode;
+                hrEmpResume.setDepartment(deptCode);
+            }
+
+
         }
     }
 }
