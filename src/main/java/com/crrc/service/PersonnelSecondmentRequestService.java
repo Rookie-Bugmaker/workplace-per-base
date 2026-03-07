@@ -19,5 +19,13 @@ public interface PersonnelSecondmentRequestService extends IService<PersonnelSec
      * @param relationId 表头id
      * @return 明细列表
      */
-    public List<PersonnelSecondmentRequest> getByRelationId(String relationId);
+    List<PersonnelSecondmentRequest> getByRelationId(String relationId);
+
+    /**
+     * 根据reqVOList保存，删除或新增
+     * @param relationId 关联的表头id
+     * @param reqVOList 明细List
+     * @return 是否成功
+     */
+    boolean saveDetails(String relationId, List<PersonnelSecondmentRequest> reqVOList);
 }
