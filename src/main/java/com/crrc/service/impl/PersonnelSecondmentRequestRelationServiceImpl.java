@@ -316,7 +316,7 @@ public class PersonnelSecondmentRequestRelationServiceImpl extends WorkServiceIm
                 "select 1 " +
                         "from personnel_secondment_request_source_dept_rel r " +
                         "where r.relation_id = personnel_secondment_request_relation.id " +
-                        "and r.dept_code = {0}",
+                        "and r.dept_code = {0} and deleted = 0 ",
                 dept
         );
 
