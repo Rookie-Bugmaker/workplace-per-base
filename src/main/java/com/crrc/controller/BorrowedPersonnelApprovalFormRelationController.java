@@ -5,6 +5,7 @@ import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
@@ -12,18 +13,29 @@ import com.crrc.annotation.TenantScope;
 import com.crrc.constants.AuditConstants;
 import com.crrc.entity.BorrowedPersonnelApprovalForm;
 import com.crrc.entity.BorrowedPersonnelApprovalFormRelation;
+import com.crrc.entity.PersonnelSecondmentRequest;
+import com.crrc.entity.filedata.vo.FileDataStream;
 import com.crrc.pojo.dto.BorrowedPersonnelApprovalFormRelationDetailDTO;
 import com.crrc.entity.PersonnelSecondmentRequestRelation;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.vo.BorrowedPersonnelApprovalFormRelationTemplateVO;
+import com.crrc.pojo.vo.BorrowedPersonnelApprovalFormTemplateVO;
+import com.crrc.pojo.vo.PersonnelSecondmentRequestRelationTemplateVO;
+import com.crrc.pojo.vo.PersonnelSecondmentRequestTemplateVO;
 import com.crrc.service.impl.BorrowedPersonnelApprovalFormRelationServiceImpl;
 import com.crrc.service.impl.BorrowedPersonnelApprovalFormServiceImpl;
+import com.crrc.service.impl.FileServiceImpl;
 import com.crrc.service.impl.PersonnelSecondmentRequestRelationServiceImpl;
+import com.crrc.utils.DeptUtils;
+import com.crrc.utils.WordTemplateProcessor;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
@@ -38,7 +50,10 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -53,6 +68,7 @@ import java.util.List;
 @RefreshScope
 @Tag(name = "借调（借用）人员审批表", description = "借调（借用）人员审批表")
 @TenantScope(filterRoleCode = {"DISPATCH_ADMIN", "QUOTA_ADMIN", "hrsc_deputy_minister"}, tenantLevel = TenantScope.TenantLevel.DEPT)
+@Slf4j
 public class BorrowedPersonnelApprovalFormRelationController {
 
     @Autowired
@@ -61,6 +77,58 @@ public class BorrowedPersonnelApprovalFormRelationController {
     private PersonnelSecondmentRequestRelationServiceImpl personnelSecondmentRequestRelationService;
     @Autowired
     private BorrowedPersonnelApprovalFormServiceImpl borrowedPersonnelApprovalFormService;
+    @Autowired
+    private FileServiceImpl fileService;
+
+    @GetMapping("/testGene")
+    public String testGene(@RequestParam String id) {
+        String templateFileId = "391550e4-581d-4eef-a6fc-e19d491dd303";
+
+        BorrowedPersonnelApprovalFormRelation relation = borrowedPersonnelApprovalFormRelationService.getById(id);
+        LocalDate date = LocalDate.now();
+
+        BorrowedPersonnelApprovalFormRelationTemplateVO templateVO = new BorrowedPersonnelApprovalFormRelationTemplateVO();
+
+        BeanUtils.copyProperties(relation, templateVO);
+
+        templateVO.setDay(String.valueOf(date.getDayOfMonth()));
+        templateVO.setMonth(String.valueOf(date.getMonth().getValue()));
+        templateVO.setYear(String.valueOf(date.getYear()));
+
+        templateVO.setStartDay(String.valueOf(relation.getStartDate().getDayOfMonth()));
+        templateVO.setStartMonth(String.valueOf(relation.getStartDate().getMonth().getValue()));
+        templateVO.setStartYear(String.valueOf(relation.getStartDate().getYear()));
+
+        templateVO.setEndDay(String.valueOf(relation.getStartDate().getDayOfMonth()));
+        templateVO.setEndMonth(String.valueOf(relation.getStartDate().getMonth().getValue()));
+        templateVO.setEndYear(String.valueOf(relation.getStartDate().getYear()));
+
+        List<BorrowedPersonnelApprovalForm> requestList = borrowedPersonnelApprovalFormService.getByRelationId(relation.getId());
+
+        final int[] index = {0};
+
+        List<BorrowedPersonnelApprovalFormTemplateVO> requestVOList = requestList.stream().map(request -> {
+            BorrowedPersonnelApprovalFormTemplateVO vo = new BorrowedPersonnelApprovalFormTemplateVO();
+            BeanUtils.copyProperties(request, vo);
+            vo.setIndex(index[0]);
+            index[0] = index[0] + 1;
+            return vo;
+        }).collect(Collectors.toList());
+
+        FileDataStream fileStream = fileService.getFileStream(templateFileId);
+        String fileId;
+        try {
+            byte[] docx = WordTemplateProcessor.processTemplate(fileStream.getStream(), templateVO);
+            byte[] bytes = WordTemplateProcessor.replaceTable(docx, requestVOList, 0, 6);
+            MultipartFile multipartFile = WordTemplateProcessor.buildMultipartFile(bytes);
+            fileId = fileService.upload(multipartFile);
+        } catch (Exception e) {
+            log.error("模板生成出现错误", e);
+            throw new IllegalStateException("模板生成出现错误");
+        }
+
+        return fileId;
+    }
 
     @PostMapping("/page")
     @Operation(summary = "获取借调（借用）人员审批表列表 page")

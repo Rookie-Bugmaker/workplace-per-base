@@ -202,7 +202,7 @@ public class PersonnelSecondmentRequestRelationServiceImpl extends WorkServiceIm
         saveOrUpdate(relation);
 
         // 生成表单
-        templateGenerateService.generateRequestWordAndUpdate(id);
+        templateGenerateService.generateRequestWordAndUpdate(id, 0, 4);
         log.info("流程测试success");
         return new ResponseResult<>(HttpStatus.OK.value(), "审批流发起成功", true);
     }

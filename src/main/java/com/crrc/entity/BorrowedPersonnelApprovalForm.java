@@ -53,6 +53,6 @@ public class BorrowedPersonnelApprovalForm extends BaseEntity{
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"备注"})
-    @Schema(description = "工种")
+    @Schema(description = "备注")
     private String remark;
 }
