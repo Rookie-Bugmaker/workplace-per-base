@@ -47,6 +47,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.springframework.messaging.simp.SimpMessageHeaderAccessor.getUser;
+
 /**
  * <p>
  * 借调（借用）人员需求计划申请表表头 服务实现类
@@ -298,7 +300,11 @@ public class PersonnelSecondmentRequestRelationServiceImpl extends WorkServiceIm
 
     @Override
     public void pageBySourceDept(Page<PersonnelSecondmentRequestRelation> page, PersonnelSecondmentRequestRelation pageReqVO) {
-        User user = SecurityFrameworkUtils.getLoginUser().getUser();
+        LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
+        if(loginUser == null) {
+            throw new IllegalStateException("登录用户信息获取失败");
+        }
+        User user = loginUser.getUser();
         String jobNo = user.getJobNo();
 
         LambdaQueryWrapper<HrEmpBasic> wrapper = new LambdaQueryWrapper<>();
