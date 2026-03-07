@@ -34,7 +34,9 @@ import io.swagger.v3.oas.annotations.Parameter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
@@ -700,7 +702,7 @@ public class ExternalController {
                     .append("        <COMPANY>").append(person.getNewCompanyCode()).append("</COMPANY>\n")
                     .append("        <DEPARTMENT>").append(person.getNewDeptCode()).append("</DEPARTMENT>\n")
                     .append("        <DEPARTNAME>").append(person.getNewDept()).append("</DEPARTNAME>\n")
-                    .append("        <GENDER>").append("1").append("</GENDER>\n") // todo 目前没有收集性别信息，默认全传1
+                    .append("        <GENDER>").append("男").append("</GENDER>\n") // todo 目前没有收集性别信息，默认全传1
                     // EXT_SEC→外部派入，INT_LOAN→借用，其它为未知类型
                     .append("        <CLASS>").append(resolveUserType(person.getUserType())).append("</CLASS>\n")
                     .append("    </item>\n");
@@ -723,6 +725,38 @@ public class ExternalController {
         }
     }
 
+    @PostMapping("/queryForKingdie")
+    @Operation(summary = "接收总线WebService请求，返回人员信息XML")
+    @AuditLog(value = "接收总线请求返回人员信息", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseEntity<String> queryForKingdie() {
+        // 1. 获取有效人员列表
+        List<ExceptionCasePersonPlusVO> effectiveList = exceptionCasePersonService.selectEffectivePerson();
+
+        // 2. 组装XML报文
+        StringBuilder xmlBuilder = new StringBuilder();
+        xmlBuilder.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        xmlBuilder.append("<USERS>\n");
+
+        for (ExceptionCasePersonPlusVO person : effectiveList) {
+            xmlBuilder.append("    <USER>\n")
+                    .append("        <USER_CODE>").append(person.getUserCode()).append("</USER_CODE>\n")
+                    .append("        <NAME>").append(person.getName()).append("</NAME>\n")
+                    .append("        <ORG>").append(person.getNewCompanyCode()).append("</ORG>\n")
+                    .append("        <DEPT>").append(person.getNewDeptCode()).append("</DEPT>\n")
+                    .append("        <DUTYPE>").append(resolveUserType(person.getUserType())).append("</DUTYPE>\n")
+                    .append("    </USER>\n");
+        }
+
+        xmlBuilder.append("</USERS>");
+
+        // 3. 设置响应头为XML格式
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_XML);
+
+        // 4. 返回包含正确响应头的XML响应
+        return new ResponseEntity<>(xmlBuilder.toString(), headers, HttpStatus.OK);
+    }
+
     /**
      * 处理职能标识
      * @param userType 职能标识编码
@@ -741,43 +775,5 @@ public class ExternalController {
                 userType = "未知类型";
         }
         return userType;
-    }
-
-    @PostMapping("/queryForKingdie")
-    @Operation(summary = "金蝶webservice ,获取额外人员信息表列表")
-    @AuditLog(value = "获取额外人员信息表列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    public ResponseResult queryForKingdie() {
-        List<ExceptionCasePersonPlusVO> effectiveList = exceptionCasePersonService.selectEffectivePerson();
-
-        // 组装XML报文
-        StringBuilder xmlBuilder = new StringBuilder();
-        xmlBuilder.append("<USERS>\n");
-
-        for (ExceptionCasePersonPlusVO person : effectiveList) {
-            xmlBuilder.append("    <USER>\n")
-                    .append("        <USER_CODE>").append(person.getUserCode()).append("</USER_CODE>\n")
-                    .append("        <NAME>").append(person.getName()).append("</NAME>\n")
-                    .append("        <ORG>").append(person.getNewCompanyCode()).append("</ORG>\n")
-                    .append("        <DEPT>").append(person.getNewDeptCode()).append("</DEPT>\n")
-                    // EXT_SEC→外部派入，INT_LOAN→借用，其它为未知类型
-                    .append("        <DUTYPE>").append(resolveUserType(person.getUserType())).append("</DUTYPE>\n")
-                    .append("    </USER>\n");
-        }
-
-        xmlBuilder.append("</USERS>");
-
-        // 发送WebService请求
-        String messageCode = "013200MDP000039";
-        String xmlMsg = webServiceUtil.sendByWebService(xmlBuilder.toString(), messageCode);
-
-        // 处理返回结果
-        String result = webServiceUtil.xmlTransformer(xmlMsg);
-        JSONObject jsonObject = JSONUtil.parseObj(result);
-
-        if("S".equals(jsonObject.get("M_TYPE"))) {
-            return new ResponseResult<>(HttpStatus.OK.value(), DateTime.now() + "金蝶接收成功", jsonObject);
-        } else {
-            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), DateTime.now() + "金蝶接收失败", jsonObject);
-        }
     }
 }
