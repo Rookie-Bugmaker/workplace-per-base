@@ -3,11 +3,8 @@ package com.crrc.utils;
 import com.alibaba.excel.context.AnalysisContext;
 import com.alibaba.excel.read.listener.ReadListener;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.crrc.entity.HrEmpAppointment;
 import com.crrc.entity.HrEmpSalaryInfo;
-import com.crrc.service.impl.HrEmpAppointmentServiceImpl;
 import com.crrc.service.impl.HrEmpSalaryInfoServiceImpl;
-import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -69,7 +66,12 @@ public class SalaryInfoImportListener implements ReadListener<HrEmpSalaryInfo> {
         LambdaQueryWrapper<HrEmpSalaryInfo> wrapper = new LambdaQueryWrapper<>();
         wrapper.in(HrEmpSalaryInfo::getUserCode, collect);
         List<HrEmpSalaryInfo> hrEmpSalaryInfos = hrEmpSalaryInfoService.getBaseMapper().selectList(wrapper);
-        hrEmpSalaryInfos.forEach(item -> item.setPositionSalary("0"));
+        hrEmpSalaryInfos.forEach(item -> {
+//            item.setPositionSalary("0");
+            // 将String类型的seniorityStandard转为整数加一后再转回String
+            int currentValue = Integer.parseInt(item.getSeniorityStandard());
+            item.setSeniorityStandard(String.valueOf(currentValue + 1));
+        });
         hrEmpSalaryInfoService.updateBatchById(hrEmpSalaryInfos);
 
         buffer.clear();
