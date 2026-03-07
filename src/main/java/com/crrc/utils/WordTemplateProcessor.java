@@ -29,12 +29,11 @@ public class WordTemplateProcessor {
      * @return 处理后的Word文件字节数组
      * @throws IOException 文件读写异常
      */
-    public static <T> MultipartFile processTemplate(InputStream is, Object data, List<T> dataList) throws IOException {
+    public static <T> byte[] processTemplate(InputStream is, T data) throws IOException {
         Map<String, String> replacements = extractRequireData(data);
 
         try (XWPFDocument doc = new XWPFDocument(is);
-             ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
-
+            ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
             // 替换段落中的文本
 
             replacePlaceholders(doc, replacements);
@@ -43,13 +42,23 @@ public class WordTemplateProcessor {
 
             //向表格填充内容
             //将替换完内容的文档转换成MultipartFile
-            return new ByteArrayMultipartFile(
-                    replaceTable(bos.toByteArray(), dataList),
-                    "processed_document.docx",
-                    "processed_document.docx",
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            );
+            return bos.toByteArray();
         }
+    }
+
+
+    /**
+     * 将字节流转换为ByteArrayMultipartFile
+     * @param bytes 需要转换的字节数组
+     * @return ByteArrayMultipartFile
+     */
+    public static MultipartFile buildMultipartFile(byte[] bytes) {
+        return new ByteArrayMultipartFile(
+                bytes,
+                "processed_document.docx",
+                "processed_document.docx",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        );
     }
 
     /**
@@ -219,36 +228,179 @@ public class WordTemplateProcessor {
         }
     }
 
-    public static <T> byte[] replaceTable(byte[] docxBytes, List<T> dataList) throws IOException {
-        // 1. 从字节数组创建输入流
-        ByteArrayInputStream in = new ByteArrayInputStream(docxBytes);
-
-        // 2. 打开现有文档
-        XWPFDocument document = new XWPFDocument(in);
-        in.close(); // 及时关闭输入流
-
-        // 3. 获取文档中的第一个表格
-        XWPFTable table = document.getTables().get(0);
-        // 继承表头的字体与边框
-        XWPFTableRow templateRow = table.getRow(table.getNumberOfRows() - 1);
-
-        List<Map<String, String>> addTexts = extractRequireData(dataList);
-
-        // 4. 向表格添加内容
-        for (Map<String, String> item : addTexts) {
-            addRowLikeTemplate(table, templateRow, item.values().toArray(new String[0]));
+    /**
+     * 按列向表格插入
+     * @param docxBytes 需要插入的docx的byte[]文件
+     * @param dataList 需要插入的数据列表
+     * @param tableNum 需要插入的表格在docx的排序，从0开始
+     * @param headerRowNumber 需要插入的行在该表格的排序，从0开始
+     * @return 插入完成后的byte[]数组
+     */
+    public static <T> byte[] replaceTable(byte[] docxBytes, List<T> dataList, int tableNum, int headerRowNumber) throws IOException {
+        if (docxBytes == null || docxBytes.length == 0) {
+            throw new IllegalArgumentException("docxBytes 不能为空");
         }
 
-        // 5. 将文档写入字节数组输出流
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        document.write(out);
-        document.close();
+        try (ByteArrayInputStream in = new ByteArrayInputStream(docxBytes);
+            XWPFDocument document = new XWPFDocument(in);
+            ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            XWPFTable table = getTable(document, tableNum);
+            XWPFTableRow templateRow = getRow(table, headerRowNumber);
+            List<Map<String, String>> rowDataList = extractRequireData(dataList);
 
-        // 6. 获取字节数组并返回
-        byte[] result = out.toByteArray();
-        out.close();
+            // 固定从表头下一行开始插入
+            int insertPos = headerRowNumber + 1;
 
-        return result;
+            for (int i = 0; i < rowDataList.size(); i++) {
+                Map<String, String> rowData = rowDataList.get(i);
+                String[] cellValues = toCellValues(rowData, templateRow.getTableCells().size());
+                // 每插入一行，位置后移，保证插入顺序与 dataList 一致
+                insertRowByTemplate(table, templateRow, insertPos + i, cellValues);
+            }
+
+            document.write(out);
+            return out.toByteArray();
+        }
+    }
+
+
+    /**
+     * 获取指定表格，带边界校验
+     */
+    private static XWPFTable getTable(XWPFDocument document, int tableNum) {
+
+        List<XWPFTable> tables = document.getTables();
+        if (tableNum < 0 || tableNum >= tables.size()) {
+            throw new IllegalArgumentException("tableNum 超出范围，当前文档表格数量: " + tables.size());
+        }
+        return tables.get(tableNum);
+    }
+
+
+
+    /**
+     * 获取指定行，带边界校验
+     */
+    private static XWPFTableRow getRow(XWPFTable table, int rowNum) {
+        int rowCount = table.getNumberOfRows();
+        if (rowNum < 0 || rowNum >= rowCount) {
+            throw new IllegalArgumentException("headerRowNumber 超出范围，当前表格行数: " + rowCount);
+        }
+        return table.getRow(rowNum);
+    }
+
+
+
+    /**
+     * 将行数据转为单元格数组。
+     * 若数据列数小于模板列数，则补空；若大于模板列数，则截断。
+     */
+    private static String[] toCellValues(Map<String, String> rowData, int templateCellSize) {
+
+        List<String> values = new ArrayList<>(rowData.values());
+
+        if (values.size() < templateCellSize) {
+            while (values.size() < templateCellSize) {
+                values.add("");
+            }
+        } else if (values.size() > templateCellSize) {
+            values = values.subList(0, templateCellSize);
+        }
+
+        for (int i = 0; i < values.size(); i++) {
+            if (values.get(i) == null) {
+                values.set(i, "");
+            }
+        }
+
+        return values.toArray(new String[0]);
+    }
+
+
+
+    /**
+     * 在指定位置插入一行，并完整复制模板行样式
+     */
+    private static void insertRowByTemplate(XWPFTable table, XWPFTableRow templateRow, int insertPos, String[] cellValues) {
+
+        XWPFTableRow newRow = table.insertNewTableRow(insertPos);
+
+        if (newRow == null) {
+            throw new IllegalStateException("插入表格行失败，insertPos=" + insertPos);
+        }
+
+        copyRowStyle(templateRow, newRow);
+
+        List<XWPFTableCell> templateCells = templateRow.getTableCells();
+
+        // 始终以模板行单元格数为准创建新行结构
+        for (int i = 0; i < templateCells.size(); i++) {
+            XWPFTableCell templateCell = templateCells.get(i);
+            XWPFTableCell newCell = newRow.createCell();
+
+            copyCellStyle(templateCell, newCell);
+
+            String text = i < cellValues.length ? cellValues[i] : "";
+            writeCellTextLikeTemplate(templateCell, newCell, text);
+        }
+    }
+
+
+
+    /**
+     * 复制行样式
+     */
+    private static void copyRowStyle(XWPFTableRow sourceRow, XWPFTableRow targetRow) {
+
+        if (sourceRow.getCtRow().getTrPr() != null) {
+            targetRow.getCtRow().setTrPr((CTTrPr) sourceRow.getCtRow().getTrPr().copy());
+        }
+    }
+
+
+
+    /**
+     * 复制单元格样式
+     */
+
+    private static void copyCellStyle(XWPFTableCell sourceCell, XWPFTableCell targetCell) {
+        if (sourceCell.getCTTc().getTcPr() != null) {
+            targetCell.getCTTc().setTcPr((CTTcPr) sourceCell.getCTTc().getTcPr().copy());
+        }
+
+        // 清空目标单元格默认段落
+        for (int i = targetCell.getParagraphs().size() - 1; i >= 0; i--) {
+            targetCell.removeParagraph(i);
+        }
+    }
+
+
+
+    /**
+     * 按模板单元格的段落和字体样式写入文本
+     */
+    private static void writeCellTextLikeTemplate(XWPFTableCell templateCell, XWPFTableCell targetCell, String text) {
+
+        XWPFParagraph templateParagraph = templateCell.getParagraphs().isEmpty() ? null : templateCell.getParagraphs().get(0);
+        XWPFParagraph targetParagraph = targetCell.addParagraph();
+
+        // 复制段落样式
+        if (templateParagraph != null && templateParagraph.getCTP().getPPr() != null) {
+            targetParagraph.getCTP().setPPr((CTPPr) templateParagraph.getCTP().getPPr().copy());
+        }
+
+        XWPFRun targetRun = targetParagraph.createRun();
+
+        // 复制 run 样式
+        if (templateParagraph != null && !templateParagraph.getRuns().isEmpty()) {
+            XWPFRun templateRun = templateParagraph.getRuns().get(0);
+            if (templateRun.getCTR().getRPr() != null) {
+                targetRun.getCTR().setRPr((CTRPr) templateRun.getCTR().getRPr().copy());
+            }
+        }
+
+        targetRun.setText(text == null ? "" : text);
+
     }
 
     public static <T> Map<String, String> extractRequireData(T dataList) {
@@ -302,60 +454,5 @@ public class WordTemplateProcessor {
         }
 
         return resultList;
-    }
-
-    /**
-     * 在表尾新增一行，复制 templateRow 的样式（行/单元格/段落/字体），并填充文本
-     */
-    private static void addRowLikeTemplate(XWPFTable table, XWPFTableRow templateRow, String[] texts) {
-        // 在末尾插入新行（也可用 insertNewTableRow(pos) 指定位置）
-        XWPFTableRow newRow = table.insertNewTableRow(table.getNumberOfRows());
-
-        // 复制行属性（高度、表头重复、间距等）
-        if (templateRow.getCtRow().getTrPr() != null) {
-            newRow.getCtRow().setTrPr((CTTrPr) templateRow.getCtRow().getTrPr().copy());
-        }
-
-        List<XWPFTableCell> tplCells = templateRow.getTableCells();
-
-        for (int i = 0; i < texts.length; i++) {
-            XWPFTableCell tplCell = tplCells.get(i >= tplCells.size() ? tplCells.size() - 1 : i);
-
-            // 新建单元格
-            XWPFTableCell newCell = newRow.addNewTableCell();
-
-            // 复制单元格属性（边框、填充、垂直对齐、网格/合并等）
-            if (tplCell.getCTTc().getTcPr() != null) {
-                newCell.getCTTc().setTcPr((CTTcPr) tplCell.getCTTc().getTcPr().copy());
-            }
-
-            // 清空默认段落
-            int pc = newCell.getParagraphs().size();
-            for (int p = pc - 1; p >= 0; p--) newCell.removeParagraph(p);
-
-            // 用模板单元格的第一个段落作为样式来源
-            XWPFParagraph tplP = tplCell.getParagraphs().isEmpty() ? null : tplCell.getParagraphs().get(0);
-            XWPFParagraph newP = newCell.addParagraph();
-
-            // 复制段落属性（对齐、缩进、间距、样式ID等）
-            if (tplP != null && tplP.getCTP().getPPr() != null) {
-                newP.getCTP().setPPr((CTPPr) tplP.getCTP().getPPr().copy());
-            }
-
-            // 准备 Run（字体、字号、加粗、颜色等），从模板段落第一个 Run 继承
-            CTRPr rpr = null;
-            if (tplP != null && !tplP.getRuns().isEmpty() && tplP.getRuns().get(0).getCTR().getRPr() != null) {
-                rpr = (CTRPr) tplP.getRuns().get(0).getCTR().getRPr().copy();
-            }
-
-            XWPFRun newRun = newP.createRun();
-            if (rpr != null) {
-                newRun.getCTR().setRPr(rpr);
-            }
-
-            // 写入文本
-            String text = texts[i];
-            newRun.setText(text);
-        }
     }
 }

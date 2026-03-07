@@ -12,6 +12,7 @@ import com.crrc.pojo.vo.PersonnelSecondmentRequestTemplateVO;
 import com.crrc.utils.DeptUtils;
 import com.crrc.utils.WordTemplateProcessor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,10 +43,10 @@ public class TemplateGenerateServiceImpl {
 
     @TenantIgnore
     @Async("templateGenerateAsyncExecutor")
-    public void generateRequestWordAndUpdate(String id) {
+    public void generateRequestWordAndUpdate(String id, int tableNum, int headerNum) {
         PersonnelSecondmentRequestRelation relation = mapper.selectById(id);
         try {
-            String fileId = generateRequestWord(id);
+            String fileId = generateRequestWord(id, tableNum, headerNum);
             relation.setFileId(fileId);
         } catch (IOException e) {
             log.error("generateRequestWordAndUpdate出现错误", e);
@@ -54,7 +55,7 @@ public class TemplateGenerateServiceImpl {
         mapper.updateById(relation);
     }
 
-    public String generateRequestWord(@RequestParam String id) throws IOException {
+    public String generateRequestWord(@RequestParam String id, int tableNum, int headerNum) throws IOException {
         PersonnelSecondmentRequestRelation relation = mapper.selectById(id);
 
         // 翻译部门
@@ -89,8 +90,10 @@ public class TemplateGenerateServiceImpl {
         FileDataStream fileStream = fileService.getFileStream(templateFileId);
         String fileId;
         try {
-            MultipartFile docx = WordTemplateProcessor.processTemplate(fileStream.getStream(), relationVO, requestVOList);
-            fileId = fileService.upload(docx);
+            byte[] docx = WordTemplateProcessor.processTemplate(fileStream.getStream(), relationVO);
+            byte[] bytes = WordTemplateProcessor.replaceTable(docx, requestVOList, tableNum, headerNum);
+            MultipartFile multipartFile = WordTemplateProcessor.buildMultipartFile(bytes);
+            fileId = fileService.upload(multipartFile);
         } catch (Exception e) {
             log.error("模板生成出现错误", e);
             throw new IOException(e);

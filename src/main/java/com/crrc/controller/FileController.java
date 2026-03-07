@@ -50,6 +50,8 @@ public class FileController {
     @Operation(summary = "预览文件")
     public ResponseResult<String> preview(@RequestBody FileDownloadDTO downloadDTO) {
         String result = fileService.preview(downloadDTO.getFileId());
+        // TODO: 这里是临时测试使用！
+        result = result.replaceAll("localhost", "10.151.255.79");
         if (StringUtils.isBlank(result)){
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "获取失败");
         }else {

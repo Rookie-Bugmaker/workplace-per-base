@@ -1,12 +1,8 @@
 package com.crrc.utils;
 
-import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
-
 import java.util.*;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
+import java.util.function.*;
+import java.util.stream.Collectors;
 
 /**
  * @author yukun
@@ -79,14 +75,7 @@ public final class TreeUtils {
         // 建立id -> 节点的索引，用LinkedHashMap保持稳定
         Map<K, T> byId = new LinkedHashMap<>(Math.max(16, items.size() * 2));
         for (T t : items) {
-            K id = idGetter.apply(t);
-            if (id == null) {
-                throw new IllegalArgumentException("id 不能为 null");
-            }
-            // 避免后写覆盖前写
-            if (byId.putIfAbsent(id, t) != null) {
-                throw new IllegalArgumentException("检测到重复 id: " + id);
-            }
+            validateAndIndexNode(idGetter, t, byId);
         }
 
         // 预分配每个节点的children容器
@@ -105,19 +94,7 @@ public final class TreeUtils {
             boolean selfLoop = Objects.equals(id, pid);
 
             if (pid == null || selfLoop || !byId.containsKey(pid)) {
-                switch (orphanPolicy) {
-                    case AS_ROOT:
-                        roots.add(t);
-                        break;
-                    case DROP:
-                        // 丢弃：不加入任何父，也不作为根返回
-                        break;
-                    case ERROR:
-                        throw new IllegalArgumentException(
-                                "发现孤儿节点或自指（父不存在/parentId=null/self-loop）。id=" + id + ", parentId=" + pid
-                        );
-                    default:
-                }
+                processOrphanNode(orphanPolicy, t, roots, id, pid);
             } else {
                 childrenBuckets.get(pid).add(t);
             }
@@ -140,6 +117,48 @@ public final class TreeUtils {
         }
 
         return roots;
+    }
+
+    /**
+     * 验证节点有效性并建立ID索引
+     * @param t 需要建立的节点
+     * @param byId 索引map
+     * @throws IllegalArgumentException 如果id为null或存在重复id
+     */
+    private static <T, K> void validateAndIndexNode(Function<T, K> idGetter, T t, Map<K, T> byId) {
+        K id = idGetter.apply(t);
+        if (id == null) {
+            throw new IllegalArgumentException("id 不能为 null");
+        }
+        // 避免后写覆盖前写
+        if (byId.putIfAbsent(id, t) != null) {
+            throw new IllegalArgumentException("检测到重复 id: " + id);
+        }
+    }
+
+    /**
+     * 处理孤儿节点（无父节点或父节点无效）
+     * @param t 孤儿节点
+     * @param roots 根节点列表
+     * @param id 用于打印的数据，当前节点的id
+     * @param pid 用于打印的数据，当前节点的pid
+     * @param orphanPolicy 处理策略（AS_ROOT/DROP/ERROR）
+     * @throws IllegalArgumentException 如果策略为ERROR且发现孤儿节点
+     */
+    private static <T, K> void processOrphanNode(OrphanPolicy orphanPolicy, T t, List<T> roots, K id, K pid) {
+        switch (orphanPolicy) {
+            case AS_ROOT:
+                roots.add(t);
+                break;
+            case DROP:
+                // 丢弃：不加入任何父，也不作为根返回
+                break;
+            case ERROR:
+                throw new IllegalArgumentException(
+                        "发现孤儿节点或自指（父不存在/parentId=null/self-loop）。id=" + id + ", parentId=" + pid
+                );
+            default:
+        }
     }
 
     /**
@@ -193,7 +212,7 @@ public final class TreeUtils {
      * @return 展平后的树节点，根据containRoot判断是否包含root
      */
     public static <T> List<T> flattenDescendants(T root, Function<T, List<T>> childrenGetter, Boolean containRoot) {
-        List<T> out = new ArrayList<>(containRoot ? Collections.singletonList(root) : Collections.emptyList());
+        List<T> out = new ArrayList<>(Boolean.TRUE.equals(containRoot) ? Collections.singletonList(root) : Collections.emptyList());
         if(childrenGetter.apply(root) == null || childrenGetter.apply(root).isEmpty()) {
             return out;
         }
@@ -256,5 +275,81 @@ public final class TreeUtils {
         }
 
         return Optional.empty();
+    }
+
+    /**
+     * 深度遍历树，执行某个方法
+     * @param root 查询的树根
+     * @param f 需要执行的函数
+     * @param childrenGetter children的Get方法
+     */
+    public static <T> void doFunctionBFS(T root, Consumer<T> f, Function<T, List<T>> childrenGetter) {
+        if(childrenGetter.apply(root) == null || f == null) {
+            return;
+        }
+
+        Queue<T> q = new ArrayDeque<>();
+        q.offer(root);
+        while(!q.isEmpty()) {
+            T node = q.poll();
+            f.accept(node);
+            for(T c : childrenGetter.apply(node)) {
+                q.offer(c);
+            }
+        }
+    }
+
+    /**
+     * 过滤树节点，当父节点不符合需求时，其所有子节点会被直接过滤掉！
+     * @param nodes 当前处理的节点（列表）
+     * @param predicate 过滤条件 (返回 true 保留，false 丢弃)
+     * @param childrenGetter children的Get方法
+     * @param childrenSetter children的Set方法
+     * @return 过滤后的节点，如果不符合条件则返回空列表
+     */
+    public static <T> List<T> filterTree(List<T> nodes, Predicate<T> predicate, Function<T, List<T>> childrenGetter, BiConsumer<T, List<T>> childrenSetter) {
+        nodes.forEach(node ->
+                filterTree(node, predicate, childrenGetter, childrenSetter)
+        );
+
+        return nodes.stream().filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    /**
+     * 过滤树节点，当父节点不符合需求时，其所有子节点会被直接过滤掉
+     * @param node 当前处理的节点
+     * @param predicate 过滤条件 (返回 true 保留，false 丢弃)
+     * @param childrenGetter children的Get方法
+     * @param childrenSetter children的Set方法
+     * @return 过滤后的节点，如果不符合条件则返回 null
+     */
+    public static <T> T filterTree(T node, Predicate<T> predicate, Function<T, List<T>> childrenGetter, BiConsumer<T, List<T>> childrenSetter) {
+        // 1. 【核心剪枝逻辑】
+        // 如果当前节点本身就不符合条件，直接返回 null。
+        // 根据你的描述，不需要再看它的 children 了。
+        if (!predicate.test(node)) {
+            return null;
+        }
+
+        // 2. 如果当前节点符合，继续递归处理子节点
+        List<T> originalChildren = childrenGetter.apply(node);
+        if (originalChildren != null && !originalChildren.isEmpty()) {
+            List<T> validChildren = new ArrayList<>();
+
+            for (T child : originalChildren) {
+                // 递归调用
+                T filteredChild = filterTree(child, predicate, childrenGetter, childrenSetter);
+                // 如果子节点返回不为 null，说明子节点（及其后代）符合要求
+                if (filteredChild != null) {
+                    validChildren.add(filteredChild);
+                }
+            }
+
+            // 3. 更新当前节点的子节点列表
+            childrenSetter.accept(node, validChildren);
+        }
+
+        // 4. 返回当前节点（此时它已经包含了经过过滤的子节点列表）
+        return node;
     }
 }

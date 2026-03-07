@@ -3,6 +3,7 @@ package com.crrc.controller;
 import com.crrc.annotation.AuditLog;
 import com.crrc.annotation.DecryptBody;
 import com.crrc.api.WkCoreAPi;
+import com.crrc.api.WkDataAPi;
 import com.crrc.client.SysServerClient;
 import com.crrc.common.ResultData;
 import com.crrc.entity.dto.DeptDTO;
@@ -13,6 +14,7 @@ import com.crrc.enums.OperateType;
 import com.crrc.pojo.dto.DeptReqDTO;
 import com.crrc.pojo.dto.QueryDTO;
 import com.crrc.utils.RoleUtils;
+import com.crrc.utils.TreeUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -20,6 +22,7 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
@@ -33,7 +36,7 @@ import java.util.stream.Collectors;
 @RefreshScope
 public class CommonController {
     @Autowired
-    private WkCoreAPi wkCoreApi;
+    private WkDataAPi wkDataAPi;
     @Qualifier("com.crrc.client.SysServerClient")
     @Autowired
     private SysServerClient sysServerClient;
@@ -43,6 +46,31 @@ public class CommonController {
     private final static int IV_LEN = 12;
 
     private final static int TAG_LEN_BIT = 128;
+
+    @GetMapping("/dept/treeDept")
+    @Operation(summary = "获取全量部门信息")
+    @AuditLog(value = "获取全量部门信息", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResultDTO<List<OrganizationTreeDTO>> getDept() {
+        ResponseResultDTO<List<OrganizationTreeDTO>> treeResult = wkDataAPi.treeOrganization();
+        if (treeResult == null || ObjectUtils.isEmpty(treeResult.getData())) {
+            return new ResponseResultDTO<>(HttpStatus.BAD_GATEWAY.value(), "wkDataAPi暂时不可用");
+        }
+
+        treeResult.getData().forEach(item -> {
+            String companyCode = item.getOrgCode();
+            String companyName = item.getOrgName();
+            TreeUtils.doFunctionBFS(
+                    item,
+                    e -> {
+                        e.setParentCode(companyCode);
+                        e.setParentName(companyName);
+                    },
+                    OrganizationTreeDTO::getChildren
+            );
+        });
+
+        return treeResult;
+    }
 
     @GetMapping("/dept/getList")
     @Operation(summary = "获取全量部门信息")
