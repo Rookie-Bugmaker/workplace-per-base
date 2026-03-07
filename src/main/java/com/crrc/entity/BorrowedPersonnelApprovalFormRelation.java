@@ -8,6 +8,7 @@ import java.time.LocalDate;
 
 import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -56,11 +57,13 @@ public class BorrowedPersonnelApprovalFormRelation extends BaseEntity{
     @QueryMethod(method = QueryType.BETWEEN, start = "startDateStartTime", end = "startDateEndTime")
     @ExcelProperty(value = {"开始时间"})
     @Schema(description = "开始时间")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate startDate;
     
     @QueryMethod(method = QueryType.BETWEEN, start = "endDateStartTime", end = "endDateEndTime")
     @ExcelProperty(value = {"结束时间"})
     @Schema(description = "结束时间")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate endDate;
 
     @QueryMethod(method = QueryType.EQ)

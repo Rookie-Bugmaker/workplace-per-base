@@ -1,6 +1,7 @@
 package com.crrc.controller;
 
 
+import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
@@ -8,13 +9,17 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
 import com.crrc.annotation.TenantScope;
+import com.crrc.constants.AuditConstants;
+import com.crrc.entity.BorrowedPersonnelApprovalForm;
 import com.crrc.entity.BorrowedPersonnelApprovalFormRelation;
+import com.crrc.pojo.dto.BorrowedPersonnelApprovalFormRelationDetailDTO;
 import com.crrc.entity.PersonnelSecondmentRequestRelation;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.service.impl.BorrowedPersonnelApprovalFormRelationServiceImpl;
+import com.crrc.service.impl.BorrowedPersonnelApprovalFormServiceImpl;
 import com.crrc.service.impl.PersonnelSecondmentRequestRelationServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -23,6 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -53,6 +59,8 @@ public class BorrowedPersonnelApprovalFormRelationController {
     private BorrowedPersonnelApprovalFormRelationServiceImpl borrowedPersonnelApprovalFormRelationService;
     @Autowired
     private PersonnelSecondmentRequestRelationServiceImpl personnelSecondmentRequestRelationService;
+    @Autowired
+    private BorrowedPersonnelApprovalFormServiceImpl borrowedPersonnelApprovalFormService;
 
     @PostMapping("/page")
     @Operation(summary = "获取借调（借用）人员审批表列表 page")
@@ -89,30 +97,41 @@ public class BorrowedPersonnelApprovalFormRelationController {
     }
 
     @Transactional
-    @PostMapping("/save")
+    @PostMapping("/saveDetails/{requestId}")
     @Operation(summary = "保存借调（借用）人员审批表实体")
     @AuditLog(value = "借调（借用）人员审批表实体保存", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
     @Parameter(name = "reqVO", description = "实体对象", required = true)
-    public ResponseResult<Boolean> saveBorrowedPersonnelApprovalFormRelation(@Valid @RequestBody BorrowedPersonnelApprovalFormRelation reqVO) {
-    
-        boolean result = borrowedPersonnelApprovalFormRelationService.saveOrUpdate(reqVO);
+    public ResponseResult<Boolean> saveBorrowedPersonnelApprovalFormRelation(@PathVariable String requestId, @Valid @RequestBody BorrowedPersonnelApprovalFormRelationDetailDTO reqDTO) {
+
+        BorrowedPersonnelApprovalFormRelation relation = reqDTO.getRelation();
+
+        PersonnelSecondmentRequestRelation request = personnelSecondmentRequestRelationService.getById(requestId);
+
+        if(!StringUtils.hasText(relation.getId())) {
+            String id = IdUtil.randomUUID();
+            relation.setId(id);
+            request.setPersonnelRelationId(id);
+            request.setOrderStatus(AuditConstants.STATUS_AUDIT);
+        }
+
+        personnelSecondmentRequestRelationService.updateById(request);
+        borrowedPersonnelApprovalFormRelationService.saveOrUpdate(relation);
+
+        List<BorrowedPersonnelApprovalForm> reqVOList = reqDTO.getApprovalFormList();
+
+        reqVOList.forEach(
+            item -> {
+                if(!StringUtils.hasText(item.getId())) {
+                    item.setId(IdUtil.randomUUID());
+                    item.setRelationId(relation.getId());
+                }
+            }
+        );
+
+        boolean result = borrowedPersonnelApprovalFormService.saveDetails(relation.getId(), reqVOList);
     
         return new ResponseResult<>(HttpStatus.OK.value(), "保存借调（借用）人员审批表实体成功", result);
     }
-
-//    @Transactional
-//    @PostMapping("/saveByUserCode")
-//    @Operation(summary = "根据档案号保存借调（借用）人员审批表实体")
-//    @AuditLog(value = "借调（借用）人员审批表实体保存", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
-//    @Parameter(name = "reqVO", description = "实体对象", required = true)
-//    public ResponseResult<Boolean> saveByUserCode(@Valid @RequestBody BorrowedPersonnelApprovalFormRelation reqVO) {
-//
-//        LambdaQueryWrapper<BorrowedPersonnelApprovalFormRelation> wrapper = new LambdaQueryWrapper<>();
-//        wrapper.eq(BorrowedPersonnelApprovalFormRelation::getUserCode, reqVO.getUserCode());
-//        boolean result = borrowedPersonnelApprovalFormRelationService.saveOrUpdate(reqVO, wrapper);
-//
-//        return new ResponseResult<>(HttpStatus.OK.value(), "保存借调（借用）人员审批表实体成功", result);
-//    }
 
     @Transactional
     @GetMapping("/delete")

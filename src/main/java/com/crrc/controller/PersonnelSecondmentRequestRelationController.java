@@ -2,9 +2,6 @@ package com.crrc.controller;
 
 
 import cn.hutool.core.util.IdUtil;
-import com.alibaba.excel.EasyExcel;
-import com.alibaba.excel.support.ExcelTypeEnum;
-import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
@@ -17,11 +14,9 @@ import com.crrc.entity.PersonnelSecondmentRequestRelation;
 import com.crrc.entity.dto.SysUserDTO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
-import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.PersonnelSecondmentRequestRelationDetailDTO;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
-import com.crrc.service.impl.FileServiceImpl;
 import com.crrc.service.impl.PersonnelSecondmentRequestRelationServiceImpl;
 import com.crrc.service.impl.PersonnelSecondmentRequestServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,13 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
-import java.io.IOException;
-import java.net.URLEncoder;
-import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.List;
 
@@ -61,8 +51,6 @@ public class PersonnelSecondmentRequestRelationController {
 
     @Autowired
     private PersonnelSecondmentRequestRelationServiceImpl personnelSecondmentRequestRelationService;
-    @Autowired
-    private FileServiceImpl fileService;
     @Autowired
     private PersonnelSecondmentRequestServiceImpl personnelSecondmentRequestService;
 
@@ -174,12 +162,12 @@ public class PersonnelSecondmentRequestRelationController {
         List<PersonnelSecondmentRequest> reqVOList = requestDTO.getRequestList();
 
         reqVOList.forEach(
-                item -> {
-                    if(!StringUtils.hasText(item.getId())) {
-                        item.setId(IdUtil.randomUUID());
-                        item.setRelationId(relation.getId());
-                    }
+            item -> {
+                if(!StringUtils.hasText(item.getId())) {
+                    item.setId(IdUtil.randomUUID());
+                    item.setRelationId(relation.getId());
                 }
+            }
         );
 
         boolean result = personnelSecondmentRequestService.saveDetails(relation.getId(), reqVOList);

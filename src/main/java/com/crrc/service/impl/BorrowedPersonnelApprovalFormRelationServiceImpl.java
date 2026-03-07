@@ -16,4 +16,5 @@ import org.springframework.stereotype.Service;
 @Service
 public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServiceImpl<BorrowedPersonnelApprovalFormRelationMapper, BorrowedPersonnelApprovalFormRelation> implements BorrowedPersonnelApprovalFormRelationService {
 
+
 }

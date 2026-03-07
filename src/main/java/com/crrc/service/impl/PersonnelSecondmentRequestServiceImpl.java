@@ -5,6 +5,7 @@ import com.crrc.entity.PersonnelSecondmentRequest;
 import com.crrc.mapper.PersonnelSecondmentRequestMapper;
 import com.crrc.service.PersonnelSecondmentRequestService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Set;
@@ -21,12 +22,15 @@ import java.util.stream.Collectors;
 @Service
 public class PersonnelSecondmentRequestServiceImpl extends WorkServiceImpl<PersonnelSecondmentRequestMapper, PersonnelSecondmentRequest> implements PersonnelSecondmentRequestService {
 
+    @Override
     public List<PersonnelSecondmentRequest> getByRelationId(String relationId) {
         LambdaQueryWrapper<PersonnelSecondmentRequest> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(PersonnelSecondmentRequest::getRelationId, relationId);
         return baseMapper.selectList(wrapper);
     }
 
+    @Transactional(rollbackFor = Exception.class)
+    @Override
     public boolean saveDetails(String relationId, List<PersonnelSecondmentRequest> reqVOList) {
         List<PersonnelSecondmentRequest> personnelSecondmentRequests = getByRelationId(relationId);
 
