@@ -723,6 +723,36 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
         // 处理附件信息
         resolveFiles(result.get(0));
+
+        // 处理工龄信息 计算标准为目前年份-入职年份-工龄间断时间+1,小数点增加一，字段进行隐藏（超级管理员可查看）
+        resolveSeniority(result.get(0));
+    }
+
+    private void resolveSeniority(HrEmpBasicDTO hrEmpBasicDTO) {
+        // 计算标准：当前年份 - 入职年份 - 工龄间断时间 + 1（向上取整）
+        if (hrEmpBasicDTO.getWorkDate() != null) {
+            // 获取当前年份
+            int currentYear = LocalDate.now().getYear();
+            // 获取入职年份
+            int workYear = hrEmpBasicDTO.getWorkDate().getYear();
+
+            // 解析工龄间断时间（默认为0）
+            int breakYears = 0;
+            if (StringUtils.isNotBlank(hrEmpBasicDTO.getServiceBreakTime())) {
+                try {
+                    breakYears = Integer.parseInt(hrEmpBasicDTO.getServiceBreakTime());
+                } catch (NumberFormatException e) {
+                    log.warn("工龄间断时间格式错误: {}", hrEmpBasicDTO.getServiceBreakTime());
+                }
+            }
+
+            // 计算工龄（向上取整）
+            int seniority = currentYear - workYear - breakYears + 1;
+            hrEmpBasicDTO.setSeniority(String.valueOf(seniority));
+        } else {
+            hrEmpBasicDTO.setSeniority(null);
+            log.warn("员工入职日期为空，无法计算工龄");
+        }
     }
 
     private void resolveSkillLevel(HrEmpBasicDTO hrEmpBasicDTO) {
