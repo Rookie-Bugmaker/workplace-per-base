@@ -46,6 +46,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletResponse;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -271,6 +272,7 @@ public class ExternalController {
                     for(HrEmpCareerPath path : hrEmpCareerPaths) {
                         if("0".equals(path.getIsExpired())) {
                             path.setIsExpired("1");
+                            path.setExpiryDate(LocalDate.now());
                             hrEmpCareerPathService.updateById(path);
                         }
                     }
