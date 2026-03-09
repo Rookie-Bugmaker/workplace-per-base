@@ -465,7 +465,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 .like(StringUtils.isNotBlank(dto.getUserCode()),
                         HrEmpBasic::getUserCode,
                         dto.getUserCode())
-                .like(StringUtils.isNotBlank(dto.getDept()),
+                .eq(StringUtils.isNotBlank(dto.getDept()),
                         HrEmpBasic::getDept,
                         dto.getDept())
                 .like(StringUtils.isNotBlank(dto.getIsEmployed()),
