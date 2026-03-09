@@ -219,7 +219,7 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
 
                 exceptionCasePerson.setStartDate(relation.getStartDate());
                 exceptionCasePerson.setEndDate(relation.getEndDate());
-                exceptionCasePerson.setSourceType("borrow");
+                exceptionCasePerson.setSourceType("INT_LOAN");
 
                 return exceptionCasePerson;
             }).collect(Collectors.toList());
