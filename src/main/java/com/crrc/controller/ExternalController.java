@@ -46,7 +46,6 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletResponse;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -695,19 +694,19 @@ public class ExternalController {
 
         // 组装XML报文
         StringBuilder xmlBuilder = new StringBuilder();
-        xmlBuilder.append("<Objects>\n");
+        xmlBuilder.append("<Objects>");
 
         for (ExceptionCasePersonPlusVO person : effectiveList) {
             xmlBuilder.append("    <item>\n")
-                    .append("        <USERID>").append(person.getUserCode()).append("</USERID>\n")
-                    .append("        <NAME>").append(person.getName()).append("</NAME>\n")
-                    .append("        <COMPANY>").append(person.getNewCompanyCode()).append("</COMPANY>\n")
-                    .append("        <DEPARTMENT>").append(person.getNewDeptCode()).append("</DEPARTMENT>\n")
-                    .append("        <DEPARTNAME>").append(person.getNewDept()).append("</DEPARTNAME>\n")
+                    .append("        <USERID>").append(person.getUserCode()).append("</USERID>")
+                    .append("        <NAME>").append(person.getName()).append("</NAME>")
+                    .append("        <COMPANY>").append(person.getNewCompanyCode()).append("</COMPANY>")
+                    .append("        <DEPARTMENT>").append(person.getNewDeptCode()).append("</DEPARTMENT>")
+                    .append("        <DEPARTNAME>").append(person.getNewDept()).append("</DEPARTNAME>")
                     .append("        <GENDER>").append("男").append("</GENDER>\n") // todo 目前没有收集性别信息，默认全传1
                     // EXT_SEC→外部派入，INT_LOAN→借用，其它为未知类型
-                    .append("        <CLASS>").append(resolveUserType(person.getUserType())).append("</CLASS>\n")
-                    .append("    </item>\n");
+                    .append("        <CLASS>").append(resolveUserType(person.getUserType())).append("</CLASS>")
+                    .append("    </item>");
         }
 
         xmlBuilder.append("</Objects>");
@@ -736,17 +735,17 @@ public class ExternalController {
 
         // 2. 组装XML报文
         StringBuilder xmlBuilder = new StringBuilder();
-        xmlBuilder.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-        xmlBuilder.append("<USERS>\n");
+        xmlBuilder.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+        xmlBuilder.append("<USERS>");
 
         for (ExceptionCasePersonPlusVO person : effectiveList) {
-            xmlBuilder.append("    <USER>\n")
-                    .append("        <USER_CODE>").append(person.getUserCode()).append("</USER_CODE>\n")
-                    .append("        <NAME>").append(person.getName()).append("</NAME>\n")
-                    .append("        <ORG>").append(person.getNewCompanyCode()).append("</ORG>\n")
-                    .append("        <DEPT>").append(person.getNewDeptCode()).append("</DEPT>\n")
-                    .append("        <DUTYPE>").append(resolveUserType(person.getUserType())).append("</DUTYPE>\n")
-                    .append("    </USER>\n");
+            xmlBuilder.append("    <USER>")
+                    .append("        <USER_CODE>").append(person.getUserCode()).append("</USER_CODE>")
+                    .append("        <NAME>").append(person.getName()).append("</NAME>")
+                    .append("        <ORG>").append(person.getNewCompanyCode()).append("</ORG>")
+                    .append("        <DEPT>").append(person.getNewDeptCode()).append("</DEPT>")
+                    .append("        <DUTYPE>").append(resolveUserType(person.getUserType())).append("</DUTYPE>")
+                    .append("    </USER>");
         }
 
         xmlBuilder.append("</USERS>");
