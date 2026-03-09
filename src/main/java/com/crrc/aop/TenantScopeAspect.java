@@ -1,9 +1,8 @@
-package com.crrc.advice;
+package com.crrc.aop;
 
 import com.crrc.annotation.TenantScope;
 import com.crrc.api.WkDataAPi;
 import com.crrc.entity.HrEmpBasic;
-import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.handler.MultiTenantHandler;
 import com.crrc.service.impl.HrEmpBasicServiceImpl;
@@ -19,10 +18,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.Ordered;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Method;
-import java.util.List;
 
 @Aspect
 @Component
@@ -96,10 +93,11 @@ public class TenantScopeAspect {
             if(TenantScope.TenantLevel.ORG.equals(level)) {
                 String orgCode = "438";
                 for (OrganizationTreeDTO datum : wkDataAPi.treeOrganization().getData()) {
-                    if(TreeUtils.containsBfs(
+                    if(
+                            TreeUtils.containsBfs(
                             datum,
                             e -> basic.getDept().equals(e.getOrgCode()),
-                            OrganizationTreeDTO::getChildren)
+                            OrganizationTreeDTO::getChildren).equals(Boolean.TRUE)
                     ) {
                         orgCode = datum.getOrgCode();
                         break;
