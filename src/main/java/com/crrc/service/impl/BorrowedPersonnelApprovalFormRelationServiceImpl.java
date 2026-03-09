@@ -207,13 +207,13 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
                 exceptionCasePerson.setFormerDept(relation.getLendingUnitName());
                 exceptionCasePerson.setFormerDeptCode(relation.getLendingUnit());
                 // 回写公司
-                setCompany(dept2ParentOrgCodeCacheMap, relation, exceptionCasePerson, organizationTreeDTOList);
+                setCompany(dept2ParentOrgCodeCacheMap, relation.getLendingUnit(), exceptionCasePerson, organizationTreeDTOList);
 
                 exceptionCasePerson.setNewDept(relation.getBorrowingUnitName());
                 exceptionCasePerson.setNewDeptCode(relation.getBorrowingUnit());
 
                 // 回写公司
-                setCompany(dept2ParentOrgCodeCacheMap, relation, exceptionCasePerson, organizationTreeDTOList);
+                setCompany(dept2ParentOrgCodeCacheMap, relation.getBorrowingUnit(), exceptionCasePerson, organizationTreeDTOList);
 
                 exceptionCasePerson.setPosition(form.getJobType());
 
@@ -280,26 +280,26 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
         return detailDTO;
     }
 
-    private static void setCompany(Map<String, OrganizationTreeDTO> dept2ParentOrgCodeCacheMap, BorrowedPersonnelApprovalFormRelation relation, ExceptionCasePerson exceptionCasePerson, List<OrganizationTreeDTO> organizationTreeDTOList) {
-        if(dept2ParentOrgCodeCacheMap.containsKey(relation.getLendingUnit())) {
-            exceptionCasePerson.setFormerCompany(dept2ParentOrgCodeCacheMap.get(relation.getLendingUnit()).getOrgName());
-            exceptionCasePerson.setFormerCompanyCode(dept2ParentOrgCodeCacheMap.get(relation.getLendingUnit()).getOrgCode());
+    private static void setCompany(Map<String, OrganizationTreeDTO> dept2ParentOrgCodeCacheMap, String unit, ExceptionCasePerson exceptionCasePerson, List<OrganizationTreeDTO> organizationTreeDTOList) {
+        if(dept2ParentOrgCodeCacheMap.containsKey(unit)) {
+            exceptionCasePerson.setFormerCompany(dept2ParentOrgCodeCacheMap.get(unit).getOrgName());
+            exceptionCasePerson.setFormerCompanyCode(dept2ParentOrgCodeCacheMap.get(unit).getOrgCode());
         } else {
             OrganizationTreeDTO parent = new OrganizationTreeDTO();
             for(OrganizationTreeDTO dto : organizationTreeDTOList) {
                 if(
                         TreeUtils.containsBfs(
                                 dto,
-                                match -> relation.getLendingUnit().equals(match.getOrgCode()),
+                                match -> unit.equals(match.getOrgCode()),
                                 OrganizationTreeDTO::getChildren
-                        )
+                        ).equals(Boolean.TRUE)
                 ) {
                     parent = dto;
                     break;
                 }
             }
 
-            dept2ParentOrgCodeCacheMap.put(relation.getLendingUnit(), parent);
+            dept2ParentOrgCodeCacheMap.put(unit, parent);
         }
     }
 }
