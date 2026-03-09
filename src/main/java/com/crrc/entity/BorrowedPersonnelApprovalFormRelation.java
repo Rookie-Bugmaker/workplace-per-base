@@ -75,4 +75,24 @@ public class BorrowedPersonnelApprovalFormRelation extends BaseEntity{
     @ExcelProperty(value = {"结算方式"})
     @Schema(description = "结算方式")
     private String settlementMethod;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"流程模板id"})
+    @Schema(description = "流程模板id")
+    private String wfId;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"流程实例id"})
+    @Schema(description = "流程实例id")
+    private String processInstanceId;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"审批状态"})
+    @Schema(description = "审批状态")
+    private String orderStatus;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"文件id"})
+    @Schema(description = "文件id")
+    private String fileId;
 }
