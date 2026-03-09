@@ -748,6 +748,7 @@ public class ExternalController {
 
         xmlBuilder.append("</USERS>");
 
+
         // 3. 设置响应头为XML格式
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_XML);
