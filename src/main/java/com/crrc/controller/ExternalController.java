@@ -753,8 +753,8 @@ public class ExternalController {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_XML);
 
-        // 4. 返回XML响应（直接使用StringBuilder内容，不调用toString()）
-        return new ResponseEntity<>(xmlBuilder.toString().replaceAll("^\"|\"$", ""), headers, HttpStatus.OK);
+        // 4. 返回XML响应
+        return new ResponseEntity<>(xmlBuilder.toString(), headers, HttpStatus.OK);
     }
 
     /**
