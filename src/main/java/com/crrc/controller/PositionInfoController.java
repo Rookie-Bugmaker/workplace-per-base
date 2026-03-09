@@ -76,7 +76,9 @@ public class PositionInfoController {
     @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象", required = false)
     public ResponseResult<List<PositionInfo>> queryPositionInfoByList(@Validated @RequestBody(required = false) List<String> codeList) {
         LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.in(PositionInfo::getCode, codeList);
+        if(codeList != null && !codeList.isEmpty()) {
+            wrapper.in(PositionInfo::getCode, codeList);
+        }
         return new ResponseResult<>(HttpStatus.OK.value(), "获取列表成功", positionInfoService.getBaseMapper().selectList(wrapper));
     }
 
