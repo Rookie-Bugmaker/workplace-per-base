@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.api.WkCoreAPi;
+import com.crrc.api.WkDataAPi;
 import com.crrc.api.WkWorkflowApi;
 import com.crrc.common.PaginationGrid;
 import com.crrc.constants.AuditConstants;
@@ -22,6 +23,8 @@ import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.BorrowedPersonnelApprovalFormRelationDetailDTO;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.service.BorrowedPersonnelApprovalFormRelationService;
+import com.crrc.utils.DeptUtils;
+import com.crrc.utils.TreeUtils;
 import io.jsonwebtoken.lang.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,10 +33,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -51,6 +51,8 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
     public static final String BORROWING_TEMPLATE_ALIAS = "BORROWING_AUDIT";
     @Value("${crrc.role.leader.borrowing.id}")
     private long borrowingLeaderRoleId;
+    @Value("${crrc.role.hr.admin.quota.id}")
+    private long quotaApprovalRoleId;
 
     @Autowired
     WkWorkflowApi wkWorkflowApi;
@@ -147,7 +149,7 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
         // 查询出当前需要审批的计划
         BorrowedPersonnelApprovalFormRelation relation = getById(id);
         // 获得需求单位的编码
-        String requestingDepartment = relation.getBorrowingUnit();
+        String borrowingUnit = relation.getBorrowingUnit();
 
         List<SysUserDTO> roleUserListByRoleId = wkCoreAPi.getRoleUserListByRoleId(borrowingLeaderRoleId);
 
@@ -160,7 +162,7 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
         List<HrEmpBasic> hrEmpBasicList = basicMapper.selectList(wrapper);
 
         Set<String> leaders = hrEmpBasicList.stream()
-                .filter(emp -> Objects.nullSafeEquals(requestingDepartment, emp.getDept()))
+                .filter(emp -> Objects.nullSafeEquals(borrowingUnit, emp.getDept()))
                 .map(HrEmpBasic::getUserCode)
                 .collect(Collectors.toSet());
 
@@ -208,5 +210,31 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
         }
 
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
+    }
+
+    @Override
+    public PaginationGrid<SysUserDTO> findQuotaApproval() {
+
+        List<SysUserDTO> quotaApproval = wkCoreAPi.getRoleUserListByRoleId(quotaApprovalRoleId);
+
+        PaginationGrid<SysUserDTO> result = new PaginationGrid<>();
+
+        result.setRows(quotaApproval);
+        result.setTotal((long) quotaApproval.size());
+
+        return result;
+    }
+
+    @Override
+    public PaginationGrid<SysUserDTO> findCompanyLeaderApproval(String id) {
+        // id暂时不用,默认都在长客
+        List<SysUserDTO> quotaApproval = wkCoreAPi.getRoleUserListByRoleId(borrowingLeaderRoleId);
+
+        PaginationGrid<SysUserDTO> result = new PaginationGrid<>();
+
+        result.setRows(quotaApproval);
+        result.setTotal((long) quotaApproval.size());
+
+        return result;
     }
 }
