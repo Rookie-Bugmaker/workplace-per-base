@@ -21,7 +21,6 @@ import com.crrc.mapper.HrEmpSalaryInfoMapper;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.KingDiePersonalOrderDTO;
-import com.crrc.pojo.vo.ExceptionCasePersonPlusVO;
 import com.crrc.service.CategoryRecordService;
 import com.crrc.service.impl.*;
 import com.crrc.utils.MinIOUtils;
@@ -690,13 +689,13 @@ public class ExternalController {
     @Operation(summary = "SAP webservice, 获取额外人员信息表列表")
     @AuditLog(value = "获取额外人员信息表列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     public ResponseResult queryForSap() {
-        List<ExceptionCasePersonPlusVO> effectiveList = exceptionCasePersonService.selectEffectivePerson();
+        List<ExceptionCasePerson> effectiveList = exceptionCasePersonService.selectEffectivePerson();
 
         // 组装XML报文
         StringBuilder xmlBuilder = new StringBuilder();
         xmlBuilder.append("<Objects>");
 
-        for (ExceptionCasePersonPlusVO person : effectiveList) {
+        for (ExceptionCasePerson person : effectiveList) {
             xmlBuilder.append("    <item>\n")
                     .append("        <USERID>").append(person.getUserCode()).append("</USERID>")
                     .append("        <NAME>").append(person.getName()).append("</NAME>")
@@ -705,7 +704,7 @@ public class ExternalController {
                     .append("        <DEPARTNAME>").append(person.getNewDept()).append("</DEPARTNAME>")
                     .append("        <GENDER>").append("男").append("</GENDER>\n") // todo 目前没有收集性别信息，默认全传1
                     // EXT_SEC→外部派入，INT_LOAN→借用，其它为未知类型
-                    .append("        <CLASS>").append(resolveUserType(person.getUserType())).append("</CLASS>")
+                    .append("        <CLASS>").append(resolveUserType(person.getSourceType())).append("</CLASS>")
                     .append("    </item>");
         }
 
@@ -731,19 +730,19 @@ public class ExternalController {
     @AuditLog(value = "接收总线请求返回人员信息", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     public ResponseEntity<String> queryForKingdie() {
         // 1. 获取有效人员列表
-        List<ExceptionCasePersonPlusVO> effectiveList = exceptionCasePersonService.selectEffectivePerson();
+        List<ExceptionCasePerson> effectiveList = exceptionCasePersonService.selectEffectivePerson();
 
         // 2. 组装XML报文
         StringBuilder xmlBuilder = new StringBuilder();
         xmlBuilder.append("<USERS>");
 
-        for (ExceptionCasePersonPlusVO person : effectiveList) {
+        for (ExceptionCasePerson person : effectiveList) {
             xmlBuilder.append("    <USER>")
                     .append("        <USER_CODE>").append(person.getUserCode()).append("</USER_CODE>")
                     .append("        <NAME>").append(person.getName()).append("</NAME>")
                     .append("        <ORG>").append(person.getNewCompanyCode()).append("</ORG>")
                     .append("        <DEPT>").append(person.getNewDeptCode()).append("</DEPT>")
-                    .append("        <DUTYPE>").append(resolveUserType(person.getUserType())).append("</DUTYPE>")
+                    .append("        <DUTYPE>").append(resolveUserType(person.getSourceType())).append("</DUTYPE>")
                     .append("    </USER>");
         }
 

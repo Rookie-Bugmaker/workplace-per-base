@@ -1,9 +1,7 @@
 package com.crrc.service.impl;
 
 import com.crrc.entity.ExceptionCasePerson;
-import com.crrc.entity.ExceptionCasePersonRelation;
 import com.crrc.mapper.ExceptionCasePersonMapper;
-import com.crrc.pojo.vo.ExceptionCasePersonPlusVO;
 import com.crrc.service.ExceptionCasePersonService;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,19 +35,15 @@ public class ExceptionCasePersonServiceImpl extends WorkServiceImpl<ExceptionCas
      * 查询当前有效的调动人员及其对应的调动类型
      * @return 包含调动类型的人员列表
      */
-    public List<ExceptionCasePersonPlusVO> selectEffectivePerson() {
+    public List<ExceptionCasePerson> selectEffectivePerson() {
         MPJLambdaWrapper<ExceptionCasePerson> wrapper = new MPJLambdaWrapper<>();
         LocalDate currentDate = LocalDate.now();
 
         wrapper.selectAll(ExceptionCasePerson.class)
-                .select(ExceptionCasePersonRelation::getUserType)
-                .leftJoin(ExceptionCasePersonRelation.class,
-                        ExceptionCasePersonRelation::getId,
-                        ExceptionCasePerson::getRelationId)
                 .eq(ExceptionCasePerson::getDeleted, "0")
                 .le(ExceptionCasePerson::getStartDate, currentDate)
                 .ge(ExceptionCasePerson::getEndDate, currentDate);
 
-        return exceptionCasePersonMapper.selectJoinList(ExceptionCasePersonPlusVO.class, wrapper);
+        return exceptionCasePersonMapper.selectList(wrapper);
     }
 }
