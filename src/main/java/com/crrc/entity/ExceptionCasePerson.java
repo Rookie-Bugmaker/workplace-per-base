@@ -111,4 +111,9 @@ public class ExceptionCasePerson extends BaseEntity implements Serializable {
     @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
     private LocalDate endDate;
 
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelMethod(method = ExcelType.BOTH, header = "来源种类(借用/派入)", sorted = 10)
+    @Schema(description = "来源种类(借用/派入)", example = "")
+    private String sourceType;
+
 }

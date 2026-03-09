@@ -5,17 +5,14 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.api.WkCoreAPi;
-import com.crrc.api.WkDataAPi;
 import com.crrc.api.WkWorkflowApi;
 import com.crrc.common.PaginationGrid;
 import com.crrc.constants.AuditConstants;
-import com.crrc.entity.BorrowedPersonnelApprovalForm;
-import com.crrc.entity.BorrowedPersonnelApprovalFormRelation;
-import com.crrc.entity.HrEmpBasic;
-import com.crrc.entity.PersonnelSecondmentRequestRelation;
+import com.crrc.entity.*;
 import com.crrc.entity.dto.ProcessInstanceVo;
 import com.crrc.entity.dto.StartProcessInstanceDTO;
 import com.crrc.entity.dto.SysUserDTO;
+import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.entity.dto.response.ResultData;
 import com.crrc.mapper.BorrowedPersonnelApprovalFormRelationMapper;
 import com.crrc.mapper.HrEmpBasicMapper;
@@ -66,6 +63,8 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
     WkCoreAPi wkCoreAPi;
     @Autowired
     HrEmpBasicMapper basicMapper;
+    @Autowired
+    ExceptionCasePersonServiceImpl exceptionCasePersonService;
 
     @Override
     public ResponseResult<Boolean> submit(String id) {
@@ -193,6 +192,39 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
             // 已结束
             relation.setOrderStatus(AuditConstants.STATUS_AUDIT_PASS);
             updateById(relation);
+
+            // 推送的exceptionCasePerson
+            List<BorrowedPersonnelApprovalForm> formList = borrowedPersonnelApprovalFormService.getByRelationId(relation.getId());
+            Map<String, OrganizationTreeDTO> dept2ParentOrgCodeCacheMap = new HashMap<>();
+            List<OrganizationTreeDTO> organizationTreeDTOList = DeptUtils.treeOrganization();
+
+            List<ExceptionCasePerson> exceptionCasePeopleList = formList.stream().map(form -> {
+                ExceptionCasePerson exceptionCasePerson = new ExceptionCasePerson();
+                exceptionCasePerson.setId(IdUtil.randomUUID());
+                exceptionCasePerson.setRelationId(form.getId());
+                exceptionCasePerson.setName(form.getName());
+                exceptionCasePerson.setUserCode(form.getUserCode());
+                exceptionCasePerson.setFormerDept(relation.getLendingUnitName());
+                exceptionCasePerson.setFormerDeptCode(relation.getLendingUnit());
+                // 回写公司
+                setCompany(dept2ParentOrgCodeCacheMap, relation, exceptionCasePerson, organizationTreeDTOList);
+
+                exceptionCasePerson.setNewDept(relation.getBorrowingUnitName());
+                exceptionCasePerson.setNewDeptCode(relation.getBorrowingUnit());
+
+                // 回写公司
+                setCompany(dept2ParentOrgCodeCacheMap, relation, exceptionCasePerson, organizationTreeDTOList);
+
+                exceptionCasePerson.setPosition(form.getJobType());
+
+                exceptionCasePerson.setStartDate(relation.getStartDate());
+                exceptionCasePerson.setEndDate(relation.getEndDate());
+                exceptionCasePerson.setSourceType("borrow");
+
+                return exceptionCasePerson;
+            }).collect(Collectors.toList());
+
+            exceptionCasePersonService.saveBatch(exceptionCasePeopleList);
         } else if (processInstanceStatus == 3) {
             // 已拒绝
             relation.setOrderStatus(AuditConstants.STATUS_REJECT);
@@ -236,5 +268,38 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
         result.setTotal((long) quotaApproval.size());
 
         return result;
+    }
+
+    @Override
+    public BorrowedPersonnelApprovalFormRelationDetailDTO getDetailsById(String id) {
+        BorrowedPersonnelApprovalFormRelation relation = getById(id);
+        List<BorrowedPersonnelApprovalForm> formList = borrowedPersonnelApprovalFormService.getByRelationId(id);
+        BorrowedPersonnelApprovalFormRelationDetailDTO detailDTO = new BorrowedPersonnelApprovalFormRelationDetailDTO();
+        detailDTO.setRelation(relation);
+        detailDTO.setApprovalFormList(formList);
+        return detailDTO;
+    }
+
+    private static void setCompany(Map<String, OrganizationTreeDTO> dept2ParentOrgCodeCacheMap, BorrowedPersonnelApprovalFormRelation relation, ExceptionCasePerson exceptionCasePerson, List<OrganizationTreeDTO> organizationTreeDTOList) {
+        if(dept2ParentOrgCodeCacheMap.containsKey(relation.getLendingUnit())) {
+            exceptionCasePerson.setFormerCompany(dept2ParentOrgCodeCacheMap.get(relation.getLendingUnit()).getOrgName());
+            exceptionCasePerson.setFormerCompanyCode(dept2ParentOrgCodeCacheMap.get(relation.getLendingUnit()).getOrgCode());
+        } else {
+            OrganizationTreeDTO parent = new OrganizationTreeDTO();
+            for(OrganizationTreeDTO dto : organizationTreeDTOList) {
+                if(
+                        TreeUtils.containsBfs(
+                                dto,
+                                match -> relation.getLendingUnit().equals(match.getOrgCode()),
+                                OrganizationTreeDTO::getChildren
+                        )
+                ) {
+                    parent = dto;
+                    break;
+                }
+            }
+
+            dept2ParentOrgCodeCacheMap.put(relation.getLendingUnit(), parent);
+        }
     }
 }
