@@ -95,9 +95,9 @@ public class TenantScopeAspect {
                 for (OrganizationTreeDTO datum : wkDataAPi.treeOrganization().getData()) {
                     if(
                             TreeUtils.containsBfs(
-                            datum,
-                            e -> basic.getDept().equals(e.getOrgCode()),
-                            OrganizationTreeDTO::getChildren).equals(Boolean.TRUE)
+                                    datum,
+                                    e -> basic.getDept().equals(e.getOrgCode()),
+                                    OrganizationTreeDTO::getChildren)
                     ) {
                         orgCode = datum.getOrgCode();
                         break;
