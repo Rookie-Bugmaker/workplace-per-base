@@ -272,7 +272,7 @@ public class ExternalController {
                     for(HrEmpCareerPath path : hrEmpCareerPaths) {
                         if("0".equals(path.getIsExpired())) {
                             path.setIsExpired("1");
-                            path.setExpiryDate(LocalDate.now());
+                            path.setExpiryDate(dto.getHrEmpCareerPath().getEffectiveDate());
                             hrEmpCareerPathService.updateById(path);
                         }
                     }
