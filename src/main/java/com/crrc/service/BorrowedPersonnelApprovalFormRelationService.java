@@ -52,4 +52,14 @@ public interface BorrowedPersonnelApprovalFormRelationService extends IService<B
      * 回调接口
      */
     ResponseResult<Boolean> writeBack(WorkflowWriteBackParamDTO param);
+
+    /**
+     * 查询定额管理员
+     */
+    PaginationGrid<SysUserDTO> findQuotaApproval();
+
+    /**
+     * 查询公司主管领导
+     */
+    PaginationGrid<SysUserDTO> findCompanyLeaderApproval(String id);
 }

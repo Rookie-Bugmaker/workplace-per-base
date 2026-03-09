@@ -68,6 +68,23 @@ public class BorrowedPersonnelApprovalFormRelationController {
         return ResponseResult.success(borrowedPersonnelApprovalFormRelationService.findBorrowingUnitSupervisorApproval(id));
     }
 
+    @TenantIgnore
+    @GetMapping("/findQuotaApproval")
+    public ResponseResult<PaginationGrid<SysUserDTO>> findQuotaApproval(
+            Integer page, Integer pageSize
+    ) {
+        return ResponseResult.success(borrowedPersonnelApprovalFormRelationService.findQuotaApproval());
+    }
+
+    @TenantIgnore
+    @GetMapping("/findCompanyLeaderApproval")
+    public ResponseResult<PaginationGrid<SysUserDTO>> findCompanyLeaderApproval(
+            Integer page, Integer pageSize,
+            @RequestParam("id") String id
+    ) {
+        return ResponseResult.success(borrowedPersonnelApprovalFormRelationService.findCompanyLeaderApproval(id));
+    }
+
     @PostMapping("/submit")
     public ResponseResult<Boolean> submitApprovalFormRelation(@RequestParam("id") String id) {
         try {
