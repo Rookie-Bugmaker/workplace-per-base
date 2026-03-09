@@ -9,6 +9,7 @@ import com.crrc.service.impl.HrEmpSalaryInfoServiceImpl;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -43,10 +44,10 @@ public class SalaryInfoImportListener implements ReadListener<HrEmpSalaryInfo> {
             return;
         }
 
-        buffer.add(row);
-
-        if (buffer.size() >= BATCH_SIZE) {
-            flush();
+        // 检查departmentCode是否为空
+        if (row.getDepartmentCode() == null || row.getDepartmentCode().trim().isEmpty()) {
+            errors.add("第 " + rowIndex + " 行：部门编码为空");
+            return;
         }
 
         buffer.add(row);
@@ -61,16 +62,24 @@ public class SalaryInfoImportListener implements ReadListener<HrEmpSalaryInfo> {
             return;
         }
 
-        List<String> collect = buffer.stream().map(HrEmpSalaryInfo::getUserCode).collect(Collectors.toList());
+        // 创建userCode到departmentCode的映射
+        Map<String, String> codeMapping = buffer.stream()
+                .collect(Collectors.toMap(
+                        HrEmpSalaryInfo::getUserCode,
+                        HrEmpSalaryInfo::getDepartmentCode,
+                        (existing, replacement) -> existing));
+
+        List<String> userCodes = new ArrayList<>(codeMapping.keySet());
 
         LambdaQueryWrapper<HrEmpSalaryInfo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.in(HrEmpSalaryInfo::getUserCode, collect);
+        wrapper.in(HrEmpSalaryInfo::getUserCode, userCodes);
         List<HrEmpSalaryInfo> hrEmpSalaryInfos = hrEmpSalaryInfoService.getBaseMapper().selectList(wrapper);
         hrEmpSalaryInfos.forEach(item -> {
-//            item.setPositionSalary("0");
-            // 将String类型的seniorityStandard转为整数加一后再转回String
-            int currentValue = Integer.parseInt(item.getSeniorityStandard());
-            item.setSeniorityStandard(String.valueOf(currentValue + 1));
+            // 根据userCode获取对应的departmentCode并更新
+            String newDeptCode = codeMapping.get(item.getUserCode());
+            if (newDeptCode != null) {
+                item.setDepartmentCode(newDeptCode);
+            }
         });
         hrEmpSalaryInfoService.updateBatchById(hrEmpSalaryInfos);
 
