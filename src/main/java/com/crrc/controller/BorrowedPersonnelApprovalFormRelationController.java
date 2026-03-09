@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
 import com.crrc.annotation.TenantIgnore;
-import com.crrc.annotation.TenantScope;
 import com.crrc.common.PaginationGrid;
 import com.crrc.entity.BorrowedPersonnelApprovalFormRelation;
 import com.crrc.entity.dto.SysUserDTO;
@@ -42,7 +41,6 @@ import java.util.List;
 @RequestMapping("/borrowedPersonnelApprovalFormRelation")
 @RefreshScope
 @Tag(name = "借调（借用）人员审批表", description = "借调（借用）人员审批表")
-@TenantScope(filterRoleCode = {"DISPATCH_ADMIN", "QUOTA_ADMIN", "hrsc_deputy_minister"}, tenantLevel = TenantScope.TenantLevel.DEPT)
 @Slf4j
 public class BorrowedPersonnelApprovalFormRelationController {
 
@@ -62,7 +60,6 @@ public class BorrowedPersonnelApprovalFormRelationController {
     @TenantIgnore
     @GetMapping("/findBorrowingUnitSupervisorApproval")
     public ResponseResult<PaginationGrid<SysUserDTO>> findBorrowingUnitSupervisorApproval(
-            Integer page, Integer pageSize,
             @RequestParam("id") String id
     ) {
         return ResponseResult.success(borrowedPersonnelApprovalFormRelationService.findBorrowingUnitSupervisorApproval(id));
@@ -79,7 +76,6 @@ public class BorrowedPersonnelApprovalFormRelationController {
     @TenantIgnore
     @GetMapping("/findCompanyLeaderApproval")
     public ResponseResult<PaginationGrid<SysUserDTO>> findCompanyLeaderApproval(
-            Integer page, Integer pageSize,
             @RequestParam("id") String id
     ) {
         return ResponseResult.success(borrowedPersonnelApprovalFormRelationService.findCompanyLeaderApproval(id));
