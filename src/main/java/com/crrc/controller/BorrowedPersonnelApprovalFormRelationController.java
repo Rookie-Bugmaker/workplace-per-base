@@ -124,8 +124,8 @@ public class BorrowedPersonnelApprovalFormRelationController {
     @Operation(summary = "获得借调（借用）人员审批表实体")
     @AuditLog(value = "获得借调（借用）人员审批表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
-    public ResponseResult<BorrowedPersonnelApprovalFormRelation> getBorrowedPersonnelApprovalFormRelation(@RequestParam("id") Long id) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取借调（借用）人员审批表实体成功", borrowedPersonnelApprovalFormRelationService.getById(id));
+    public ResponseResult<BorrowedPersonnelApprovalFormRelationDetailDTO> getBorrowedPersonnelApprovalFormRelation(@RequestParam("id") String id) {
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取借调（借用）人员审批表实体成功", borrowedPersonnelApprovalFormRelationService.getDetailsById(id));
     }
 
     @Transactional
@@ -134,9 +134,7 @@ public class BorrowedPersonnelApprovalFormRelationController {
     @AuditLog(value = "借调（借用）人员审批表实体保存", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
     @Parameter(name = "reqVO", description = "实体对象", required = true)
     public ResponseResult<Boolean> saveBorrowedPersonnelApprovalFormRelation(@PathVariable String requestId, @Valid @RequestBody BorrowedPersonnelApprovalFormRelationDetailDTO reqDTO) {
-
         borrowedPersonnelApprovalFormRelationService.saveDetails(requestId, reqDTO);
-    
         return new ResponseResult<>(HttpStatus.OK.value(), "保存借调（借用）人员审批表实体成功", true);
     }
 

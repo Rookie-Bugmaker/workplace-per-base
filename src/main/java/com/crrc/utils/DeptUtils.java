@@ -5,13 +5,16 @@ import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
 import com.crrc.entity.dto.DeptDTO;
 import com.crrc.entity.dto.ResponseResultDTO;
+import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.service.impl.CodeInfoServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,6 +35,46 @@ public class DeptUtils {
         DeptUtils.wkCoreApi = wkCoreApi;
         DeptUtils.codeInfoService = codeInfoService;
         DeptUtils.wkDataApi = wkDataApi;
+    }
+
+    /**
+     * 获取所有部门（树型）
+     * @return 部门名称
+     */
+    public static List<OrganizationTreeDTO> treeOrganization() {
+        try {
+            log.info("进入treeOrganization");
+            // 先使用wkCoreApi翻译
+            ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataApi.treeOrganization();
+            if(listResponseResultDTO == null || ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+                log.error("treeOrganization部门查询失败，请检查wkDataApi状态，返回报文： {}", listResponseResultDTO);
+                return Collections.emptyList();
+            }
+            return listResponseResultDTO.getData();
+        } catch (Exception e) {
+            log.error("treeOrganization出现内部错误", e);
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * 获取所有部门（列表）
+     * @return 部门名称
+     */
+    public static List<OrganizationDTO> listOrganization() {
+        try {
+            log.info("进入listOrganization");
+            // 先使用wkCoreApi翻译
+            ResponseResultDTO<List<OrganizationDTO>> listResponseResultDTO = wkDataApi.allOrganization();
+            if(listResponseResultDTO == null || ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+                log.error("listOrganization部门查询失败，请检查wkDataApi状态，返回报文： {}", listResponseResultDTO);
+                return Collections.emptyList();
+            }
+            return listResponseResultDTO.getData();
+        } catch (Exception e) {
+            log.error("listOrganization出现内部错误", e);
+            return Collections.emptyList();
+        }
     }
 
     /**

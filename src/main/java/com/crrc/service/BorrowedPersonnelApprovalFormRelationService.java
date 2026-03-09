@@ -62,4 +62,9 @@ public interface BorrowedPersonnelApprovalFormRelationService extends IService<B
      * 查询公司主管领导
      */
     PaginationGrid<SysUserDTO> findCompanyLeaderApproval(String id);
+
+    /**
+     * 根据主键获得详情
+     */
+    BorrowedPersonnelApprovalFormRelationDetailDTO getDetailsById(String id);
 }
