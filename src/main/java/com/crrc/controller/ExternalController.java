@@ -735,7 +735,6 @@ public class ExternalController {
 
         // 2. 组装XML报文
         StringBuilder xmlBuilder = new StringBuilder();
-        xmlBuilder.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
         xmlBuilder.append("<USERS>");
 
         for (ExceptionCasePersonPlusVO person : effectiveList) {
