@@ -70,7 +70,7 @@ public class HrEmpResumeServiceImpl extends WorkServiceImpl<HrEmpResumeMapper, H
             }
 
             // 如果扫完了appointment还没找到，尝试查询otherAppointment中的其它任职类型
-            if(StringUtils.isNotBlank(hrEmpResume.getChangeType())) {
+            if(StringUtils.isBlank(hrEmpResume.getChangeType())) {
                 // 根据userCode，开始时间查询对应的otherAppointment，以处理变动类型
                 LambdaQueryWrapper<HrEmpOtherAppointment> queryWrapperOther = new LambdaQueryWrapper<>();
                 queryWrapperOther.eq(HrEmpOtherAppointment::getUserCode, hrEmpResume.getUserCode());
