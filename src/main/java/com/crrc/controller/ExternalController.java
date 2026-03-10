@@ -702,8 +702,7 @@ public class ExternalController {
                     .append("        <COMPANY>").append(person.getNewCompanyCode()).append("</COMPANY>")
                     .append("        <DEPARTMENT>").append(person.getNewDeptCode()).append("</DEPARTMENT>")
                     .append("        <DEPARTNAME>").append(person.getNewDept()).append("</DEPARTNAME>")
-                    .append("        <GENDER>").append("男").append("</GENDER>\n") // todo 目前没有收集性别信息，默认全传1
-                    // EXT_SEC→外部派入，INT_LOAN→借用，其它为未知类型
+                    .append("        <GENDER>").append("男").append("</GENDER>\n") // todo 目前没有收集性别信息，默认全传男
                     .append("        <CLASS>").append(resolveUserType(person.getSourceType())).append("</CLASS>")
                     .append("    </item>");
         }
@@ -770,6 +769,9 @@ public class ExternalController {
                 break;
             case "INT_LOAN":
                 userType = "借用";
+                break;
+            case "SIDE_POSITION":
+                userType = "兼职";
                 break;
             default:
                 userType = "未知类型";
