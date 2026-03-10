@@ -14,6 +14,7 @@ import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
+import com.crrc.pojo.vo.RequestAndBorrowedConcatVO;
 import com.crrc.service.impl.BorrowedPersonnelApprovalFormRelationServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -96,13 +97,13 @@ public class BorrowedPersonnelApprovalFormRelationController {
     @Parameter(name = "pageReqVO",description = "包含查询条件的实体对象")
     @Parameter(name = "pageNo", description = "页码", example = "1")
     @Parameter(name = "pageSize", description = "条数", example = "10")
-    public ResponseResult<IPage<PersonnelSecondmentRequestRelation>> pageBorrowedPersonnelApprovalFormRelation(
+    public ResponseResult<IPage<RequestAndBorrowedConcatVO>> pageBorrowedPersonnelApprovalFormRelation(
             @Validated @RequestBody(required = false) PersonnelSecondmentRequestRelation pageReqVO,
             @RequestParam(required = false, defaultValue = "1") int pageNo,
             @RequestParam(required = false, defaultValue = "10")int pageSize
     ) {
         pageReqVO = (pageReqVO == null) ? new PersonnelSecondmentRequestRelation() : pageReqVO;
-        Page<PersonnelSecondmentRequestRelation> page = new Page<>(pageNo, pageSize);
+        Page<RequestAndBorrowedConcatVO> page = new Page<>(pageNo, pageSize);
         borrowedPersonnelApprovalFormRelationService.pageRequestBySourceDept(page, pageReqVO);
         return new ResponseResult<>(HttpStatus.OK.value(), "获取借调（借用）人员审批表列表 page成功", page);
     }

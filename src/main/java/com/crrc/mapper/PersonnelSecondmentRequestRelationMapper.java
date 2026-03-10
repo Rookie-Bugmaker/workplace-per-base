@@ -2,6 +2,7 @@ package com.crrc.mapper;
 
 import com.crrc.entity.PersonnelSecondmentRequestRelation;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.github.yulichang.base.MPJBaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
@@ -13,6 +14,6 @@ import org.apache.ibatis.annotations.Mapper;
  * @since 2026-03-04 16:26:51
  */
 @Mapper
-public interface PersonnelSecondmentRequestRelationMapper extends BaseMapper<PersonnelSecondmentRequestRelation> {
+public interface PersonnelSecondmentRequestRelationMapper extends MPJBaseMapper<PersonnelSecondmentRequestRelation> {
 
 }

@@ -2,9 +2,7 @@ package com.crrc.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkWorkflowApi;
@@ -15,39 +13,28 @@ import com.crrc.entity.dto.ProcessInstanceVo;
 import com.crrc.entity.dto.StartProcessInstanceDTO;
 import com.crrc.entity.dto.SysUserDTO;
 import com.crrc.entity.dto.response.ResultData;
-import com.crrc.entity.filedata.vo.FileDataStream;
+import com.crrc.mapper.BorrowedPersonnelApprovalFormRelationMapper;
 import com.crrc.mapper.HrEmpBasicMapper;
-import com.crrc.mapper.PersonnelSecondmentRequestMapper;
 import com.crrc.mapper.PersonnelSecondmentRequestRelationMapper;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
-import com.crrc.pojo.vo.PersonnelSecondmentRequestRelationTemplateVO;
-import com.crrc.pojo.vo.PersonnelSecondmentRequestTemplateVO;
+import com.crrc.pojo.vo.RequestAndBorrowedConcatVO;
 import com.crrc.service.PersonnelSecondmentRequestRelationService;
 import com.crrc.utils.DeptUtils;
 import com.crrc.utils.SecurityFrameworkUtils;
-import com.crrc.utils.WordTemplateProcessor;
 import com.crrc.utils.WrapperUtils;
+import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import io.jsonwebtoken.lang.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static org.springframework.messaging.simp.SimpMessageHeaderAccessor.getUser;
 
 /**
  * <p>
@@ -71,7 +58,7 @@ public class PersonnelSecondmentRequestRelationServiceImpl extends WorkServiceIm
     @Autowired
     TemplateGenerateServiceImpl templateGenerateService;
     @Autowired
-    PersonnelSecondmentRequestSourceDeptRelServiceImpl personnelSecondmentRequestSourceDeptRelService;
+    BorrowedPersonnelApprovalFormRelationMapper borrowedPersonnelMapper;
 
     @Value("${crrc.role.leader.borrow.id}")
     private long borrowLeaderRoleId;
@@ -241,8 +228,10 @@ public class PersonnelSecondmentRequestRelationServiceImpl extends WorkServiceIm
     @Transactional(rollbackFor = Exception.class)
     public Boolean sendToSourceDept(String relationId, List<String> deptCodeList) {
         // 1. 查询当前关系下已存在的部门关联
-        List<PersonnelSecondmentRequestSourceDeptRel> existingRelations =
-                personnelSecondmentRequestSourceDeptRelService.getListByRelationId(relationId);
+        LambdaQueryWrapper<BorrowedPersonnelApprovalFormRelation> existedRelationsWrapper = new LambdaQueryWrapper<>();
+        existedRelationsWrapper.eq(BorrowedPersonnelApprovalFormRelation::getRequestId, relationId);
+        List<BorrowedPersonnelApprovalFormRelation> existingRelations =
+                borrowedPersonnelMapper.selectList(existedRelationsWrapper);
 
         // 2. 将前端传入的部门编码去重，避免重复插入
         //    LinkedHashSet 既能去重，也能保留原始顺序
@@ -261,8 +250,8 @@ public class PersonnelSecondmentRequestRelationServiceImpl extends WorkServiceIm
         Set<String> retainedDeptCodeSet = new HashSet<>();
         List<String> removeIds = new ArrayList<>();
 
-        for (PersonnelSecondmentRequestSourceDeptRel existingRelation : existingRelations) {
-            String existingDeptCode = existingRelation.getDeptCode();
+        for (BorrowedPersonnelApprovalFormRelation existingRelation : existingRelations) {
+            String existingDeptCode = existingRelation.getTargetDept();
 
             // 以下两种情况需要删除：
             // 1) 该部门已不在本次传入列表中
@@ -274,13 +263,13 @@ public class PersonnelSecondmentRequestRelationServiceImpl extends WorkServiceIm
 
         // 4. 计算需要新增的数据：
         //    前端传入中有，但数据库最终保留集中没有的 deptCode，需要新增
-        List<PersonnelSecondmentRequestSourceDeptRel> insertRelations = new ArrayList<>();
+        List<BorrowedPersonnelApprovalFormRelation> insertRelations = new ArrayList<>();
         for (String deptCode : targetDeptCodeSet) {
             if (!retainedDeptCodeSet.contains(deptCode)) {
-                PersonnelSecondmentRequestSourceDeptRel newRelation = new PersonnelSecondmentRequestSourceDeptRel();
+                BorrowedPersonnelApprovalFormRelation newRelation = new BorrowedPersonnelApprovalFormRelation();
                 newRelation.setId(IdUtil.randomUUID());
-                newRelation.setRelationId(relationId);
-                newRelation.setDeptCode(deptCode);
+                newRelation.setRequestId(relationId);
+                newRelation.setTargetDept(deptCode);
                 insertRelations.add(newRelation);
             }
         }
@@ -288,18 +277,20 @@ public class PersonnelSecondmentRequestRelationServiceImpl extends WorkServiceIm
         // 5. 批量删除与批量新增
         //    非空时再执行，避免无意义数据库调用
         if (!removeIds.isEmpty()) {
-            personnelSecondmentRequestSourceDeptRelService.removeBatchByIds(removeIds);
+            borrowedPersonnelMapper.deleteBatchIds(removeIds);
         }
 
         if (!insertRelations.isEmpty()) {
-            personnelSecondmentRequestSourceDeptRelService.saveBatch(insertRelations);
+            for (BorrowedPersonnelApprovalFormRelation borrowedPersonnelApprovalFormRelation : insertRelations) {
+                borrowedPersonnelMapper.insert(borrowedPersonnelApprovalFormRelation);
+            }
         }
 
         return true;
     }
 
     @Override
-    public void pageBySourceDept(Page<PersonnelSecondmentRequestRelation> page, PersonnelSecondmentRequestRelation pageReqVO) {
+    public void pageBySourceDept(Page<RequestAndBorrowedConcatVO> page, PersonnelSecondmentRequestRelation pageReqVO) {
         LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
         if(loginUser == null) {
             throw new IllegalStateException("登录用户信息获取失败");
@@ -311,21 +302,26 @@ public class PersonnelSecondmentRequestRelationServiceImpl extends WorkServiceIm
         wrapper.eq(HrEmpBasic::getUserCode, jobNo);
         List<HrEmpBasic> hrEmpBasicList = hrEmpBasicMapper.selectList(wrapper);
 
-        String dept = "0";
+        String dept;
         if(hrEmpBasicList != null && !hrEmpBasicList.isEmpty()) {
             HrEmpBasic hrEmpBasic = hrEmpBasicList.get(0);
             dept = hrEmpBasic.getDept();
+        } else {
+            dept = "0";
         }
 
-        QueryWrapper<PersonnelSecondmentRequestRelation> relationWrapper = WrapperUtils.buildWrapper(pageReqVO, WrapperUtils.StringMode.LIKE);
-        relationWrapper.exists(
-                "select 1 " +
-                        "from personnel_secondment_request_source_dept_rel r " +
-                        "where r.relation_id = personnel_secondment_request_relation.id " +
-                        "and r.dept_code = {0} and deleted = 0 ",
-                dept
-        );
+        MPJLambdaWrapper<PersonnelSecondmentRequestRelation> mpjLambdaWrapper = new MPJLambdaWrapper<PersonnelSecondmentRequestRelation>()
+                .selectAll(PersonnelSecondmentRequestRelation.class);
 
-        baseMapper.selectPage(page, relationWrapper);
+        WrapperUtils.selectAllWithPrefix(mpjLambdaWrapper, BorrowedPersonnelApprovalFormRelation.class, "t1", "brw_");
+
+        mpjLambdaWrapper
+                .innerJoin(
+                        BorrowedPersonnelApprovalFormRelation.class, on -> on
+                                .eq(BorrowedPersonnelApprovalFormRelation::getRequestId, PersonnelSecondmentRequestRelation::getId)
+                )
+                .eq(BorrowedPersonnelApprovalFormRelation::getTargetDept, dept);
+
+        baseMapper.selectJoinPage(page, RequestAndBorrowedConcatVO.class, mpjLambdaWrapper);
     }
 }

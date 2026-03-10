@@ -19,6 +19,14 @@ public final class AuditConstants {
      */
     public static final String STATUS_AUDIT_PASS_DESC = "审批通过";
     /**
+     * 审批通过
+     */
+    public static final String STATUS_SUBMITTED = "SUBMITTED";
+    /**
+     * 审批通过
+     */
+    public static final String STATUS_SUBMITTED_DESC = "部门已推送";
+    /**
      * 等待自评
      */
     public static final String STATUS_SELF_EVAL = "SELF_EVAL";

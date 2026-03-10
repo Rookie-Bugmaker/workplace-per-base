@@ -9,6 +9,7 @@ import com.crrc.entity.dto.SysUserDTO;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.BorrowedPersonnelApprovalFormRelationDetailDTO;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
+import com.crrc.pojo.vo.RequestAndBorrowedConcatVO;
 
 import javax.validation.Valid;
 
@@ -34,7 +35,7 @@ public interface BorrowedPersonnelApprovalFormRelationService extends IService<B
      * @param page 分页信息
      * @param pageReqVO 查询条件
      */
-    void pageRequestBySourceDept(Page<PersonnelSecondmentRequestRelation> page, PersonnelSecondmentRequestRelation pageReqVO);
+    void pageRequestBySourceDept(Page<RequestAndBorrowedConcatVO> page, PersonnelSecondmentRequestRelation pageReqVO);
 
     /**
      * 保存，修改或删除借用人员审批表及其明细
