@@ -95,4 +95,14 @@ public class BorrowedPersonnelApprovalFormRelation extends BaseEntity{
     @ExcelProperty(value = {"文件id"})
     @Schema(description = "文件id")
     private String fileId;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"对应需求计划id"})
+    @Schema(description = "对应需求计划id")
+    private String requestId;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"目标部门"})
+    @Schema(description = "目标部门")
+    private String targetDept;
 }

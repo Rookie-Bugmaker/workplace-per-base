@@ -7,6 +7,7 @@ import com.crrc.entity.PersonnelSecondmentRequestRelation;
 import com.crrc.entity.dto.SysUserDTO;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
+import com.crrc.pojo.vo.RequestAndBorrowedConcatVO;
 
 import java.util.List;
 
@@ -72,5 +73,5 @@ public interface PersonnelSecondmentRequestRelationService extends IService<Pers
      * @param page 分页信息
      * @param pageReqVO 查询条件
      */
-    void pageBySourceDept(Page<PersonnelSecondmentRequestRelation> page, PersonnelSecondmentRequestRelation pageReqVO);
+    void pageBySourceDept(Page<RequestAndBorrowedConcatVO> page, PersonnelSecondmentRequestRelation pageReqVO);
 }

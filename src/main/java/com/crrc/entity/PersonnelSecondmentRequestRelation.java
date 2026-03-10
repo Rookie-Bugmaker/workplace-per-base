@@ -72,9 +72,4 @@ public class PersonnelSecondmentRequestRelation extends BaseEntity{
     @ExcelProperty(value = {"文件id"})
     @Schema(description = "文件id")
     private String fileId;
-
-    @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"借用人员审批表ID"})
-    @Schema(description = "借用人员审批表ID")
-    private String personnelRelationId;
 }

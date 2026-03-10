@@ -19,6 +19,7 @@ import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.BorrowedPersonnelApprovalFormRelationDetailDTO;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
+import com.crrc.pojo.vo.RequestAndBorrowedConcatVO;
 import com.crrc.service.BorrowedPersonnelApprovalFormRelationService;
 import com.crrc.utils.DeptUtils;
 import com.crrc.utils.TreeUtils;
@@ -109,24 +110,13 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
     }
 
     @Override
-    public void pageRequestBySourceDept(Page<PersonnelSecondmentRequestRelation> page, PersonnelSecondmentRequestRelation pageReqVO) {
+    public void pageRequestBySourceDept(Page<RequestAndBorrowedConcatVO> page, PersonnelSecondmentRequestRelation pageReqVO) {
         personnelSecondmentRequestRelationService.pageBySourceDept(page, pageReqVO);
     }
 
     @Override
     public void saveDetails(String requestId, BorrowedPersonnelApprovalFormRelationDetailDTO reqDTO) {
         BorrowedPersonnelApprovalFormRelation relation = reqDTO.getRelation();
-
-        PersonnelSecondmentRequestRelation request = personnelSecondmentRequestRelationService.getById(requestId);
-
-        if(!StringUtils.hasText(relation.getId())) {
-            String id = IdUtil.randomUUID();
-            relation.setId(id);
-            request.setPersonnelRelationId(id);
-            request.setOrderStatus(AuditConstants.STATUS_AUDIT);
-        }
-
-        personnelSecondmentRequestRelationService.updateById(request);
         saveOrUpdate(relation);
 
         List<BorrowedPersonnelApprovalForm> reqVOList = reqDTO.getApprovalFormList();

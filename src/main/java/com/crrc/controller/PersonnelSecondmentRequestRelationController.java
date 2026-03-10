@@ -94,6 +94,17 @@ public class PersonnelSecondmentRequestRelationController {
         }
     }
 
+    @PostMapping("/submitDeptSend")
+    public ResponseResult<Boolean> submitDeptSend(@RequestParam("id") String id) {
+        try {
+            PersonnelSecondmentRequestRelation relation = new PersonnelSecondmentRequestRelation();
+            relation.setOrderStatus(AuditConstants.STATUS_SUBMITTED);
+            return ResponseResult.success(personnelSecondmentRequestRelationService.updateById(relation));
+        } catch (Exception e) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
+    }
+
     /**
      * 人事令工作流回调接口
      */
