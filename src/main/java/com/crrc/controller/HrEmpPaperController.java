@@ -284,7 +284,7 @@ public class HrEmpPaperController {
                 throw new IllegalArgumentException("获取用户部门失败，部门查询错误");
             }
 
-            formData.put("deptCode", deptCode);
+            formData.put("deptId", deptCode);
             formData.put("type","edu");
 
             // 如果是子公司的，则PUT子公司管理员，反之PUT部门管理员
