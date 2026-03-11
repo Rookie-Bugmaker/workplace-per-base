@@ -107,7 +107,7 @@ public class HrEmpHonor extends BaseEntity implements Serializable {
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"个人排名"}, index = 14)
     @Schema(description = "个人排名")
-    private Integer personRank;
+    private Integer personalRank;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"取得方式"}, index = 15)
