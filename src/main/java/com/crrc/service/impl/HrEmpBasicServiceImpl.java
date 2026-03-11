@@ -538,7 +538,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             }
 
             // 3. 查询关联子表数据
-            SubTableData subData = querySubTableData(userCode, result.get(0).getCategory4());
+            SubTableData subData = querySubTableData(userCode, result.get(0).getCategory8());
 
             // 处理是否可编辑
             // 超管均可编辑
@@ -944,16 +944,16 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         }
 
         // 1. 去重并保留顺序，同时保留 userCode -> category4 的映射
-        Map<String, String> codeCategory4Map = dtoList.stream()
+        Map<String, String> codeCategory8Map = dtoList.stream()
                 .filter(dto -> dto.getUserCode() != null)
                 .collect(Collectors.toMap(
                         HrEmpBasicDTO::getUserCode,
-                        HrEmpBasicDTO::getCategory4,
+                        HrEmpBasicDTO::getCategory8,
                         (oldVal, newVal) -> oldVal,
                         LinkedHashMap::new
                 ));
 
-        List<String> codes = new ArrayList<>(codeCategory4Map.keySet());
+        List<String> codes = new ArrayList<>(codeCategory8Map.keySet());
         if (codes.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -1018,13 +1018,13 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             });
         }
 
-        // --- 6) 任职信息（按 category4 分流，分别取每人最新一条） ---
-        List<String> otherAppointmentCodes = codeCategory4Map.entrySet().stream()
+        // --- 6) 任职信息（按 category8 分流，分别取每人最新一条） ---
+        List<String> otherAppointmentCodes = codeCategory8Map.entrySet().stream()
                 .filter(e -> "002".equals(e.getValue()))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
 
-        List<String> appointmentCodes = codeCategory4Map.entrySet().stream()
+        List<String> appointmentCodes = codeCategory8Map.entrySet().stream()
                 .filter(e -> !"002".equals(e.getValue()))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
@@ -1142,7 +1142,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     /**
      * 查询子表数据（教育/技能/资格）
      */
-    private SubTableData querySubTableData(String userCode, String category4) {
+    private SubTableData querySubTableData(String userCode, String category8) {
         SubTableData data = new SubTableData();
 
         // 教育信息（最高学历）
@@ -1188,7 +1188,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         }
 
         // 如果是借，那么取其他任职最新一条，否则取任职信息最新一条
-        if("002".equals(category4)) {
+        if("002".equals(category8)) {
             data.appointmentList = hrEmpOtherAppointmentMapper.selectList(
                     JoinWrappers.lambda(HrEmpOtherAppointment.class)
                             .selectAll()
