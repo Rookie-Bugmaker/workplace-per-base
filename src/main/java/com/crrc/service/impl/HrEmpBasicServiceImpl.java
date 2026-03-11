@@ -26,13 +26,16 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -535,7 +538,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             }
 
             // 3. 查询关联子表数据
-            SubTableData subData = querySubTableData(userCode);
+            SubTableData subData = querySubTableData(userCode, result.get(0).getCategory4());
 
             // 处理是否可编辑
             // 超管均可编辑
@@ -933,22 +936,35 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     }
 
     /**
-     * 批量查询子表数据（教育/技能/资格）
+     * 批量查询子表数据（教育/技能/资格/任职）
      */
-    private Map<String, SubTableData> querySubTableDataList(List<String> userCodes) {
-        if (userCodes == null || userCodes.isEmpty()) {
+    private Map<String, SubTableData> querySubTableDataList(List<HrEmpBasicDTO> dtoList) {
+        if (dtoList == null || dtoList.isEmpty()) {
             return Collections.emptyMap();
         }
-        // 去重保持顺序
-        List<String> codes = userCodes.stream().filter(Objects::nonNull)
-                .distinct().collect(Collectors.toList());
 
-        // 建立userCode -> SubTableData Map
+        // 1. 去重并保留顺序，同时保留 userCode -> category4 的映射
+        Map<String, String> codeCategory4Map = dtoList.stream()
+                .filter(dto -> dto.getUserCode() != null)
+                .collect(Collectors.toMap(
+                        HrEmpBasicDTO::getUserCode,
+                        HrEmpBasicDTO::getCategory4,
+                        (oldVal, newVal) -> oldVal,
+                        LinkedHashMap::new
+                ));
+
+        List<String> codes = new ArrayList<>(codeCategory4Map.keySet());
+        if (codes.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        // 2. 初始化返回结果
         Map<String, SubTableData> resultMap = new LinkedHashMap<>();
-        codes.forEach(c -> resultMap.put(c, new SubTableData(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>())));
+        codes.forEach(code -> resultMap.put(code,
+                new SubTableData(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>())
+        ));
 
-        // --- 1) 教育（最高学历）批量查询 ---
-
+        // --- 3) 教育（最高学历）批量查询 ---
         List<HrEmpEducation> eduList = hrEmpEducationMapper.selectList(
                 JoinWrappers.lambda(HrEmpEducation.class)
                         .select(HrEmpEducation::getUserCode,
@@ -957,9 +973,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                                 HrEmpEducation::getDegree,
                                 HrEmpEducation::getMajorCode)
                         .eq(HrEmpEducation::getIsHighestEducation, SystemConstants.TRUE_FLAG)
-                        .in(HrEmpEducation::getUserCode, userCodes)
+                        .in(HrEmpEducation::getUserCode, codes)
         );
-            if (eduList != null) {
+        if (eduList != null) {
             eduList.forEach(e -> {
                 SubTableData d = resultMap.get(e.getUserCode());
                 if (d != null) {
@@ -968,15 +984,13 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             });
         }
 
-
-        // --- 2) 技能等级（最高）批量查询 ---
-
+        // --- 4) 技能等级（最高）批量查询 ---
         List<HrEmpSkillLevel> skillList = hrEmpSkillLevelMapper.selectList(
                 JoinWrappers.lambda(HrEmpSkillLevel.class)
                         .select(HrEmpSkillLevel::getUserCode,
                                 HrEmpSkillLevel::getSkillLevel)
                         .eq(HrEmpSkillLevel::getIsHighest, SystemConstants.TRUE_FLAG)
-                        .in(HrEmpSkillLevel::getUserCode, userCodes)
+                        .in(HrEmpSkillLevel::getUserCode, codes)
         );
         if (skillList != null) {
             skillList.forEach(s -> {
@@ -987,15 +1001,13 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             });
         }
 
-
-        // --- 3) 职业资格（最高）批量查询 ---
-
+        // --- 5) 职业资格（最高）批量查询 ---
         List<HrEmpProfessionalQualification> quaList = hrEmpProfessionalQualificationMapper.selectList(
                 JoinWrappers.lambda(HrEmpProfessionalQualification.class)
                         .select(HrEmpProfessionalQualification::getUserCode,
                                 HrEmpProfessionalQualification::getQuaId)
                         .eq(HrEmpProfessionalQualification::getIsHighest, SystemConstants.TRUE_FLAG)
-                        .in(HrEmpProfessionalQualification::getUserCode, userCodes)
+                        .in(HrEmpProfessionalQualification::getUserCode, codes)
         );
         if (quaList != null) {
             quaList.forEach(q -> {
@@ -1006,30 +1018,131 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             });
         }
 
-        // --- 4) 任职信息（最近）批量查询 ---
+        // --- 6) 任职信息（按 category4 分流，分别取每人最新一条） ---
+        List<String> otherAppointmentCodes = codeCategory4Map.entrySet().stream()
+                .filter(e -> "002".equals(e.getValue()))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
 
-        List<HrEmpAppointment> appointmentList = hrEmpAppointmentMapper.selectList(
-                JoinWrappers.lambda(HrEmpAppointment.class)
-                        .select(HrEmpAppointment::getUserCode,
-                                HrEmpAppointment::getPosition)
-                        .in(HrEmpAppointment::getUserCode, userCodes)
-        );
-        List<HrEmpAppointment> appointmentListSorted = appointmentList.stream().filter(
-                e -> e.getStartDate() != null).sorted(Comparator.comparing(HrEmpAppointment::getStartDate).reversed()
-        ).collect(Collectors.toList());
-        if (!appointmentListSorted.isEmpty()) {
-            SubTableData d = resultMap.get(appointmentListSorted.get(0).getUserCode());
-            d.appointmentList.add(appointmentListSorted.get(0));
+        List<String> appointmentCodes = codeCategory4Map.entrySet().stream()
+                .filter(e -> !"002".equals(e.getValue()))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+
+        // 6.1 借调/借用人员：取 otherAppointment 中最新一条
+        if (!otherAppointmentCodes.isEmpty()) {
+            List<HrEmpOtherAppointment> otherAppointmentList = hrEmpOtherAppointmentMapper.selectList(
+                    JoinWrappers.lambda(HrEmpOtherAppointment.class)
+                            .selectAll()
+                            .in(HrEmpOtherAppointment::getUserCode, otherAppointmentCodes)
+            );
+            fillLatestOtherAppointment(resultMap, otherAppointmentList);
         }
 
-        // 保持与入参顺序一致返回
+        // 6.2 非借调/借用人员：取 appointment 中最新一条
+        if (!appointmentCodes.isEmpty()) {
+            List<HrEmpAppointment> appointmentList = hrEmpAppointmentMapper.selectList(
+                    JoinWrappers.lambda(HrEmpAppointment.class)
+                            .selectAll()
+                            .in(HrEmpAppointment::getUserCode, appointmentCodes)
+            );
+            fillLatestAppointment(resultMap, appointmentList);
+        }
+
         return resultMap;
+    }
+
+    /**
+     * 从任职表中为每个 userCode 选出最新一条
+     */
+    private void fillLatestAppointment(Map<String, SubTableData> resultMap,
+                                       List<HrEmpAppointment> appointmentList) {
+        if (appointmentList == null || appointmentList.isEmpty()) {
+            return;
+        }
+
+        Map<String, HrEmpAppointment> latestMap = appointmentList.stream()
+                .filter(Objects::nonNull)
+                .filter(item -> item.getUserCode() != null)
+                .filter(item -> item.getStartDate() != null)
+                .collect(Collectors.toMap(
+                        HrEmpAppointment::getUserCode,
+                        Function.identity(),
+                        this::pickLatestAppointment
+                ));
+
+        latestMap.forEach((userCode, appointment) -> {
+            SubTableData data = resultMap.get(userCode);
+            if (data != null) {
+                data.appointmentList.add(appointment);
+            }
+        });
+    }
+
+    /**
+     * 从其他任职表中为每个 userCode 选出最新一条，并转换为 HrEmpAppointment
+     */
+    private void fillLatestOtherAppointment(Map<String, SubTableData> resultMap,
+                                            List<HrEmpOtherAppointment> otherAppointmentList) {
+        if (otherAppointmentList == null || otherAppointmentList.isEmpty()) {
+            return;
+        }
+
+        Map<String, HrEmpAppointment> latestMap = otherAppointmentList.stream()
+                .filter(Objects::nonNull)
+                .filter(item -> item.getUserCode() != null)
+                .filter(item -> item.getStartDate() != null)
+                .map(this::convertToHrEmpAppointment)
+                .collect(Collectors.toMap(
+                        HrEmpAppointment::getUserCode,
+                        Function.identity(),
+                        this::pickLatestAppointment
+                ));
+
+        latestMap.forEach((userCode, appointment) -> {
+            SubTableData data = resultMap.get(userCode);
+            if (data != null) {
+                data.appointmentList.add(appointment);
+            }
+        });
+    }
+
+    /**
+     * 比较两条任职记录，返回“更新”的那一条。
+     * 规则：先比较 startDate，startDate 相同再比较 createTime。
+     */
+    private HrEmpAppointment pickLatestAppointment(HrEmpAppointment a, HrEmpAppointment b) {
+        if (a == null) {
+            return b;
+        }
+        if (b == null) {
+            return a;
+        }
+
+        int startDateCompare = Comparator.<LocalDate>nullsLast(Comparator.naturalOrder())
+                .compare(a.getStartDate(), b.getStartDate());
+        if (startDateCompare != 0) {
+            return startDateCompare >= 0 ? a : b;
+        }
+
+        int createTimeCompare = Comparator.<LocalDateTime>nullsLast(Comparator.naturalOrder())
+                .compare(a.getCreateTime(), b.getCreateTime());
+        return createTimeCompare >= 0 ? a : b;
+    }
+
+    /**
+     * 将 HrEmpOtherAppointment 转为 HrEmpAppointment
+     */
+    private HrEmpAppointment convertToHrEmpAppointment(HrEmpOtherAppointment source) {
+        HrEmpAppointment target = new HrEmpAppointment();
+        BeanUtils.copyProperties(source, target);
+        return target;
     }
 
     /**
      * 查询子表数据（教育/技能/资格）
      */
-    private SubTableData querySubTableData(String userCode) {
+    private SubTableData querySubTableData(String userCode, String category4) {
         SubTableData data = new SubTableData();
 
         // 教育信息（最高学历）
@@ -1074,16 +1187,34 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             ).collect(Collectors.toList()).subList(0, 1);
         }
 
-        // 任职信息（最新一条）
-        data.appointmentList = Collections.singletonList(hrEmpAppointmentMapper.selectList(
-                JoinWrappers.lambda(HrEmpAppointment.class)
-                        .selectAll()
-                        .eq(HrEmpAppointment::getUserCode, userCode)
-                        .orderByDesc(HrEmpAppointment::getCreateTime)
-                        .last("NULLS LAST")
-        ).stream().filter(e -> e.getStartDate() != null).sorted(
-                Comparator.comparing(HrEmpAppointment::getStartDate).reversed()
-        ).collect(Collectors.toList()).get(0));
+        // 如果是借，那么取其他任职最新一条，否则取任职信息最新一条
+        if("002".equals(category4)) {
+            data.appointmentList = hrEmpOtherAppointmentMapper.selectList(
+                    JoinWrappers.lambda(HrEmpOtherAppointment.class)
+                            .selectAll()
+                            .eq(HrEmpOtherAppointment::getUserCode, userCode)
+                            .orderByDesc(HrEmpOtherAppointment::getCreateTime)
+                            .last("NULLS LAST")
+                    ).stream().filter(e -> e.getStartDate() != null).sorted(
+                            Comparator.comparing(HrEmpOtherAppointment::getStartDate).reversed()
+                    ).map(item -> {
+                        HrEmpAppointment hrEmpAppointment = new HrEmpAppointment();
+                        BeanUtils.copyProperties(item, hrEmpAppointment);
+                        return hrEmpAppointment;
+                    }).collect(Collectors.toList());
+        } else {
+            // 任职信息（最新一条）
+            data.appointmentList = Collections.singletonList(hrEmpAppointmentMapper.selectList(
+                    JoinWrappers.lambda(HrEmpAppointment.class)
+                            .selectAll()
+                            .eq(HrEmpAppointment::getUserCode, userCode)
+                            .orderByDesc(HrEmpAppointment::getCreateTime)
+                            .last("NULLS LAST")
+            ).stream().filter(e -> e.getStartDate() != null).sorted(
+                    Comparator.comparing(HrEmpAppointment::getStartDate).reversed()
+            ).collect(Collectors.toList()).get(0));
+        }
+
 
         // 任职经历
         return data;
@@ -1151,7 +1282,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             }
 
             // 查询关联子表数据
-            Map<String, SubTableData> stringSubTableDataMap = querySubTableDataList(userCodeList);
+            Map<String, SubTableData> stringSubTableDataMap = querySubTableDataList(resultList);
 
             if(RoleUtils.checkAnyMatch("hrsc_super_admin")) {
                 resultList.forEach(result -> result.setIsEditable("1"));
