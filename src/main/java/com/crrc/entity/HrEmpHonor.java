@@ -4,6 +4,7 @@ import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
 import com.baomidou.mybatisplus.annotation.*;
 import java.io.Serializable;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
@@ -47,7 +48,7 @@ public class HrEmpHonor extends BaseEntity implements Serializable {
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"获奖日期"}, index = 2)
     @Schema(description = "获奖日期")
-    private LocalDateTime awardDate;
+    private LocalDate awardDate;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"称号类别"}, index = 3)

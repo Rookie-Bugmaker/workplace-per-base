@@ -83,25 +83,25 @@ public class HrEmpPaperController {
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<List<HrEmpPaper>> getMsg(@RequestParam String userCode) {
         List<HrEmpPaper> result = hrEmpPaperService.selectMsg(userCode);
-        try{
+        try {
             // 处理附件信息
             hrEmpPaperService.resolveFiles(result);
         } catch (Exception e) {
             log.warn("人员论文论著附件信息解析失败");
         }
-        log.info("userCode:{},论文论著数据：{}",userCode,JSON.toJSONString(result,SerializerFeature.PrettyFormat));
+        log.info("userCode:{},论文论著数据：{}", userCode, JSON.toJSONString(result, SerializerFeature.PrettyFormat));
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工论文论著信息实体成功", result);
     }
 
     @PostMapping("/page")
     @Operation(summary = "获取员工论文论著信息表列表 page")
     @AuditLog(value = "获取员工论文论著信息表列表 page", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    @Parameter(name = "pageReqVO",description = "包含查询条件的实体对象")
+    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
     @Parameter(name = "pageNo", description = "页码", example = "1")
     @Parameter(name = "pageSize", description = "条数", example = "10")
     public ResponseResult<IPage<HrEmpPaper>> pageHrEmpPaper(@Validated @RequestBody(required = false) HrEmpPaper pageReqVO,
-                                             @RequestParam(required = false, defaultValue = "1") int pageNo,
-                                             @RequestParam(required = false, defaultValue = "10")int pageSize) {
+                                                            @RequestParam(required = false, defaultValue = "1") int pageNo,
+                                                            @RequestParam(required = false, defaultValue = "10") int pageSize) {
         pageReqVO = (pageReqVO == null) ? new HrEmpPaper() : pageReqVO;
         Page<HrEmpPaper> page = new Page<>(pageNo, pageSize);
         hrEmpPaperService.query(page, pageReqVO);
@@ -114,8 +114,8 @@ public class HrEmpPaperController {
     @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
     public ResponseResult<List<HrEmpPaper>> queryHrEmpPaper(@Validated @RequestBody(required = false) HrEmpPaper queryReqVO) {
         queryReqVO = (queryReqVO == null) ? new HrEmpPaper() : queryReqVO;
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工教育信息表列表成功", hrEmpPaperService.query(queryReqVO));
-	}
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工论文论著信息表列表成功", hrEmpPaperService.query(queryReqVO));
+    }
 
     @GetMapping("/get")
     @Operation(summary = "获得员工论文论著信息表实体")
@@ -182,14 +182,14 @@ public class HrEmpPaperController {
     public ResponseResult<Boolean> deleteHrEmpPaper(@RequestParam("id") Long id) {
         return new ResponseResult<>(HttpStatus.OK.value(), "删除员工论文论著信息表实体", hrEmpPaperService.removeById(id));
     }
-    
+
     @PostMapping("/export")
     @AuditLog(value = "导出员工论文论著信息表报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
     @Operation(summary = "导出员工论文论著信息表报表")
     public void exportHrEmpPaper(@Validated @RequestBody(required = false) HrEmpPaper exportReqVO,
-                              @RequestParam(required = false, defaultValue = "xlsx") String type,
-                           HttpServletResponse response) throws IOException {
-        String contentType = "csv".equals(type) ?  "text/csv;charset=UTF-8" :
+                                 @RequestParam(required = false, defaultValue = "xlsx") String type,
+                                 HttpServletResponse response) throws IOException {
+        String contentType = "csv".equals(type) ? "text/csv;charset=UTF-8" :
                 ("xls".equals(type) ? "application/vnd.ms-excel" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setContentType(contentType);
         response.setCharacterEncoding("utf-8");
@@ -197,11 +197,11 @@ public class HrEmpPaperController {
         String fileName = URLEncoder.encode("员工论文论著信息表报表-" + new SimpleDateFormat("yyyyMMddhhmmss")
                         .format(System.currentTimeMillis()), "UTF-8")
                 .replaceAll("\\+", "%20");
-        response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." +type);
+        response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." + type);
 
         exportReqVO = (exportReqVO == null) ? new HrEmpPaper() : exportReqVO;
         List<HrEmpPaper> hrEmpPaperList = hrEmpPaperService.query(exportReqVO);
-        ExcelTypeEnum typeEnum = "csv".equals(type) ?  ExcelTypeEnum.CSV : ("xls".equals(type) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
+        ExcelTypeEnum typeEnum = "csv".equals(type) ? ExcelTypeEnum.CSV : ("xls".equals(type) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
         EasyExcel.write(response.getOutputStream(), HrEmpPaper.class)
                 .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
                 .autoCloseStream(true)
@@ -215,7 +215,7 @@ public class HrEmpPaperController {
     @Operation(summary = "导入员工论文论著信息表报表")
     public ResponseResult<Boolean> imports(MultipartFile file) throws IOException {
         EasyExcel.read(file.getInputStream(), HrEmpPaper.class,
-                new ImportExcelListener<HrEmpPaper, HrEmpPaperServiceImpl>(hrEmpPaperService))
+                        new ImportExcelListener<HrEmpPaper, HrEmpPaperServiceImpl>(hrEmpPaperService))
                 .headRowNumber(1)
                 .sheet()
                 .doRead();
@@ -225,22 +225,22 @@ public class HrEmpPaperController {
 
     @PostMapping("/submit-change")
     @Operation(summary = "提交员工论文论著变更申请")
-    public ResponseResult<String> submitChange(@Valid @RequestBody  HrEmpPaperDTO changeReqVO) {
+    public ResponseResult<String> submitChange(@Valid @RequestBody HrEmpPaperDTO changeReqVO) {
         try {
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
             if (flag) {
                 log.info("权限校验通过，用户拥有'公司超级管理员'角色，直接进行更新");
-                try{
+                try {
                     updateHrEmpPaper(changeReqVO).getData();
                     return new ResponseResult<>(HttpStatus.OK.value(), "直接更新成功!");
-                } catch (Exception e){
+                } catch (Exception e) {
                     log.warn("权限校验成功，但直接更新失败，尝试走审批流");
                 }
             }
             log.warn("权限校验失败，用户缺少'公司超级管理员'角色");
             // 1. 获取当前数据快照
-            List<HrEmpPaper> originalData = getMsg(changeReqVO.getUserCode()).getData();
-            log.info("提交审批流时查询回来的教育经历原始数据：{}", JSON.toJSONString(originalData, SerializerFeature.PrettyFormat));
+            List<HrEmpPaper> originalData = hrEmpPaperService.selectMsg(changeReqVO.getUserCode());
+            log.info("提交审批流时查询回来的论文论著原始数据：{}", JSON.toJSONString(originalData, SerializerFeature.PrettyFormat));
 
             // 2. 创建变更申请文档
             HrEmpPaperChangeRequest changeRequest = new HrEmpPaperChangeRequest();
@@ -259,18 +259,18 @@ public class HrEmpPaperController {
             String bizCode = "PAPER-" + System.currentTimeMillis();
             instanceDTO.setBizCode(bizCode);
             // 封装数据主键，存在MongoDB里面的生成的simpleUUID
-            instanceDTO.setBizId("paper_" +changeRequest.getId());
+            instanceDTO.setBizId("paper_" + changeRequest.getId());
             // 封装业务模板编码
             instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
             // 封装业务表单数据，20250924上线暂时没用，如果之后需要修改审批流分支，需使用该数据
             Map<String, Object> formData = new HashMap<>();
             LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
-            if(loginUser == null || loginUser.getUser() == null) {
+            if (loginUser == null || loginUser.getUser() == null) {
                 log.error("获取登录用户信息失败，用户为空");
                 throw new IllegalArgumentException("获取登录用户信息失败，用户为空");
             }
 
-            if(StringUtils.isBlank(loginUser.getUser().getJobNo())) {
+            if (StringUtils.isBlank(loginUser.getUser().getJobNo())) {
                 log.error("获取用户工号失败，工号为空");
                 throw new IllegalArgumentException("获取用户工号失败，工号为空");
             }
@@ -279,13 +279,13 @@ public class HrEmpPaperController {
             wrapper.eq(HrEmpBasic::getUserCode, loginUser.getUser().getJobNo());
             String deptCode = hrEmpBasicMapper.selectOne(wrapper).getDept();
 
-            if(StringUtils.isBlank(deptCode)) {
+            if (StringUtils.isBlank(deptCode)) {
                 log.error("获取用户部门失败，部门查询错误，工号:" + loginUser.getUser().getJobNo());
                 throw new IllegalArgumentException("获取用户部门失败，部门查询错误");
             }
 
-            formData.put("deptId", deptCode);
-            formData.put("type","edu");
+            formData.put("deptCode", deptCode);
+            formData.put("type", "paper");
 
             // 如果是子公司的，则PUT子公司管理员，反之PUT部门管理员
             // 获取全部部门信息
@@ -296,25 +296,25 @@ public class HrEmpPaperController {
             }
             List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
             String parentCode = null;
-            for(OrganizationTreeDTO root : data) {
+            for (OrganizationTreeDTO root : data) {
                 if (TreeUtils.containsBfs(root, n -> StringUtils.equals(deptCode, n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
                     parentCode = root.getOrgCode();
                     break;
                 }
             }
             formData.put("companyCode", parentCode);
-            if(StringUtils.isNotBlank(parentCode) && parentCode.equals("0132")) {
+            if (StringUtils.isNotBlank(parentCode) && parentCode.equals("0132")) {
                 formData.put("roleCode", "hrsc_dept_emp_info_mgr");
             } else {
                 formData.put("roleCode", "hrsc_sub_emp_info_mgr");
             }
 
-            formData.put("Paper",MyUtils.convertToMapList(changeReqVO));
+            formData.put("Paper", MyUtils.convertToMapList(changeReqVO));
             instanceDTO.setFormData(formData);
             log.info("流程测试instanceDTO" + instanceDTO);
             // 返回流程实例id
             ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
-            log.info("流程测试processInstanceVo :{}" , JSON.toJSONString(processInstanceVo));
+            log.info("流程测试processInstanceVo :{}", JSON.toJSONString(processInstanceVo));
 
             // 5. 更新流程实例ID
             changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
@@ -329,38 +329,38 @@ public class HrEmpPaperController {
 
     @GetMapping("/change-detail")
     public ResponseResult<Map<String, Object>> getChangeDetail(@RequestParam String requestId) {
-        log.info("requestId:" + requestId);
-        requestId = MyUtils.subPk(requestId);
-        log.info("新requestId:" + requestId);
-        // 1. 从MongoDB获取变更请求
-        HrEmpPaperChangeRequest request = mongoTemplate.findById(requestId, HrEmpPaperChangeRequest.class);
-        if (request == null) {
-            return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "变更申请不存在");
+        try {
+            log.info("论文论著变更请求ID: {}", requestId);
+            requestId = MyUtils.subPk(requestId);
+            // 1. 从MongoDB获取变更请求
+            HrEmpPaperChangeRequest request = mongoTemplate.findById(requestId, HrEmpPaperChangeRequest.class);
+            if (request == null) {
+                return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "变更申请不存在");
+            }
+
+            // 由于附件信息不存在MongoDB中，先尝试进行查询并赋值
+            List<HrEmpPaper> originalData = request.getOriginalData();
+            hrEmpPaperService.resolveFiles(originalData);
+            List<HrEmpPaper> changedData = request.getChangedData();
+            hrEmpPaperService.resolveFiles(changedData);
+
+            // 2. 构建返回结果（直接返回两个列表）
+            Map<String, Object> result = new HashMap<>();
+
+            // 原始数据列表（转换为Map列表或直接使用对象）
+            result.put("originalData", MyUtils.convertToMapList(request.getOriginalData()));
+
+            // 审批流中的数据列表
+            result.put("changedData", MyUtils.convertToMapList(request.getChangedData()));
+
+            // 基础信息
+            result.put("requestId", requestId);
+            result.put("createTime", request.getCreateTime());
+
+            return new ResponseResult<>(HttpStatus.OK.value(), "成功", result);
+        } catch (Exception e) {
+            log.error("获取家庭成员变更详情失败: {}", e.getMessage(), e);
+            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "获取详情失败");
         }
-
-        // 由于附件信息不存在MongoDB中，先尝试进行查询并赋值
-        List<HrEmpPaper> originalData = request.getOriginalData();
-        List<HrEmpPaper> changedData = request.getChangedData();
-        for(HrEmpPaper paper : originalData){
-            hrEmpPaperService.resolveFiles(Collections.singletonList(paper));
-        }
-        for(HrEmpPaper paper : changedData){
-            hrEmpPaperService.resolveFiles(Collections.singletonList(paper));
-        }
-
-        // 2. 构建返回结果（直接返回两个列表）
-        Map<String, Object> result = new HashMap<>();
-
-        // 原始数据列表（转换为Map列表或直接使用对象）
-        result.put("originalData", MyUtils.convertToMapList(request.getOriginalData()));
-
-        // 审批流中的数据列表
-        result.put("changedData", MyUtils.convertToMapList(request.getChangedData()));
-
-        // 基础信息
-        result.put("requestId", requestId);
-        result.put("createTime", request.getCreateTime());
-
-        return new ResponseResult<>(HttpStatus.OK.value(), "成功", result);
     }
 }
