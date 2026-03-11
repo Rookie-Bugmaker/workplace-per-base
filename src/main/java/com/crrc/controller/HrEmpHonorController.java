@@ -242,7 +242,7 @@ public class HrEmpHonorController {
             log.warn("权限校验失败，用户缺少'公司超级管理员'角色");
             // 1. 获取当前数据快照
             List<HrEmpHonor> originalData = getMsg(changeReqVO.getUserCode()).getData();
-            log.info("提交审批流时查询回来的教育经历原始数据：{}", JSON.toJSONString(originalData, SerializerFeature.PrettyFormat));
+            log.info("提交审批流时查询回来的荣誉原始数据：{}", JSON.toJSONString(originalData, SerializerFeature.PrettyFormat));
 
             // 2. 创建变更申请文档
             HrEmpHonorChangeRequest changeRequest = new HrEmpHonorChangeRequest();
