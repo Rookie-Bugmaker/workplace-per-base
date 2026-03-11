@@ -2,8 +2,10 @@ package com.crrc.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.crrc.entity.HrEmpAppointment;
+import com.crrc.entity.HrEmpOtherAppointment;
 import com.crrc.entity.HrEmpResume;
 import com.crrc.mapper.HrEmpAppointmentMapper;
+import com.crrc.mapper.HrEmpOtherAppointmentMapper;
 import com.crrc.mapper.HrEmpResumeMapper;
 import com.crrc.service.HrEmpResumeService;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
@@ -34,6 +36,8 @@ public class HrEmpResumeServiceImpl extends WorkServiceImpl<HrEmpResumeMapper, H
     private HrEmpAppointmentMapper hrEmpAppointmentMapper;
     @Autowired
     private CodeInfoServiceImpl codeInfoService;
+    @Autowired
+    private HrEmpOtherAppointmentMapper hrEmpOtherAppointmentMapper;
 
     public List<HrEmpResume> selectMsg(String userCode) {
         MPJLambdaWrapper<HrEmpResume> wrapper = new MPJLambdaWrapper<HrEmpResume>()
@@ -63,6 +67,27 @@ public class HrEmpResumeServiceImpl extends WorkServiceImpl<HrEmpResumeMapper, H
                 }
                 // 无论是否只有一条匹配结果，都会set变动类型
                 hrEmpResume.setChangeType(hrEmpAppointments.get(0).getChangeType());
+            }
+
+            // 如果扫完了appointment还没找到，尝试查询otherAppointment中的其它任职类型
+            if(StringUtils.isBlank(hrEmpResume.getChangeType())) {
+                // 根据userCode，开始时间查询对应的otherAppointment，以处理变动类型
+                LambdaQueryWrapper<HrEmpOtherAppointment> queryWrapperOther = new LambdaQueryWrapper<>();
+                queryWrapperOther.eq(HrEmpOtherAppointment::getUserCode, hrEmpResume.getUserCode());
+                queryWrapperOther.eq(HrEmpOtherAppointment::getStartDate, hrEmpResume.getStartDate());
+
+                List<HrEmpOtherAppointment> hrEmpOtherAppointments = hrEmpOtherAppointmentMapper.selectList(queryWrapperOther);
+                if (ObjectUtils.isEmpty(hrEmpOtherAppointments)) {
+                    // 没有对应的appointment，无法处理变动类型
+                    log.info("没有对应的otherAppointment，无法处理变动类型");
+                } else {
+                    if (hrEmpOtherAppointments.size() > 1) {
+                        // 如果这种情况下，还有多条，不处理变动类型（无法一一对应）
+                        log.error("注意！下面的履历有多条能对应的otherAppointment: {}，无法处理变动类型", hrEmpResume.getId());
+                    }
+                    // 无论是否只有一条匹配结果，都会set变动类型
+                    hrEmpResume.setChangeType(hrEmpOtherAppointments.get(0).getOtherAppointmentType());
+                }
             }
             // 如果关联上了变动类型，尝试进行反写
             if(StringUtils.isNotBlank(hrEmpResume.getChangeType())) {
