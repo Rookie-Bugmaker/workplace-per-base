@@ -7,9 +7,12 @@ import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.List;
+
 import com.crrc.annotation.QueryMethod;
 import com.crrc.converter.DictConverter;
 import com.crrc.enums.QueryType;
+import com.crrc.pojo.dto.SysFileDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -126,5 +129,10 @@ public class HrEmpPatent extends BaseEntity implements Serializable {
     @ExcelProperty(value = {"是否存在正在被修改的状态"}, index = 18)
     @Schema(description = "是否存在正在被修改的状态，0为否，1为是")
     private String isUpdating;
+
+    @Schema(description = "通过fileHeaderId，查询回的文件列表")
+    @TableField(exist = false)
+    private List<SysFileDTO> files;
+
 
 }
