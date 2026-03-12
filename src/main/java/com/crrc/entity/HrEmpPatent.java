@@ -95,7 +95,7 @@ public class HrEmpPatent extends BaseEntity implements Serializable {
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"排名总人数"}, index = 12)
     @Schema(description = "排名总人数")
-    private Integer totalParticipants;
+    private String totalParticipants;
 
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"附件挂载Id"}, index = 13)
