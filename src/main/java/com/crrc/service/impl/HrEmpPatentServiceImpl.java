@@ -1,5 +1,6 @@
 package com.crrc.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.crrc.entity.HrEmpEducation;
 import com.crrc.entity.HrEmpPaper;
 import com.crrc.entity.HrEmpPatent;
@@ -31,11 +32,26 @@ public class HrEmpPatentServiceImpl extends WorkServiceImpl<HrEmpPatentMapper, H
 
     @Override
     public List<HrEmpPatent> selectMsg(String userCode){
+        // 1 打印入参
+        log.info("查询专利信息开始，userCode={}", userCode);
         MPJLambdaWrapper<HrEmpPatent> wrapper = new MPJLambdaWrapper<HrEmpPatent>()
                 .selectAll(HrEmpPatent.class)
                 .eq(HrEmpPatent::getUserCode, userCode)
-                .orderByAsc(HrEmpPatent::getAuthorizationdate);
-        return hrEmpPatentMapper.selectList(wrapper);
+                .orderByAsc(HrEmpPatent::getAuthorizationDate);
+        // 2 打印查询条件
+        log.info("查询条件 userCode = {}", userCode);
+        // 3 执行查询
+        List<HrEmpPatent> result = hrEmpPatentMapper.selectList(wrapper);
+
+        // 4 打印结果数量
+        if(result == null || result.isEmpty()){
+            log.warn("未查询到专利数据，userCode={}", userCode);
+        }else{
+            log.info("查询到专利数据条数：{}", result.size());
+            log.info("专利数据内容：{}", JSON.toJSONString(result));
+        }
+
+        return result;
     }
 
     /**

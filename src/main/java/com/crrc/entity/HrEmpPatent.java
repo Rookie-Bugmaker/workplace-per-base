@@ -45,7 +45,7 @@ public class HrEmpPatent extends BaseEntity implements Serializable {
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"授权日期"}, index = 2)
     @Schema(description = "授权日期")
-    private LocalDate authorizationdate;
+    private LocalDate authorizationDate;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"专利/软著名称"}, index = 3)
