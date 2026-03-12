@@ -143,6 +143,12 @@ public class HrEmpPaper extends BaseEntity implements Serializable {
     @Schema(description = "附件挂载Id")
     private String fileHeaderId;
 
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"是否存在正在被修改的状态"}, index = 22)
+    @Schema(description = "是否存在正在被修改的状态，0为否，1为是")
+    private String isUpdating;
+
+
     @Schema(description = "通过fileHeaderId，查询回的文件列表")
     @TableField(exist = false)
     private List<SysFileDTO> files;

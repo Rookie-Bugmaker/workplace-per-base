@@ -86,6 +86,13 @@ public class CallbackController {
     @Autowired
     private HrEmpCommunicationServiceImpl hrEmpCommunicationService;
     @Autowired
+    private HrEmpPaperServiceImpl hrEmpPaperService;
+    @Autowired
+    private HrEmpPatentServiceImpl hrEmpPatentService;
+    @Autowired
+    private HrEmpHonorServiceImpl hrEmpHonorService;
+
+    @Autowired
     private MongoTemplate mongoTemplate;
     @Autowired
     private WorkflowApi workflowApi;
@@ -110,7 +117,13 @@ public class CallbackController {
         // 惩处信息
         PENALTIES,
         // 个人照片
-        PICTURE
+        PICTURE,
+        // 论文论著
+        PAPER,
+        // 专利
+        PATENT,
+        // 荣誉
+        HONOR,
     }
 
 
@@ -159,6 +172,12 @@ public class CallbackController {
                     return processRewardsRequest(param);
                 case "pic":
                     return processPictureRequest(param);
+                case "paper":
+                    return processPaperRequest(param);
+                case "patent":
+                    return processPatentRequest(param);
+                case "honor":
+                    return processHonorRequest(param);
                 default:
                     return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "不支持的变更类型: " , false);
             }
@@ -449,6 +468,86 @@ public class CallbackController {
         );
     }
 
+    /**
+     * 处理论文论著变更请求
+     */
+    private ResponseResult<Boolean> processPaperRequest(WorkflowWriteBackParamDTO param) {
+        Query query = new Query(Criteria.where("_id").is(param.getBizId()));
+
+        log.info("流程实例ID：{}", param.getBizId());
+        HrEmpPaperChangeRequest request = mongoTemplate.findOne(query, HrEmpPaperChangeRequest.class);
+
+        if (request == null) {
+            return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "论文论著变更申请不存在", false);
+        }
+
+        log.info("等待更新的论文论著变更数据：{}", JSON.toJSONString(request.getChangedData(), SerializerFeature.PrettyFormat));
+
+        return processRequest(
+                request,
+                request.getStatus(),
+                request.getUserCode(),
+                request::setStatus,
+                () -> updateHrEmpPaperNew(request.getChangedData()),
+                APPROVED::equals,
+                param.getProcessInstanceStatus(),
+                UpdateType.PAPER
+        );
+    }
+
+    /**
+     * 处理专利变更请求
+     */
+    private ResponseResult<Boolean> processPatentRequest(WorkflowWriteBackParamDTO param) {
+        Query query = new Query(Criteria.where("_id").is(param.getBizId()));
+
+        log.info("流程实例ID：{}", param.getBizId());
+        HrEmpPatentChangeRequest request = mongoTemplate.findOne(query, HrEmpPatentChangeRequest.class);
+
+        if (request == null) {
+            return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "专利变更申请不存在", false);
+        }
+
+        log.info("等待更新的专利变更数据：{}", JSON.toJSONString(request.getChangedData(), SerializerFeature.PrettyFormat));
+
+        return processRequest(
+                request,
+                request.getStatus(),
+                request.getUserCode(),
+                request::setStatus,
+                () -> updateHrEmpPatentNew(request.getChangedData()),
+                APPROVED::equals,
+                param.getProcessInstanceStatus(),
+                UpdateType.PATENT
+        );
+    }
+
+    /**
+     * 处理荣誉变更请求
+     */
+    private ResponseResult<Boolean> processHonorRequest(WorkflowWriteBackParamDTO param) {
+        Query query = new Query(Criteria.where("_id").is(param.getBizId()));
+
+        log.info("流程实例ID：{}", param.getBizId());
+        HrEmpHonorChangeRequest request = mongoTemplate.findOne(query, HrEmpHonorChangeRequest.class);
+
+        if (request == null) {
+            return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "荣誉变更申请不存在", false);
+        }
+
+        log.info("等待更新的荣誉变更数据：{}", JSON.toJSONString(request.getChangedData(), SerializerFeature.PrettyFormat));
+
+        return processRequest(
+                request,
+                request.getStatus(),
+                request.getUserCode(),
+                request::setStatus,
+                () -> updateHrEmpHonorNew(request.getChangedData()),
+                APPROVED::equals,
+                param.getProcessInstanceStatus(),
+                UpdateType.HONOR
+        );
+    }
 
     /**
      * 处理家庭主要成员的变更请求
@@ -527,6 +626,128 @@ public class CallbackController {
         // 批量删除
         if (!existIds.isEmpty()) {
             hrEmpFamMemberService.removeByIds(existIds);
+        }
+    }
+    /**
+     * 更新论文论著信息
+     */
+    private void updateHrEmpPaperNew(List<HrEmpPaper> changedData) {
+        if (changedData == null || changedData.isEmpty()) {
+            return;
+        }
+
+        // 获取用户编码
+        String userCode = changedData.get(0).getUserCode();
+
+        // 查询现有数据
+        List<HrEmpPaper> existList = hrEmpPaperService.selectMsg(userCode);
+        Set<String> existIds = existList.stream()
+                .map(HrEmpPaper::getId)
+                .collect(Collectors.toSet());
+
+        // 准备新增、更新和删除的数据
+        List<HrEmpPaper> toSaveOrUpdate = new ArrayList<>();
+
+        for (HrEmpPaper paper : changedData) {
+            if (paper.getId() == null) {
+                // 生成新ID
+                paper.setId(IdUtil.simpleUUID());
+            }
+            paper.setUserCode(userCode);
+            toSaveOrUpdate.add(paper);
+            // 移除不需要删除的ID
+            existIds.remove(paper.getId());
+        }
+
+        // 批量保存或更新
+        if (!toSaveOrUpdate.isEmpty()) {
+            hrEmpPaperService.saveOrUpdateBatch(toSaveOrUpdate);
+        }
+        // 批量删除
+        if (!existIds.isEmpty()) {
+            hrEmpPaperService.removeByIds(existIds);
+        }
+    }
+
+    /**
+     * 更新专利信息
+     */
+    private void updateHrEmpPatentNew(List<HrEmpPatent> changedData) {
+        if (changedData == null || changedData.isEmpty()) {
+            return;
+        }
+
+        // 获取用户编码
+        String userCode = changedData.get(0).getUserCode();
+
+        // 查询现有数据
+        List<HrEmpPatent> existList = hrEmpPatentService.selectMsg(userCode);
+        Set<String> existIds = existList.stream()
+                .map(HrEmpPatent::getId)
+                .collect(Collectors.toSet());
+
+        // 准备新增、更新和删除的数据
+        List<HrEmpPatent> toSaveOrUpdate = new ArrayList<>();
+
+        for (HrEmpPatent patent : changedData) {
+            if (patent.getId() == null) {
+                // 生成新ID
+                patent.setId(IdUtil.simpleUUID());
+            }
+            patent.setUserCode(userCode);
+            toSaveOrUpdate.add(patent);
+            // 移除不需要删除的ID
+            existIds.remove(patent.getId());
+        }
+
+        // 批量保存或更新
+        if (!toSaveOrUpdate.isEmpty()) {
+            hrEmpPatentService.saveOrUpdateBatch(toSaveOrUpdate);
+        }
+        // 批量删除
+        if (!existIds.isEmpty()) {
+            hrEmpPatentService.removeByIds(existIds);
+        }
+    }
+
+    /**
+     * 更新荣誉信息
+     */
+    private void updateHrEmpHonorNew(List<HrEmpHonor> changedData) {
+        if (changedData == null || changedData.isEmpty()) {
+            return;
+        }
+
+        // 获取用户编码
+        String userCode = changedData.get(0).getUserCode();
+
+        // 查询现有数据
+        List<HrEmpHonor> existList = hrEmpHonorService.selectMsg(userCode);
+        Set<String> existIds = existList.stream()
+                .map(HrEmpHonor::getId)
+                .collect(Collectors.toSet());
+
+        // 准备新增、更新和删除的数据
+        List<HrEmpHonor> toSaveOrUpdate = new ArrayList<>();
+
+        for (HrEmpHonor honor : changedData) {
+            if (honor.getId() == null) {
+                // 生成新ID
+                honor.setId(IdUtil.simpleUUID());
+            }
+            honor.setUserCode(userCode);
+            toSaveOrUpdate.add(honor);
+            // 移除不需要删除的ID
+            existIds.remove(honor.getId());
+        }
+
+        // 批量保存或更新
+        if (!toSaveOrUpdate.isEmpty()) {
+            hrEmpHonorService.saveOrUpdateBatch(toSaveOrUpdate);
+        }
+        // 批量删除
+        if (!existIds.isEmpty()) {
+            hrEmpHonorService.removeByIds(existIds);
         }
     }
 
@@ -728,6 +949,15 @@ public class CallbackController {
             case PROFESSIONAL:
                 updateProfessionalIsUpdating(isUpdating, userCode);
                 break;
+            case PAPER:
+                updatePaperIsUpdating(isUpdating, userCode);
+                break;
+            case PATENT:
+                updatePatentIsUpdating(isUpdating, userCode);
+                break;
+            case HONOR:
+                updateHonorIsUpdating(isUpdating, userCode);
+                break;
             default:
                 log.warn("未知的更新类型: {}", updateType);
                 break;
@@ -785,6 +1015,30 @@ public class CallbackController {
         for(HrEmpPenalties temp : penalties) {
             temp.setIsUpdating(isUpdating);
             hrEmpPenaltiesService.updateById(temp);
+        }
+    }
+
+    private void updatePaperIsUpdating(String isUpdating, String userCode) {
+        List<HrEmpPaper> paper = hrEmpPaperService.selectMsg(userCode);
+        for(HrEmpPaper temp : paper) {
+            temp.setIsUpdating(isUpdating);
+            hrEmpPaperService.updateById(temp);
+        }
+    }
+
+    private void updatePatentIsUpdating(String isUpdating, String userCode) {
+        List<HrEmpPatent> patent = hrEmpPatentService.selectMsg(userCode);
+        for(HrEmpPatent temp : patent) {
+            temp.setIsUpdating(isUpdating);
+            hrEmpPatentService.updateById(temp);
+        }
+    }
+
+    private void updateHonorIsUpdating(String isUpdating, String userCode) {
+        List<HrEmpHonor> honor = hrEmpHonorService.selectMsg(userCode);
+        for(HrEmpHonor temp : honor) {
+            temp.setIsUpdating(isUpdating);
+            hrEmpHonorService.updateById(temp);
         }
     }
 
