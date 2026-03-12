@@ -359,7 +359,7 @@ public class HrEmpPaperController {
 
             return new ResponseResult<>(HttpStatus.OK.value(), "成功", result);
         } catch (Exception e) {
-            log.error("获取家庭成员变更详情失败: {}", e.getMessage(), e);
+            log.error("获取论文论著变更详情失败: {}", e.getMessage(), e);
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "获取详情失败");
         }
     }
