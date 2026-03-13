@@ -1,21 +1,16 @@
 package com.crrc.service.impl;
 
 import cn.hutool.core.util.IdUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkWorkflowApi;
-import com.crrc.common.PaginationGrid;
 import com.crrc.constants.AuditConstants;
 import com.crrc.entity.*;
 import com.crrc.entity.dto.ProcessInstanceVo;
 import com.crrc.entity.dto.StartProcessInstanceDTO;
-import com.crrc.entity.dto.SysUserDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.entity.dto.response.ResultData;
 import com.crrc.mapper.BorrowedPersonnelApprovalFormRelationMapper;
-import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.BorrowedPersonnelApprovalFormRelationDetailDTO;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
@@ -23,10 +18,8 @@ import com.crrc.pojo.vo.RequestAndBorrowedConcatVO;
 import com.crrc.service.BorrowedPersonnelApprovalFormRelationService;
 import com.crrc.utils.DeptUtils;
 import com.crrc.utils.TreeUtils;
-import io.jsonwebtoken.lang.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -47,10 +40,6 @@ import java.util.stream.Collectors;
 public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServiceImpl<BorrowedPersonnelApprovalFormRelationMapper, BorrowedPersonnelApprovalFormRelation> implements BorrowedPersonnelApprovalFormRelationService {
 
     public static final String BORROWING_TEMPLATE_ALIAS = "BORROWING_AUDIT";
-    @Value("${crrc.role.leader.borrowing.id}")
-    private long borrowingLeaderRoleId;
-    @Value("${crrc.role.hr.admin.quota.id}")
-    private long quotaApprovalRoleId;
 
     @Autowired
     WkWorkflowApi wkWorkflowApi;
@@ -61,11 +50,7 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
     @Autowired
     private BorrowedPersonnelApprovalFormServiceImpl borrowedPersonnelApprovalFormService;
     @Autowired
-    WkCoreAPi wkCoreAPi;
-    @Autowired
-    HrEmpBasicMapper basicMapper;
-    @Autowired
-    ExceptionCasePersonServiceImpl exceptionCasePersonService;
+    private ExceptionCasePersonServiceImpl exceptionCasePersonService;
 
     @Override
     public ResponseResult<Boolean> submit(String id) {
@@ -84,6 +69,8 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
         Map<String, Object> formData = new HashMap<>();
 
         formData.put("id", id);
+        formData.put("borrowingUnit", formRelation.getBorrowingUnit());
+        formData.put("lendingUnit", formRelation.getLendingUnit());
 
         instanceDTO.setFormData(formData);
         log.info("流程测试instanceDTO: {}", instanceDTO);
@@ -131,40 +118,6 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
         );
 
         borrowedPersonnelApprovalFormService.saveDetails(relation.getId(), reqVOList);
-    }
-
-    @Override
-    public PaginationGrid<SysUserDTO> findBorrowingUnitSupervisorApproval(String id) {
-        // 查询出当前需要审批的计划
-        BorrowedPersonnelApprovalFormRelation relation = getById(id);
-        // 获得需求单位的编码
-        String borrowingUnit = relation.getBorrowingUnit();
-
-        List<SysUserDTO> roleUserListByRoleId = wkCoreAPi.getRoleUserListByRoleId(borrowingLeaderRoleId);
-
-        List<String> userCodes = roleUserListByRoleId.stream().map(SysUserDTO::getUserName).collect(Collectors.toList());
-
-        LambdaQueryWrapper<HrEmpBasic> wrapper = new LambdaQueryWrapper<>();
-
-        wrapper.in(HrEmpBasic::getUserCode, userCodes);
-
-        List<HrEmpBasic> hrEmpBasicList = basicMapper.selectList(wrapper);
-
-        Set<String> leaders = hrEmpBasicList.stream()
-                .filter(emp -> Objects.nullSafeEquals(borrowingUnit, emp.getDept()))
-                .map(HrEmpBasic::getUserCode)
-                .collect(Collectors.toSet());
-
-        List<SysUserDTO> sysUsers = roleUserListByRoleId.stream()
-                .filter(user -> leaders.contains(user.getUserName()))
-                .collect(Collectors.toList());
-
-        PaginationGrid<SysUserDTO> result = new PaginationGrid<>();
-
-        result.setRows(sysUsers);
-        result.setTotal((long) sysUsers.size());
-
-        return result;
     }
 
     @Override
@@ -232,32 +185,6 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
         }
 
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
-    }
-
-    @Override
-    public PaginationGrid<SysUserDTO> findQuotaApproval() {
-
-        List<SysUserDTO> quotaApproval = wkCoreAPi.getRoleUserListByRoleId(quotaApprovalRoleId);
-
-        PaginationGrid<SysUserDTO> result = new PaginationGrid<>();
-
-        result.setRows(quotaApproval);
-        result.setTotal((long) quotaApproval.size());
-
-        return result;
-    }
-
-    @Override
-    public PaginationGrid<SysUserDTO> findCompanyLeaderApproval(String id) {
-        // id暂时不用,默认都在长客
-        List<SysUserDTO> quotaApproval = wkCoreAPi.getRoleUserListByRoleId(borrowingLeaderRoleId);
-
-        PaginationGrid<SysUserDTO> result = new PaginationGrid<>();
-
-        result.setRows(quotaApproval);
-        result.setTotal((long) quotaApproval.size());
-
-        return result;
     }
 
     @Override

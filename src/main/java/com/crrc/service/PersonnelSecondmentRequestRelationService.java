@@ -2,9 +2,7 @@ package com.crrc.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.crrc.common.PaginationGrid;
 import com.crrc.entity.PersonnelSecondmentRequestRelation;
-import com.crrc.entity.dto.SysUserDTO;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.pojo.vo.RequestAndBorrowedConcatVO;
@@ -28,13 +26,6 @@ public interface PersonnelSecondmentRequestRelationService extends IService<Pers
      void resolveFields(List<PersonnelSecondmentRequestRelation> records);
 
     /**
-     * 查询需求单位用人领导
-     * @param id 需要查询的审批计划id
-     * @return 用人领导
-     */
-    ResponseResult<PaginationGrid<SysUserDTO>> findBorrowLeaderApproval(String id);
-
-    /**
      * 审批流回写
      * @param param 审批流回写参数
      * @return 审批结果
@@ -47,18 +38,6 @@ public interface PersonnelSecondmentRequestRelationService extends IService<Pers
      * @return 是否提交成功
      */
     ResponseResult<Boolean> submit(String id);
-
-    /**
-     * 定额管理人员与调配管理人员进行审核
-     * @return 用人领导
-     */
-    ResponseResult<PaginationGrid<SysUserDTO>> findHrAuditApproval();
-
-    /**
-     * 人力资源副部长审核
-     * @return 副部长
-     */
-    ResponseResult<PaginationGrid<SysUserDTO>> findHrDeputyMinisterApproval();
 
     /**
      * 推送到目标部门
