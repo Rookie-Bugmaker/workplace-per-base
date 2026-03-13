@@ -1189,7 +1189,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
         // 如果是借，那么取其他任职最新一条，否则取任职信息最新一条
         if("002".equals(category8)) {
-            data.appointmentList = Collections.singletonList(hrEmpOtherAppointmentMapper.selectList(
+            data.appointmentList = hrEmpOtherAppointmentMapper.selectList(
                     JoinWrappers.lambda(HrEmpOtherAppointment.class)
                             .selectAll()
                             .eq(HrEmpOtherAppointment::getUserCode, userCode)
@@ -1201,10 +1201,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                         HrEmpAppointment hrEmpAppointment = new HrEmpAppointment();
                         BeanUtils.copyProperties(item, hrEmpAppointment);
                         return hrEmpAppointment;
-                    }).collect(Collectors.toList()).get(0));
+                    }).collect(Collectors.toList());
         } else {
             // 任职信息（最新一条）
-            data.appointmentList = Collections.singletonList(hrEmpAppointmentMapper.selectList(
+            data.appointmentList = hrEmpAppointmentMapper.selectList(
                     JoinWrappers.lambda(HrEmpAppointment.class)
                             .selectAll()
                             .eq(HrEmpAppointment::getUserCode, userCode)
@@ -1212,7 +1212,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                             .last("NULLS LAST")
             ).stream().filter(e -> e.getStartDate() != null).sorted(
                     Comparator.comparing(HrEmpAppointment::getStartDate).reversed()
-            ).collect(Collectors.toList()).get(0));
+            ).collect(Collectors.toList());
         }
 
 
