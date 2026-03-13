@@ -205,9 +205,9 @@ public class HrEmpBasicController {
         // 上传到minIO
         String profilePicture = minioUtils.saveFile(imageFile);
 
-        boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
+        boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin") || RoleUtils.checkAnyMatch("hrsc_admin");
         if (flag) {
-            log.info("权限校验通过，用户拥有'公司超级管理员'角色，直接进行更新");
+            log.info("权限校验通过，用户拥有'公司超级管理员'或'员工基本信息超级管理员'角色，直接进行更新");
             try{
                 // 构建更新条件
                 MPJLambdaWrapper<HrEmpBasic> updateWrapper = new MPJLambdaWrapper<>();
@@ -229,7 +229,7 @@ public class HrEmpBasicController {
                 log.warn("权限校验成功，但直接更新失败，尝试走审批流", e);
             }
         }
-        log.warn("权限校验失败，用户缺少'公司超级管理员'角色");
+        log.warn("权限校验失败，用户缺少'公司超级管理员'角色或'员工基本信息超级管理员'角色");
 
         try{
             // 1. 获取当前数据快照
