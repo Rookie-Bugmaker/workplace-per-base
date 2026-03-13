@@ -1,11 +1,16 @@
 package com.crrc.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.crrc.annotation.AuditLog;
+import com.crrc.annotation.TenantIgnore;
 import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
 import com.crrc.client.SysServerClient;
+import com.crrc.common.PaginationGrid;
 import com.crrc.common.ResultData;
+import com.crrc.entity.BorrowedPersonnelApprovalFormRelation;
 import com.crrc.entity.CodeInfo;
+import com.crrc.entity.HrEmpBasic;
 import com.crrc.entity.dict.vo.DictItemVO;
 import com.crrc.entity.dict.vo.DictVO;
 import com.crrc.entity.dto.*;
@@ -22,6 +27,7 @@ import com.crrc.service.impl.HrEmpBasicServiceImpl;
 import com.crrc.utils.DictTypeUtils;
 import com.crrc.utils.DictUtils;
 import com.crrc.utils.TreeUtils;
+import io.jsonwebtoken.lang.Objects;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +39,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
@@ -58,8 +65,6 @@ public class HrEmpFlowableController {
     @Resource
     private SysServerClient sysServerClient;
     @Autowired
-    private DictTypeUtils dictTypeUtils;
-    @Autowired
     private HrEmpBasicServiceImpl hrEmpBasicService;
     @Autowired
     private WkDataAPi wkDataAPi;
@@ -72,6 +77,95 @@ public class HrEmpFlowableController {
 
     private final static Long HRSC_DEPT_EMP_INFO_MGR_ROLE_ID = 449260075015049216L;
 
+    @TenantIgnore
+    @GetMapping("/findApprovalByRoleIdList")
+    public ResponseResult<PaginationGrid<com.crrc.entity.dto.SysUserDTO>> findApprovalByRoleId(
+            Integer page, Integer pageSize, @RequestParam("roleIdList") List<Long> roleIdList
+    ) {
+        if (ObjectUtils.isEmpty(roleIdList)) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "roleIdList不能为空");
+        }
+        return ResponseResult.success(doFindApprovalByRoleIdList(roleIdList));
+    }
+
+    private PaginationGrid<com.crrc.entity.dto.SysUserDTO> doFindApprovalByRoleIdList(List<Long> roleIdList) {
+        Set<com.crrc.entity.dto.SysUserDTO> userSet = new HashSet<>();
+        roleIdList.forEach(roleId -> {
+            List<com.crrc.entity.dto.SysUserDTO> roleUserListByRoleId = wkCoreAPi.getRoleUserListByRoleId(roleId);
+            userSet.addAll(roleUserListByRoleId);
+        });
+
+
+        PaginationGrid<com.crrc.entity.dto.SysUserDTO> result = new PaginationGrid<>();
+        result.setRows(new ArrayList<>(userSet));
+        result.setTotal((long) userSet.size());
+
+        return result;
+    }
+
+    @TenantIgnore
+    @GetMapping("/findApprovalByRoleId")
+    public ResponseResult<PaginationGrid<com.crrc.entity.dto.SysUserDTO>> findApprovalByRoleId(
+            Integer page, Integer pageSize, Long roleId
+    ) {
+        if (ObjectUtils.isEmpty(roleId)) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "roleId不能为空");
+        }
+        return ResponseResult.success(doFindApprovalByRoleId(roleId));
+    }
+
+    private PaginationGrid<com.crrc.entity.dto.SysUserDTO> doFindApprovalByRoleId(Long roleId) {
+        List<com.crrc.entity.dto.SysUserDTO> approval = wkCoreAPi.getRoleUserListByRoleId(roleId);
+
+        PaginationGrid<com.crrc.entity.dto.SysUserDTO> result = new PaginationGrid<>();
+
+        result.setRows(approval);
+        result.setTotal((long) approval.size());
+
+        return result;
+    }
+
+    @TenantIgnore
+    @GetMapping("/findApprovalByRoleIdAndDeptCode")
+    public ResponseResult<PaginationGrid<com.crrc.entity.dto.SysUserDTO>> findApprovalByRoleIdAndDeptCode(
+            Long roleId, String deptCode
+    ) {
+        if (ObjectUtils.isEmpty(roleId)) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "roleId不能为空");
+        }
+        if (ObjectUtils.isEmpty(deptCode)) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "deptCode不能为空");
+        }
+        return ResponseResult.success(doFindApprovalByRoleIdAndDeptCode(roleId, deptCode));
+    }
+
+    public PaginationGrid<com.crrc.entity.dto.SysUserDTO> doFindApprovalByRoleIdAndDeptCode(Long roleId, String deptCode) {
+        List<com.crrc.entity.dto.SysUserDTO> roleUserListByRoleId = wkCoreAPi.getRoleUserListByRoleId(roleId);
+
+        List<String> userCodes = roleUserListByRoleId.stream().map(com.crrc.entity.dto.SysUserDTO::getUserName).collect(Collectors.toList());
+
+        LambdaQueryWrapper<HrEmpBasic> wrapper = new LambdaQueryWrapper<>();
+
+        wrapper.in(HrEmpBasic::getUserCode, userCodes);
+
+        List<HrEmpBasic> hrEmpBasicList = hrEmpBasicService.getBaseMapper().selectList(wrapper);
+
+        Set<String> leaders = hrEmpBasicList.stream()
+                .filter(emp -> Objects.nullSafeEquals(deptCode, emp.getDept()))
+                .map(HrEmpBasic::getUserCode)
+                .collect(Collectors.toSet());
+
+        List<com.crrc.entity.dto.SysUserDTO> sysUsers = roleUserListByRoleId.stream()
+                .filter(user -> leaders.contains(user.getUserName()))
+                .collect(Collectors.toList());
+
+        PaginationGrid<com.crrc.entity.dto.SysUserDTO> result = new PaginationGrid<>();
+
+        result.setRows(sysUsers);
+        result.setTotal((long) sysUsers.size());
+
+        return result;
+    }
 
     @GetMapping("/findUserByDeptIdAndRoleCode")
     @Operation(summary = "HrEmpFlowableController工作流获取审批人信息")

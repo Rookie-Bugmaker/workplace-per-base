@@ -55,31 +55,6 @@ public class PersonnelSecondmentRequestRelationController {
     private PersonnelSecondmentRequestServiceImpl personnelSecondmentRequestService;
 
     @TenantIgnore
-    @GetMapping("/findBorrowLeaderApproval")
-    public ResponseResult<PaginationGrid<SysUserDTO>> findBorrowLeaderApproval(
-            Integer page, Integer pageSize,
-            @RequestParam("id") String id
-    ) {
-        return personnelSecondmentRequestRelationService.findBorrowLeaderApproval(id);
-    }
-
-    @TenantIgnore
-    @GetMapping("/findHrAuditApproval")
-    public ResponseResult<PaginationGrid<SysUserDTO>> findHrAuditApproval(
-            Integer page, Integer pageSize
-    ) {
-        return personnelSecondmentRequestRelationService.findHrAuditApproval();
-    }
-
-    @TenantIgnore
-    @GetMapping("/findHrDeputyMinisterApproval")
-    public ResponseResult<PaginationGrid<SysUserDTO>> findHrDeputyMinisterApproval(
-            Integer page, Integer pageSize
-    ) {
-        return personnelSecondmentRequestRelationService.findHrDeputyMinisterApproval();
-    }
-
-    @TenantIgnore
     @PostMapping("/sendToSourceDept/{id}")
     public ResponseResult<Boolean> sendToSourceDept(@PathVariable("id") String id, @RequestBody List<String> deptList) {
         return ResponseResult.success(personnelSecondmentRequestRelationService.sendToSourceDept(id, deptList));

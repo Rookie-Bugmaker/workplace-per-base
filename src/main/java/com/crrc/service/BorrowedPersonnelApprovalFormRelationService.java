@@ -2,10 +2,8 @@ package com.crrc.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.crrc.common.PaginationGrid;
 import com.crrc.entity.BorrowedPersonnelApprovalFormRelation;
 import com.crrc.entity.PersonnelSecondmentRequestRelation;
-import com.crrc.entity.dto.SysUserDTO;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.BorrowedPersonnelApprovalFormRelationDetailDTO;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
@@ -45,24 +43,9 @@ public interface BorrowedPersonnelApprovalFormRelationService extends IService<B
     void saveDetails(String requestId, @Valid BorrowedPersonnelApprovalFormRelationDetailDTO reqDTO);
 
     /**
-     * 查询单位主管领导
-     */
-    PaginationGrid<SysUserDTO> findBorrowingUnitSupervisorApproval(String id);
-
-    /**
      * 回调接口
      */
     ResponseResult<Boolean> writeBack(WorkflowWriteBackParamDTO param);
-
-    /**
-     * 查询定额管理员
-     */
-    PaginationGrid<SysUserDTO> findQuotaApproval();
-
-    /**
-     * 查询公司主管领导
-     */
-    PaginationGrid<SysUserDTO> findCompanyLeaderApproval(String id);
 
     /**
      * 根据主键获得详情
