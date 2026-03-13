@@ -676,4 +676,33 @@ public class ExternalController {
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "更新用户人脸识别（考勤打卡）的图片失败");
         }
     }
+
+
+    @PostMapping("/updateCategory1")
+    @Operation(summary = "单独重算指定人员的人员分类1")
+    @AuditLog(value = "单独重算指定人员的人员分类1", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @IgnoreTenant
+    public ResponseResult<String> updateCategory1(@RequestBody List<String> userCodeList, @RequestParam(required = false) String category1) {
+        try {
+            StringBuilder result = new StringBuilder();
+
+            for(String userCode : userCodeList) {
+                HrEmpBasic entity = hrEmpBasicService.getByUserCode(userCode);
+                if(StringUtils.isNotBlank(category1)) {
+                    entity.setCategory1(category1);
+                    result.append("档案号：").append(userCode).append(" 人员分类1：").append(category1);
+                } else {
+//                    String category8Mark = hrEmpBasicController.resolveCategory8(entity);
+//                    entity.setCategory8(category8Mark);
+//                    result.append("档案号：").append(userCode).append(" 人员分类8：").append(category8Mark);
+                    throw new RuntimeException("未传入人员分类1");
+                }
+                hrEmpBasicService.updateById(entity);
+            }
+            return new ResponseResult<>(HttpStatus.OK.value(), "重算指定人员的人员分类1成功" + result);
+        } catch (Exception e) {
+            log.error("重算指定人员的人员分类1失败", e);
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "重算指定人员的人员分类1失败");
+        }
+    }
 }
