@@ -10,6 +10,7 @@ import com.crrc.entity.dto.ProcessInstanceVo;
 import com.crrc.entity.dto.StartProcessInstanceDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.entity.dto.response.ResultData;
+import com.crrc.handler.MultiTenantHandler;
 import com.crrc.mapper.BorrowedPersonnelApprovalFormRelationMapper;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.BorrowedPersonnelApprovalFormRelationDetailDTO;
@@ -90,7 +91,7 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
         saveOrUpdate(formRelation);
 
         // 生成表单
-        templateGenerateService.generateApprovalFormWordAndUpdate(id, 0, 6);
+        templateGenerateService.generateApprovalFormWordAndUpdate(id, 0, 6, MultiTenantHandler.tenantId.get());
         log.info("流程测试success");
         return new ResponseResult<>(HttpStatus.OK.value(), "审批流发起成功", true);
 
@@ -150,13 +151,13 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
                 exceptionCasePerson.setFormerDept(relation.getLendingUnitName());
                 exceptionCasePerson.setFormerDeptCode(relation.getLendingUnit());
                 // 回写公司
-                setCompany(dept2ParentOrgCodeCacheMap, relation.getLendingUnit(), exceptionCasePerson, organizationTreeDTOList);
+                setOldCompany(dept2ParentOrgCodeCacheMap, relation.getLendingUnit(), exceptionCasePerson, organizationTreeDTOList);
 
                 exceptionCasePerson.setNewDept(relation.getBorrowingUnitName());
                 exceptionCasePerson.setNewDeptCode(relation.getBorrowingUnit());
 
                 // 回写公司
-                setCompany(dept2ParentOrgCodeCacheMap, relation.getBorrowingUnit(), exceptionCasePerson, organizationTreeDTOList);
+                setNewCompany(dept2ParentOrgCodeCacheMap, relation.getBorrowingUnit(), exceptionCasePerson, organizationTreeDTOList);
 
                 exceptionCasePerson.setPosition(form.getJobType());
 
@@ -187,6 +188,31 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
     }
 
+    private void setNewCompany(Map<String, OrganizationTreeDTO> dept2ParentOrgCodeCacheMap, String unit, ExceptionCasePerson exceptionCasePerson, List<OrganizationTreeDTO> organizationTreeDTOList) {
+        if(dept2ParentOrgCodeCacheMap.containsKey(unit)) {
+            exceptionCasePerson.setNewCompany(dept2ParentOrgCodeCacheMap.get(unit).getOrgName());
+            exceptionCasePerson.setNewCompanyCode(dept2ParentOrgCodeCacheMap.get(unit).getOrgCode());
+        } else {
+            OrganizationTreeDTO parent = new OrganizationTreeDTO();
+            for(OrganizationTreeDTO dto : organizationTreeDTOList) {
+                if(
+                        TreeUtils.containsBfs(
+                                dto,
+                                match -> unit.equals(match.getOrgCode()),
+                                OrganizationTreeDTO::getChildren
+                        ).equals(Boolean.TRUE)
+                ) {
+                    parent = dto;
+                    break;
+                }
+            }
+
+            dept2ParentOrgCodeCacheMap.put(unit, parent);
+            exceptionCasePerson.setNewCompany(parent.getOrgName());
+            exceptionCasePerson.setNewCompanyCode(parent.getOrgCode());
+        }
+    }
+
     @Override
     public BorrowedPersonnelApprovalFormRelationDetailDTO getDetailsById(String id) {
         BorrowedPersonnelApprovalFormRelation relation = getById(id);
@@ -197,7 +223,7 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
         return detailDTO;
     }
 
-    private static void setCompany(Map<String, OrganizationTreeDTO> dept2ParentOrgCodeCacheMap, String unit, ExceptionCasePerson exceptionCasePerson, List<OrganizationTreeDTO> organizationTreeDTOList) {
+    private static void setOldCompany(Map<String, OrganizationTreeDTO> dept2ParentOrgCodeCacheMap, String unit, ExceptionCasePerson exceptionCasePerson, List<OrganizationTreeDTO> organizationTreeDTOList) {
         if(dept2ParentOrgCodeCacheMap.containsKey(unit)) {
             exceptionCasePerson.setFormerCompany(dept2ParentOrgCodeCacheMap.get(unit).getOrgName());
             exceptionCasePerson.setFormerCompanyCode(dept2ParentOrgCodeCacheMap.get(unit).getOrgCode());
@@ -217,6 +243,8 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
             }
 
             dept2ParentOrgCodeCacheMap.put(unit, parent);
+            exceptionCasePerson.setFormerCompany(parent.getOrgName());
+            exceptionCasePerson.setFormerCompanyCode(parent.getOrgCode());
         }
     }
 }

@@ -2,11 +2,13 @@ package com.crrc.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.crrc.annotation.TenantIgnore;
+import com.crrc.annotation.TenantScope;
 import com.crrc.entity.BorrowedPersonnelApprovalForm;
 import com.crrc.entity.BorrowedPersonnelApprovalFormRelation;
 import com.crrc.entity.PersonnelSecondmentRequest;
 import com.crrc.entity.PersonnelSecondmentRequestRelation;
 import com.crrc.entity.filedata.vo.FileDataStream;
+import com.crrc.handler.MultiTenantHandler;
 import com.crrc.mapper.BorrowedPersonnelApprovalFormMapper;
 import com.crrc.mapper.BorrowedPersonnelApprovalFormRelationMapper;
 import com.crrc.mapper.PersonnelSecondmentRequestMapper;
@@ -50,18 +52,30 @@ public class TemplateGenerateServiceImpl {
     @Autowired
     FileServiceImpl fileService;
 
-    @TenantIgnore
     @Async("templateGenerateAsyncExecutor")
-    public void generateRequestWordAndUpdate(String id, int tableNum, int headerNum) {
-        PersonnelSecondmentRequestRelation relation = mapper.selectById(id);
+    public void generateRequestWordAndUpdate(String id, int tableNum, int headerNum, String tenantId) {
+        String oldTenant = MultiTenantHandler.tenantId.get();
+
         try {
+            MultiTenantHandler.tenantId.set(tenantId);
+            PersonnelSecondmentRequestRelation relation = mapper.selectById(id);
+
             String fileId = generateRequestWord(id, tableNum, headerNum);
             relation.setFileId(fileId);
+
+            mapper.updateById(relation);
         } catch (IOException e) {
             log.error("generateRequestWordAndUpdate出现错误", e);
+        } finally {
+            if(oldTenant != null) {
+                MultiTenantHandler.tenantId.set(oldTenant);
+            } else {
+                MultiTenantHandler.tenantId.remove();
+            }
         }
 
-        mapper.updateById(relation);
+
+
     }
 
     public String generateRequestWord(String id, int tableNum, int headerNum) throws IOException {
@@ -111,20 +125,30 @@ public class TemplateGenerateServiceImpl {
         return fileId;
     }
 
-    @TenantIgnore
     @Async("templateGenerateAsyncExecutor")
-    public void generateApprovalFormWordAndUpdate(String id, int tableNum, int headerNum) {
-        BorrowedPersonnelApprovalFormRelation relation = relationMapper.selectById(id);
+    public void generateApprovalFormWordAndUpdate(String id, int tableNum, int headerNum, String tenantId) {
+        String oldTenant = MultiTenantHandler.tenantId.get();
         try {
+            MultiTenantHandler.tenantId.set(tenantId);
+            BorrowedPersonnelApprovalFormRelation relation = relationMapper.selectById(id);
+
             String fileId = generateApprovalFormWord(id, tableNum, headerNum);
             relation.setFileId(fileId);
+
+            relationMapper.updateById(relation);
         } catch (IOException e) {
             log.error("generateRequestWordAndUpdate出现错误", e);
+        } finally {
+            if (oldTenant != null) {
+                MultiTenantHandler.tenantId.set(oldTenant);
+            } else {
+                MultiTenantHandler.tenantId.remove();
+            }
         }
 
-        relationMapper.updateById(relation);
     }
 
+    @TenantScope(filterRoleCode = {}, tenantLevel = TenantScope.TenantLevel.ORG)
     public String generateApprovalFormWord(String id, int tableNum, int headerNum) throws IOException {
         BorrowedPersonnelApprovalFormRelation relation = relationMapper.selectById(id);
         LocalDate date = LocalDate.now();
@@ -147,7 +171,7 @@ public class TemplateGenerateServiceImpl {
 
 
         LambdaQueryWrapper<BorrowedPersonnelApprovalForm> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(BorrowedPersonnelApprovalForm::getRelationId, relation.getId());
+        wrapper.eq(BorrowedPersonnelApprovalForm::getRelationId, id);
         List<BorrowedPersonnelApprovalForm> requestList = formMapper.selectList(wrapper);
 
         final int[] index = {1};

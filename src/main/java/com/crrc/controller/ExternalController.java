@@ -762,6 +762,9 @@ public class ExternalController {
      * @return 转换后的职能标识汉字
      */
     private String resolveUserType(String userType) {
+        if(userType == null) {
+            return "外派股东";
+        }
         // todo 如果后面换了逻辑，记得处理这里
         switch (userType) {
             case "EXT_SEC":
