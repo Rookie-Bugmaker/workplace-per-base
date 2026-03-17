@@ -10,6 +10,7 @@ import com.crrc.entity.*;
 import com.crrc.entity.dto.ProcessInstanceVo;
 import com.crrc.entity.dto.StartProcessInstanceDTO;
 import com.crrc.entity.dto.response.ResultData;
+import com.crrc.handler.MultiTenantHandler;
 import com.crrc.mapper.BorrowedPersonnelApprovalFormRelationMapper;
 import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mapper.PersonnelSecondmentRequestRelationMapper;
@@ -139,7 +140,8 @@ public class PersonnelSecondmentRequestRelationServiceImpl extends WorkServiceIm
         saveOrUpdate(relation);
 
         // 生成表单
-        templateGenerateService.generateRequestWordAndUpdate(id, 0, 4);
+        // 这里要拿到tenantId
+        templateGenerateService.generateRequestWordAndUpdate(id, 0, 4, MultiTenantHandler.tenantId.get());
         log.info("流程测试success");
         return new ResponseResult<>(HttpStatus.OK.value(), "审批流发起成功", true);
     }
