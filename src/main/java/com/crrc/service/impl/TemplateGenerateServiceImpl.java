@@ -97,6 +97,7 @@ public class TemplateGenerateServiceImpl {
         relationVO.setYear(String.valueOf(date.getYear()));
 
         LambdaQueryWrapper<PersonnelSecondmentRequest> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(PersonnelSecondmentRequest::getRelationId, id);
         List<PersonnelSecondmentRequest> requestList = requestMapper.selectList(wrapper);
         final int[] index = {1};
         List<PersonnelSecondmentRequestTemplateVO> requestVOList = requestList.stream().map(request -> {
