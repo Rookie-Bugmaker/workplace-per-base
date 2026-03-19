@@ -16,5 +16,7 @@ public @interface WordTemplateRequire {
      */
     String value() default "";
 
+    String header() default "";
+
     int index() default Integer.MAX_VALUE;
 }

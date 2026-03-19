@@ -90,6 +90,8 @@ public class ExternalController {
     private ExceptionCasePersonServiceImpl exceptionCasePersonService;
     @Autowired
     private WebServiceUtil webServiceUtil;
+    @Autowired
+    private TemplateGenerateServiceImpl templateGenerateServiceImpl;
 
     @PostMapping("/receiveKingDieMsg")
     @Operation(summary = "接收金蝶传递人事令信息")
@@ -780,5 +782,11 @@ public class ExternalController {
                 userType = "未知类型";
         }
         return userType;
+    }
+
+    @PostMapping("/testGene")
+    public ResponseResult<String> testGene(@RequestParam String id) {
+        templateGenerateServiceImpl.generateRequestWordAndUpdate(id, 0, 4);
+        return ResponseResult.success("OK");
     }
 }

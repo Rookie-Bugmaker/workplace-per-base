@@ -4,6 +4,8 @@ import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.crrc.annotation.IgnoreTenant;
+import com.crrc.annotation.TenantIgnore;
 import com.crrc.api.WkWorkflowApi;
 import com.crrc.constants.AuditConstants;
 import com.crrc.entity.*;
@@ -19,6 +21,7 @@ import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.pojo.vo.RequestAndBorrowedConcatVO;
 import com.crrc.service.PersonnelSecondmentRequestRelationService;
 import com.crrc.utils.DeptUtils;
+import com.crrc.utils.RoleUtils;
 import com.crrc.utils.SecurityFrameworkUtils;
 import com.crrc.utils.WrapperUtils;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
@@ -61,10 +64,12 @@ public class PersonnelSecondmentRequestRelationServiceImpl extends WorkServiceIm
                 (a, b) -> a
         ));
 
-        records.forEach(item ->
-            item.setRequestingDepartmentValue(
-                translateMap.getOrDefault(item.getRequestingDepartment(), item.getRequestingDepartment())
-            )
+        records.forEach(item -> {
+                item.setRequestingDepartmentValue(
+                    translateMap.getOrDefault(item.getRequestingDepartment(), item.getRequestingDepartment())
+                );
+            }
+
         );
     }
 
@@ -141,7 +146,7 @@ public class PersonnelSecondmentRequestRelationServiceImpl extends WorkServiceIm
 
         // 生成表单
         // 这里要拿到tenantId
-        templateGenerateService.generateRequestWordAndUpdate(id, 0, 4, MultiTenantHandler.tenantId.get());
+        templateGenerateService.generateRequestWordAndUpdate(id, 0, 4);
         log.info("流程测试success");
         return new ResponseResult<>(HttpStatus.OK.value(), "审批流发起成功", true);
     }
@@ -212,6 +217,7 @@ public class PersonnelSecondmentRequestRelationServiceImpl extends WorkServiceIm
     }
 
     @Override
+    @TenantIgnore
     public void pageBySourceDept(Page<RequestAndBorrowedConcatVO> page, PersonnelSecondmentRequestRelation pageReqVO) {
         LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
         if(loginUser == null) {
@@ -238,11 +244,14 @@ public class PersonnelSecondmentRequestRelationServiceImpl extends WorkServiceIm
         WrapperUtils.selectAllWithPrefix(mpjLambdaWrapper, BorrowedPersonnelApprovalFormRelation.class, "t1", "brw_");
 
         mpjLambdaWrapper
-                .innerJoin(
+                .rightJoin(
                         BorrowedPersonnelApprovalFormRelation.class, on -> on
                                 .eq(BorrowedPersonnelApprovalFormRelation::getRequestId, PersonnelSecondmentRequestRelation::getId)
-                )
-                .eq(BorrowedPersonnelApprovalFormRelation::getTargetDept, dept);
+                );
+
+        if(!RoleUtils.checkAnyMatch("DISPATCH_ADMIN", "QUOTA_ADMIN", "hrsc_deputy_minister", "BORROW_COMPANY_LEADER", "BORROWING_UNIT_LEADER")) {
+            mpjLambdaWrapper.eq(BorrowedPersonnelApprovalFormRelation::getTargetDept, dept);
+        }
 
         baseMapper.selectJoinPage(page, RequestAndBorrowedConcatVO.class, mpjLambdaWrapper);
     }
