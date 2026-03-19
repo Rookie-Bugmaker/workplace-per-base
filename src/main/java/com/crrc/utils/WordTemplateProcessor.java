@@ -444,7 +444,7 @@ public class WordTemplateProcessor {
 
                     Object value = field.get(item);
 
-                    rowData.put(placeHolder, String.valueOf(value));
+                    rowData.put(placeHolder, value == null ? "" : String.valueOf(value));
                 } catch (IllegalAccessException e) {
                     log.error("extractRequireData出现错误, {}", e.getMessage(), e);
                 }

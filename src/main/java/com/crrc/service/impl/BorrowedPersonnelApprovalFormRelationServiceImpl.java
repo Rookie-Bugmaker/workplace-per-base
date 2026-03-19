@@ -3,6 +3,7 @@ package com.crrc.service.impl;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.crrc.annotation.TenantIgnore;
 import com.crrc.api.WkWorkflowApi;
 import com.crrc.constants.AuditConstants;
 import com.crrc.entity.*;
@@ -91,7 +92,7 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
         saveOrUpdate(formRelation);
 
         // 生成表单
-        templateGenerateService.generateApprovalFormWordAndUpdate(id, 0, 6, MultiTenantHandler.tenantId.get());
+        templateGenerateService.generateApprovalFormWordAndUpdate(id, 0, 6);
         log.info("流程测试success");
         return new ResponseResult<>(HttpStatus.OK.value(), "审批流发起成功", true);
 
@@ -214,6 +215,7 @@ public class BorrowedPersonnelApprovalFormRelationServiceImpl extends WorkServic
     }
 
     @Override
+    @TenantIgnore
     public BorrowedPersonnelApprovalFormRelationDetailDTO getDetailsById(String id) {
         BorrowedPersonnelApprovalFormRelation relation = getById(id);
         List<BorrowedPersonnelApprovalForm> formList = borrowedPersonnelApprovalFormService.getByRelationId(id);

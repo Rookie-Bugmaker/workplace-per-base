@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
@@ -36,9 +37,20 @@ public class TenantScopeAspect {
         this.wkDataAPi = wkDataAPi;
     }
 
+    @Pointcut("execution(public * com.crrc.service..*(..)) || " +
+            "execution(public * com.crrc.controller..*(..))")
+    public void crrcPublicMethod() {}
 
-    @Around("within(@org.springframework.web.bind.annotation.RestController *) || " +
-            "within(@org.springframework.stereotype.Controller *)")
+    @Pointcut("@annotation(com.crrc.annotation.TenantScope)")
+    public void methodAnnotated() {}
+
+    @Pointcut("@within(com.crrc.annotation.TenantScope)")
+    public void typeAnnotated() {}
+
+    @Pointcut("@target(com.crrc.annotation.TenantScope)")
+    public void classAnnotated() {}
+
+    @Around("methodAnnotated() || typeAnnotated() || (classAnnotated() && crrcPublicMethod())")
     public Object aroundController(ProceedingJoinPoint pjp) throws Throwable {
         TenantScope cfg = resolveTenantScope(pjp);
 
@@ -104,11 +116,11 @@ public class TenantScopeAspect {
                     }
                 }
 
-                return orgCode;
+                return orgCode.replace("_", "");
             }
 
             if(TenantScope.TenantLevel.DEPT.equals(level)) {
-                return basic.getDept();
+                return basic.getDept().replace("_", "");
             }
 
         } catch (Exception e) {
