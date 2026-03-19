@@ -173,6 +173,9 @@ public class TemplateGenerateServiceImpl {
             templateVO.setEndMonth(String.valueOf(relation.getStartDate().getMonth().getValue()));
             templateVO.setEndYear(String.valueOf(relation.getStartDate().getYear()));
 
+            templateVO.setBorrowingUnitName(DeptUtils.getDeptNameByCode(relation.getBorrowingUnit()));
+            templateVO.setLendingUnitName(DeptUtils.getDeptNameByCode(relation.getLendingUnit()));
+
 
             LambdaQueryWrapper<BorrowedPersonnelApprovalForm> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(BorrowedPersonnelApprovalForm::getRelationId, id);

@@ -244,7 +244,7 @@ public class PersonnelSecondmentRequestRelationServiceImpl extends WorkServiceIm
         WrapperUtils.selectAllWithPrefix(mpjLambdaWrapper, BorrowedPersonnelApprovalFormRelation.class, "t1", "brw_");
 
         mpjLambdaWrapper
-                .rightJoin(
+                .innerJoin(
                         BorrowedPersonnelApprovalFormRelation.class, on -> on
                                 .eq(BorrowedPersonnelApprovalFormRelation::getRequestId, PersonnelSecondmentRequestRelation::getId)
                 );
