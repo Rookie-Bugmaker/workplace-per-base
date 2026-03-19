@@ -569,6 +569,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     }
 
     @Override
+    @TenantIgnore
     public List<HrFullDataDTO> getFullData(List<String> userCodes) {
         // 查询出这些人的基本信息数据
         LambdaQueryWrapper<HrEmpBasic> basicWrapper = new LambdaQueryWrapper<>();
