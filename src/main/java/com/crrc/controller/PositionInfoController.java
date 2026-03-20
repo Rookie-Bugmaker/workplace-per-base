@@ -3,6 +3,7 @@ package com.crrc.controller;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
@@ -51,7 +52,7 @@ public class PositionInfoController {
     @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象", required = false)
     @Parameter(name = "pageNo", description = "页码", required = false, example = "1")
     @Parameter(name = "pageSize", description = "条数", required = false, example = "10")
-    public ResponseResult<IPage> pagePositionInfo(@Validated @RequestBody(required = false) PositionInfo pageReqVO,
+    public ResponseResult<IPage<PositionInfo>> pagePositionInfo(@Validated @RequestBody(required = false) PositionInfo pageReqVO,
                                                   @RequestParam(required = false, defaultValue = "1") int pageNo,
                                                   @RequestParam(required = false, defaultValue = "10") int pageSize) {
         pageReqVO = (pageReqVO == null) ? new PositionInfo() : pageReqVO;
@@ -67,6 +68,18 @@ public class PositionInfoController {
     public ResponseResult<List<PositionInfo>> queryPositionInfo(@Validated @RequestBody(required = false) PositionInfo queryReqVO) {
         queryReqVO = (queryReqVO == null) ? new PositionInfo() : queryReqVO;
         return new ResponseResult<>(HttpStatus.OK.value(), "获取列表成功", positionInfoService.query(queryReqVO));
+    }
+
+    @PostMapping("/queryList")
+    @Operation(summary = "获取列表")
+    @AuditLog(value = "获取列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象", required = false)
+    public ResponseResult<List<PositionInfo>> queryPositionInfoByList(@Validated @RequestBody(required = false) List<String> codeList) {
+        LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
+        if(codeList != null && !codeList.isEmpty()) {
+            wrapper.in(PositionInfo::getCode, codeList);
+        }
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取列表成功", positionInfoService.getBaseMapper().selectList(wrapper));
     }
 
     @GetMapping("/get")

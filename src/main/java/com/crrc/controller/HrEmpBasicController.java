@@ -17,7 +17,6 @@ import com.crrc.entity.*;
 import com.crrc.entity.dto.ProcessInstanceVo;
 import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.StartProcessInstanceDTO;
-import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.entity.dto.response.ResultData;
 import com.crrc.enums.LogType;
@@ -39,7 +38,6 @@ import com.xxl.job.core.handler.annotation.XxlJob;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import kotlin.jvm.internal.Lambda;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +56,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -206,9 +205,9 @@ public class HrEmpBasicController {
         // 上传到minIO
         String profilePicture = minioUtils.saveFile(imageFile);
 
-        boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
+        boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin") || RoleUtils.checkAnyMatch("hrsc_admin");
         if (flag) {
-            log.info("权限校验通过，用户拥有'公司超级管理员'角色，直接进行更新");
+            log.info("权限校验通过，用户拥有'公司超级管理员'或'员工基本信息超级管理员'角色，直接进行更新");
             try{
                 // 构建更新条件
                 MPJLambdaWrapper<HrEmpBasic> updateWrapper = new MPJLambdaWrapper<>();
@@ -230,7 +229,7 @@ public class HrEmpBasicController {
                 log.warn("权限校验成功，但直接更新失败，尝试走审批流", e);
             }
         }
-        log.warn("权限校验失败，用户缺少'公司超级管理员'角色");
+        log.warn("权限校验失败，用户缺少'公司超级管理员'角色或'员工基本信息超级管理员'角色");
 
         try{
             // 1. 获取当前数据快照
@@ -362,7 +361,7 @@ public class HrEmpBasicController {
         try {
             // 如果传参了且非空，就用传参，否则全量更新
             List<HrEmpBasic> list = (userCodeList != null && !userCodeList.isEmpty())
-                    ? hrEmpBasicService.getListByUserCode(userCodeList)
+                    ? hrEmpBasicService.getListByHrEmpBasic(userCodeList)
                     : hrEmpBasicService.getAllUser();
 
             // Map<String, String> position2ValueMap = codeInfoService.getTranslateMap("hr_emp_appointment", "APPOINTMENT_POSITION");
@@ -413,7 +412,7 @@ public class HrEmpBasicController {
         try {
             // 如果传参了且非空，就用传参，否则全量更新
             List<HrEmpBasic> list = (userCodeList != null && !userCodeList.isEmpty())
-                    ? hrEmpBasicService.getListByUserCode(userCodeList)
+                    ? hrEmpBasicService.getListByHrEmpBasic(userCodeList)
                     : hrEmpBasicService.getAllUser();
 
             for(HrEmpBasic hrEmpBasic : list){
@@ -754,6 +753,16 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
     }
 
+    @PostMapping("/getFullData")
+    public ResponseResult<List<HrFullDataDTO>> setCategory7Batch(@RequestBody List<String> userCodes) {
+        try {
+            return new ResponseResult<>(HttpStatus.OK.value(), "OK", hrEmpBasicService.getFullData(userCodes));
+        } catch (Exception e) {
+            log.error("查询出错", e);
+            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "ERROR");
+        }
+    }
+
     @Transactional(rollbackFor = Exception.class)
     @PostMapping("/setCategory7Batch")
     public ResponseResult<Boolean> setCategory7Batch(@RequestBody MultipartFile file) throws IOException {
@@ -765,6 +774,15 @@ public class HrEmpBasicController {
                     .doRead();
         }
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
+    }
+
+    @PostMapping("/getList")
+    @Operation(summary = "获得员工基本信息表实体")
+    @AuditLog(value = "获得员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "id", description = "主键编号", required = true, example = "1")
+    public ResponseResult<List<HrEmpBasic>> getList(@RequestBody List<String> userCodeList) {
+        List<HrEmpBasic> hrEmpBasicDTOS = hrEmpBasicService.getListByUserCode(userCodeList);
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取员工基本信息表实体成功", hrEmpBasicDTOS);
     }
 
     @GetMapping("/getDetails")
@@ -803,6 +821,73 @@ public class HrEmpBasicController {
             return new ResponseResult<>(HttpStatus.OK.value(), "查询成功", result);
         } catch (Exception e) {
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "查询异常: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/pageFullForOrder")
+    @Operation(summary = "获取员工基本信息表列表,为外部派入，借出接口提供(支持模糊查询)")
+    @AuditLog(value = "获取员工基本信息表列表(模糊查询)", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
+    @Parameter(name = "pageNo", description = "页码", example = "1")
+    @Parameter(name = "pageSize", description = "条数", example = "10")
+    public ResponseResult<IPage<HrEmpBasicDTO>> pageFullForOrder(@Validated @RequestBody(required = false) HrEmpBasicSearchDTO searchDTO,
+                                                                          @RequestParam(required = false, defaultValue = "1") int pageNo,
+                                                                          @RequestParam(required = false, defaultValue = "10") int pageSize) {
+        searchDTO = (searchDTO == null) ? new HrEmpBasicSearchDTO() : searchDTO;
+        try {
+            pageNo = 1;
+            Page<HrEmpBasicDTO> page = new Page<>(pageNo, pageSize);
+            // 在service层实现模糊查询逻辑
+            // 如果全是数字，说明是档案号
+            Pattern dig = Pattern.compile("^\\d{1,50}$");
+            if(dig.matcher(searchDTO.getName()).matches()) {
+                searchDTO.setUserCode(searchDTO.getName());
+                searchDTO.setName(null);
+            }
+
+            if(StringUtils.isBlank(searchDTO.getName())) {
+                searchDTO.setName(null);
+            }
+
+            IPage<HrEmpBasicDTO> result = hrEmpBasicService.listData(page, searchDTO);
+
+            List<HrEmpBasicDTO> basicList = result.getRecords();
+
+            ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
+            if (listResponseResultDTO == null || org.apache.commons.lang3.ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+                log.error("外部接口错误，获取树形组织信息失败");
+                throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
+            }
+            List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+
+            Map<String, String> orgCode2Name = codeInfoService.getTranslateMap("hr_emp_appointment", "APPOINTMENT_ORG");
+            Map<String, String> cache = new HashMap<>();
+
+            for(HrEmpBasicDTO dto : basicList) {
+                if(StringUtils.isNotBlank(dto.getDept())) {
+                    dto.setDepartmentName(orgCode2Name.getOrDefault(dto.getDept(), dto.getDept()));
+                    if(!cache.containsKey(dto.getDept())) {
+                        String parentCode = null;
+                        for(OrganizationTreeDTO root : data) {
+
+                            if (TreeUtils.containsBfs(root, n -> (dto.getDept() != null) && dto.getDept().equals(n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
+                                parentCode = root.getOrgCode();
+                                break;
+                            }
+                        }
+                        dto.setOrg(parentCode);
+                        dto.setOrgCode(parentCode);
+                        cache.put(dto.getDept(), parentCode);
+                    } else {
+                        dto.setOrg(cache.get(dto.getDept()));
+                    }
+
+                    dto.setOrgName(orgCode2Name.get(dto.getOrg()));
+                }
+            }
+            return ResponseResult.success(result);
+        } catch (Exception e) {
+            return ResponseResult.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), "查询异常: " + e.getMessage());
         }
     }
 
@@ -1257,4 +1342,5 @@ public class HrEmpBasicController {
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
     }
+
 }

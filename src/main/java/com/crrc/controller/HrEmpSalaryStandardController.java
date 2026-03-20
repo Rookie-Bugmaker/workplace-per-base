@@ -8,15 +8,12 @@ import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
-import com.crrc.entity.HrEmpSalaryInfo;
 import com.crrc.entity.HrEmpSalaryStandard;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.service.impl.HrEmpSalaryStandardServiceImpl;
-import com.crrc.utils.SalaryInfoImportListener;
-import com.crrc.utils.SalaryStandardChangeImportListener;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -162,13 +159,4 @@ public class HrEmpSalaryStandardController {
         return new ResponseResult<>(HttpStatus.OK.value(), "导入薪资标准报表成功");
     }
 
-    @PostMapping("/tempChangeTemp")
-    public ResponseResult<Boolean> tempChangeTemp(MultipartFile file) throws IOException {
-        EasyExcel.read(file.getInputStream(), HrEmpSalaryStandard.class,
-                        new SalaryStandardChangeImportListener(hrEmpSalaryStandardService))
-                .headRowNumber(1)
-                .sheet()
-                .doRead();
-        return new ResponseResult<>(HttpStatus.OK.value(), "导入员工基本信息表报表成功");
-    }
 }

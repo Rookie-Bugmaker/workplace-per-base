@@ -1,12 +1,12 @@
 package com.crrc.controller;
 
-
 import cn.hutool.core.util.IdUtil;
 import com.alibaba.nacos.client.naming.utils.CollectionUtils;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.annotation.TenantScope;
 import com.crrc.api.WkCoreAPi;
 import com.crrc.client.WorkFlowClient;
 import com.crrc.entity.ExceptionCasePerson;
@@ -33,6 +33,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,6 +62,7 @@ import java.util.stream.Collectors;
 @RefreshScope
 @Tag(name = "额外人员信息关联表", description = "额外人员信息关联表")
 @Slf4j
+@TenantScope(filterRoleCode = {"ASSIGNMENT_AUDIT"}, tenantLevel = TenantScope.TenantLevel.DEPT)
 public class ExceptionCasePersonRelationController {
 
     @Autowired
@@ -74,6 +76,8 @@ public class ExceptionCasePersonRelationController {
     private WorkFlowClient workFlowClient;
     @Autowired
     private WkCoreAPi wkCoreAPi;
+    @Value("${crrc.role.audit.id}")
+    private Long roleId;
 
     /**
      * 工作流回写
@@ -130,7 +134,7 @@ public class ExceptionCasePersonRelationController {
             //根据agreementCode查询部门人员列表
             List<SysUserDTO> rows = new ArrayList<>();
 
-            ResultData<List<SysUserDTO>> userByRoleId = sysServerClient.findUserByRoleId(463017387932581888L);
+            ResultData<List<SysUserDTO>> userByRoleId = sysServerClient.findUserByRoleId(roleId);
 
             if(userByRoleId == null || ObjectUtils.isEmpty(userByRoleId.getResult())) {
                 return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "角色下用户为空");
@@ -162,7 +166,7 @@ public class ExceptionCasePersonRelationController {
 
                 // 查出表头
                 ExceptionCasePersonRelation exceptionCasePersonRelation = exceptionCasePersonRelationService.getById(personRelation.getId());
-                if(exceptionCasePersonRelation.getStatus() == null || exceptionCasePersonRelation.getStatus().equals(AuditConstants.STATUS_DRAFT)) {
+                if(exceptionCasePersonRelation.getStatus() == null || AuditConstants.STATUS_DRAFT.equals(exceptionCasePersonRelation.getStatus())) {
                     exceptionCasePersonVO.setEditable("1");
                 } else if(exceptionCasePersonRelation.getStatus().equals(AuditConstants.STATUS_AUDIT) && exceptionCasePersonRelation.getProcessInstanceId() != null) {
                     ResultData<List<ProcessStatusDTO>> processStatusByProcessInstanceId = workFlowClient.getProcessStatusByProcessInstanceId(exceptionCasePersonRelation.getProcessInstanceId());

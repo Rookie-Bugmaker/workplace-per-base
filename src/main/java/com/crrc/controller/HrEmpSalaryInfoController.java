@@ -8,16 +8,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
-import com.crrc.entity.HrEmpAppointment;
 import com.crrc.entity.HrEmpSalaryInfo;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.service.impl.HrEmpSalaryInfoServiceImpl;
-import com.crrc.utils.AppointmentCoverImportListener;
 import com.crrc.utils.RoleUtils;
-import com.crrc.utils.SalaryInfoImportListener;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -187,13 +184,4 @@ public class HrEmpSalaryInfoController {
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工教育信息表实体成功", result);
     }
 
-    @PostMapping("/tempChangeTemp")
-    public ResponseResult<Boolean> tempChangeTemp(MultipartFile file) throws IOException {
-        EasyExcel.read(file.getInputStream(), HrEmpSalaryInfo.class,
-                        new SalaryInfoImportListener(hrEmpSalaryInfoService))
-                .headRowNumber(1)
-                .sheet()
-                .doRead();
-        return new ResponseResult<>(HttpStatus.OK.value(), "导入员工基本信息表报表成功");
-    }
 }

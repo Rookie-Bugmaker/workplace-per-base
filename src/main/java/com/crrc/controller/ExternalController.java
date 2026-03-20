@@ -3,7 +3,10 @@ package com.crrc.controller;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
+import cn.hutool.core.date.DateTime;
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -23,19 +26,21 @@ import com.crrc.service.impl.*;
 import com.crrc.utils.MinIOUtils;
 import com.crrc.utils.SystemConstants;
 import com.crrc.utils.UpdateWrapperUtils;
+import com.crrc.utils.WebServiceUtil;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import com.crrc.constants.HrOrderType;
 
 import javax.servlet.http.HttpServletResponse;
 import java.math.BigDecimal;
@@ -83,6 +88,10 @@ public class ExternalController {
     private HrEmpSalaryInfoMapper hrEmpSalaryInfoMapper;
     @Autowired
     private ExceptionCasePersonServiceImpl exceptionCasePersonService;
+    @Autowired
+    private WebServiceUtil webServiceUtil;
+    @Autowired
+    private TemplateGenerateServiceImpl templateGenerateServiceImpl;
 
     @PostMapping("/receiveKingDieMsg")
     @Operation(summary = "接收金蝶传递人事令信息")
@@ -103,54 +112,54 @@ public class ExternalController {
                 // TODO @Deprecated ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ @Deprecated 切换到REQUIRE后，这个方法就不需要了
                 // TODO @Deprecated ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ @Deprecated 切换到REQUIRE后，这个方法就不需要了
                 // TODO @Deprecated ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ @Deprecated 切换到REQUIRE后，这个方法就不需要了
-                if(StringUtils.isNotBlank(dto.getHrOrderType())) {
-                    switch(dto.getHrOrderType()) {
-                        // 长病
-                        case HrOrderType.LONG_ILLNESS:
-                            // 劳
-                            dto.getHrEmpBasic().setCategory8("003");
-                            break;
-                        // 长伤
-                        case HrOrderType.LONG_INJURY:
-                            // 伤
-                            dto.getHrEmpBasic().setCategory8("005");
-                            break;
-                        // 借调
-                        case HrOrderType.LOAN_ASSIGNMENT:
-                            // 借
-                            dto.getHrEmpBasic().setCategory8("002");
-                            break;
-                        // 外派
-                        case HrOrderType.EXPATRIATE_ASSIGNMENT:
-                            // 派
-                            dto.getHrEmpBasic().setCategory8("004");
-                            break;
-                        // 挂职/助勤
-                        case HrOrderType.SUPPORT_ASSIGNMENT:
-                            // 助
-                            dto.getHrEmpBasic().setCategory8("008");
-                            break;
-                        // 下岗
-                        case HrOrderType.OFF_POST:
-                            // 待
-                            dto.getHrEmpBasic().setCategory8("001");
-                            break;
-                        // 退养
-                        case HrOrderType.RETIREMENT:
-                            // 养
-                            dto.getHrEmpBasic().setCategory8("007");
-                            break;
-                        case HrOrderType.LONG_ILLNESS_END:
-                        case HrOrderType.LONG_INJURY_END:
-                        case HrOrderType.LOAN_ASSIGNMENT_END:
-                        case HrOrderType.EXPATRIATE_ASSIGNMENT_END:
-                        case HrOrderType.SUPPORT_ASSIGNMENT_END:
-                        case HrOrderType.UP_POST:
-                            // 现
-                            dto.getHrEmpBasic().setCategory8("006");
-                            break;
-                    }
-                }
+//                if(StringUtils.isNotBlank(dto.getHrOrderType())) {
+//                    switch(dto.getHrOrderType()) {
+//                        // 长病
+//                        case HrOrderType.LONG_ILLNESS:
+//                            // 劳
+//                            dto.getHrEmpBasic().setCategory8("003");
+//                            break;
+//                        // 长伤
+//                        case HrOrderType.LONG_INJURY:
+//                            // 伤
+//                            dto.getHrEmpBasic().setCategory8("005");
+//                            break;
+//                        // 借调
+//                        case HrOrderType.LOAN_ASSIGNMENT:
+//                            // 借
+//                            dto.getHrEmpBasic().setCategory8("002");
+//                            break;
+//                        // 外派
+//                        case HrOrderType.EXPATRIATE_ASSIGNMENT:
+//                            // 派
+//                            dto.getHrEmpBasic().setCategory8("004");
+//                            break;
+//                        // 挂职/助勤
+//                        case HrOrderType.SUPPORT_ASSIGNMENT:
+//                            // 助
+//                            dto.getHrEmpBasic().setCategory8("008");
+//                            break;
+//                        // 下岗
+//                        case HrOrderType.OFF_POST:
+//                            // 待
+//                            dto.getHrEmpBasic().setCategory8("001");
+//                            break;
+//                        // 退养
+//                        case HrOrderType.RETIREMENT:
+//                            // 养
+//                            dto.getHrEmpBasic().setCategory8("007");
+//                            break;
+//                        case HrOrderType.LONG_ILLNESS_END:
+//                        case HrOrderType.LONG_INJURY_END:
+//                        case HrOrderType.LOAN_ASSIGNMENT_END:
+//                        case HrOrderType.EXPATRIATE_ASSIGNMENT_END:
+//                        case HrOrderType.SUPPORT_ASSIGNMENT_END:
+//                        case HrOrderType.UP_POST:
+//                            // 现
+//                            dto.getHrEmpBasic().setCategory8("006");
+//                            break;
+//                    }
+//                }
                 // TODO @Deprecated ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ @Deprecated 切换到REQUIRE后，这个方法就不需要了
                 // TODO @Deprecated ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ @Deprecated 切换到REQUIRE后，这个方法就不需要了
                 // TODO @Deprecated ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ @Deprecated 切换到REQUIRE后，这个方法就不需要了
@@ -263,6 +272,7 @@ public class ExternalController {
                     for(HrEmpCareerPath path : hrEmpCareerPaths) {
                         if("0".equals(path.getIsExpired())) {
                             path.setIsExpired("1");
+                            path.setExpiryDate(dto.getHrEmpCareerPath().getEffectiveDate());
                             hrEmpCareerPathService.updateById(path);
                         }
                     }
@@ -589,7 +599,6 @@ public class ExternalController {
     @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
     @Parameter(name = "pageNo", description = "页码", example = "1")
     @Parameter(name = "pageSize", description = "条数", example = "10")
-    @IgnoreTenant
     public ResponseResult<Page<HrEmpBasic>> pageForPerSelf(@Validated @RequestBody(required = false) HrEmpBasic pageReqVO,
                                                            @RequestParam(required = false, defaultValue = "1") int pageNo,
                                                            @RequestParam(required = false, defaultValue = "10") int pageSize) {
@@ -678,32 +687,106 @@ public class ExternalController {
         }
     }
 
+    @PostMapping("/queryForSap")
+    @Operation(summary = "SAP webservice, 获取额外人员信息表列表")
+    @AuditLog(value = "获取额外人员信息表列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResult queryForSap() {
+        List<ExceptionCasePerson> effectiveList = exceptionCasePersonService.selectEffectivePerson();
 
-    @PostMapping("/updateCategory1")
-    @Operation(summary = "单独重算指定人员的人员分类1")
-    @AuditLog(value = "单独重算指定人员的人员分类1", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    @IgnoreTenant
-    public ResponseResult<String> updateCategory1(@RequestBody List<String> userCodeList, @RequestParam(required = false) String category1) {
-        try {
-            StringBuilder result = new StringBuilder();
+        // 组装XML报文
+        StringBuilder xmlBuilder = new StringBuilder();
+        xmlBuilder.append("<Objects>");
 
-            for(String userCode : userCodeList) {
-                HrEmpBasic entity = hrEmpBasicService.getByUserCode(userCode);
-                if(StringUtils.isNotBlank(category1)) {
-                    entity.setCategory1(category1);
-                    result.append("档案号：").append(userCode).append(" 人员分类1：").append(category1);
-                } else {
-//                    String category8Mark = hrEmpBasicController.resolveCategory8(entity);
-//                    entity.setCategory8(category8Mark);
-//                    result.append("档案号：").append(userCode).append(" 人员分类8：").append(category8Mark);
-                    throw new RuntimeException("未传入人员分类1");
-                }
-                hrEmpBasicService.updateById(entity);
-            }
-            return new ResponseResult<>(HttpStatus.OK.value(), "重算指定人员的人员分类1成功" + result);
-        } catch (Exception e) {
-            log.error("重算指定人员的人员分类1失败", e);
-            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "重算指定人员的人员分类1失败");
+        for (ExceptionCasePerson person : effectiveList) {
+            xmlBuilder.append("    <item>\n")
+                    .append("        <USERID>").append(person.getUserCode()).append("</USERID>")
+                    .append("        <NAME>").append(person.getName()).append("</NAME>")
+                    .append("        <COMPANY>").append(person.getNewCompanyCode()).append("</COMPANY>")
+                    .append("        <DEPARTMENT>").append(person.getNewDeptCode()).append("</DEPARTMENT>")
+                    .append("        <DEPARTNAME>").append(person.getNewDept()).append("</DEPARTNAME>")
+                    .append("        <GENDER>").append("男").append("</GENDER>\n") // todo 目前没有收集性别信息，默认全传男
+                    .append("        <CLASS>").append(resolveUserType(person.getSourceType())).append("</CLASS>")
+                    .append("    </item>");
         }
+
+        xmlBuilder.append("</Objects>");
+
+        // 发送WebService请求
+        String messageCode = "013200HRC000005";
+        String xmlMsg = webServiceUtil.sendByWebService(xmlBuilder.toString(), messageCode);
+
+        // 处理返回结果
+        String result = webServiceUtil.xmlTransformer(xmlMsg);
+        JSONObject jsonObject = JSONUtil.parseObj(result);
+
+        if("S".equals(jsonObject.get("M_TYPE"))) {
+            return new ResponseResult<>(HttpStatus.OK.value(), DateTime.now() + "SAP接收成功", jsonObject);
+        } else {
+            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), DateTime.now() + "SAP接收失败", jsonObject);
+        }
+    }
+
+    @PostMapping("/queryForKingdie")
+    @Operation(summary = "接收总线WebService请求，返回人员信息XML")
+    @AuditLog(value = "接收总线请求返回人员信息", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseEntity<String> queryForKingdie() {
+        // 1. 获取有效人员列表
+        List<ExceptionCasePerson> effectiveList = exceptionCasePersonService.selectEffectivePerson();
+
+        // 2. 组装XML报文
+        StringBuilder xmlBuilder = new StringBuilder();
+        xmlBuilder.append("<USERS>");
+
+        for (ExceptionCasePerson person : effectiveList) {
+            xmlBuilder.append("    <USER>")
+                    .append("        <USER_CODE>").append(person.getUserCode()).append("</USER_CODE>")
+                    .append("        <NAME>").append(person.getName()).append("</NAME>")
+                    .append("        <ORG>").append(person.getNewCompanyCode()).append("</ORG>")
+                    .append("        <DEPT>").append(person.getNewDeptCode()).append("</DEPT>")
+                    .append("        <DUTYPE>").append(resolveUserType(person.getSourceType())).append("</DUTYPE>")
+                    .append("    </USER>");
+        }
+
+        xmlBuilder.append("</USERS>");
+
+
+        // 3. 设置响应头为XML格式
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_XML);
+
+        // 4. 返回XML响应
+        return new ResponseEntity<>(xmlBuilder.toString(), headers, HttpStatus.OK);
+    }
+
+    /**
+     * 处理职能标识
+     * @param userType 职能标识编码
+     * @return 转换后的职能标识汉字
+     */
+    private String resolveUserType(String userType) {
+        if(userType == null) {
+            return "外派股东";
+        }
+        // todo 如果后面换了逻辑，记得处理这里
+        switch (userType) {
+            case "EXT_SEC":
+                userType = "外派股东";
+                break;
+            case "INT_LOAN":
+                userType = "借用";
+                break;
+            case "SIDE_POSITION":
+                userType = "兼职";
+                break;
+            default:
+                userType = "未知类型";
+        }
+        return userType;
+    }
+
+    @PostMapping("/testGene")
+    public ResponseResult<String> testGene(@RequestParam String id) {
+        templateGenerateServiceImpl.generateRequestWordAndUpdate(id, 0, 4);
+        return ResponseResult.success("OK");
     }
 }

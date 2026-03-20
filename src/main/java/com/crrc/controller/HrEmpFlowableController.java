@@ -1,11 +1,16 @@
 package com.crrc.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.crrc.annotation.AuditLog;
+import com.crrc.annotation.TenantIgnore;
 import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
 import com.crrc.client.SysServerClient;
+import com.crrc.common.PaginationGrid;
 import com.crrc.common.ResultData;
+import com.crrc.entity.BorrowedPersonnelApprovalFormRelation;
 import com.crrc.entity.CodeInfo;
+import com.crrc.entity.HrEmpBasic;
 import com.crrc.entity.dict.vo.DictItemVO;
 import com.crrc.entity.dict.vo.DictVO;
 import com.crrc.entity.dto.*;
@@ -22,17 +27,20 @@ import com.crrc.service.impl.HrEmpBasicServiceImpl;
 import com.crrc.utils.DictTypeUtils;
 import com.crrc.utils.DictUtils;
 import com.crrc.utils.TreeUtils;
+import io.jsonwebtoken.lang.Objects;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
@@ -58,8 +66,6 @@ public class HrEmpFlowableController {
     @Resource
     private SysServerClient sysServerClient;
     @Autowired
-    private DictTypeUtils dictTypeUtils;
-    @Autowired
     private HrEmpBasicServiceImpl hrEmpBasicService;
     @Autowired
     private WkDataAPi wkDataAPi;
@@ -68,10 +74,101 @@ public class HrEmpFlowableController {
     @Autowired
     private WkCoreAPi wkCoreAPi;
 
-    private final static Long HRSC_SUB_EMP_INFO_MGR_ROLE_ID = 449259816650117120L;
+    @Value("${crrc.role.audit.emp.sub.id}")
+    private Long HRSC_SUB_EMP_INFO_MGR_ROLE_ID;
 
-    private final static Long HRSC_DEPT_EMP_INFO_MGR_ROLE_ID = 449260075015049216L;
+    @Value("${crrc.role.audit.emp.dept.id}")
+    private Long HRSC_DEPT_EMP_INFO_MGR_ROLE_ID;
 
+    @TenantIgnore
+    @GetMapping("/findApprovalByRoleIdList")
+    public ResponseResult<PaginationGrid<com.crrc.entity.dto.SysUserDTO>> findApprovalByRoleId(
+            Integer page, Integer pageSize, @RequestParam("roleIdList") List<Long> roleIdList
+    ) {
+        if (ObjectUtils.isEmpty(roleIdList)) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "roleIdList不能为空");
+        }
+        return ResponseResult.success(doFindApprovalByRoleIdList(roleIdList));
+    }
+
+    private PaginationGrid<com.crrc.entity.dto.SysUserDTO> doFindApprovalByRoleIdList(List<Long> roleIdList) {
+        Set<com.crrc.entity.dto.SysUserDTO> userSet = new HashSet<>();
+        roleIdList.forEach(roleId -> {
+            List<com.crrc.entity.dto.SysUserDTO> roleUserListByRoleId = wkCoreAPi.getRoleUserListByRoleId(roleId);
+            userSet.addAll(roleUserListByRoleId);
+        });
+
+
+        PaginationGrid<com.crrc.entity.dto.SysUserDTO> result = new PaginationGrid<>();
+        result.setRows(new ArrayList<>(userSet));
+        result.setTotal((long) userSet.size());
+
+        return result;
+    }
+
+    @TenantIgnore
+    @GetMapping("/findApprovalByRoleId")
+    public ResponseResult<PaginationGrid<com.crrc.entity.dto.SysUserDTO>> findApprovalByRoleId(
+            Integer page, Integer pageSize, Long roleId
+    ) {
+        if (ObjectUtils.isEmpty(roleId)) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "roleId不能为空");
+        }
+        return ResponseResult.success(doFindApprovalByRoleId(roleId));
+    }
+
+    private PaginationGrid<com.crrc.entity.dto.SysUserDTO> doFindApprovalByRoleId(Long roleId) {
+        List<com.crrc.entity.dto.SysUserDTO> approval = wkCoreAPi.getRoleUserListByRoleId(roleId);
+
+        PaginationGrid<com.crrc.entity.dto.SysUserDTO> result = new PaginationGrid<>();
+
+        result.setRows(approval);
+        result.setTotal((long) approval.size());
+
+        return result;
+    }
+
+    @TenantIgnore
+    @GetMapping("/findApprovalByRoleIdAndDeptCode")
+    public ResponseResult<PaginationGrid<com.crrc.entity.dto.SysUserDTO>> findApprovalByRoleIdAndDeptCode(
+            Long roleId, String deptCode
+    ) {
+        if (ObjectUtils.isEmpty(roleId)) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "roleId不能为空");
+        }
+        if (ObjectUtils.isEmpty(deptCode)) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "deptCode不能为空");
+        }
+        return ResponseResult.success(doFindApprovalByRoleIdAndDeptCode(roleId, deptCode));
+    }
+
+    public PaginationGrid<com.crrc.entity.dto.SysUserDTO> doFindApprovalByRoleIdAndDeptCode(Long roleId, String deptCode) {
+        List<com.crrc.entity.dto.SysUserDTO> roleUserListByRoleId = wkCoreAPi.getRoleUserListByRoleId(roleId);
+
+        List<String> userCodes = roleUserListByRoleId.stream().map(com.crrc.entity.dto.SysUserDTO::getUserName).collect(Collectors.toList());
+
+        LambdaQueryWrapper<HrEmpBasic> wrapper = new LambdaQueryWrapper<>();
+
+        wrapper.in(HrEmpBasic::getUserCode, userCodes);
+
+        List<HrEmpBasic> hrEmpBasicList = hrEmpBasicService.getBaseMapper().selectList(wrapper);
+
+        Set<String> leaders = hrEmpBasicList.stream()
+                .filter(emp -> Objects.nullSafeEquals(deptCode, emp.getDept()))
+                .map(HrEmpBasic::getUserCode)
+                .collect(Collectors.toSet());
+
+        List<com.crrc.entity.dto.SysUserDTO> sysUsers = roleUserListByRoleId.stream()
+                .filter(user -> leaders.contains(user.getUserName()))
+                .collect(Collectors.toList());
+
+        PaginationGrid<com.crrc.entity.dto.SysUserDTO> result = new PaginationGrid<>();
+
+        result.setRows(sysUsers);
+        result.setTotal((long) sysUsers.size());
+
+        return result;
+    }
 
     @GetMapping("/findUserByDeptIdAndRoleCode")
     @Operation(summary = "HrEmpFlowableController工作流获取审批人信息")
@@ -167,73 +264,6 @@ public class HrEmpFlowableController {
 
             result.addAll(userByRoleId.stream().filter(e -> userCodeSet.contains(e.getUserName())).collect(Collectors.toList()));
         }
-
-//        sysUserRequestDTO.setRoleCode(roleCode);
-//        sysUserRequestDTO.setCompanyId(companyId);
-//        sysUserRequestDTO.setDeptId(deptId);
-//        ResultData<List<SysUserDTO>> userByRoleCodeAndCompanyId = sysServerClient.findUserByRoleCode(sysUserRequestDTO);
-//
-//        log.info("触发人力资源获取人员信息接口findUserByDeptIdAndRoleCode {}", userByRoleCodeAndCompanyId.getResult());
-//        if(!ObjectUtils.isEmpty(userByRoleCodeAndCompanyId) && !ObjectUtils.isEmpty(userByRoleCodeAndCompanyId.getResult())){
-//            result.addAll(userByRoleCodeAndCompanyId.getResult());
-//        }
-//        // 查询字典中配置的审批人
-//        log.info("开始查询字典审批人");
-//        List<DictItemReqDTO> humanResourceAuditConfig = dictTypeUtils.getDict("human_resource_audit_config");
-//        Map<String, List<String>> code2AuditList = humanResourceAuditConfig.stream().collect(Collectors.groupingBy(
-//                DictItemReqDTO::getItemName,
-//                Collectors.mapping(
-//                        DictItemReqDTO::getItemCode,
-//                        Collectors.toList()
-//                )
-//        ));
-//
-//        log.info("字典审批人查询完毕: size: {} {}", humanResourceAuditConfig.size(), humanResourceAuditConfig);
-//
-//        // 根据deptId查orgCode
-//        ResultData<DeptDTO> pageByDeptId = sysServerClient.findDeptByDeptId(deptId);
-//        if(pageByDeptId == null || pageByDeptId.getResult() == null) {
-//            log.error("未查询到部门信息:{}", deptId);
-//        } else {
-//            DeptDTO deptDTO = pageByDeptId.getResult();
-//
-//            log.info("部门信息查询完毕: {}", deptDTO.getOrgCode());
-//            log.info("公司编码:, {}", deptDTO.getCompanyId());
-//
-//            Optional<CompanyDTO> first = sysServerClient.pageCompany(1, 10000).getResult().getRows().stream().filter(e -> e.getId().equals(deptDTO.getCompanyId())).findFirst();
-//            String companyCode = "";
-//            if(first.isPresent()) {
-//                companyCode = first.get().getOrgCode();
-//                log.info("公司查询成功，编码: {}", companyCode);
-//            } else {
-//                log.info("公司查询失败，编码:, {}", deptDTO.getCompanyId());
-//            }
-//            if(code2AuditList.containsKey(deptDTO.getOrgCode()) || code2AuditList.containsKey(companyCode)) {
-//                log.info("开始查询个人信息，组装审批人");
-//                List<String> userCodeList = code2AuditList.getOrDefault(deptDTO.getOrgCode(), new ArrayList<>());
-//                log.info("部门编码查询到审批人:, {}", code2AuditList.getOrDefault(deptDTO.getOrgCode(), new ArrayList<>()));
-//                userCodeList.addAll(code2AuditList.getOrDefault(companyCode, new ArrayList<>()));
-//                log.info("公司编码查询到审批人:, {}", code2AuditList.getOrDefault(companyCode, new ArrayList<>()));
-//                List<String> userCodeDistinctList = userCodeList.stream().distinct().collect(Collectors.toList());
-//                for (String userCode : userCodeDistinctList) {
-//                    ResultData<SysDeptPersonDTO> byUserCode = sysServerClient.findByUserCode(userCode);
-//                    if (byUserCode == null || byUserCode.getResult() == null || byUserCode.getResult().getPersonId() == null) {
-//                        log.error("工号查询个人详细信息失败:{}", userCode);
-//                        continue;
-//                    }
-//
-//                    Long personId = byUserCode.getResult().getPersonId();
-//                    ResultData<List<SysUserDTO>> byPersonIds = sysServerClient.findByPersonIds(Collections.singletonList(personId));
-//                    if (byPersonIds == null || ObjectUtils.isEmpty(byPersonIds.getResult())) {
-//                        log.error("人员id查询个人详细信息失败:{}", personId);
-//                        continue;
-//                    }
-//
-//                    result.addAll(byPersonIds.getResult());
-//                    log.info("个人信息审批人: {}", byPersonIds.getResult().get(0).getUserName());
-//                }
-//            }
-//        }
 
         if(ObjectUtils.isEmpty(result)) {
             log.info("未查到审批人数据");

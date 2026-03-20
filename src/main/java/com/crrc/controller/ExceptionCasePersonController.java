@@ -41,6 +41,7 @@ public class ExceptionCasePersonController {
 
     @Autowired
     private ExceptionCasePersonServiceImpl exceptionCasePersonService;
+
     @PostMapping("/page")
     @Operation(summary = "获取额外人员信息表列表 page")
     @AuditLog(value = "获取额外人员信息表列表 page", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
