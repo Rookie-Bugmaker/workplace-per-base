@@ -31,7 +31,7 @@ public class FileServiceImpl {
     public String upload(MultipartFile file) throws Exception {
         String fileId;
         try {
-            fileId = minIoUtils.upload(file);
+            fileId = minIoUtils.saveFile(file);
         } catch (Exception e) {
             throw new Exception(e.getMessage());
         }
@@ -40,7 +40,7 @@ public class FileServiceImpl {
 
     public String preview(String fileId){
 
-         String result = minIoUtils.previewOnline(fileId);
+         String result = minIoUtils.getFileOnline(fileId);
         if (StringUtils.isBlank(result)){
             return null;
         }else {

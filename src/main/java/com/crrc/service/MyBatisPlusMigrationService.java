@@ -665,19 +665,12 @@ public class MyBatisPlusMigrationService {
                 }
 
                 batchData.forEach(item -> {
-                    try {
-                        if (item.get("job_type") != null && !String.valueOf(item.get("job_type")).equals("ERROR")) {
-                            String jobType = String.valueOf(item.get("job_type"));
-                            String[] split = jobType.split("-");
-                            item.put("JOB_ONE", translateMap.getOrDefault(split[0], split[0]));
-                            item.put("JOB_TWO", translateMap.getOrDefault(String.join("-", split[0], split[1]), String.join("-", split[0], split[1])));
-                            item.put("JOB_THREE", translateMap.getOrDefault(jobType, jobType));
-                        }
-                    } catch (Exception e) {
-                        /**
-                         * 忽略错误
-                         */
-                        log.error("职种错误！！！！：{}", item.get("job_type"));
+                    if(item.get("job_type") != null && !String.valueOf(item.get("job_type")).equals("ERROR")) {
+                        String jobType = String.valueOf(item.get("job_type"));
+                        String[] split = jobType.split("-");
+                        item.put("JOB_ONE", translateMap.getOrDefault(split[0], split[0]));
+                        item.put("JOB_TWO", translateMap.getOrDefault(String.join("-", split[0], split[1]), String.join("-", split[0], split[1])));
+                        item.put("JOB_THREE", translateMap.getOrDefault(jobType, jobType));
                     }
                 });
 
