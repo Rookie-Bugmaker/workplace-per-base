@@ -45,6 +45,8 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletResponse;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -339,12 +341,18 @@ public class ExternalController {
                             hrEmpProfessionalQualificationService.updateById(item);
                         });
                     }
-                    // 如果这里的appointed是'1', 将其他的isAppointed置为0
+                    // 如果这里的appointed是'1', 将其他的isAppointed置为0，同时将聘任结束时间回填
                     if("1".equals(hrEmpProfessionalQualification.getIsAppointed())) {
                         List<HrEmpProfessionalQualification> hrEmpProfessionalQualifications = hrEmpProfessionalQualificationService.selectMsg(hrEmpProfessionalQualification.getUserCode());
-                        List<HrEmpProfessionalQualification> list = hrEmpProfessionalQualifications.stream().filter(e -> "是".equals(e.getIsAppointed()) || "1".equals(e.getIsAppointed())).collect(Collectors.toList());
-                        list.forEach(item -> {
-                            item.setIsAppointed("0");
+                        hrEmpProfessionalQualifications.forEach(item -> {
+                            // 其他的isAppointed置为0
+                            if("是".equals(item.getIsAppointed()) || "1".equals(item.getIsAppointed())) {
+                                item.setIsAppointed("0");
+                            }
+                            // 回填聘任结束时间
+                            if(item.getAppointedEndDate() == null || item.getAppointedEndDate().isAfter(LocalDate.parse("2098-12-31", DateTimeFormatter.ofPattern("yyyy-MM-dd")))) {
+                                item.setAppointedEndDate(hrEmpProfessionalQualification.getAppointedStartDate());
+                            }
                             hrEmpProfessionalQualificationService.updateById(item);
                         });
                     }
