@@ -41,42 +41,42 @@ public class HrEmpSalaryStandard extends BaseEntity implements Serializable {
     private Integer deleted;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"薪酬矩阵"})
+    @ExcelProperty(value = {"薪酬矩阵"}, index = 0)
     @Schema(description = "薪酬矩阵")
     private String salaryMatrix;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"岗薪档级"})
+    @ExcelProperty(value = {"岗薪档级"}, index = 1)
     @Schema(description = "岗薪档级")
     private String postSalaryGrade;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"薪档"})
+    @ExcelProperty(value = {"薪档"}, index = 2)
     @Schema(description = "薪档")
     private String salaryGrade;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"薪级"})
+    @ExcelProperty(value = {"薪级"}, index = 3)
     @Schema(description = "薪级")
     private String salaryLevel;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"执行系数/金额"})
+    @ExcelProperty(value = {"执行系数/金额"}, index = 4)
     @Schema(description = "执行系数/金额")
     private String coefficient;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"生效日期"})
+    @ExcelProperty(value = {"生效日期"}, index = 5)
     @Schema(description = "生效日期")
     private LocalDate effectiveDate;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"备注"})
+    @ExcelProperty(value = {"备注"}, index = 6)
     @Schema(description = "备注")
     private String remarks;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"工号"})
+    @ExcelProperty(value = {"工号"}, index = 8)
     @Schema(description = "工号")
     private String userCode;
 

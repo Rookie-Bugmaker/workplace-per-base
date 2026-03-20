@@ -53,7 +53,7 @@ public class PositionInfo extends BaseEntity {
 
     /** 名称 */
     @Schema(description = "名称")
-    @QueryMethod(method = QueryType.EQ)
+    @QueryMethod(method = QueryType.LIKE)
     @ExcelProperty(value = {"名称"})
     private String name;
 
