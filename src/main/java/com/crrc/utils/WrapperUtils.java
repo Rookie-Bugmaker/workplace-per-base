@@ -3,7 +3,11 @@ package com.crrc.utils;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
+import com.baomidou.mybatisplus.core.metadata.TableInfo;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.github.yulichang.wrapper.MPJLambdaWrapper;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -14,6 +18,39 @@ import java.util.*;
  * @author yukun
  */
 public final class WrapperUtils {
+
+    /**
+     * 为实体类的所有字段生成带有前缀的 Select 语句
+     *
+     * @param wrapper     JoinWrapper 实例
+     * @param entityClass 实体类 Class
+     * @param tableAlias  SQL 中的表别名（例如 "t" 或 "t1"）
+     * @param prefix      结果列的 AS 前缀（例如 "user_"）
+     */
+    public static void selectAllWithPrefix(MPJLambdaWrapper<?> wrapper, Class<?> entityClass, String tableAlias, String prefix) {
+        // 通过 TableInfoHelper 获取 MyBatis Plus 解析好的表元数据
+        TableInfo tableInfo = TableInfoHelper.getTableInfo(entityClass);
+        if (tableInfo == null) {
+            throw new IllegalArgumentException("未找到该实体的 TableInfo，请确保该类是受 MyBatis Plus 管理的实体");
+        }
+
+        List<String> selectColumns = new ArrayList<>();
+
+        // 1. 获取并处理主键字段
+        String keyColumn = tableInfo.getKeyColumn();
+        if (StringUtils.isNotBlank(keyColumn)) {
+            selectColumns.add(String.format("%s.%s AS %s%s", tableAlias, keyColumn, prefix, keyColumn));
+        }
+
+        // 2. 获取并处理普通字段
+        for (TableFieldInfo fieldInfo : tableInfo.getFieldList()) {
+            // 拼接格式: t1.column_name AS prefix_column_name
+            selectColumns.add(String.format("%s.%s AS %s%s", tableAlias, fieldInfo.getColumn(), prefix, fieldInfo.getColumn()));
+        }
+
+        // 3. 将拼接好的字段集加入到 wrapper 的 select 中
+        wrapper.select(String.join(", ", selectColumns));
+    }
 
     /** 构建 QueryWrapper：字符串默认用 eq，非字符串用 eq */
     public static <T> QueryWrapper<T> buildWrapper(T entity) {

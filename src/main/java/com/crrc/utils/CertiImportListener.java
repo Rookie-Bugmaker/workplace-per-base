@@ -3,7 +3,6 @@ package com.crrc.utils;
 import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.context.AnalysisContext;
 import com.alibaba.excel.read.listener.ReadListener;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.crrc.entity.HrEmpBasic;
 import com.crrc.entity.HrEmpCertificate;
 import com.crrc.pojo.vo.CostCenterImportVO;
@@ -67,10 +66,9 @@ public class CertiImportListener implements ReadListener<HrEmpCertificate> {
         }
 
         for (HrEmpCertificate data : buffer) {
-            String userCode = data.getUserCode();
-            LambdaQueryWrapper<HrEmpCertificate> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(HrEmpCertificate::getUserCode, userCode);
-            hrEmpCertificateService.update(data, wrapper);
+            data.setId(IdUtil.randomUUID());
+
+            hrEmpCertificateService.save(data);
         }
 
         buffer.clear();
