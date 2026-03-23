@@ -607,6 +607,7 @@ public class ExternalController {
     @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
     @Parameter(name = "pageNo", description = "页码", example = "1")
     @Parameter(name = "pageSize", description = "条数", example = "10")
+    @IgnoreTenant
     public ResponseResult<Page<HrEmpBasic>> pageForPerSelf(@Validated @RequestBody(required = false) HrEmpBasic pageReqVO,
                                                            @RequestParam(required = false, defaultValue = "1") int pageNo,
                                                            @RequestParam(required = false, defaultValue = "10") int pageSize) {
