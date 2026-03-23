@@ -10,6 +10,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.annotation.TenantIgnore;
 import com.crrc.api.WkDataAPi;
 import com.crrc.api.WkWorkflowApi;
 import com.crrc.client.UserProfileImageClient;
@@ -776,6 +777,7 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
     }
 
+    @TenantIgnore
     @PostMapping("/getList")
     @Operation(summary = "获得员工基本信息表实体")
     @AuditLog(value = "获得员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)

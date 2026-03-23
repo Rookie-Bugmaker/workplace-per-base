@@ -162,9 +162,10 @@ public class HrEmpAppointmentController {
 
             // 处理职位名称
             String position = entity.getPosition();
-            if (StringUtils.isNotBlank(position)) {
-                String positionName = position.matches("^\\d.*") ?
-                        codeInfoService.translateCode(position, "hr_emp_appointment", "APPOINTMENT_POSITION") : position;
+            if (StringUtils.isNotBlank(position) && position.matches("^\\d.*")) {
+                LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
+                wrapper.eq(PositionInfo::getCode, position);
+                String positionName = positionInfoMapper.selectList(wrapper).get(0).getName();
                 entity.setPosition(positionName);
             }
 

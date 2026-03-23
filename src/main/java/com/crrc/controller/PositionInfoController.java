@@ -40,6 +40,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/positionInfo")
 @RefreshScope
+@TenantIgnore
 public class PositionInfoController {
     @Autowired
     private PositionInfoServiceImpl positionInfoService;
