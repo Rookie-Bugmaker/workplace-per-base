@@ -96,8 +96,11 @@ public class HrEmpOtherAppointmentController {
             if (StringUtils.isNotBlank(position) && position.matches("^\\d.*")) {
                 LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
                 wrapper.eq(PositionInfo::getCode, position);
-                String positionName = positionInfoMapper.selectList(wrapper).get(0).getName();
-                entity.setPosition(positionName);
+                List<PositionInfo> positionInfos = positionInfoMapper.selectList(wrapper);
+                if(!positionInfos.isEmpty()) {
+                    String positionName = positionInfos.get(0).getName();
+                    entity.setPosition(positionName);
+                }
             }
 
             // 处理其他任职类型
