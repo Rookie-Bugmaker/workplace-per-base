@@ -29,7 +29,8 @@ public class HrEmpSkillLevelServiceImpl extends WorkServiceImpl<HrEmpSkillLevelM
     public List<HrEmpSkillLevel> selectMsg(String userCode){
         MPJLambdaWrapper<HrEmpSkillLevel> wrapper = new MPJLambdaWrapper<HrEmpSkillLevel>()
                 .selectAll(HrEmpSkillLevel.class)
-                .eq(HrEmpSkillLevel::getUserCode, userCode);
+                .eq(HrEmpSkillLevel::getUserCode, userCode)
+                .orderByAsc(HrEmpSkillLevel::getAppointedStartDate);
         return hrEmpSkillLevelMapper.selectList(wrapper);
     }
 

@@ -450,6 +450,12 @@ public class ExternalController {
                         });
                     }
 
+                    // 把开始时间最近的一条，赋予结束时间
+                    List<HrEmpSkillLevel> list = hrEmpSkillLevelService.selectMsg(hrEmpSkillLevel.getUserCode());
+                    HrEmpSkillLevel recentEntity = list.get(list.size() - 1);
+                    recentEntity.setAppointedEndDate(hrEmpSkillLevel.getAppointedStartDate());
+                    hrEmpSkillLevelService.updateById(recentEntity);
+
                     dto.getHrEmpSkillLevel().setId(IdUtil.simpleUUID());
                     boolean saveResult = hrEmpSkillLevelService.save(dto.getHrEmpSkillLevel());
                     if (!saveResult) {
