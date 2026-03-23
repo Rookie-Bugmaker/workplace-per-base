@@ -5,13 +5,16 @@ import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
 import com.crrc.entity.HrEmpOtherAppointment;
+import com.crrc.entity.PositionInfo;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
+import com.crrc.mapper.PositionInfoMapper;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.service.impl.CodeInfoServiceImpl;
 import com.crrc.service.impl.HrEmpOtherAppointmentServiceImpl;
@@ -53,6 +56,8 @@ public class HrEmpOtherAppointmentController {
     private HrEmpOtherAppointmentServiceImpl hrEmpOtherAppointmentService;
     @Autowired
     private CodeInfoServiceImpl codeInfoService;
+    @Autowired
+    private PositionInfoMapper positionInfoMapper;
 
     @GetMapping("/getDetails")
     @Operation(summary = "获得其他任职信息实体")
@@ -88,9 +93,10 @@ public class HrEmpOtherAppointmentController {
 
             // 处理职位名称
             String position = entity.getPosition();
-            if (StringUtils.isNotBlank(position)) {
-                String positionName = position.matches("^\\d.*") ?
-                        codeInfoService.translateCode(position, "hr_emp_appointment", "APPOINTMENT_POSITION") : position;
+            if (StringUtils.isNotBlank(position) && position.matches("^\\d.*")) {
+                LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
+                wrapper.eq(PositionInfo::getCode, position);
+                String positionName = positionInfoMapper.selectList(wrapper).get(0).getName();
                 entity.setPosition(positionName);
             }
 
