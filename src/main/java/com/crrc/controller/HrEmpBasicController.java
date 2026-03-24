@@ -505,7 +505,7 @@ public class HrEmpBasicController {
                     if (StringUtils.isNotBlank(skillLevel.getIsHighest()) && SystemConstants.TRUE_FLAG.equals(skillLevel.getIsHighest())) {
                         if (StringUtils.isNotBlank(skillLevel.getSkillLevel())) {
                                                      /*
-                                  00010/0020/0030	高级技师、特级技师、首席技师 高
+                                  00010/00020/00030	高级技师、特级技师、首席技师 高
                                   00040	技师 师
                                   00050	高级工 助
                                   00060/70	中级工、初级工 员

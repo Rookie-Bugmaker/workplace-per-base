@@ -668,9 +668,14 @@ public class MyBatisPlusMigrationService {
                     if(item.get("job_type") != null && !String.valueOf(item.get("job_type")).equals("ERROR")) {
                         String jobType = String.valueOf(item.get("job_type"));
                         String[] split = jobType.split("-");
-                        item.put("JOB_ONE", translateMap.getOrDefault(split[0], split[0]));
-                        item.put("JOB_TWO", translateMap.getOrDefault(String.join("-", split[0], split[1]), String.join("-", split[0], split[1])));
-                        item.put("JOB_THREE", translateMap.getOrDefault(jobType, jobType));
+                        if(split.length == 3) {
+                            item.put("JOB_ONE", translateMap.getOrDefault(split[0], split[0]));
+                            item.put("JOB_TWO", translateMap.getOrDefault(String.join("-", split[0], split[1]), String.join("-", split[0], split[1])));
+                            item.put("JOB_THREE", translateMap.getOrDefault(jobType, jobType));
+                        } else {
+                            log.error("用户{}的jobType有误，为{}，请检查", item.get("user_code"), jobType);
+                        }
+
                     }
                 });
 
