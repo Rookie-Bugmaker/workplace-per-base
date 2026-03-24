@@ -61,6 +61,7 @@ public class PositionInfoController {
         pageReqVO = (pageReqVO == null) ? new PositionInfo() : pageReqVO;
         Page<PositionInfo> page = new Page<>(pageNo, pageSize);
         positionInfoService.query(page, pageReqVO);
+        positionInfoService.resolveField(page.getRecords());
         return new ResponseResult<>(HttpStatus.OK.value(), "获取列表 page成功", page);
     }
 

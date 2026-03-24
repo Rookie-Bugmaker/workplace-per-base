@@ -2,10 +2,7 @@ package com.crrc.entity;
 
 import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -74,6 +71,15 @@ public class PositionInfo extends BaseEntity {
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"职种"})
     private String jobType;
+
+    @TableField(exist = false)
+    private String jobTypeValue;
+
+    @TableField(exist = false)
+    private String jobCategoryValue;
+
+    @TableField(exist = false)
+    private String jobGroupValue;
 
     /** 部门代码 */
     @Schema(description = "部门代码")
