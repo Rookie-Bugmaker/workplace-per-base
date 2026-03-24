@@ -10,7 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 /**
  * 职位信息实体类
@@ -58,7 +58,7 @@ public class PositionInfo extends BaseEntity {
     @Schema(description = "生效日期")
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"生效日期"})
-    private Date effectiveDate;
+    private LocalDate effectiveDate;
 
     /** 关联职务 */
     @Schema(description = "关联职务")

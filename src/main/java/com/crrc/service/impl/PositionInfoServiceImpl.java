@@ -1,10 +1,12 @@
 package com.crrc.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.entity.PositionInfo;
 import com.crrc.entity.PostCatalogInfo;
 import com.crrc.mapper.PositionInfoMapper;
-import com.crrc.pojo.vo.PostCatalogInfoVO;
 import com.crrc.service.PositionInfoService;
+import com.crrc.utils.WrapperUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -35,5 +37,12 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
                 position.setJobTypeValue(translateMap.getOrDefault(position.getJobType(), position.getJobType()));
             }
         });
+    }
+
+    @Override
+    public void queryByOrder(Page<PositionInfo> page, PositionInfo pageReqVO) {
+        QueryWrapper<PositionInfo> wrapper = WrapperUtils.buildWrapper(pageReqVO, WrapperUtils.StringMode.LIKE);
+        wrapper.last("order by update_time desc nulls last");
+        baseMapper.selectPage(page, wrapper);
     }
 }
