@@ -282,13 +282,20 @@ public class HrEmpHonorController {
             wrapper.eq(HrEmpBasic::getUserCode, loginUser.getUser().getJobNo());
             String deptCode = hrEmpBasicMapper.selectOne(wrapper).getDept();
 
+
             if (StringUtils.isBlank(deptCode)) {
                 log.error("获取用户部门失败，部门查询错误，工号:" + loginUser.getUser().getJobNo());
                 throw new IllegalArgumentException("获取用户部门失败，部门查询错误");
             }
+            String responsibleUnit= changeReqVO.getResponsibleUint();
+            if(StringUtils.isBlank(responsibleUnit)) {
+                throw new IllegalArgumentException("归口单位不能为空");
+            }
+            formData.put("reponsbileUnit", responsibleUnit);
 
             formData.put("deptCode", deptCode);
             formData.put("type", "honor");
+            formData.put("responsibleUnit", responsibleUnit);
 
             // 如果是子公司的，则PUT子公司管理员，反之PUT部门管理员
             // 获取全部部门信息

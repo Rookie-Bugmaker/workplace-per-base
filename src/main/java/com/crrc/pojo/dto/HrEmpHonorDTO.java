@@ -9,6 +9,6 @@ import java.util.List;
 @Data
 public class HrEmpHonorDTO {
     String userCode;
-
+    String responsibleUint;
     List<HrEmpHonor> list;
 }
