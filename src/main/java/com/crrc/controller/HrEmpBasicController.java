@@ -3,6 +3,7 @@ package com.crrc.controller;
 
 import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.EasyExcelFactory;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -33,6 +34,7 @@ import com.crrc.pojo.vo.MapVO;
 import com.crrc.service.CodeInfoService;
 import com.crrc.service.impl.*;
 import com.crrc.utils.*;
+import com.crrc.utils.listener.PoliticalStatusImportListener;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import com.xxl.job.core.handler.annotation.XxlJob;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,6 +42,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -101,13 +104,15 @@ public class HrEmpBasicController {
     @Autowired
     private HrEmpSkillLevelServiceImpl hrEmpSkillLevelService;
     @Autowired
-    private CodeInfoService codeInfoService;
+    private CodeInfoServiceImpl codeInfoService;
     @Autowired
     private UserProfileImageClient userProfileImageClient;
     @Autowired
     private MinIOUtils minioUtils;
     @Autowired
     private WkDataAPi wkDataAPi;
+    @Autowired
+    private SqlSessionFactory sqlSessionFactory;
 
     @GetMapping("/isAvailable")
     @Operation(summary = "就绪探针")
@@ -739,6 +744,18 @@ public class HrEmpBasicController {
             hrEmpBasicService.getBaseMapper().update(wrapper);
         }
         return new ResponseResult<>(HttpStatus.OK.value(), "OK");
+    }
+
+    @PostMapping("/importPoliticalStatus")
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseResult<String> importPoliticalStatus(@RequestBody MultipartFile file) throws IOException {
+        EasyExcelFactory.read(file.getInputStream(), HrEmpBasic.class,
+                        new PoliticalStatusImportListener(hrEmpBasicService, codeInfoService, sqlSessionFactory))
+                .headRowNumber(1)
+                .sheet()
+                .doRead();
+
+        return ResponseResult.success("OK");
     }
 
     @PostMapping("/setCategory8Batch")
