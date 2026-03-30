@@ -298,7 +298,7 @@ public class HrEmpFlowableController {
         roleMap.put("3", "role_youth");       // 团委
         roleMap.put("4", "role_union");       // 工会
         roleMap.put("5", "role_hr");          // 人力资源部
-        roleMap.put("6", "role_hr");          // 其他
+        roleMap.put("6", "role_other");          // 其他
 
         if (StringUtils.isNotBlank(responsibleUnit)) {
             roleCode = roleMap.get(responsibleUnit);
