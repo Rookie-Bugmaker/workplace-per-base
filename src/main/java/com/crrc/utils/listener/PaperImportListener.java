@@ -98,5 +98,6 @@ public class PaperImportListener implements ReadListener<HrEmpPaper> {
 
     private void flush() {
         paperService.saveOrUpdateBatch(buffer);
+        buffer.clear();
     }
 }

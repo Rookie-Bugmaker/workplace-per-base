@@ -64,6 +64,7 @@ public class PoliticalStatusImportListener implements ReadListener<HrEmpBasic> {
             sqlSession.flushStatements(); // 刷新批处理语句
             sqlSession.commit();          // 提交事务
             sqlSession.clearCache();      // 清理缓存
+            buffer.clear();
         } catch (Exception e) {
             // 发生异常时，由于未提交，事务会回滚
             throw new RuntimeException("批量更新失败", e);
