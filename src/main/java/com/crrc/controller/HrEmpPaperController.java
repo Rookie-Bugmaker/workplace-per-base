@@ -3,6 +3,7 @@ package com.crrc.controller;
 
 import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.EasyExcelFactory;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.alibaba.fastjson.JSON;
@@ -28,6 +29,7 @@ import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpPaperDTO;
 import com.crrc.service.impl.HrEmpPaperServiceImpl;
 import com.crrc.utils.*;
+import com.crrc.utils.listener.PaperImportListener;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -181,6 +183,16 @@ public class HrEmpPaperController {
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<Boolean> deleteHrEmpPaper(@RequestParam("id") Long id) {
         return new ResponseResult<>(HttpStatus.OK.value(), "删除员工论文论著信息表实体", hrEmpPaperService.removeById(id));
+    }
+
+    @PostMapping("/importPaper")
+    public ResponseResult<String> importPaper(@RequestBody MultipartFile file) throws IOException {
+        EasyExcelFactory.read(file.getInputStream(), HrEmpPaper.class,
+                        new PaperImportListener(hrEmpPaperService))
+                .headRowNumber(1)
+                .sheet()
+                .doRead();
+        return ResponseResult.success("OK");
     }
 
     @PostMapping("/export")
