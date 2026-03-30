@@ -83,6 +83,9 @@ public class HrEmpBasicDTO extends HrEmpBasic {
     @Schema(description = "是否可编辑")
     private String isEditable;
 
+    @Schema(description = "是否是超级管理员(职业技能等级等是否可编辑)")
+    private String isAdmin;
+
     @Schema(description = "部门名称")
     private String departmentName;
 

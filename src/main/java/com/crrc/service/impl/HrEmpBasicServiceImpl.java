@@ -545,13 +545,16 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             // 超管均可编辑
             if(RoleUtils.checkAnyMatch("hrsc_super_admin")) {
                 result.get(0).setIsEditable("1");
+                result.get(0).setIsAdmin("1");
             } else if(RoleUtils.checkAnyMatch("hrsc_emp_non_inc_info_mgr")) {
                 // 如果是非在职管理员，那么可编辑非在职数据
                 String userName = SecurityFrameworkUtils.getLoginUser().getUser().getJobNo();
                 result.get(0).setIsEditable(result.get(0).getUserCode().equals(userName) || "0".equals(result.get(0).getIsEmployed()) ? "1" : "0");
+                result.get(0).setIsAdmin("0");
             } else {
                 String userName = SecurityFrameworkUtils.getLoginUser().getUser().getJobNo();
                 result.get(0).setIsEditable(result.get(0).getUserCode().equals(userName) ? "1" : "0");
+                result.get(0).setIsAdmin("0");
             }
 
 
@@ -1298,10 +1301,16 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             Map<String, SubTableData> stringSubTableDataMap = querySubTableDataList(resultList);
 
             if(RoleUtils.checkAnyMatch("hrsc_super_admin")) {
-                resultList.forEach(result -> result.setIsEditable("1"));
+                resultList.forEach(result -> {
+                    result.setIsEditable("1");
+                    result.setIsAdmin("1");
+                });
             } else {
                 String userName = SecurityFrameworkUtils.getLoginUser().getUser().getJobNo();
-                resultList.forEach(result -> result.setIsEditable(result.getUserCode().equals(userName) ? "1" : "0"));
+                resultList.forEach(result -> {
+                    result.setIsEditable(result.getUserCode().equals(userName) ? "1" : "0");
+                    result.setIsAdmin("0");
+                });
             }
 
             resultList.forEach(result -> {
