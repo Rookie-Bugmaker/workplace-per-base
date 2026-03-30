@@ -16,6 +16,7 @@ import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.vo.CostCenterListVO;
 import com.crrc.service.impl.HrEmpSalaryInfoServiceImpl;
 import com.crrc.utils.RoleUtils;
+import com.crrc.utils.listener.CostCenterImportListener;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -204,6 +205,18 @@ public class HrEmpSalaryInfoController {
     public ResponseResult<Boolean> imports(MultipartFile file) throws IOException {
         EasyExcel.read(file.getInputStream(), HrEmpSalaryInfo.class,
                 new ImportExcelListener<HrEmpSalaryInfo, HrEmpSalaryInfoServiceImpl>(hrEmpSalaryInfoService))
+                .headRowNumber(1)
+                .sheet()
+                .doRead();
+        return new ResponseResult<>(HttpStatus.OK.value(), "导入员工薪资信息表报表成功");
+    }
+
+    @PostMapping("/importCostCenter")
+    @AuditLog(value = "导入员工薪资信息表报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
+    @Operation(summary = "导入员工薪资信息表报表")
+    public ResponseResult<Boolean> importCostCenter(MultipartFile file) throws IOException {
+        EasyExcel.read(file.getInputStream(), HrEmpSalaryInfo.class,
+                        new CostCenterImportListener(hrEmpSalaryInfoService))
                 .headRowNumber(1)
                 .sheet()
                 .doRead();
