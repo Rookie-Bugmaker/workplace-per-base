@@ -3,6 +3,7 @@ package com.crrc.controller;
 
 import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.EasyExcelFactory;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.alibaba.fastjson.JSON;
@@ -30,6 +31,7 @@ import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpHonorDTO;
 import com.crrc.service.impl.HrEmpHonorServiceImpl;
 import com.crrc.utils.*;
+import com.crrc.utils.listener.HonorImportListener;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -224,6 +226,16 @@ public class HrEmpHonorController {
                 .doRead();
         return new ResponseResult<>(HttpStatus.OK.value(), "导入荣誉信息表报表成功");
 
+    }
+
+    @PostMapping("/importHonor")
+    public ResponseResult<String> importHonor(@RequestBody MultipartFile file) throws IOException {
+        EasyExcelFactory.read(file.getInputStream(), HrEmpHonor.class,
+                        new HonorImportListener(hrEmpHonorService))
+                .headRowNumber(1)
+                .sheet()
+                .doRead();
+        return new ResponseResult<>(HttpStatus.OK.value(), "导入荣誉信息表报表成功");
     }
 
     @PostMapping("/submit-change")

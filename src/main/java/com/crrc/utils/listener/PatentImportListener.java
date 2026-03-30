@@ -54,6 +54,10 @@ public class PatentImportListener implements ReadListener<HrEmpPatent> {
     @Override
     public void invoke(HrEmpPatent hrEmpPatent, AnalysisContext analysisContext) {
         hrEmpPatent.setId(IdUtil.randomUUID());
+        hrEmpPatent.setPatentType(patentTypeTranslateMap.getOrDefault(hrEmpPatent.getPatentType(), hrEmpPatent.getPatentType()));
+        hrEmpPatent.setPatentLevel(patentLevelTranslateMap.getOrDefault(hrEmpPatent.getPatentLevel(), hrEmpPatent.getPatentLevel()));
+        hrEmpPatent.setAwardGrade(awardGradeTranslateMap.getOrDefault(hrEmpPatent.getAwardGrade(), hrEmpPatent.getAwardGrade()));
+        hrEmpPatent.setStatus(patentStatusTranslateMap.getOrDefault(hrEmpPatent.getStatus(), hrEmpPatent.getStatus()));
         buffer.add(hrEmpPatent);
         if(buffer.size() > 1000) {
             flush();
