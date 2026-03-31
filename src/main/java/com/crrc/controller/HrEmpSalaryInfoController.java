@@ -1,6 +1,7 @@
 package com.crrc.controller;
 
 
+import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
@@ -82,12 +83,22 @@ public class HrEmpSalaryInfoController {
 
         LambdaQueryWrapper<HrEmpSalaryInfo> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(HrEmpSalaryInfo::getUserCode, reqVO.getUserCode());
-        HrEmpSalaryInfo entity = new HrEmpSalaryInfo();
-        entity.setUserCode(reqVO.getUserCode());
-        entity.setDepartmentCode(reqVO.getCostcenterCode());
-        boolean result = hrEmpSalaryInfoService.saveOrUpdate(entity, wrapper);
+        HrEmpSalaryInfo existingEntity = hrEmpSalaryInfoService.getOne(wrapper);
 
-        return new ResponseResult<>(HttpStatus.OK.value(), "保存员工薪资信息表实体成功", result);
+        if (existingEntity != null) {
+            // 如果存在记录，则更新
+            existingEntity.setDepartmentCode(reqVO.getCostcenterCode());
+            boolean result = hrEmpSalaryInfoService.updateById(existingEntity);
+            return new ResponseResult<>(HttpStatus.OK.value(), "更新员工薪资信息表实体成功", result);
+        } else {
+            // 如果不存在记录，则创建新实体并保存
+            HrEmpSalaryInfo newEntity = new HrEmpSalaryInfo();
+            newEntity.setId(IdUtil.simpleUUID()); // 生成唯一ID
+            newEntity.setUserCode(reqVO.getUserCode());
+            newEntity.setDepartmentCode(reqVO.getCostcenterCode());
+            boolean result = hrEmpSalaryInfoService.save(newEntity);
+            return new ResponseResult<>(HttpStatus.OK.value(), "保存员工薪资信息表实体成功", result);
+        }
     }
 
     @PostMapping("/page")
