@@ -23,8 +23,10 @@ import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.mapper.HrEmpBasicMapper;
+import com.crrc.mongodb.HrEmpHonorChangeRequest;
 import com.crrc.mongodb.HrEmpPaperChangeRequest;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.dto.HrEmpHonorDTO;
 import com.crrc.pojo.dto.HrEmpPaperDTO;
 import com.crrc.service.impl.HrEmpPaperServiceImpl;
 import com.crrc.utils.*;
@@ -225,8 +227,9 @@ public class HrEmpPaperController {
 
     @PostMapping("/submit-change")
     @Operation(summary = "提交员工论文论著变更申请")
-    public ResponseResult<String> submitChange(@Valid @RequestBody HrEmpPaperDTO changeReqVO) {
+    public ResponseResult<List<String>> submitChange(@Valid @RequestBody HrEmpPaperDTO changeReqVO) {
         try {
+            // ================== 超级管理员直接更新 ==================
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
             if (flag) {
                 log.info("权限校验通过，用户拥有'公司超级管理员'角色，直接进行更新");
@@ -237,94 +240,180 @@ public class HrEmpPaperController {
                     log.warn("权限校验成功，但直接更新失败，尝试走审批流");
                 }
             }
+
             log.warn("权限校验失败，用户缺少'公司超级管理员'角色");
-            // 1. 获取当前数据快照
-            List<HrEmpPaper> originalData = getMsg(changeReqVO.getUserCode()).getData();
-            log.info("提交审批流时查询回来的论文论著原始数据：{}", JSON.toJSONString(originalData, SerializerFeature.PrettyFormat));
 
-            // 2. 创建变更申请文档
-            HrEmpPaperChangeRequest changeRequest = new HrEmpPaperChangeRequest();
-            changeRequest.setId(IdUtil.simpleUUID());
-            changeRequest.setUserCode(changeReqVO.getUserCode());
-            changeRequest.setOriginalData(originalData);
-            changeRequest.setChangedData(changeReqVO.getList());
-            changeRequest.setStatus("PENDING");
-
-            // 3. 保存到MongoDB
-            mongoTemplate.save(changeRequest);
-
-            // 4. 启动审批流程
-            // 封装数据，提交审批流
-            StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
-            String bizCode = "PAPER-" + System.currentTimeMillis();
-            instanceDTO.setBizCode(bizCode);
-            // 封装数据主键，存在MongoDB里面的生成的simpleUUID
-            instanceDTO.setBizId("paper_" + changeRequest.getId());
-            // 封装业务模板编码
-            instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
-            // 封装业务表单数据，20250924上线暂时没用，如果之后需要修改审批流分支，需使用该数据
-            Map<String, Object> formData = new HashMap<>();
+            // ================== 获取登录人信息 ==================
             LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
             if (loginUser == null || loginUser.getUser() == null) {
-                log.error("获取登录用户信息失败，用户为空");
                 throw new IllegalArgumentException("获取登录用户信息失败，用户为空");
             }
 
             if (StringUtils.isBlank(loginUser.getUser().getJobNo())) {
-                log.error("获取用户工号失败，工号为空");
                 throw new IllegalArgumentException("获取用户工号失败，工号为空");
             }
 
+            // ================== 查询部门 ==================
             LambdaQueryWrapper<HrEmpBasic> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(HrEmpBasic::getUserCode, loginUser.getUser().getJobNo());
-            String deptCode = hrEmpBasicMapper.selectOne(wrapper).getDept();
+            HrEmpBasic emp = hrEmpBasicMapper.selectOne(wrapper);
 
-            if (StringUtils.isBlank(deptCode)) {
-                log.error("获取用户部门失败，部门查询错误，工号:" + loginUser.getUser().getJobNo());
-                throw new IllegalArgumentException("获取用户部门失败，部门查询错误");
+            if (emp == null || StringUtils.isBlank(emp.getDept())) {
+                throw new IllegalArgumentException("获取用户部门失败");
             }
 
-            formData.put("deptCode", deptCode);
-            formData.put("type", "paper");
+            String deptCode = emp.getDept();
 
-            // 如果是子公司的，则PUT子公司管理员，反之PUT部门管理员
-            // 获取全部部门信息
-            // 获取所有的组织数据
+            // ================== 获取组织树（只查一次，优化性能） ==================
             ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
             if (listResponseResultDTO == null || org.apache.commons.lang3.ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
-                throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
+                throw new IllegalArgumentException("获取组织树失败");
             }
-            List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
-            String parentCode = null;
-            for (OrganizationTreeDTO root : data) {
-                if (TreeUtils.containsBfs(root, n -> StringUtils.equals(deptCode, n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
-                    parentCode = root.getOrgCode();
-                    break;
+
+            List<OrganizationTreeDTO> orgTree = listResponseResultDTO.getData();
+            String parentCode = findParentCode(orgTree, deptCode);
+
+            // ================== 查询原始数据（只查一次） ==================
+            List<HrEmpPaper> originalData = getMsg(changeReqVO.getUserCode()).getData();
+
+            // 构建Id和List序号的Map，用于简化查询原数据的过程
+            Map<String, Integer> idmap = buildIdMap(originalData);
+
+            // ================== 结果ID集合 ==================
+            List<String> requestIds = new ArrayList<>();
+
+            // ================== 核心：逐条处理 ==================
+            for (HrEmpPaper entity : changeReqVO.getList()) {
+                try {
+                    // 创建变更申请
+                    HrEmpPaperChangeRequest changeRequest = new HrEmpPaperChangeRequest();
+                    changeRequest.setId(IdUtil.simpleUUID());
+                    changeRequest.setUserCode(changeReqVO.getUserCode());
+
+                    if (StringUtils.isBlank(entity.getId())) {
+                        changeRequest.setOriginalData(null);
+                    } else if (entity.getId().contains("NOTCHANGE")) {
+                        String cleanedId = entity.getId().replace("NOTCHANGE", "").trim();
+                        int num = idmap.get(cleanedId);
+                        originalData.remove(num);
+                        continue;
+                    } else {
+                        int num = idmap.get(entity.getId());
+                        List<HrEmpPaper> origanalList = new ArrayList<>();
+                        origanalList.add(originalData.get(num));
+                        changeRequest.setOriginalData(origanalList);
+                        originalData.remove(num);
+                    }
+
+                    changeRequest.setChangedData(Collections.singletonList(entity));
+                    changeRequest.setStatus("PENDING");
+                    mongoTemplate.save(changeRequest);
+
+                    // 启动流程
+                    StartProcessInstanceDTO instanceDTO = createProcessInstanceDTO(deptCode, parentCode, entity);
+                    ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
+
+                    // 回写流程ID
+                    changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
+                    mongoTemplate.save(changeRequest);
+
+                    requestIds.add(changeRequest.getId());
+                } catch (Exception e) {
+                    log.error("单条审批提交失败: {}", JSON.toJSONString(entity), e);
                 }
             }
-            formData.put("companyCode", parentCode);
-            if (StringUtils.isNotBlank(parentCode) && parentCode.equals("0132")) {
-                formData.put("roleCode", "hrsc_dept_emp_info_mgr");
-            } else {
-                formData.put("roleCode", "hrsc_sub_emp_info_mgr");
+
+            // 处理删除数据
+            for (HrEmpPaper entity : originalData) {
+                try {
+                    HrEmpPaperChangeRequest changeRequest = new HrEmpPaperChangeRequest();
+                    changeRequest.setId(IdUtil.simpleUUID());
+                    changeRequest.setUserCode(changeReqVO.getUserCode());
+
+                    List<HrEmpPaper> origanalList = new ArrayList<>();
+                    origanalList.add(entity);
+                    changeRequest.setOriginalData(origanalList);
+
+                    List<HrEmpPaper> changedList = new ArrayList<>();
+                    HrEmpPaper changed = new HrEmpPaper();
+                    changed.setId(entity.getId());
+                    changedList.add(changed);
+                    changeRequest.setChangedData(changedList);
+
+                    changeRequest.setStatus("PENDING");
+                    mongoTemplate.save(changeRequest);
+
+                    StartProcessInstanceDTO instanceDTO = createProcessInstanceDTO(deptCode, parentCode, entity);
+                    ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
+
+                    changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
+                    mongoTemplate.save(changeRequest);
+
+                    requestIds.add(changeRequest.getId());
+                } catch (Exception e) {
+                    log.error("单条审批提交失败: {}", JSON.toJSONString(entity), e);
+                }
             }
 
-            formData.put("Paper", MyUtils.convertToMapList(changeReqVO));
-            instanceDTO.setFormData(formData);
-            log.info("流程测试instanceDTO" + instanceDTO);
-            // 返回流程实例id
-            ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
-            log.info("流程测试processInstanceVo :{}", JSON.toJSONString(processInstanceVo));
+            if (requestIds.isEmpty()) {
+                return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "全部提交失败");
+            }
 
-            // 5. 更新流程实例ID
-            changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
-            mongoTemplate.save(changeRequest);
-            log.info("流程测试success");
-            return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交", changeRequest.getId());
+            return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交", requestIds);
         } catch (Exception e) {
             log.error("提交变更申请失败: {}", e.getMessage(), e);
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "提交失败");
         }
+    }
+
+    private String findParentCode(List<OrganizationTreeDTO> orgTree, String deptCode) {
+        String parentCode = null;
+        for (OrganizationTreeDTO root : orgTree) {
+            if (TreeUtils.containsBfs(root,
+                    n -> StringUtils.equals(deptCode, n.getOrgCode()),
+                    OrganizationTreeDTO::getChildren)) {
+                parentCode = root.getOrgCode();
+                break;
+            }
+        }
+        return parentCode;
+    }
+
+    private Map<String, Integer> buildIdMap(List<HrEmpPaper> originalData) {
+        Map<String, Integer> idmap = new HashMap<>();
+        Integer i = 0;
+        for (HrEmpPaper empPaper : originalData) {
+            idmap.put(empPaper.getId(), i);
+            i++;
+        }
+        return idmap;
+    }
+
+    private StartProcessInstanceDTO createProcessInstanceDTO(String deptCode, String parentCode, HrEmpPaper entity) {
+        StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
+        String bizCode = "PAPER-" + System.currentTimeMillis();
+        instanceDTO.setBizCode(bizCode);
+        instanceDTO.setBizId("paper_" + IdUtil.simpleUUID());
+        instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
+
+        Map<String, Object> formData = new HashMap<>();
+        formData.put("deptCode", deptCode);
+        formData.put("type", "paper");
+        formData.put("companyCode", parentCode);
+
+        if (StringUtils.isNotBlank(parentCode) && parentCode.equals("0132")) {
+            formData.put("roleCode", "hrsc_dept_emp_info_mgr");
+        } else {
+            formData.put("roleCode", "hrsc_sub_emp_info_mgr");
+        }
+
+        formData.put("Paper", Collections.singletonList(
+                JSON.parseObject(JSON.toJSONString(entity), Map.class)
+        ));
+
+        instanceDTO.setFormData(formData);
+        log.info("启动流程参数: {}", JSON.toJSONString(instanceDTO));
+        return instanceDTO;
     }
 
     @GetMapping("/change-detail")

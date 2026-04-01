@@ -636,37 +636,21 @@ public class CallbackController {
         if (changedData == null || changedData.isEmpty()) {
             return;
         }
-
-        // 获取用户编码
-        String userCode = changedData.get(0).getUserCode();
-
-        // 查询现有数据
-        List<HrEmpPaper> existList = hrEmpPaperService.selectMsg(userCode);
-        Set<String> existIds = existList.stream()
-                .map(HrEmpPaper::getId)
-                .collect(Collectors.toSet());
-
-        // 准备新增、更新和删除的数据
-        List<HrEmpPaper> toSaveOrUpdate = new ArrayList<>();
-
-        for (HrEmpPaper paper : changedData) {
-            if (paper.getId() == null) {
+        // todo 方法变更，现在为一对一更新
+        // 先看是不是删除
+        HrEmpPaper hrEmpPaper = changedData.get(0);
+        if (StringUtils.isNotBlank(hrEmpPaper.getId())) {
+            // id不为空，删除
+            hrEmpPaperService.removeById(hrEmpPaper);
+        } else {
+            // id不为空，归口单位不为空，更新
+            // id为空，新增
+            // 准备新增、更新的数据
+            if (hrEmpPaper.getId() == null) {
                 // 生成新ID
-                paper.setId(IdUtil.simpleUUID());
+                hrEmpPaper.setId(IdUtil.simpleUUID());
             }
-            paper.setUserCode(userCode);
-            toSaveOrUpdate.add(paper);
-            // 移除不需要删除的ID
-            existIds.remove(paper.getId());
-        }
-
-        // 批量保存或更新
-        if (!toSaveOrUpdate.isEmpty()) {
-            hrEmpPaperService.saveOrUpdateBatch(toSaveOrUpdate);
-        }
-        // 批量删除
-        if (!existIds.isEmpty()) {
-            hrEmpPaperService.removeByIds(existIds);
+            hrEmpPaperService.saveOrUpdate(hrEmpPaper);
         }
     }
 
@@ -677,37 +661,21 @@ public class CallbackController {
         if (changedData == null || changedData.isEmpty()) {
             return;
         }
-
-        // 获取用户编码
-        String userCode = changedData.get(0).getUserCode();
-
-        // 查询现有数据
-        List<HrEmpPatent> existList = hrEmpPatentService.selectMsg(userCode);
-        Set<String> existIds = existList.stream()
-                .map(HrEmpPatent::getId)
-                .collect(Collectors.toSet());
-
-        // 准备新增、更新和删除的数据
-        List<HrEmpPatent> toSaveOrUpdate = new ArrayList<>();
-
-        for (HrEmpPatent patent : changedData) {
-            if (patent.getId() == null) {
+        // todo 方法变更，现在为一对一更新
+        // 先看是不是删除
+        HrEmpPatent hrEmpPatent = changedData.get(0);
+        if (StringUtils.isNotBlank(hrEmpPatent.getId())) {
+            // id不为空，删除
+            hrEmpPatentService.removeById(hrEmpPatent);
+        } else {
+            // id不为空，更新
+            // id为空，新增
+            // 准备新增、更新的数据
+            if (hrEmpPatent.getId() == null) {
                 // 生成新ID
-                patent.setId(IdUtil.simpleUUID());
+                hrEmpPatent.setId(IdUtil.simpleUUID());
             }
-            patent.setUserCode(userCode);
-            toSaveOrUpdate.add(patent);
-            // 移除不需要删除的ID
-            existIds.remove(patent.getId());
-        }
-
-        // 批量保存或更新
-        if (!toSaveOrUpdate.isEmpty()) {
-            hrEmpPatentService.saveOrUpdateBatch(toSaveOrUpdate);
-        }
-        // 批量删除
-        if (!existIds.isEmpty()) {
-            hrEmpPatentService.removeByIds(existIds);
+            hrEmpPatentService.saveOrUpdate(hrEmpPatent);
         }
     }
 
