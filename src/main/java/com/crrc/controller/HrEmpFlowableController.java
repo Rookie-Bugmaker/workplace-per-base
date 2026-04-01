@@ -287,7 +287,7 @@ public class HrEmpFlowableController {
 
 
 
-        List<SysUserDTO> result = new ArrayList<>();
+        List<SysUserDTO> result;
 
         // ================== ⭐ 归口单位 → roleCode ==================
         Map<String, String> roleMap = new HashMap<>();
