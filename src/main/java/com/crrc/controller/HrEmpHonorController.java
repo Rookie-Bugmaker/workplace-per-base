@@ -230,7 +230,6 @@ public class HrEmpHonorController {
     @Operation(summary = "提交员工荣誉变更申请")
     public ResponseResult<List<String>> submitChange(@Valid @RequestBody HrEmpHonorDTO changeReqVO) {
         try {
-
             // ================== 超级管理员直接更新 ==================
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
             if (flag) {
@@ -273,108 +272,161 @@ public class HrEmpHonorController {
             }
 
             List<OrganizationTreeDTO> orgTree = listResponseResultDTO.getData();
-
-            String parentCode = null;
-            for (OrganizationTreeDTO root : orgTree) {
-                if (TreeUtils.containsBfs(root,
-                        n -> StringUtils.equals(deptCode, n.getOrgCode()),
-                        OrganizationTreeDTO::getChildren)) {
-                    parentCode = root.getOrgCode();
-                    break;
-                }
-            }
+            String parentCode = findParentCode(orgTree, deptCode);
 
             // ================== 查询原始数据（只查一次） ==================
             List<HrEmpHonor> originalData = getMsg(changeReqVO.getUserCode()).getData();
+
+            // 构建Id和List序号的Map，用于简化查询原数据的过程
+            Map<String, Integer> idmap = buildIdMap(originalData);
 
             // ================== 结果ID集合 ==================
             List<String> requestIds = new ArrayList<>();
 
             // ================== 核心：逐条处理 ==================
             for (HrEmpHonor entity : changeReqVO.getList()) {
-
                 try {
-                    // ---------- 校验归口单位 ----------
+                    // 校验归口单位
                     String responsibleUnit = entity.getResponsibleUnit();
                     if (responsibleUnit == null || responsibleUnit.trim().isEmpty()) {
                         throw new IllegalArgumentException("归口单位不能为空");
                     }
 
-                    // ---------- 1. 创建变更申请 ----------
+                    // 创建变更申请
                     HrEmpHonorChangeRequest changeRequest = new HrEmpHonorChangeRequest();
                     changeRequest.setId(IdUtil.simpleUUID());
                     changeRequest.setUserCode(changeReqVO.getUserCode());
-                    changeRequest.setOriginalData(originalData);
 
-                    // ❗只放当前这一条
-                    changeRequest.setChangedData(Collections.singletonList(entity));
-
-                    changeRequest.setStatus("PENDING");
-
-                    mongoTemplate.save(changeRequest);
-
-                    // ---------- 2. 启动流程 ----------
-                    StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
-
-                    String bizCode = "HONOR-" + System.currentTimeMillis();
-                    instanceDTO.setBizCode(bizCode);
-
-                    instanceDTO.setBizId("honor_" + changeRequest.getId());
-                    instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
-
-                    Map<String, Object> formData = new HashMap<>();
-
-                    formData.put("responsibleUnit", responsibleUnit);
-                    formData.put("deptCode", deptCode);
-                    formData.put("type", "honor");
-                    formData.put("companyCode", parentCode);
-
-
-                    // 角色逻辑（原逻辑保留）
-                    if (StringUtils.isNotBlank(parentCode) && parentCode.equals("0132")) {
-                        formData.put("roleCode", "hrsc_dept_emp_info_mgr");
+                    if (StringUtils.isBlank(entity.getId())) {
+                        changeRequest.setOriginalData(null);
+                    } else if (entity.getId().contains("NOTCHANGE")) {
+                        String cleanedId = entity.getId().replace("NOTCHANGE", "").trim();
+                        int num = idmap.get(cleanedId);
+                        originalData.remove(num);
+                        continue;
                     } else {
-                        formData.put("roleCode", "hrsc_sub_emp_info_mgr");
+                        int num = idmap.get(entity.getId());
+                        List<HrEmpHonor> origanalList = new ArrayList<>();
+                        origanalList.add(originalData.get(num));
+                        changeRequest.setOriginalData(origanalList);
+                        originalData.remove(num);
                     }
 
-                    // ❗只传当前一条数据
-                    formData.put("Honor", Collections.singletonList(
-                            JSON.parseObject(JSON.toJSONString(entity), Map.class)
-                    ));
+                    changeRequest.setChangedData(Collections.singletonList(entity));
+                    changeRequest.setStatus("PENDING");
+                    mongoTemplate.save(changeRequest);
 
-                    instanceDTO.setFormData(formData);
+                    // 启动流程
+                    StartProcessInstanceDTO instanceDTO = createProcessInstanceDTO(responsibleUnit, deptCode, parentCode, entity);
+                    ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
 
-                    log.info("启动流程参数: {}", JSON.toJSONString(instanceDTO));
-
-                    ResultData<ProcessInstanceVo> processInstanceVo =
-                            wkWorkflowApi.startProcessInstance(instanceDTO);
-                    log.info("流程返回: {}", JSON.toJSONString(processInstanceVo));
-
-                    // ---------- 3. 回写流程ID ----------
-                    changeRequest.setProcessInstanceId(
-                            processInstanceVo.getResult().getProcessInstanceId()
-                    );
-
+                    // 回写流程ID
+                    changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
                     mongoTemplate.save(changeRequest);
 
                     requestIds.add(changeRequest.getId());
-
                 } catch (Exception e) {
                     log.error("单条审批提交失败: {}", JSON.toJSONString(entity), e);
                 }
             }
 
-            // ================== 返回 ==================
+            // 处理删除数据
+            for (HrEmpHonor entity : originalData) {
+                try {
+                    String responsibleUnit = entity.getResponsibleUnit();
+                    if (responsibleUnit == null || responsibleUnit.trim().isEmpty()) {
+                        throw new IllegalArgumentException("归口单位不能为空");
+                    }
+
+                    HrEmpHonorChangeRequest changeRequest = new HrEmpHonorChangeRequest();
+                    changeRequest.setId(IdUtil.simpleUUID());
+                    changeRequest.setUserCode(changeReqVO.getUserCode());
+
+                    List<HrEmpHonor> origanalList = new ArrayList<>();
+                    origanalList.add(entity);
+                    changeRequest.setOriginalData(origanalList);
+
+                    List<HrEmpHonor> changedList = new ArrayList<>();
+                    HrEmpHonor changed = new HrEmpHonor();
+                    changed.setId(entity.getId());
+                    changedList.add(changed);
+                    changeRequest.setChangedData(changedList);
+
+                    changeRequest.setStatus("PENDING");
+                    mongoTemplate.save(changeRequest);
+
+                    StartProcessInstanceDTO instanceDTO = createProcessInstanceDTO(responsibleUnit, deptCode, parentCode, entity);
+                    ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
+
+                    changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
+                    mongoTemplate.save(changeRequest);
+
+                    requestIds.add(changeRequest.getId());
+                } catch (Exception e) {
+                    log.error("单条审批提交失败: {}", JSON.toJSONString(entity), e);
+                }
+            }
+
             if (requestIds.isEmpty()) {
                 return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "全部提交失败");
             }
 
             return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交", requestIds);
-
         } catch (Exception e) {
             log.error("提交变更申请失败: {}", e.getMessage(), e);
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "提交失败");
         }
+    }
+
+    private String findParentCode(List<OrganizationTreeDTO> orgTree, String deptCode) {
+        String parentCode = null;
+        for (OrganizationTreeDTO root : orgTree) {
+            if (TreeUtils.containsBfs(root,
+                    n -> StringUtils.equals(deptCode, n.getOrgCode()),
+                    OrganizationTreeDTO::getChildren)) {
+                parentCode = root.getOrgCode();
+                break;
+            }
+        }
+        return parentCode;
+    }
+
+    private Map<String, Integer> buildIdMap(List<HrEmpHonor> originalData) {
+        Map<String, Integer> idmap = new HashMap<>();
+        Integer i = 0;
+        for (HrEmpHonor empHonor : originalData) {
+            idmap.put(empHonor.getId(), i);
+            i++;
+        }
+        return idmap;
+    }
+
+    private StartProcessInstanceDTO createProcessInstanceDTO(String responsibleUnit, String deptCode, String parentCode, HrEmpHonor entity) {
+        StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
+        String bizCode = "HONOR-" + System.currentTimeMillis();
+        instanceDTO.setBizCode(bizCode);
+        instanceDTO.setBizId("honor_" + IdUtil.simpleUUID());
+        instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
+
+        Map<String, Object> formData = new HashMap<>();
+        formData.put("responsibleUnit", responsibleUnit);
+        formData.put("deptCode", deptCode);
+        formData.put("type", "honor");
+        formData.put("companyCode", parentCode);
+
+        if (StringUtils.isNotBlank(parentCode) && parentCode.equals("0132")) {
+            formData.put("roleCode", "hrsc_dept_emp_info_mgr");
+        } else {
+            formData.put("roleCode", "hrsc_sub_emp_info_mgr");
+        }
+
+        formData.put("Honor", Collections.singletonList(
+                JSON.parseObject(JSON.toJSONString(entity), Map.class)
+        ));
+
+        instanceDTO.setFormData(formData);
+        log.info("启动流程参数: {}", JSON.toJSONString(instanceDTO));
+        return instanceDTO;
     }
 
     @GetMapping("/change-detail")

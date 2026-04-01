@@ -16,6 +16,7 @@ import com.crrc.utils.MyUtils;
 import com.crrc.utils.ProcessStatus;
 import com.crrc.utils.SystemConstants;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -717,37 +718,21 @@ public class CallbackController {
         if (changedData == null || changedData.isEmpty()) {
             return;
         }
-
-        // 获取用户编码
-        String userCode = changedData.get(0).getUserCode();
-
-        // 查询现有数据
-        List<HrEmpHonor> existList = hrEmpHonorService.selectMsg(userCode);
-        Set<String> existIds = existList.stream()
-                .map(HrEmpHonor::getId)
-                .collect(Collectors.toSet());
-
-        // 准备新增、更新和删除的数据
-        List<HrEmpHonor> toSaveOrUpdate = new ArrayList<>();
-
-        for (HrEmpHonor honor : changedData) {
-            if (honor.getId() == null) {
+        // todo 方法变更，现在为一对一更新
+        // 先看是不是删除
+        HrEmpHonor hrEmpHonor = changedData.get(0);
+        if (StringUtils.isNotBlank(hrEmpHonor.getId()) && StringUtils.isBlank(hrEmpHonor.getResponsibleUnit())) {
+            // id不为空，归口单位为空，删除
+            hrEmpHonorService.removeById(hrEmpHonor);
+        } else {
+            // id不为空，归口单位不为空，更新
+            // id为空，新增
+            // 准备新增、更新的数据
+            if (hrEmpHonor.getId() == null) {
                 // 生成新ID
-                honor.setId(IdUtil.simpleUUID());
+                hrEmpHonor.setId(IdUtil.simpleUUID());
             }
-            honor.setUserCode(userCode);
-            toSaveOrUpdate.add(honor);
-            // 移除不需要删除的ID
-            existIds.remove(honor.getId());
-        }
-
-        // 批量保存或更新
-        if (!toSaveOrUpdate.isEmpty()) {
-            hrEmpHonorService.saveOrUpdateBatch(toSaveOrUpdate);
-        }
-        // 批量删除
-        if (!existIds.isEmpty()) {
-            hrEmpHonorService.removeByIds(existIds);
+            hrEmpHonorService.saveOrUpdate(hrEmpHonor);
         }
     }
 
