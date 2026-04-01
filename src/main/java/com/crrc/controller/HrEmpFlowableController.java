@@ -285,20 +285,18 @@ public class HrEmpFlowableController {
         log.info("查询参数 companyCode:{}, roleCode:{}, responsibleUnit:{}",
                 companyCode, roleCode, responsibleUnit);
 
-        if (ObjectUtils.isEmpty(companyCode)) {
-            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "companyCode不能为空");
-        }
+
 
         List<SysUserDTO> result = new ArrayList<>();
 
         // ================== ⭐ 归口单位 → roleCode ==================
         Map<String, String> roleMap = new HashMap<>();
-        roleMap.put("1", "role_party_org");   // 党委组织部
-        roleMap.put("2", "role_publicity");   // 宣传部
-        roleMap.put("3", "role_youth");       // 团委
-        roleMap.put("4", "role_union");       // 工会
-        roleMap.put("5", "role_hr");          // 人力资源部
-        roleMap.put("6", "role_other");          // 其他
+        roleMap.put("1", "484734531758022656");   // 党委组织部
+        roleMap.put("2", "484734725752971264");   // 宣传部
+        roleMap.put("3", "484734899485237248");       // 团委
+        roleMap.put("4", "484735049175752704");       // 工会
+        roleMap.put("5", "484735169137041408");          // 人力资源部
+        roleMap.put("6", "484735447135510528");          // 其他
 
         if (StringUtils.isNotBlank(responsibleUnit)) {
             roleCode = roleMap.get(responsibleUnit);
@@ -309,11 +307,8 @@ public class HrEmpFlowableController {
         }
 
         // ================== ⭐ 调用新接口 ==================
-        SysUserRequestDTO req = new SysUserRequestDTO();
-        req.setRoleCode(roleCode);
 
-        ResultData<List<SysUserDTO>> resultData =
-                sysServerClient.findUserByRoleCode(req);
+        ResultData<List<SysUserDTO>> resultData = sysServerClient.findUserByRoleId(Long.valueOf(roleCode));
 
         if (resultData == null || ObjectUtils.isEmpty(resultData.getResult())) {
             log.info("角色查询为空:{}", roleCode);

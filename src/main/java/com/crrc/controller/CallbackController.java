@@ -1057,5 +1057,4 @@ public class CallbackController {
             hrEmpProfessionalQualificationService.updateById(temp);
         }
     }
-
 }
