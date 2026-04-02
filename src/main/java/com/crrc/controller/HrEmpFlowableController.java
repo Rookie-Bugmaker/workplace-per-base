@@ -273,6 +273,53 @@ public class HrEmpFlowableController {
         return ResponseResult.success(result);
     }
 
+    @GetMapping("/responsibleUnit")
+    @Operation(summary = "HrEmpFlowableController工作流获取审批人信息")
+    @AuditLog(value = "HrEmpFlowableController工作流获取审批人信息", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResult<List<SysUserDTO>> responsibleUnit(
+            String companyCode,
+            String roleCode,
+            String responsibleUnit
+    ) {
+
+        log.info("查询参数 companyCode:{}, roleCode:{}, responsibleUnit:{}",
+                companyCode, roleCode, responsibleUnit);
+
+
+
+        List<SysUserDTO> result;
+
+        // ================== ⭐ 归口单位 → roleCode ==================
+        Map<String, String> roleMap = new HashMap<>();
+        roleMap.put("1", "484734531758022656");   // 党委组织部
+        roleMap.put("2", "484734725752971264");   // 宣传部
+        roleMap.put("3", "484734899485237248");       // 团委
+        roleMap.put("4", "484735049175752704");       // 工会
+        roleMap.put("5", "484735169137041408");          // 人力资源部
+        roleMap.put("6", "484735447135510528");          // 其他
+
+        if (StringUtils.isNotBlank(responsibleUnit)) {
+            roleCode = roleMap.get(responsibleUnit);
+        }
+
+        if (StringUtils.isBlank(roleCode)) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "roleCode不能为空");
+        }
+
+        // ================== ⭐ 调用新接口 ==================
+
+        ResultData<List<SysUserDTO>> resultData = sysServerClient.findUserByRoleId(Long.valueOf(roleCode));
+
+        if (resultData == null || ObjectUtils.isEmpty(resultData.getResult())) {
+            log.info("角色查询为空:{}", roleCode);
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "未查到审批人数据!");
+        }
+
+        result = resultData.getResult();
+
+        return ResponseResult.success(result);
+    }
+
 
     @Deprecated
     @GetMapping("/findUserByRoleCodeAndCompanyId")
