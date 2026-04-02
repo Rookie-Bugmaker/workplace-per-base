@@ -8,40 +8,31 @@ import com.crrc.api.WkDataAPi;
 import com.crrc.client.SysServerClient;
 import com.crrc.common.PaginationGrid;
 import com.crrc.common.ResultData;
-import com.crrc.entity.BorrowedPersonnelApprovalFormRelation;
 import com.crrc.entity.CodeInfo;
 import com.crrc.entity.HrEmpBasic;
-import com.crrc.entity.dict.vo.DictItemVO;
-import com.crrc.entity.dict.vo.DictVO;
 import com.crrc.entity.dto.*;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
-import com.crrc.pojo.dto.SysDeptPersonDTO;
 import com.crrc.pojo.dto.SysUserDTO;
 import com.crrc.pojo.dto.SysUserRequestDTO;
 import com.crrc.service.impl.CodeInfoServiceImpl;
 import com.crrc.service.impl.HrEmpBasicServiceImpl;
-import com.crrc.utils.DictTypeUtils;
-import com.crrc.utils.DictUtils;
+import com.crrc.utils.FlowableUtils;
 import com.crrc.utils.TreeUtils;
 import io.jsonwebtoken.lang.Objects;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.ObjectUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.*;
@@ -79,6 +70,8 @@ public class HrEmpFlowableController {
 
     @Value("${crrc.role.audit.emp.dept.id}")
     private Long HRSC_DEPT_EMP_INFO_MGR_ROLE_ID;
+    @Autowired
+    private FlowableUtils flowableUtils;
 
     @TenantIgnore
     @GetMapping("/findApprovalByRoleIdList")
@@ -168,6 +161,15 @@ public class HrEmpFlowableController {
         result.setTotal((long) sysUsers.size());
 
         return result;
+    }
+
+    @PostMapping("/batchApproval")
+    @Operation(summary = "批量审批")
+    public ResponseResult<String> batchApproval(@RequestBody List<String> processInstanceIds) {
+        for (String processInstanceId : processInstanceIds) {
+            flowableUtils.done(processInstanceId, "同意");
+        }
+        return ResponseResult.success("OK");
     }
 
     @GetMapping("/findUserByDeptIdAndRoleCode")

@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -27,10 +29,12 @@ import java.time.LocalDate;
 @Schema(description = "员工基本信息表")
 @Data
 @NoArgsConstructor
+@Document
 public class HrEmpBasic extends BaseEntity implements Serializable {
 
     @Schema(description = "主键")
     @TableId(value = "id", type = IdType.AUTO)
+    @Id
     private String id;
 
     @Schema(description = "备注", example = "demo")
