@@ -450,6 +450,12 @@ public class ExternalController {
                         });
                     }
 
+                    // 把开始时间最近的一条，赋予结束时间
+                    List<HrEmpSkillLevel> list = hrEmpSkillLevelService.selectMsg(hrEmpSkillLevel.getUserCode());
+                    HrEmpSkillLevel recentEntity = list.get(list.size() - 1);
+                    recentEntity.setAppointedEndDate(hrEmpSkillLevel.getAppointedStartDate());
+                    hrEmpSkillLevelService.updateById(recentEntity);
+
                     dto.getHrEmpSkillLevel().setId(IdUtil.simpleUUID());
                     boolean saveResult = hrEmpSkillLevelService.save(dto.getHrEmpSkillLevel());
                     if (!saveResult) {
@@ -607,6 +613,7 @@ public class ExternalController {
     @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
     @Parameter(name = "pageNo", description = "页码", example = "1")
     @Parameter(name = "pageSize", description = "条数", example = "10")
+    @IgnoreTenant
     public ResponseResult<Page<HrEmpBasic>> pageForPerSelf(@Validated @RequestBody(required = false) HrEmpBasic pageReqVO,
                                                            @RequestParam(required = false, defaultValue = "1") int pageNo,
                                                            @RequestParam(required = false, defaultValue = "10") int pageSize) {

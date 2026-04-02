@@ -11,6 +11,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
+import com.crrc.annotation.TenantIgnore;
 import com.crrc.api.WkDataAPi;
 import com.crrc.api.WkWorkflowApi;
 import com.crrc.client.UserProfileImageClient;
@@ -509,7 +510,7 @@ public class HrEmpBasicController {
                     if (StringUtils.isNotBlank(skillLevel.getIsHighest()) && SystemConstants.TRUE_FLAG.equals(skillLevel.getIsHighest())) {
                         if (StringUtils.isNotBlank(skillLevel.getSkillLevel())) {
                                                      /*
-                                  00010/0020/0030	高级技师、特级技师、首席技师 高
+                                  00010/00020/00030	高级技师、特级技师、首席技师 高
                                   00040	技师 师
                                   00050	高级工 助
                                   00060/70	中级工、初级工 员
@@ -793,6 +794,7 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), "OK", true);
     }
 
+    @TenantIgnore
     @PostMapping("/getList")
     @Operation(summary = "获得员工基本信息表实体")
     @AuditLog(value = "获得员工基本信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)

@@ -11,7 +11,6 @@ import com.crrc.annotation.TenantIgnore;
 import com.crrc.entity.PositionInfo;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
-import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.service.impl.PositionInfoServiceImpl;
 import com.crrc.utils.PositionInfoImportListener;
@@ -40,6 +39,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/positionInfo")
 @RefreshScope
+@TenantIgnore
 public class PositionInfoController {
     @Autowired
     private PositionInfoServiceImpl positionInfoService;
@@ -59,7 +59,8 @@ public class PositionInfoController {
                                                   @RequestParam(required = false, defaultValue = "10") int pageSize) {
         pageReqVO = (pageReqVO == null) ? new PositionInfo() : pageReqVO;
         Page<PositionInfo> page = new Page<>(pageNo, pageSize);
-        positionInfoService.query(page, pageReqVO);
+        positionInfoService.queryByOrder(page, pageReqVO);
+        positionInfoService.resolveField(page.getRecords());
         return new ResponseResult<>(HttpStatus.OK.value(), "获取列表 page成功", page);
     }
 
@@ -77,7 +78,6 @@ public class PositionInfoController {
     @Operation(summary = "获取列表")
     @AuditLog(value = "获取列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象", required = false)
-    @TenantIgnore
     public ResponseResult<List<PositionInfo>> queryPositionInfoByList(@Validated @RequestBody(required = false) List<String> codeList) {
         LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
         if(codeList != null && !codeList.isEmpty()) {
@@ -104,21 +104,27 @@ public class PositionInfoController {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    @PostMapping("/update")
+    @PostMapping("/saveOrUpdate")
     @Operation(summary = "更新实体")
     @AuditLog(value = "更新实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
     public ResponseResult<Boolean> updatePositionInfo(@Valid @RequestBody PositionInfo updateReqVO) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "更新实体成功", positionInfoService.saveOrUpdate(updateReqVO));
+        LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(PositionInfo::getCode, updateReqVO.getCode());
+        if(positionInfoService.exists(wrapper)) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "职位编码不能重复");
+        } else {
+            return new ResponseResult<>(HttpStatus.OK.value(), "更新职位信息成功", positionInfoService.saveOrUpdate(updateReqVO));
+        }
     }
 
     @Transactional(rollbackFor = Exception.class)
-    @GetMapping("/delete")
+    @PostMapping("/delete")
     @Operation(summary = "删除实体")
     @AuditLog(value = "删除实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_DELETE)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
-    public ResponseResult<Boolean> deletePositonInfo(@RequestParam("id") Long id) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "删除实体成功", positionInfoService.removeById(id));
+    public ResponseResult<Boolean> deletePositonInfo(@RequestBody List<Integer> idList) {
+        return new ResponseResult<>(HttpStatus.OK.value(), "删除实体成功", positionInfoService.removeBatchByIds(idList));
     }
 
     @PostMapping("/export")

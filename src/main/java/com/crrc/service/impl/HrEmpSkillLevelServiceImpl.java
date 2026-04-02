@@ -23,11 +23,14 @@ public class HrEmpSkillLevelServiceImpl extends WorkServiceImpl<HrEmpSkillLevelM
 
     @Autowired
     private HrEmpSkillLevelMapper hrEmpSkillLevelMapper;
+    @Autowired
+    private CodeInfoServiceImpl codeInfoService;
 
     public List<HrEmpSkillLevel> selectMsg(String userCode){
         MPJLambdaWrapper<HrEmpSkillLevel> wrapper = new MPJLambdaWrapper<HrEmpSkillLevel>()
                 .selectAll(HrEmpSkillLevel.class)
-                .eq(HrEmpSkillLevel::getUserCode, userCode);
+                .eq(HrEmpSkillLevel::getUserCode, userCode)
+                .orderByAsc(HrEmpSkillLevel::getAppointedStartDate);
         return hrEmpSkillLevelMapper.selectList(wrapper);
     }
 
@@ -38,6 +41,8 @@ public class HrEmpSkillLevelServiceImpl extends WorkServiceImpl<HrEmpSkillLevelM
             if(level.getAppointedEndDate() != null && level.getAppointedEndDate().isAfter(LocalDate.parse("2098-01-01"))) {
                 level.setAppointedEndDate(null);
             }
+            // 处理工种转写
+            level.setJobId(codeInfoService.translateCode(level.getJobId(), "hr_emp_skill_level", "SKILL_LEVEL_JOB_ID"));
         }
     }
 }

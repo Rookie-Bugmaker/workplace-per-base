@@ -162,10 +162,14 @@ public class HrEmpAppointmentController {
 
             // 处理职位名称
             String position = entity.getPosition();
-            if (StringUtils.isNotBlank(position)) {
-                String positionName = position.matches("^\\d.*") ?
-                        codeInfoService.translateCode(position, "hr_emp_appointment", "APPOINTMENT_POSITION") : position;
-                entity.setPosition(positionName);
+            if (StringUtils.isNotBlank(position) && position.matches("^\\d.*")) {
+                LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
+                wrapper.eq(PositionInfo::getCode, position);
+                List<PositionInfo> positionInfos = positionInfoMapper.selectList(wrapper);
+                if(!positionInfos.isEmpty()) {
+                    String positionName = positionInfos.get(0).getName();
+                    entity.setPosition(positionName);
+                }
             }
 
             // 处理变动事件 changeEvent

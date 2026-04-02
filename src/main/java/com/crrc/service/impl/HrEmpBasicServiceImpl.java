@@ -26,6 +26,7 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.groovy.util.Maps;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -544,13 +545,16 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             // 超管均可编辑
             if(RoleUtils.checkAnyMatch("hrsc_super_admin")) {
                 result.get(0).setIsEditable("1");
+                result.get(0).setIsAdmin("1");
             } else if(RoleUtils.checkAnyMatch("hrsc_emp_non_inc_info_mgr")) {
                 // 如果是非在职管理员，那么可编辑非在职数据
                 String userName = SecurityFrameworkUtils.getLoginUser().getUser().getJobNo();
                 result.get(0).setIsEditable(result.get(0).getUserCode().equals(userName) || "0".equals(result.get(0).getIsEmployed()) ? "1" : "0");
+                result.get(0).setIsAdmin("0");
             } else {
                 String userName = SecurityFrameworkUtils.getLoginUser().getUser().getJobNo();
                 result.get(0).setIsEditable(result.get(0).getUserCode().equals(userName) ? "1" : "0");
+                result.get(0).setIsAdmin("0");
             }
 
 
@@ -854,6 +858,17 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     private void resolveStatus(HrEmpBasicDTO dto) {
         // 查询的表名
         String tableName = "hr_emp_basic";
+        Map<String, String> translateMap = new HashMap<>(Maps.of(
+                "001", "201",
+                "002", "002",
+                "003", "302",
+                "004", "004",
+                "005", "303",
+                "006", "101",
+                "007", "205",
+                "008", "008"
+        ));
+        dto.setStatus(translateMap.getOrDefault(dto.getCategory8(), dto.getCategory8()));
         try {
             if (StringUtils.isNotBlank(dto.getStatus())) {
                 String status = codeInfoService.translateCode(dto.getStatus(), tableName, "per_status");
@@ -1286,10 +1301,16 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             Map<String, SubTableData> stringSubTableDataMap = querySubTableDataList(resultList);
 
             if(RoleUtils.checkAnyMatch("hrsc_super_admin")) {
-                resultList.forEach(result -> result.setIsEditable("1"));
+                resultList.forEach(result -> {
+                    result.setIsEditable("1");
+                    result.setIsAdmin("1");
+                });
             } else {
                 String userName = SecurityFrameworkUtils.getLoginUser().getUser().getJobNo();
-                resultList.forEach(result -> result.setIsEditable(result.getUserCode().equals(userName) ? "1" : "0"));
+                resultList.forEach(result -> {
+                    result.setIsEditable(result.getUserCode().equals(userName) ? "1" : "0");
+                    result.setIsAdmin("0");
+                });
             }
 
             resultList.forEach(result -> {
