@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -127,4 +128,7 @@ public class HrEmpBasicDTO extends HrEmpBasic {
 
     @Schema(description = "工龄信息")
     private String seniority;
+
+    @Schema(description = "变动字段统计")
+    private ArrayList<String> markList;
 }

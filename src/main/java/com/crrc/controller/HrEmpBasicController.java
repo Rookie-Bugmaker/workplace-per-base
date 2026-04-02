@@ -32,7 +32,6 @@ import com.crrc.mongodb.HrEmpBasicChangeRequest;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.*;
 import com.crrc.pojo.vo.MapVO;
-import com.crrc.service.CodeInfoService;
 import com.crrc.service.impl.*;
 import com.crrc.utils.*;
 import com.crrc.utils.listener.PoliticalStatusImportListener;
@@ -1109,6 +1108,9 @@ public class HrEmpBasicController {
             changeRequest.setOriginalData(originalData);
             changeRequest.setChangedData(changeReqVO);
             changeRequest.setWfId(changeReqVO.getWfId());
+
+            // 进行数据比对，将其放入markList
+            hrEmpBasicService.resolveDifference(originalData, changeReqVO);
 
             // 3. 保存到MongoDB
             mongoTemplate.save(changeRequest);

@@ -32,6 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
@@ -1388,5 +1389,34 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                     qualificationList.size() <= 1 &&
                     appointmentList.size() <= 1;
         }
+    }
+
+    // 扫描全字段，标识出修改内容
+    public void resolveDifference(HrEmpBasicDTO originalData, HrEmpBasicDTO changedData) {
+        // 获取所有字段名
+        Field[] fields = HrEmpBasicDTO.class.getDeclaredFields();
+        ArrayList<String> markList = new ArrayList<>();
+        for (Field field : fields) {
+            try {
+                // 设置字段可访问
+                field.setAccessible(true);
+                // 获取字段值
+                Object originalValue = field.get(originalData);
+                Object changedValue = field.get(changedData);
+                // 比较字段值
+                if (originalValue == null && changedValue == null) {
+                    continue;
+                }
+                if (originalValue == null || !originalValue.equals(changedValue)) {
+                    // 如果字段值不同，将字段名添加到markList
+                    String fieldName = field.getName();
+                    markList.add(fieldName);
+                }
+            } catch (IllegalAccessException e) {
+                // 处理异常
+                e.printStackTrace();
+            }
+        }
+        changedData.setMarkList(markList);
     }
 }
