@@ -9,6 +9,5 @@ import java.util.List;
 @Data
 public class HrEmpHonorDTO {
     String userCode;
-
     List<HrEmpHonor> list;
 }
