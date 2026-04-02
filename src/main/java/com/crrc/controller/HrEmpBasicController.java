@@ -29,6 +29,7 @@ import com.crrc.mapper.HrEmpCareerPathMapper;
 import com.crrc.mapper.HrEmpOtherAppointmentMapper;
 import com.crrc.mapper.HrEmpResumeMapper;
 import com.crrc.mongodb.HrEmpBasicChangeRequest;
+import com.crrc.mongodb.service.MongoDBService;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.*;
 import com.crrc.pojo.vo.MapVO;
@@ -92,15 +93,11 @@ public class HrEmpBasicController {
     @Autowired
     private MongoTemplate mongoTemplate;
     @Autowired
+    private MongoDBService mongoDBService;
+    @Autowired
     private WkWorkflowApi wkWorkflowApi;
     @Autowired
-    private HrEmpCareerPathMapper hrEmpCareerPathMapper;
-    @Autowired
-    private HrEmpResumeMapper hrEmpResumeMapper;
-    @Autowired
     private HrEmpAppointmentMapper hrEmpAppointmentMapper;
-    @Autowired
-    private HrEmpOtherAppointmentMapper hrEmpOtherAppointmentMapper;
     @Autowired
     private HrEmpSkillLevelServiceImpl hrEmpSkillLevelService;
     @Autowired
@@ -1073,6 +1070,24 @@ public class HrEmpBasicController {
         return new ResponseResult<>(HttpStatus.OK.value(), "创建员工基本信息表实体成功", hrEmpBasicService.save(createReqVO));
     }
 
+    @PostMapping("/tempSave")
+    @Operation(summary = "暂存员工信息")
+    public ResponseResult<String> tempSave(@RequestBody HrEmpBasicDTO saveDTO) {
+        mongoDBService.saveDataByUserCode(saveDTO, saveDTO.getUserCode(), "hr_emp_basic_temp_save_data");
+        return ResponseResult.success("OK");
+    }
+
+    @PostMapping("/queryData/{type}")
+    @Operation(summary = "查询驳回/暂存的数据")
+    public ResponseResult<HrEmpBasicDTO> tempQuery(@RequestBody HrEmpBasicDTO queryDTO, @PathVariable String type) {
+        if("tempSave".equals(type)) {
+            return ResponseResult.success(
+                    mongoDBService.getById(queryDTO.getUserCode(), HrEmpBasicDTO.class, "hr_emp_basic_temp_save_data")
+            );
+        }
+
+        return ResponseResult.success(mongoDBService.getById(queryDTO.getUserCode(), HrEmpBasicDTO.class, "hr_emp_basic_submit_data"));
+    }
 
     @PostMapping("/submit-change")
     @Operation(summary = "提交员工信息变更申请")
@@ -1081,6 +1096,10 @@ public class HrEmpBasicController {
             // 防止dept被误修改
             changeReqVO.setDept(null);
             changeReqVO.setOrgCode(null);
+
+            // 直接保存暂存数据
+            mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_basic_submit_data");
+
             HrEmpBasic byId = hrEmpBasicService.getById(changeReqVO.getId());
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin") || ("0".equals(byId.getIsEmployed()) && RoleUtils.checkAnyMatch("hrsc_emp_non_inc_info_mgr"));
             if (flag) {
