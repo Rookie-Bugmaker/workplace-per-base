@@ -40,37 +40,37 @@ public class HrEmpPenalties extends BaseEntity implements Serializable {
     private Integer deleted;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"工号"}, index = 1)
+    @ExcelProperty(value = {"工号"})
     @Schema(description = "工号")
     private String userCode;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"惩处名称"}, index = 2)
+    @ExcelProperty(value = {"惩处名称"})
     @Schema(description = "惩处名称")
     private String penaltyName;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"批准单位（20251015，应人力要求作废）"}, index = 3)
+    @ExcelProperty(value = {"批准单位（20251015，应人力要求作废）"})
     @Schema(description = "批准单位（20251015，应人力要求作废）")
     private String penaltyUnit;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"惩处文件号"}, index = 4)
+    @ExcelProperty(value = {"惩处文件号"})
     @Schema(description = "惩处文件号")
     private String penaltyDocId;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"惩处原因"}, index = 5)
+    @ExcelProperty(value = {"惩处原因"})
     @Schema(description = "惩处原因")
     private String penaltyReason;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"惩处措施"}, index = 6)
+    @ExcelProperty(value = {"惩处措施"})
     @Schema(description = "惩处措施")
     private String penaltyMeasures;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"是否存在正在被修改的状态"}, index = 7)
+    @ExcelProperty(value = {"是否存在正在被修改的状态"})
     @Schema(description = "是否存在正在被修改的状态，0为否，1为是")
     private String isUpdating;
 }
