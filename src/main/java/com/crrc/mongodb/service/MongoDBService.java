@@ -1,13 +1,12 @@
 package com.crrc.mongodb.service;
 
+import org.springframework.beans.BeanWrapper;
+import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 
 @Service
 public class MongoDBService {
@@ -29,13 +28,11 @@ public class MongoDBService {
     }
 
     private <T> void setDataId(T data, String userCode) {
-        Class<?> clazz = data.getClass();
-        try {
-            // 断定是否存在id的setter
-            Method setter = clazz.getMethod("setId", String.class);
-            setter.invoke(data, userCode);
-        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
-            throw new IllegalArgumentException(String.format("类: %s不存在setId方法，或id类型不为String", data.getClass().getName()));
+        BeanWrapper wrapper = new BeanWrapperImpl(data);
+        if(wrapper.isWritableProperty("id")) {
+            wrapper.setPropertyValue("id", userCode);
+        } else {
+            throw new IllegalArgumentException(String.format("类%s存在不可写入的id属性", data.getClass().getName()));
         }
     }
 
