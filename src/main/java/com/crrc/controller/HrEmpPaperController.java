@@ -26,6 +26,7 @@ import com.crrc.listener.ImportExcelListener;
 import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mongodb.HrEmpHonorChangeRequest;
 import com.crrc.mongodb.HrEmpPaperChangeRequest;
+import com.crrc.mongodb.service.MongoDBService;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpHonorDTO;
 import com.crrc.pojo.dto.HrEmpPaperDTO;
@@ -80,6 +81,8 @@ public class HrEmpPaperController {
     private HrEmpBasicMapper hrEmpBasicMapper;
     @Autowired
     private WkDataAPi wkDataAPi;
+    @Autowired
+    private MongoDBService mongoDBService;
 
     @GetMapping("/getDetails")
     @Operation(summary = "获得员工论文论著信息实体")
@@ -236,10 +239,32 @@ public class HrEmpPaperController {
         return new ResponseResult<>(HttpStatus.OK.value(), "导入员工论文论著信息表报表成功");
     }
 
+    @PostMapping("/tempSave")
+    @Operation(summary = "暂存员工信息")
+    public ResponseResult<String> tempSave(@RequestBody HrEmpPaperDTO saveDTO) {
+        mongoDBService.saveDataByUserCode(saveDTO, saveDTO.getUserCode(), "hr_emp_paper_temp_save_data");
+        return ResponseResult.success("OK");
+    }
+
+    @PostMapping("/queryData/{type}")
+    @Operation(summary = "查询驳回/暂存的数据")
+    public ResponseResult<HrEmpPaperDTO> tempQuery(@RequestBody HrEmpPaperDTO queryDTO, @PathVariable String type) {
+        if("tempSave".equals(type)) {
+            return ResponseResult.success(
+                    mongoDBService.getById(queryDTO.getUserCode(), HrEmpPaperDTO.class, "hr_emp_paper_temp_save_data")
+            );
+        }
+
+        return ResponseResult.success(mongoDBService.getById(queryDTO.getUserCode(), HrEmpPaperDTO.class, "hr_emp_paper_submit_data"));
+    }
 
     @PostMapping("/submit-change")
     @Operation(summary = "提交员工论文论著变更申请")
     public ResponseResult<List<String>> submitChange(@Valid @RequestBody HrEmpPaperDTO changeReqVO) {
+
+        // 直接保存暂存数据
+        mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_paper_submit_data");
+
         try {
             // ================== 超级管理员直接更新 ==================
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");

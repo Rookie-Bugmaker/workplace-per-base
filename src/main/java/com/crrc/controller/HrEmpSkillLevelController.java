@@ -25,7 +25,9 @@ import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mongodb.HrEmpSkillsChangeRequest;
+import com.crrc.mongodb.service.MongoDBService;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.dto.HrEmpHonorDTO;
 import com.crrc.pojo.dto.UpdateListDTO;
 import com.crrc.service.impl.HrEmpSkillLevelServiceImpl;
 import com.crrc.utils.*;
@@ -80,6 +82,8 @@ public class HrEmpSkillLevelController {
     private WkDataAPi wkDataAPi;
 
     private final UpdateListUtil<HrEmpSkillLevel, String> updateUtil;
+    @Autowired
+    private MongoDBService mongoDBService;
 
     public HrEmpSkillLevelController(HrEmpSkillLevelServiceImpl service) {
         this.updateUtil = new UpdateListUtil<>(
@@ -200,9 +204,32 @@ public class HrEmpSkillLevelController {
         return new ResponseResult<>(HttpStatus.OK.value(), "导入职业技能等级报表成功");
     }
 
+    @PostMapping("/tempSave")
+    @Operation(summary = "暂存员工信息")
+    public ResponseResult<String> tempSave(@RequestBody HrEmpSkillLevel saveDTO) {
+        mongoDBService.saveDataByUserCode(saveDTO, saveDTO.getUserCode(), "hr_emp_skill_level_temp_save_data");
+        return ResponseResult.success("OK");
+    }
+
+    @PostMapping("/queryData/{type}")
+    @Operation(summary = "查询驳回/暂存的数据")
+    public ResponseResult<HrEmpSkillLevel> tempQuery(@RequestBody HrEmpSkillLevel queryDTO, @PathVariable String type) {
+        if("tempSave".equals(type)) {
+            return ResponseResult.success(
+                    mongoDBService.getById(queryDTO.getUserCode(), HrEmpSkillLevel.class, "hr_emp_skill_level_temp_save_data")
+            );
+        }
+
+        return ResponseResult.success(mongoDBService.getById(queryDTO.getUserCode(), HrEmpSkillLevel.class, "hr_emp_skill_level_submit_data"));
+    }
+
     @PostMapping("/submit-change")
     @Operation(summary = "提交职业技能等级变更申请")
     public ResponseResult<String> submitSkillChange(@Valid @RequestBody UpdateListDTO<HrEmpSkillLevel> changeReqVO) {
+
+        // 直接保存暂存数据
+        mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_skill_level_submit_data");
+
         try {
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
             if (flag) {
