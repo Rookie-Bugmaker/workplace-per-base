@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
 import com.crrc.pojo.dto.SysFileDTO;
+import com.crrc.utils.DiffMarkable;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,6 +14,7 @@ import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -29,7 +31,7 @@ import java.util.List;
 @Schema(description = "员工论文论著信息表")
 @Data
 @NoArgsConstructor
-public class HrEmpPaper extends BaseEntity implements Serializable {
+public class HrEmpPaper extends BaseEntity implements Serializable, DiffMarkable {
     private static final long serialVersionUID = 2031211713627750400L;
 
     @Schema(description = "主键")
@@ -153,4 +155,13 @@ public class HrEmpPaper extends BaseEntity implements Serializable {
     @TableField(exist = false)
     private List<SysFileDTO> files;
 
+    @Override
+    public List<String> getMarkList() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void setMarkList(List<String> markList) {
+
+    }
 }

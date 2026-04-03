@@ -15,7 +15,6 @@ import com.crrc.annotation.AuditLog;
 import com.crrc.api.WkDataAPi;
 import com.crrc.api.WkWorkflowApi;
 import com.crrc.entity.HrEmpBasic;
-import com.crrc.entity.HrEmpPaper;
 import com.crrc.entity.HrEmpPatent;
 import com.crrc.entity.LoginUser;
 import com.crrc.entity.dto.ProcessInstanceVo;
@@ -27,11 +26,9 @@ import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.mapper.HrEmpBasicMapper;
-import com.crrc.mongodb.HrEmpPaperChangeRequest;
 import com.crrc.mongodb.HrEmpPatentChangeRequest;
 import com.crrc.mongodb.service.MongoDBService;
 import com.crrc.pojo.ResponseResult;
-import com.crrc.pojo.dto.HrEmpPaperDTO;
 import com.crrc.pojo.dto.HrEmpPatentDTO;
 import com.crrc.service.impl.HrEmpPatentServiceImpl;
 import com.crrc.utils.*;
@@ -86,6 +83,8 @@ public class HrEmpPatentController {
     private WkDataAPi wkDataAPi;
     @Autowired
     private MongoDBService mongoDBService;
+    @Autowired
+    private DiffResolver diffResolver;
 
     @GetMapping("/getDetails")
     @Operation(summary = "获得员工专利信息实体")
@@ -318,90 +317,30 @@ public class HrEmpPatentController {
             // ================== 查询原始数据（只查一次） ==================
             List<HrEmpPatent> originalData = getMsg(changeReqVO.getUserCode()).getData();
 
-            // 构建Id和List序号的Map，用于简化查询原数据的过程
-            Map<String, Integer> idmap = buildIdMap(originalData);
+            // 创建变更申请
+            HrEmpPatentChangeRequest changeRequest = new HrEmpPatentChangeRequest();
+            changeRequest.setId(IdUtil.simpleUUID());
+            changeRequest.setUserCode(changeReqVO.getUserCode());
+            changeRequest.setOriginalData(originalData);
 
-            // ================== 结果ID集合 ==================
-            List<String> requestIds = new ArrayList<>();
+            // 全表扫描对比字段变化
+            diffResolver.resolveDifference(originalData, changeReqVO.getList(), HrEmpPatent.class);
+            changeRequest.setChangedData(changeReqVO.getList());
 
-            // ================== 核心：逐条处理 ==================
-            for (HrEmpPatent entity : changeReqVO.getList()) {
-                try {
-                    // 创建变更申请
-                    HrEmpPatentChangeRequest changeRequest = new HrEmpPatentChangeRequest();
-                    changeRequest.setId(IdUtil.simpleUUID());
-                    changeRequest.setUserCode(changeReqVO.getUserCode());
+            changeRequest.setStatus("PENDING");
+            mongoTemplate.save(changeRequest);
 
-                    if (StringUtils.isBlank(entity.getId())) {
-                        changeRequest.setOriginalData(null);
-                    } else if (entity.getId().contains("NOTCHANGE")) {
-                        String cleanedId = entity.getId().replace("NOTCHANGE", "").trim();
-                        int num = idmap.get(cleanedId);
-                        originalData.remove(num);
-                        continue;
-                    } else {
-                        int num = idmap.get(entity.getId());
-                        List<HrEmpPatent> origanalList = new ArrayList<>();
-                        origanalList.add(originalData.get(num));
-                        changeRequest.setOriginalData(origanalList);
-                        originalData.remove(num);
-                    }
+            // 启动流程
+            StartProcessInstanceDTO instanceDTO = createProcessInstanceDTO(deptCode, parentCode, changeReqVO);
+            ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
 
-                    changeRequest.setChangedData(Collections.singletonList(entity));
-                    changeRequest.setStatus("PENDING");
-                    mongoTemplate.save(changeRequest);
+            // 回写流程ID
+            changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
+            mongoTemplate.save(changeRequest);
 
-                    // 启动流程
-                    StartProcessInstanceDTO instanceDTO = createProcessInstanceDTO(deptCode, parentCode, entity);
-                    ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
 
-                    // 回写流程ID
-                    changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
-                    mongoTemplate.save(changeRequest);
 
-                    requestIds.add(changeRequest.getId());
-                } catch (Exception e) {
-                    log.error("单条审批提交失败: {}", JSON.toJSONString(entity), e);
-                }
-            }
-
-            // 处理删除数据
-            for (HrEmpPatent entity : originalData) {
-                try {
-                    HrEmpPatentChangeRequest changeRequest = new HrEmpPatentChangeRequest();
-                    changeRequest.setId(IdUtil.simpleUUID());
-                    changeRequest.setUserCode(changeReqVO.getUserCode());
-
-                    List<HrEmpPatent> origanalList = new ArrayList<>();
-                    origanalList.add(entity);
-                    changeRequest.setOriginalData(origanalList);
-
-                    List<HrEmpPatent> changedList = new ArrayList<>();
-                    HrEmpPatent changed = new HrEmpPatent();
-                    changed.setId(entity.getId());
-                    changedList.add(changed);
-                    changeRequest.setChangedData(changedList);
-
-                    changeRequest.setStatus("PENDING");
-                    mongoTemplate.save(changeRequest);
-
-                    StartProcessInstanceDTO instanceDTO = createProcessInstanceDTO(deptCode, parentCode, entity);
-                    ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
-
-                    changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
-                    mongoTemplate.save(changeRequest);
-
-                    requestIds.add(changeRequest.getId());
-                } catch (Exception e) {
-                    log.error("单条审批提交失败: {}", JSON.toJSONString(entity), e);
-                }
-            }
-
-            if (requestIds.isEmpty()) {
-                return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "全部提交失败");
-            }
-
-            return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交", requestIds);
+            return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交");
         } catch (Exception e) {
             log.error("提交变更申请失败: {}", e.getMessage(), e);
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "提交失败");
@@ -431,7 +370,7 @@ public class HrEmpPatentController {
         return idmap;
     }
 
-    private StartProcessInstanceDTO createProcessInstanceDTO(String deptCode, String parentCode, HrEmpPatent entity) {
+    private StartProcessInstanceDTO createProcessInstanceDTO(String deptCode, String parentCode, HrEmpPatentDTO changeReqVO) {
         StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
         String bizCode = "PATENT-" + System.currentTimeMillis();
         instanceDTO.setBizCode(bizCode);
@@ -449,9 +388,7 @@ public class HrEmpPatentController {
             formData.put("roleCode", "hrsc_sub_emp_info_mgr");
         }
 
-        formData.put("Patent", Collections.singletonList(
-                JSON.parseObject(JSON.toJSONString(entity), Map.class)
-        ));
+        formData.put("Patent", MyUtils.convertToMapList(changeReqVO));
 
         instanceDTO.setFormData(formData);
         log.info("启动流程参数: {}", JSON.toJSONString(instanceDTO));

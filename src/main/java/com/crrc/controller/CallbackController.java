@@ -587,13 +587,19 @@ public class CallbackController {
         // 新增待删除数据列表
         List<String> deleteIdList = new ArrayList<>();
 
-        // 准备新增、更新和删除的数据
+        // 准备新增、更新的数据
         List<HrEmpFamMember> toSaveOrUpdate = new ArrayList<>();
 
         // 判断传入数据里面有无紧急联系人
         boolean isEmergency = true;
         int emergencyNum = 0;
         for (HrEmpFamMember hrEmpFamMember : changedData) {
+            // 检查删除标记，有就删除
+            if(!hrEmpFamMember.getMarkList().isEmpty() && ("$DELETE$").equals(hrEmpFamMember.getMarkList().get(0))) {
+                deleteIdList.add(hrEmpFamMember.getId());
+                continue;
+            }
+
             if (hrEmpFamMember.getId() == null) {
                 // 生成新ID
                 hrEmpFamMember.setId(IdUtil.simpleUUID());
@@ -609,10 +615,6 @@ public class CallbackController {
             }
             hrEmpFamMember.setUserCode(userCode);
             toSaveOrUpdate.add(hrEmpFamMember);
-            // 检查删除标记，有就删除
-            if(!hrEmpFamMember.getMarkList().isEmpty() && ("$DELETE$").equals(hrEmpFamMember.getMarkList().get(0))) {
-                deleteIdList.add(hrEmpFamMember.getId());
-            }
         }
         // 没有紧急联系人,且家庭成员列表不为空时
         if(isEmergency && !changedData.isEmpty()) {
@@ -634,21 +636,38 @@ public class CallbackController {
         if (changedData == null || changedData.isEmpty()) {
             return;
         }
-        // todo 方法变更，现在为一对一更新
-        // 先看是不是删除
-        HrEmpPaper hrEmpPaper = changedData.get(0);
-        if (StringUtils.isNotBlank(hrEmpPaper.getId())) {
-            // id不为空，删除
-            hrEmpPaperService.removeById(hrEmpPaper);
-        } else {
-            // id不为空，归口单位不为空，更新
-            // id为空，新增
-            // 准备新增、更新的数据
+
+        // 获取用户编码
+        String userCode = changedData.get(0).getUserCode();
+
+        // 准备新增、更新的数据
+        List<HrEmpPaper> toSaveOrUpdate = new ArrayList<>();
+
+        // 新增待删除数据列表
+        List<String> deleteIdList = new ArrayList<>();
+
+        for (HrEmpPaper hrEmpPaper : changedData) {
+            // 检查删除标记，有就删除
+            if(!hrEmpPaper.getMarkList().isEmpty() && ("$DELETE$").equals(hrEmpPaper.getMarkList().get(0))) {
+                deleteIdList.add(hrEmpPaper.getId());
+                continue;
+            }
+
             if (hrEmpPaper.getId() == null) {
                 // 生成新ID
                 hrEmpPaper.setId(IdUtil.simpleUUID());
             }
-            hrEmpPaperService.saveOrUpdate(hrEmpPaper);
+
+            hrEmpPaper.setUserCode(userCode);
+            toSaveOrUpdate.add(hrEmpPaper);
+        }
+
+        // 批量保存或更新
+        hrEmpPaperService.saveOrUpdateBatch(toSaveOrUpdate);
+
+        // 批量删除
+        if (!deleteIdList.isEmpty()) {
+            hrEmpPaperService.removeByIds(deleteIdList);
         }
     }
 
@@ -659,21 +678,37 @@ public class CallbackController {
         if (changedData == null || changedData.isEmpty()) {
             return;
         }
-        // todo 方法变更，现在为一对一更新
-        // 先看是不是删除
-        HrEmpPatent hrEmpPatent = changedData.get(0);
-        if (StringUtils.isNotBlank(hrEmpPatent.getId())) {
-            // id不为空，删除
-            hrEmpPatentService.removeById(hrEmpPatent);
-        } else {
-            // id不为空，更新
-            // id为空，新增
-            // 准备新增、更新的数据
+        // 获取用户编码
+        String userCode = changedData.get(0).getUserCode();
+
+        // 准备新增、更新的数据
+        List<HrEmpPatent> toSaveOrUpdate = new ArrayList<>();
+
+        // 新增待删除数据列表
+        List<String> deleteIdList = new ArrayList<>();
+
+        for (HrEmpPatent hrEmpPatent : changedData) {
+            // 检查删除标记，有就删除
+            if(!hrEmpPatent.getMarkList().isEmpty() && ("$DELETE$").equals(hrEmpPatent.getMarkList().get(0))) {
+                deleteIdList.add(hrEmpPatent.getId());
+                continue;
+            }
+
             if (hrEmpPatent.getId() == null) {
                 // 生成新ID
                 hrEmpPatent.setId(IdUtil.simpleUUID());
             }
-            hrEmpPatentService.saveOrUpdate(hrEmpPatent);
+
+            hrEmpPatent.setUserCode(userCode);
+            toSaveOrUpdate.add(hrEmpPatent);
+        }
+
+        // 批量保存或更新
+        hrEmpPatentService.saveOrUpdateBatch(toSaveOrUpdate);
+
+        // 批量删除
+        if (!deleteIdList.isEmpty()) {
+            hrEmpPatentService.removeByIds(deleteIdList);
         }
     }
 
@@ -830,6 +865,12 @@ public class CallbackController {
         boolean isHighestEdu = true;
         int isHighestNum = 0;
         for (HrEmpEducation hrEmpEducation : changedData) {
+            // 检查删除标记，有就删除
+            if(!hrEmpEducation.getMarkList().isEmpty() && ("$DELETE$").equals(hrEmpEducation.getMarkList().get(0))) {
+                deleteIdList.add(hrEmpEducation.getId());
+                continue;
+            }
+
             if (hrEmpEducation.getId() == null) {
                 // 生成新ID
                 hrEmpEducation.setId(IdUtil.simpleUUID());
@@ -845,10 +886,6 @@ public class CallbackController {
             }
             hrEmpEducation.setUserCode(userCode);
             toSaveOrUpdate.add(hrEmpEducation);
-            // 检查删除标记，有就删除
-            if(!hrEmpEducation.getMarkList().isEmpty() && ("$DELETE$").equals(hrEmpEducation.getMarkList().get(0))) {
-                deleteIdList.add(hrEmpEducation.getId());
-            }
         }
         // 没有最高学历,且教育信息列表不为空时
         if(isHighestEdu && !changedData.isEmpty()) {

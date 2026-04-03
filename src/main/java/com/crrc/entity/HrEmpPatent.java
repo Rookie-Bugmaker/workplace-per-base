@@ -5,14 +5,13 @@ import com.alibaba.excel.annotation.ExcelProperty;
 import com.baomidou.mybatisplus.annotation.*;
 import java.io.Serializable;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Date;
+import java.util.Collections;
 import java.util.List;
 
 import com.crrc.annotation.QueryMethod;
-import com.crrc.converter.DictConverter;
 import com.crrc.enums.QueryType;
 import com.crrc.pojo.dto.SysFileDTO;
+import com.crrc.utils.DiffMarkable;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -28,7 +27,7 @@ import lombok.Data;
 @TableName("hr_emp_patent")
 @Schema(description = "专利信息表")
 @Data
-public class HrEmpPatent extends BaseEntity implements Serializable {
+public class HrEmpPatent extends BaseEntity implements Serializable, DiffMarkable {
 
     private static final long serialVersionUID = 2031212656209494016L;
 
@@ -135,4 +134,13 @@ public class HrEmpPatent extends BaseEntity implements Serializable {
     private List<SysFileDTO> files;
 
 
+    @Override
+    public List<String> getMarkList() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void setMarkList(List<String> markList) {
+
+    }
 }
