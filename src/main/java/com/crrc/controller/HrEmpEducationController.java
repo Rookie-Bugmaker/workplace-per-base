@@ -367,7 +367,7 @@ public class HrEmpEducationController {
     public ResponseResult<String> submitChange(@Valid @RequestBody  HrEmpEducationDTO changeReqVO) {
 
         // 直接保存暂存数据
-//        mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_education_submit_data");
+        mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_education_submit_data");
 
         try {
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");

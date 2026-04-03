@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
+import com.crrc.utils.DiffMarkable;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,6 +16,8 @@ import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * <p>
@@ -30,7 +33,7 @@ import java.time.LocalDate;
 @Schema(description = "员工主要家庭成员社会关系表")
 @Data
 @NoArgsConstructor
-public class HrEmpFamMember extends BaseEntity implements Serializable {
+public class HrEmpFamMember extends BaseEntity implements Serializable, DiffMarkable {
 
     @Schema(description = "主键")
     @TableId(value = "id", type = IdType.AUTO)
@@ -90,4 +93,14 @@ public class HrEmpFamMember extends BaseEntity implements Serializable {
     @ExcelProperty(value = {"是否存在正在被修改的状态"}, index = 10)
     @Schema(description = "是否存在正在被修改的状态，0为否，1为是")
     private String isUpdating;
+
+    @Override
+    public List<String> getMarkList() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void setMarkList(List<String> markList) {
+
+    }
 }

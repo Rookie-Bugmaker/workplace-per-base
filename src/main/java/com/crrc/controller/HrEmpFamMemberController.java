@@ -27,7 +27,6 @@ import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mongodb.HrEmpFamMemberChangeRequest;
 import com.crrc.mongodb.service.MongoDBService;
 import com.crrc.pojo.ResponseResult;
-import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpFamMemberDTO;
 import com.crrc.service.impl.HrEmpFamMemberServiceImpl;
 import com.crrc.utils.*;
@@ -80,6 +79,8 @@ public class HrEmpFamMemberController {
     private WkDataAPi wkDataAPi;
     @Autowired
     private MongoDBService mongoDBService;
+    @Autowired
+    private DiffResolver diffResolver;
 
     @GetMapping("/getDetails")
     @Operation(summary = "获得员工主要家庭成员社会关系表实体")
@@ -304,6 +305,10 @@ public class HrEmpFamMemberController {
             changeRequest.setId(IdUtil.simpleUUID());
             changeRequest.setUserCode(changeReqVO.getUserCode());
             changeRequest.setOriginalData(originalData);
+
+            // 全表扫描对比字段变化
+            diffResolver.resolveDifference(originalData, changeReqVO.getList(), HrEmpFamMember.class);
+
             changeRequest.setChangedData(changeReqVO.getList());
 
             // 4. 保存到MongoDB
