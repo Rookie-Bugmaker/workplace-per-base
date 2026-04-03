@@ -26,9 +26,7 @@ import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mongodb.HrEmpEduChangeRequest;
 import com.crrc.mongodb.service.MongoDBService;
 import com.crrc.pojo.ResponseResult;
-import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.HrEmpEducationDTO;
-import com.crrc.service.CodeInfoService;
 import com.crrc.service.impl.HrEmpEducationServiceImpl;
 import com.crrc.service.impl.HrEmpMajorInfoServiceImpl;
 import com.crrc.service.impl.HrEmpSchoolInfoServiceImpl;
@@ -86,6 +84,8 @@ public class HrEmpEducationController {
     private MongoDBService mongoDBService;
     @Autowired
     private WkDataAPi wkDataAPi;
+    @Autowired
+    private DiffResolver diffResolver;
 
 
     @GetMapping("/getSchoolInfo")
@@ -367,7 +367,7 @@ public class HrEmpEducationController {
     public ResponseResult<String> submitChange(@Valid @RequestBody  HrEmpEducationDTO changeReqVO) {
 
         // 直接保存暂存数据
-        mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_education_submit_data");
+//        mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_education_submit_data");
 
         try {
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
@@ -427,6 +427,9 @@ public class HrEmpEducationController {
                     hrEmpEducation.setMajor(null);
                 }
             }
+            // 全表扫描对比字段变化
+            diffResolver.resolveDifference(originalData, changeReqVO.getList(), HrEmpEducation.class);
+
             changeRequest.setChangedData(changeReqVO.getList());
 
             log.info("等待保存的教育经历变更数据：{}", JSON.toJSONString(changeReqVO.getList(), SerializerFeature.PrettyFormat));
