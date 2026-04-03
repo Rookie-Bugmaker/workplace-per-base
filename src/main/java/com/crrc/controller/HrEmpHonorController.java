@@ -331,7 +331,8 @@ public class HrEmpHonorController {
 
                     // 创建变更申请
                     HrEmpHonorChangeRequest changeRequest = new HrEmpHonorChangeRequest();
-                    changeRequest.setId(IdUtil.simpleUUID());
+                    String id = IdUtil.simpleUUID();
+                    changeRequest.setId(id);
                     changeRequest.setUserCode(changeReqVO.getUserCode());
 
                     if (StringUtils.isBlank(entity.getId())) {
@@ -354,7 +355,7 @@ public class HrEmpHonorController {
                     mongoTemplate.save(changeRequest);
 
                     // 启动流程
-                    StartProcessInstanceDTO instanceDTO = createProcessInstanceDTO(responsibleUnit, deptCode, parentCode, entity);
+                    StartProcessInstanceDTO instanceDTO = createProcessInstanceDTO(responsibleUnit, id, deptCode, parentCode, entity);
                     ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
 
                     // 回写流程ID
@@ -376,7 +377,8 @@ public class HrEmpHonorController {
                     }
 
                     HrEmpHonorChangeRequest changeRequest = new HrEmpHonorChangeRequest();
-                    changeRequest.setId(IdUtil.simpleUUID());
+                    String id = IdUtil.simpleUUID();
+                    changeRequest.setId(id);
                     changeRequest.setUserCode(changeReqVO.getUserCode());
 
                     List<HrEmpHonor> origanalList = new ArrayList<>();
@@ -392,7 +394,7 @@ public class HrEmpHonorController {
                     changeRequest.setStatus("PENDING");
                     mongoTemplate.save(changeRequest);
 
-                    StartProcessInstanceDTO instanceDTO = createProcessInstanceDTO(responsibleUnit, deptCode, parentCode, entity);
+                    StartProcessInstanceDTO instanceDTO = createProcessInstanceDTO(responsibleUnit, id, deptCode, parentCode, entity);
                     ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
 
                     changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
@@ -438,11 +440,11 @@ public class HrEmpHonorController {
         return idmap;
     }
 
-    private StartProcessInstanceDTO createProcessInstanceDTO(String responsibleUnit, String deptCode, String parentCode, HrEmpHonor entity) {
+    private StartProcessInstanceDTO createProcessInstanceDTO(String responsibleUnit, String id, String deptCode, String parentCode, HrEmpHonor entity) {
         StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
         String bizCode = "HONOR-" + System.currentTimeMillis();
         instanceDTO.setBizCode(bizCode);
-        instanceDTO.setBizId("honor_" + IdUtil.simpleUUID());
+        instanceDTO.setBizId("honor_" + id);
         instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
 
         Map<String, Object> formData = new HashMap<>();

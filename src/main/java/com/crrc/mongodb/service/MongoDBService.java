@@ -1,5 +1,6 @@
 package com.crrc.mongodb.service;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +37,14 @@ public class MongoDBService {
         }
     }
 
-    public <T> void saveDataByUserCode(T data, String userCode, String collectionName) {
+    public <T> void saveDataByUserCode(T obj, String userCode, String collectionName) {
+        Object data;
+        try {
+            data = obj.getClass().newInstance();
+        } catch (InstantiationException | IllegalAccessException e) {
+            throw new IllegalArgumentException(e);
+        }
+        BeanUtils.copyProperties(obj, data);
         setDataId(data, userCode);
         mongoTemplate.save(data, collectionName);
     }
