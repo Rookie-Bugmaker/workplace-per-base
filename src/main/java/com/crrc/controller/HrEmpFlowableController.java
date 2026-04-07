@@ -172,6 +172,15 @@ public class HrEmpFlowableController {
         return ResponseResult.success("OK");
     }
 
+    @PostMapping("/batchReject")
+    @Operation(summary = "批量审批拒绝")
+    public ResponseResult<String> batchReject(@RequestBody List<String> processInstanceIds) {
+        for (String processInstanceId : processInstanceIds) {
+            flowableUtils.reject(processInstanceId, "不同意");
+        }
+        return ResponseResult.success("OK");
+    }
+
     @GetMapping("/findUserByDeptIdAndRoleCode")
     @Operation(summary = "HrEmpFlowableController工作流获取审批人信息")
     @AuditLog(value = "HrEmpFlowableController工作流获取审批人信息", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
