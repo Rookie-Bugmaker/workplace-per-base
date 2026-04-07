@@ -167,7 +167,7 @@ public class HrEmpFlowableController {
     @Operation(summary = "批量审批")
     public ResponseResult<String> batchApproval(@RequestBody List<String> processInstanceIds) {
         for (String processInstanceId : processInstanceIds) {
-            flowableUtils.done(processInstanceId, "同意");
+            flowableUtils.done(processInstanceId, "批量同意");
         }
         return ResponseResult.success("OK");
     }
@@ -176,7 +176,7 @@ public class HrEmpFlowableController {
     @Operation(summary = "批量审批拒绝")
     public ResponseResult<String> batchReject(@RequestBody List<String> processInstanceIds) {
         for (String processInstanceId : processInstanceIds) {
-            flowableUtils.refuse(processInstanceId, "不同意");
+            flowableUtils.refuse(processInstanceId, "批量不同意");
         }
         return ResponseResult.success("OK");
     }
