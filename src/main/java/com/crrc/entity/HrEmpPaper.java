@@ -14,7 +14,6 @@ import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.time.LocalDate;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -150,18 +149,11 @@ public class HrEmpPaper extends BaseEntity implements Serializable, DiffMarkable
     @Schema(description = "是否存在正在被修改的状态，0为否，1为是")
     private String isUpdating;
 
-
     @Schema(description = "通过fileHeaderId，查询回的文件列表")
     @TableField(exist = false)
     private List<SysFileDTO> files;
 
-    @Override
-    public List<String> getMarkList() {
-        return Collections.emptyList();
-    }
-
-    @Override
-    public void setMarkList(List<String> markList) {
-
-    }
+    @Schema(description = "变动字段统计")
+    @TableField(exist = false)
+    private List<String> markList;
 }

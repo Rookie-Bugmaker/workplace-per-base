@@ -14,7 +14,6 @@ import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -141,10 +140,5 @@ public class HrEmpEducation extends BaseEntity implements Serializable, DiffMark
 
     @Schema(description = "变动字段统计")
     @TableField(exist = false)
-    private ArrayList<String> markList;
-
-    @Override
-    public void setMarkList(List<String> markList) {
-
-    }
+    private List<String> markList;
 }

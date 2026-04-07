@@ -5,7 +5,6 @@ import com.alibaba.excel.annotation.ExcelProperty;
 import com.baomidou.mybatisplus.annotation.*;
 import java.io.Serializable;
 import java.time.LocalDate;
-import java.util.Collections;
 import java.util.List;
 
 import com.crrc.annotation.QueryMethod;
@@ -133,14 +132,7 @@ public class HrEmpPatent extends BaseEntity implements Serializable, DiffMarkabl
     @TableField(exist = false)
     private List<SysFileDTO> files;
 
-
-    @Override
-    public List<String> getMarkList() {
-        return Collections.emptyList();
-    }
-
-    @Override
-    public void setMarkList(List<String> markList) {
-
-    }
+    @Schema(description = "变动字段统计")
+    @TableField(exist = false)
+    private List<String> markList;
 }

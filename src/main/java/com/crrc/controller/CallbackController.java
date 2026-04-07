@@ -16,7 +16,6 @@ import com.crrc.utils.MyUtils;
 import com.crrc.utils.ProcessStatus;
 import com.crrc.utils.SystemConstants;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -719,21 +718,37 @@ public class CallbackController {
         if (changedData == null || changedData.isEmpty()) {
             return;
         }
-        // todo 方法变更，现在为一对一更新
-        // 先看是不是删除
-        HrEmpHonor hrEmpHonor = changedData.get(0);
-        if (StringUtils.isNotBlank(hrEmpHonor.getId()) && StringUtils.isBlank(hrEmpHonor.getResponsibleUnit())) {
-            // id不为空，归口单位为空，删除
-            hrEmpHonorService.removeById(hrEmpHonor);
-        } else {
-            // id不为空，归口单位不为空，更新
-            // id为空，新增
-            // 准备新增、更新的数据
+        // 获取用户编码
+        String userCode = changedData.get(0).getUserCode();
+
+        // 准备新增、更新的数据
+        List<HrEmpHonor> toSaveOrUpdate = new ArrayList<>();
+
+        // 新增待删除数据列表
+        List<String> deleteIdList = new ArrayList<>();
+
+        for (HrEmpHonor hrEmpHonor : changedData) {
+            // 检查删除标记，有就删除
+            if(!hrEmpHonor.getMarkList().isEmpty() && ("$DELETE$").equals(hrEmpHonor.getMarkList().get(0))) {
+                deleteIdList.add(hrEmpHonor.getId());
+                continue;
+            }
+
             if (hrEmpHonor.getId() == null) {
                 // 生成新ID
                 hrEmpHonor.setId(IdUtil.simpleUUID());
             }
-            hrEmpHonorService.saveOrUpdate(hrEmpHonor);
+
+            hrEmpHonor.setUserCode(userCode);
+            toSaveOrUpdate.add(hrEmpHonor);
+        }
+
+        // 批量保存或更新
+        hrEmpHonorService.saveOrUpdateBatch(toSaveOrUpdate);
+
+        // 批量删除
+        if (!deleteIdList.isEmpty()) {
+            hrEmpHonorService.removeByIds(deleteIdList);
         }
     }
 

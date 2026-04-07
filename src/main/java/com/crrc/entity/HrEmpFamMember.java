@@ -2,10 +2,7 @@ package com.crrc.entity;
 
 import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
 import com.crrc.utils.DiffMarkable;
@@ -16,7 +13,6 @@ import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.time.LocalDate;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -94,13 +90,7 @@ public class HrEmpFamMember extends BaseEntity implements Serializable, DiffMark
     @Schema(description = "是否存在正在被修改的状态，0为否，1为是")
     private String isUpdating;
 
-    @Override
-    public List<String> getMarkList() {
-        return Collections.emptyList();
-    }
-
-    @Override
-    public void setMarkList(List<String> markList) {
-
-    }
+    @Schema(description = "变动字段统计")
+    @TableField(exist = false)
+    private List<String> markList;
 }
