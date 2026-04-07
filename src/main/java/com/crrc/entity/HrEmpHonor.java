@@ -13,6 +13,7 @@ import com.crrc.pojo.dto.SysFileDTO;
 import com.crrc.utils.DiffMarkable;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import lombok.experimental.Accessors;
 
 /**
  * <p>
@@ -26,6 +27,7 @@ import lombok.Data;
 @TableName("hr_emp_honor")
 @Schema(description = "荣誉信息表")
 @Data
+@Accessors(chain = false)
 public class HrEmpHonor extends BaseEntity implements Serializable, DiffMarkable {
 
     private static final long serialVersionUID = 2031212962376908800L;
