@@ -48,6 +48,11 @@ public class WorkFlowClientFallback implements WorkFlowClient {
     }
 
     @Override
+    public ResultData<Boolean> refuse(ApprovalParamDto approvalParamDto) {
+        return null;
+    }
+
+    @Override
     public ResultData<Boolean> reject(ApprovalParamDto approvalParamDto, String token) {
         return null;
     }

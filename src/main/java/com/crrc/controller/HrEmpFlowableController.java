@@ -176,7 +176,7 @@ public class HrEmpFlowableController {
     @Operation(summary = "批量审批拒绝")
     public ResponseResult<String> batchReject(@RequestBody List<String> processInstanceIds) {
         for (String processInstanceId : processInstanceIds) {
-            flowableUtils.reject(processInstanceId, "不同意");
+            flowableUtils.refuse(processInstanceId, "不同意");
         }
         return ResponseResult.success("OK");
     }

@@ -110,6 +110,29 @@ public class FlowableUtils {
         return fromDataByProcessInstanceId.getResult();
     }
 
+    public void refuse(String processInstanceId, String comment) {
+        refuse(assembleWorkFlowApproveParams(processInstanceId, comment));
+    }
+
+    public void refuse(ApprovalParamDto approvalParamDto) {
+        long startTime = System.currentTimeMillis();
+        ResultData<Boolean> resultData;
+        try {
+            resultData = workFlowClient.refuse(approvalParamDto);
+        } catch (FeignException e) {
+            // 处理Feign客户端异常
+            String errorMsg = extractErrorMessage(e.contentUTF8());
+            log.error("工作流服务调用异常，函数refuse：{}", errorMsg, e);
+            throw exception(new ErrorCode(400, errorMsg));
+        }
+        log.info("refuse参数{}", resultData.toString());
+        if(Boolean.FALSE.equals(resultData.getSuccess())){
+            throw exception(new ErrorCode(400,"工作流执行失败！"));
+        }
+        long endTime = System.currentTimeMillis();
+        log.info("审批执行，耗时: {}秒", String.format("%.2f", (endTime - startTime) / 1000.0));
+    }
+
     public void done(String processInstanceId, String comment) {
         done(assembleWorkFlowApproveParams(processInstanceId, comment));
     }

@@ -69,6 +69,14 @@ public interface WorkFlowClient {
     @PostMapping("/processCtl/done")
     ResultData<Boolean> done(@RequestBody @Validated ApprovalParamDto approvalParamDto);
 
+    /**
+     * 审批拒绝
+     *
+     * @param approvalParamDto 审批参数
+     */
+    @PostMapping("/processCtl/refuse")
+    ResultData<Boolean> refuse(@RequestBody @Validated ApprovalParamDto approvalParamDto);
+
 
     @PostMapping("/processCtl/reject")
     ResultData<Boolean> reject(@RequestBody @Validated ApprovalParamDto approvalParamDto, @RequestHeader("Authorization") String token);
