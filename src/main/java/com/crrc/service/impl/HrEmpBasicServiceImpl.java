@@ -495,9 +495,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 .like(StringUtils.isNotBlank(dto.getUserCode()),
                         HrEmpBasic::getUserCode,
                         dto.getUserCode())
-                .like(StringUtils.isNotBlank(dto.getDept()),
-                        HrEmpBasic::getDept,
-                        dto.getDept())
+//                .like(StringUtils.isNotBlank(dto.getDept()),
+//                        HrEmpBasic::getDept,
+//                        dto.getDept())
                 .like(StringUtils.isNotBlank(dto.getIsEmployed()),
                         HrEmpBasic::getIsEmployed,
                         dto.getIsEmployed())
@@ -507,6 +507,18 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 .eq(StringUtils.isNotBlank(dto.getCategory1()),
                         HrEmpBasic::getCategory1,
                         dto.getCategory1());
+        if(StringUtils.isNotBlank(dto.getDept())) {
+            List<String> childrenOrgList = new ArrayList<>();
+            List<OrganizationTreeDTO> data = DeptUtils.treeOrganization();
+            // 后面只用到了childrenOrgList中每一项的orgCode字段
+            for (OrganizationTreeDTO root : data) {
+                Optional<OrganizationTreeDTO> nodeBfs = TreeUtils.findNodeBfs(root, n -> dto.getDept().equals(n.getOrgCode()), OrganizationTreeDTO::getChildren);
+                // 根据orgCode匹配其下级部门，并获得其展平后的List（包含所有部门Code）
+                nodeBfs.ifPresent(organizationTreeDTO -> childrenOrgList.addAll(TreeUtils.flattenDescendants(organizationTreeDTO, OrganizationTreeDTO::getChildren, true).stream().map(OrganizationTreeDTO::getOrgCode).collect(Collectors.toList())));
+            }
+
+            wrapper.in(HrEmpBasic::getDept, childrenOrgList);
+        }
 
         Set<String> category8StatusSet = new HashSet<>(Arrays.asList(
                 "002",
