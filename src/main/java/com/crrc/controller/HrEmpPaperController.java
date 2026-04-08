@@ -316,7 +316,8 @@ public class HrEmpPaperController {
             try {
                 // 创建变更申请
                 HrEmpPaperChangeRequest changeRequest = new HrEmpPaperChangeRequest();
-                changeRequest.setId(IdUtil.simpleUUID());
+                String id = IdUtil.simpleUUID();
+                changeRequest.setId(id);
                 changeRequest.setUserCode(changeReqVO.getUserCode());
                 changeRequest.setOriginalData(originalData);
 
@@ -328,7 +329,7 @@ public class HrEmpPaperController {
                 mongoTemplate.save(changeRequest);
 
                 // 启动流程
-                StartProcessInstanceDTO instanceDTO = createProcessInstanceDTO(deptCode, parentCode, changeReqVO);
+                StartProcessInstanceDTO instanceDTO = createProcessInstanceDTO(deptCode, parentCode, changeReqVO, id);
                 ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
 
                 // 回写流程ID
@@ -369,11 +370,11 @@ public class HrEmpPaperController {
         return idmap;
     }
 
-    private StartProcessInstanceDTO createProcessInstanceDTO(String deptCode, String parentCode, HrEmpPaperDTO changeReqVO) {
+    private StartProcessInstanceDTO createProcessInstanceDTO(String deptCode, String parentCode, HrEmpPaperDTO changeReqVO, String id) {
         StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
         String bizCode = "PAPER-" + System.currentTimeMillis();
         instanceDTO.setBizCode(bizCode);
-        instanceDTO.setBizId("paper_" + IdUtil.simpleUUID());
+        instanceDTO.setBizId("paper_" + id);
         instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
 
         Map<String, Object> formData = new HashMap<>();
