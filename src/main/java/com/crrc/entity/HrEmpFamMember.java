@@ -2,12 +2,10 @@ package com.crrc.entity;
 
 import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
+import com.crrc.utils.DiffMarkable;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,6 +13,7 @@ import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * <p>
@@ -30,7 +29,7 @@ import java.time.LocalDate;
 @Schema(description = "员工主要家庭成员社会关系表")
 @Data
 @NoArgsConstructor
-public class HrEmpFamMember extends BaseEntity implements Serializable {
+public class HrEmpFamMember extends BaseEntity implements Serializable, DiffMarkable {
 
     @Schema(description = "主键")
     @TableId(value = "id", type = IdType.AUTO)
@@ -90,4 +89,8 @@ public class HrEmpFamMember extends BaseEntity implements Serializable {
     @ExcelProperty(value = {"是否存在正在被修改的状态"}, index = 10)
     @Schema(description = "是否存在正在被修改的状态，0为否，1为是")
     private String isUpdating;
+
+    @Schema(description = "变动字段统计")
+    @TableField(exist = false)
+    private List<String> markList;
 }

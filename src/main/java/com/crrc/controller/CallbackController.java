@@ -583,19 +583,22 @@ public class CallbackController {
         // 获取用户编码（假设所有家庭成员记录都有相同的userCode）
         String userCode = changedData.get(0).getUserCode();
 
-        // 查询现有数据
-        List<HrEmpFamMember> existList = hrEmpFamMemberService.selectMsg(userCode);
-        Set<String> existIds = existList.stream()
-                .map(HrEmpFamMember::getId)
-                .collect(Collectors.toSet());
+        // 新增待删除数据列表
+        List<String> deleteIdList = new ArrayList<>();
 
-        // 准备新增、更新和删除的数据
+        // 准备新增、更新的数据
         List<HrEmpFamMember> toSaveOrUpdate = new ArrayList<>();
 
         // 判断传入数据里面有无紧急联系人
         boolean isEmergency = true;
         int emergencyNum = 0;
         for (HrEmpFamMember hrEmpFamMember : changedData) {
+            // 检查删除标记，有就删除
+            if(!hrEmpFamMember.getMarkList().isEmpty() && ("$DELETE$").equals(hrEmpFamMember.getMarkList().get(0))) {
+                deleteIdList.add(hrEmpFamMember.getId());
+                continue;
+            }
+
             if (hrEmpFamMember.getId() == null) {
                 // 生成新ID
                 hrEmpFamMember.setId(IdUtil.simpleUUID());
@@ -611,8 +614,6 @@ public class CallbackController {
             }
             hrEmpFamMember.setUserCode(userCode);
             toSaveOrUpdate.add(hrEmpFamMember);
-            // 移除不需要删除的ID
-            existIds.remove(hrEmpFamMember.getId());
         }
         // 没有紧急联系人,且家庭成员列表不为空时
         if(isEmergency && !changedData.isEmpty()) {
@@ -620,12 +621,11 @@ public class CallbackController {
         }
 
         // 批量保存或更新
-        if (!toSaveOrUpdate.isEmpty()) {
-            hrEmpFamMemberService.saveOrUpdateBatch(toSaveOrUpdate);
-        }
+        hrEmpFamMemberService.saveOrUpdateBatch(toSaveOrUpdate);
+
         // 批量删除
-        if (!existIds.isEmpty()) {
-            hrEmpFamMemberService.removeByIds(existIds);
+        if (!deleteIdList.isEmpty()) {
+            hrEmpFamMemberService.removeByIds(deleteIdList);
         }
     }
     /**
@@ -639,33 +639,34 @@ public class CallbackController {
         // 获取用户编码
         String userCode = changedData.get(0).getUserCode();
 
-        // 查询现有数据
-        List<HrEmpPaper> existList = hrEmpPaperService.selectMsg(userCode);
-        Set<String> existIds = existList.stream()
-                .map(HrEmpPaper::getId)
-                .collect(Collectors.toSet());
-
-        // 准备新增、更新和删除的数据
+        // 准备新增、更新的数据
         List<HrEmpPaper> toSaveOrUpdate = new ArrayList<>();
 
-        for (HrEmpPaper paper : changedData) {
-            if (paper.getId() == null) {
-                // 生成新ID
-                paper.setId(IdUtil.simpleUUID());
+        // 新增待删除数据列表
+        List<String> deleteIdList = new ArrayList<>();
+
+        for (HrEmpPaper hrEmpPaper : changedData) {
+            // 检查删除标记，有就删除
+            if(!hrEmpPaper.getMarkList().isEmpty() && ("$DELETE$").equals(hrEmpPaper.getMarkList().get(0))) {
+                deleteIdList.add(hrEmpPaper.getId());
+                continue;
             }
-            paper.setUserCode(userCode);
-            toSaveOrUpdate.add(paper);
-            // 移除不需要删除的ID
-            existIds.remove(paper.getId());
+
+            if (hrEmpPaper.getId() == null) {
+                // 生成新ID
+                hrEmpPaper.setId(IdUtil.simpleUUID());
+            }
+
+            hrEmpPaper.setUserCode(userCode);
+            toSaveOrUpdate.add(hrEmpPaper);
         }
 
         // 批量保存或更新
-        if (!toSaveOrUpdate.isEmpty()) {
-            hrEmpPaperService.saveOrUpdateBatch(toSaveOrUpdate);
-        }
+        hrEmpPaperService.saveOrUpdateBatch(toSaveOrUpdate);
+
         // 批量删除
-        if (!existIds.isEmpty()) {
-            hrEmpPaperService.removeByIds(existIds);
+        if (!deleteIdList.isEmpty()) {
+            hrEmpPaperService.removeByIds(deleteIdList);
         }
     }
 
@@ -676,37 +677,37 @@ public class CallbackController {
         if (changedData == null || changedData.isEmpty()) {
             return;
         }
-
         // 获取用户编码
         String userCode = changedData.get(0).getUserCode();
 
-        // 查询现有数据
-        List<HrEmpPatent> existList = hrEmpPatentService.selectMsg(userCode);
-        Set<String> existIds = existList.stream()
-                .map(HrEmpPatent::getId)
-                .collect(Collectors.toSet());
-
-        // 准备新增、更新和删除的数据
+        // 准备新增、更新的数据
         List<HrEmpPatent> toSaveOrUpdate = new ArrayList<>();
 
-        for (HrEmpPatent patent : changedData) {
-            if (patent.getId() == null) {
-                // 生成新ID
-                patent.setId(IdUtil.simpleUUID());
+        // 新增待删除数据列表
+        List<String> deleteIdList = new ArrayList<>();
+
+        for (HrEmpPatent hrEmpPatent : changedData) {
+            // 检查删除标记，有就删除
+            if(!hrEmpPatent.getMarkList().isEmpty() && ("$DELETE$").equals(hrEmpPatent.getMarkList().get(0))) {
+                deleteIdList.add(hrEmpPatent.getId());
+                continue;
             }
-            patent.setUserCode(userCode);
-            toSaveOrUpdate.add(patent);
-            // 移除不需要删除的ID
-            existIds.remove(patent.getId());
+
+            if (hrEmpPatent.getId() == null) {
+                // 生成新ID
+                hrEmpPatent.setId(IdUtil.simpleUUID());
+            }
+
+            hrEmpPatent.setUserCode(userCode);
+            toSaveOrUpdate.add(hrEmpPatent);
         }
 
         // 批量保存或更新
-        if (!toSaveOrUpdate.isEmpty()) {
-            hrEmpPatentService.saveOrUpdateBatch(toSaveOrUpdate);
-        }
+        hrEmpPatentService.saveOrUpdateBatch(toSaveOrUpdate);
+
         // 批量删除
-        if (!existIds.isEmpty()) {
-            hrEmpPatentService.removeByIds(existIds);
+        if (!deleteIdList.isEmpty()) {
+            hrEmpPatentService.removeByIds(deleteIdList);
         }
     }
 
@@ -717,37 +718,37 @@ public class CallbackController {
         if (changedData == null || changedData.isEmpty()) {
             return;
         }
-
         // 获取用户编码
         String userCode = changedData.get(0).getUserCode();
 
-        // 查询现有数据
-        List<HrEmpHonor> existList = hrEmpHonorService.selectMsg(userCode);
-        Set<String> existIds = existList.stream()
-                .map(HrEmpHonor::getId)
-                .collect(Collectors.toSet());
-
-        // 准备新增、更新和删除的数据
+        // 准备新增、更新的数据
         List<HrEmpHonor> toSaveOrUpdate = new ArrayList<>();
 
-        for (HrEmpHonor honor : changedData) {
-            if (honor.getId() == null) {
-                // 生成新ID
-                honor.setId(IdUtil.simpleUUID());
+        // 新增待删除数据列表
+        List<String> deleteIdList = new ArrayList<>();
+
+        for (HrEmpHonor hrEmpHonor : changedData) {
+            // 检查删除标记，有就删除
+            if(!hrEmpHonor.getMarkList().isEmpty() && ("$DELETE$").equals(hrEmpHonor.getMarkList().get(0))) {
+                deleteIdList.add(hrEmpHonor.getId());
+                continue;
             }
-            honor.setUserCode(userCode);
-            toSaveOrUpdate.add(honor);
-            // 移除不需要删除的ID
-            existIds.remove(honor.getId());
+
+            if (hrEmpHonor.getId() == null) {
+                // 生成新ID
+                hrEmpHonor.setId(IdUtil.simpleUUID());
+            }
+
+            hrEmpHonor.setUserCode(userCode);
+            toSaveOrUpdate.add(hrEmpHonor);
         }
 
         // 批量保存或更新
-        if (!toSaveOrUpdate.isEmpty()) {
-            hrEmpHonorService.saveOrUpdateBatch(toSaveOrUpdate);
-        }
+        hrEmpHonorService.saveOrUpdateBatch(toSaveOrUpdate);
+
         // 批量删除
-        if (!existIds.isEmpty()) {
-            hrEmpHonorService.removeByIds(existIds);
+        if (!deleteIdList.isEmpty()) {
+            hrEmpHonorService.removeByIds(deleteIdList);
         }
     }
 
@@ -761,7 +762,6 @@ public class CallbackController {
      * @param statusChecker 判断status状态，会向回调函数传入ProcessStatus
      * @param processInstanceStatus 流程实例状态
      * @param updateType 根据updateType的类型来解锁行数据
-     * @return
      */
     private <T> ResponseResult<Boolean> processRequest(
             T request,
@@ -870,11 +870,8 @@ public class CallbackController {
         // 获取用户编码（假设所有教育记录都有相同的userCode）
         String userCode = changedData.get(0).getUserCode();
 
-        // 查询现有数据
-        List<HrEmpEducation> existList = hrEmpEducationService.selectMsg(userCode);
-        Set<String> existIds = existList.stream()
-                .map(HrEmpEducation::getId)
-                .collect(Collectors.toSet());
+        // 新增待删除数据列表
+        List<String> deleteIdList = new ArrayList<>();
 
         // 准备新增、更新和删除的数据
         List<HrEmpEducation> toSaveOrUpdate = new ArrayList<>();
@@ -883,6 +880,12 @@ public class CallbackController {
         boolean isHighestEdu = true;
         int isHighestNum = 0;
         for (HrEmpEducation hrEmpEducation : changedData) {
+            // 检查删除标记，有就删除
+            if(!hrEmpEducation.getMarkList().isEmpty() && ("$DELETE$").equals(hrEmpEducation.getMarkList().get(0))) {
+                deleteIdList.add(hrEmpEducation.getId());
+                continue;
+            }
+
             if (hrEmpEducation.getId() == null) {
                 // 生成新ID
                 hrEmpEducation.setId(IdUtil.simpleUUID());
@@ -898,8 +901,6 @@ public class CallbackController {
             }
             hrEmpEducation.setUserCode(userCode);
             toSaveOrUpdate.add(hrEmpEducation);
-            // 移除不需要删除的ID
-            existIds.remove(hrEmpEducation.getId());
         }
         // 没有最高学历,且教育信息列表不为空时
         if(isHighestEdu && !changedData.isEmpty()) {
@@ -907,12 +908,11 @@ public class CallbackController {
         }
 
         // 批量保存或更新
-        if (!toSaveOrUpdate.isEmpty()) {
-            hrEmpEducationService.saveOrUpdateBatch(toSaveOrUpdate);
-        }
+        hrEmpEducationService.saveOrUpdateBatch(toSaveOrUpdate);
+
         // 批量删除
-        if (!existIds.isEmpty()) {
-            hrEmpEducationService.removeByIds(existIds);
+        if (!deleteIdList.isEmpty()) {
+            hrEmpEducationService.removeByIds(deleteIdList);
         }
     }
 
@@ -1057,5 +1057,4 @@ public class CallbackController {
             hrEmpProfessionalQualificationService.updateById(temp);
         }
     }
-
 }

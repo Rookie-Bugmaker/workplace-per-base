@@ -127,4 +127,7 @@ public class HrEmpBasicDTO extends HrEmpBasic {
 
     @Schema(description = "工龄信息")
     private String seniority;
+
+    @Schema(description = "变动字段统计")
+    private List<String> markList;
 }

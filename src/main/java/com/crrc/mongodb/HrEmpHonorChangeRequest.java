@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
-@Document(collection = "hr_emp_paper_change_requests")
+@Document(collection = "hr_emp_honor_change_requests")
 public class HrEmpHonorChangeRequest {
     @Id
     private String id; // MongoDB ObjectId
@@ -21,5 +21,4 @@ public class HrEmpHonorChangeRequest {
     private LocalDateTime createTime = LocalDateTime.now();
     private String processInstanceId;   // 流程实例ID
     private Long wfId;                  // 流程模板ID
-
 }

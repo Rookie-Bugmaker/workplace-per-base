@@ -3,6 +3,7 @@ package com.crrc.controller;
 
 import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.EasyExcelFactory;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.alibaba.fastjson.JSON;
@@ -26,10 +27,12 @@ import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mongodb.HrEmpHonorChangeRequest;
+import com.crrc.mongodb.service.MongoDBService;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpHonorDTO;
 import com.crrc.service.impl.HrEmpHonorServiceImpl;
 import com.crrc.utils.*;
+import com.crrc.utils.listener.HonorImportListener;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -78,6 +81,10 @@ public class HrEmpHonorController {
     private HrEmpBasicMapper hrEmpBasicMapper;
     @Autowired
     private WkDataAPi wkDataAPi;
+    @Autowired
+    private MongoDBService mongoDBService;
+    @Autowired
+    private DiffResolver diffResolver;
 
     @GetMapping("/getDetails")
     @Operation(summary = "获得员工荣誉信息实体")
@@ -90,7 +97,7 @@ public class HrEmpHonorController {
             // 处理附件信息
             hrEmpHonorService.resolveFiles(result);
         } catch (Exception e) {
-            log.warn("荣誉附件信息解析失败");
+            log.info("荣誉附件信息解析失败");
         }
         log.info("userCode:{},荣誉数据：{}", userCode, JSON.toJSONString(result, SerializerFeature.PrettyFormat));
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工荣誉信息实体成功", result);
@@ -99,9 +106,9 @@ public class HrEmpHonorController {
     @PostMapping("/page")
     @Operation(summary = "获取荣誉信息表列表 page")
     @AuditLog(value = "获取荣誉信息表列表 page", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象", required = false)
-    @Parameter(name = "pageNo", description = "页码", required = false, example = "1")
-    @Parameter(name = "pageSize", description = "条数", required = false, example = "10")
+    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
+    @Parameter(name = "pageNo", description = "页码", example = "1")
+    @Parameter(name = "pageSize", description = "条数", example = "10")
     public ResponseResult<IPage> pageHrEmpHonor(@Validated @RequestBody(required = false) HrEmpHonor pageReqVO,
                                                 @RequestParam(required = false, defaultValue = "1") int pageNo,
                                                 @RequestParam(required = false, defaultValue = "10") int pageSize) {
@@ -114,7 +121,7 @@ public class HrEmpHonorController {
     @PostMapping("/query")
     @Operation(summary = "获取荣誉信息表列表")
     @AuditLog(value = "获取荣誉信息表列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象", required = false)
+    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
     public ResponseResult<List<HrEmpHonor>> queryHrEmpHonor(@Validated @RequestBody(required = false) HrEmpHonor queryReqVO) {
         queryReqVO = (queryReqVO == null) ? new HrEmpHonor() : queryReqVO;
         return new ResponseResult<>(HttpStatus.OK.value(), "获取荣誉信息表列表成功", hrEmpHonorService.query(queryReqVO));
@@ -226,10 +233,43 @@ public class HrEmpHonorController {
 
     }
 
+    @PostMapping("/importHonor")
+    public ResponseResult<String> importHonor(@RequestBody MultipartFile file) throws IOException {
+        EasyExcelFactory.read(file.getInputStream(), HrEmpHonor.class,
+                        new HonorImportListener(hrEmpHonorService))
+                .headRowNumber(1)
+                .sheet()
+                .doRead();
+        return new ResponseResult<>(HttpStatus.OK.value(), "导入荣誉信息表报表成功");
+    }
+
+    @PostMapping("/tempSave")
+    @Operation(summary = "暂存员工信息")
+    public ResponseResult<String> tempSave(@RequestBody HrEmpHonorDTO saveDTO) {
+        mongoDBService.saveDataByUserCode(saveDTO, saveDTO.getUserCode(), "hr_emp_honor_temp_save_data");
+        return ResponseResult.success("OK");
+    }
+
+    @PostMapping("/queryData/{type}")
+    @Operation(summary = "查询驳回/暂存的数据")
+    public ResponseResult<HrEmpHonorDTO> tempQuery(@RequestBody HrEmpHonorDTO queryDTO, @PathVariable String type) {
+        if("tempSave".equals(type)) {
+            return ResponseResult.success(
+                    mongoDBService.getById(queryDTO.getUserCode(), HrEmpHonorDTO.class, "hr_emp_honor_temp_save_data")
+            );
+        }
+
+        return ResponseResult.success(mongoDBService.getById(queryDTO.getUserCode(), HrEmpHonorDTO.class, "hr_emp_honor_submit_data"));
+    }
+
     @PostMapping("/submit-change")
     @Operation(summary = "提交员工荣誉变更申请")
-    public ResponseResult<String> submitChange(@Valid @RequestBody HrEmpHonorDTO changeReqVO) {
+    public ResponseResult<List<String>> submitChange(@Valid @RequestBody HrEmpHonorDTO changeReqVO) {
+        // 直接保存暂存数据
+        mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_honor_submit_data");
+
         try {
+            // ================== 超级管理员直接更新 ==================
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
             if (flag) {
                 log.info("权限校验通过，用户拥有'公司超级管理员'角色，直接进行更新");
@@ -237,97 +277,196 @@ public class HrEmpHonorController {
                     updateHrEmpHonor(changeReqVO).getData();
                     return new ResponseResult<>(HttpStatus.OK.value(), "直接更新成功!");
                 } catch (Exception e) {
-                    log.warn("权限校验成功，但直接更新失败，尝试走审批流");
+                    log.info("权限校验成功，但直接更新失败，尝试走审批流");
                 }
             }
-            log.warn("权限校验失败，用户缺少'公司超级管理员'角色");
-            // 1. 获取当前数据快照
-            List<HrEmpHonor> originalData = getMsg(changeReqVO.getUserCode()).getData();
-            log.info("提交审批流时查询回来的荣誉原始数据：{}", JSON.toJSONString(originalData, SerializerFeature.PrettyFormat));
 
-            // 2. 创建变更申请文档
-            HrEmpHonorChangeRequest changeRequest = new HrEmpHonorChangeRequest();
-            changeRequest.setId(IdUtil.simpleUUID());
-            changeRequest.setUserCode(changeReqVO.getUserCode());
-            changeRequest.setOriginalData(originalData);
-            changeRequest.setChangedData(changeReqVO.getList());
-            changeRequest.setStatus("PENDING");
+            log.info("权限校验失败，用户缺少'公司超级管理员'角色");
 
-            // 3. 保存到MongoDB
-            mongoTemplate.save(changeRequest);
-
-            // 4. 启动审批流程
-            // 封装数据，提交审批流
-            StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
-            String bizCode = "HONOR-" + System.currentTimeMillis();
-            instanceDTO.setBizCode(bizCode);
-            // 封装数据主键，存在MongoDB里面的生成的simpleUUID
-            instanceDTO.setBizId("honor_" + changeRequest.getId());
-            // 封装业务模板编码
-            instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
-            // 封装业务表单数据，20250924上线暂时没用，如果之后需要修改审批流分支，需使用该数据
-            Map<String, Object> formData = new HashMap<>();
+            // ================== 获取登录人信息 ==================
             LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
             if (loginUser == null || loginUser.getUser() == null) {
-                log.error("获取登录用户信息失败，用户为空");
                 throw new IllegalArgumentException("获取登录用户信息失败，用户为空");
             }
 
             if (StringUtils.isBlank(loginUser.getUser().getJobNo())) {
-                log.error("获取用户工号失败，工号为空");
                 throw new IllegalArgumentException("获取用户工号失败，工号为空");
             }
 
+            // ================== 查询部门 ==================
             LambdaQueryWrapper<HrEmpBasic> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(HrEmpBasic::getUserCode, loginUser.getUser().getJobNo());
-            String deptCode = hrEmpBasicMapper.selectOne(wrapper).getDept();
+            HrEmpBasic emp = hrEmpBasicMapper.selectOne(wrapper);
 
-            if (StringUtils.isBlank(deptCode)) {
-                log.error("获取用户部门失败，部门查询错误，工号:" + loginUser.getUser().getJobNo());
-                throw new IllegalArgumentException("获取用户部门失败，部门查询错误");
+            if (emp == null || StringUtils.isBlank(emp.getDept())) {
+                throw new IllegalArgumentException("获取用户部门失败");
             }
 
-            formData.put("deptCode", deptCode);
-            formData.put("type", "honor");
+            String deptCode = emp.getDept();
 
-            // 如果是子公司的，则PUT子公司管理员，反之PUT部门管理员
-            // 获取全部部门信息
-            // 获取所有的组织数据
+            // ================== 获取组织树（只查一次，优化性能）==================
             ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
-            if (listResponseResultDTO == null || org.apache.commons.lang3.ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
-                throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
+            if (listResponseResultDTO == null ||
+                    org.apache.commons.lang3.ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+                throw new IllegalArgumentException("获取组织树失败");
             }
-            List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
-            String parentCode = null;
-            for (OrganizationTreeDTO root : data) {
-                if (TreeUtils.containsBfs(root, n -> StringUtils.equals(deptCode, n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
-                    parentCode = root.getOrgCode();
-                    break;
+
+            List<OrganizationTreeDTO> orgTree = listResponseResultDTO.getData();
+            String parentCode = findParentCode(orgTree, deptCode);
+
+            // ================== 查询原始数据（只查一次）==================
+            List<HrEmpHonor> originalData = getMsg(changeReqVO.getUserCode()).getData();
+
+            // ================== 使用diffResolver扫描变更字段 ==================
+            diffResolver.resolveDifference(originalData, changeReqVO.getList(), HrEmpHonor.class);
+
+            // ================== 按归口单位分组处理数据 ==================
+            Map<String, List<HrEmpHonor>> responsibleUnitGroup = new HashMap<>();
+
+            // 1. 处理新增和修改的数据：以新的归口单位为准
+            for (HrEmpHonor entity : changeReqVO.getList()) {
+                // 跳过无变化的数据（markList为空）
+                if (entity.getMarkList() == null || entity.getMarkList().isEmpty()) {
+                    continue;
+                }
+
+                // 校验归口单位（新增和修改以新的归口单位为准）
+                String responsibleUnit = entity.getResponsibleUnit();
+                if (responsibleUnit == null || responsibleUnit.trim().isEmpty()) {
+                    throw new IllegalArgumentException("归口单位不能为空");
+                }
+
+                // 按新的归口单位分组
+                responsibleUnitGroup.computeIfAbsent(responsibleUnit, k -> new ArrayList<>()).add(entity);
+            }
+
+            // 2. 处理删除的数据：以原归口单位为准
+            // diffResolver会将删除的数据添加到changedData中，并标记$DELETE$
+            for (HrEmpHonor entity : changeReqVO.getList()) {
+                if (entity.getMarkList() != null && entity.getMarkList().contains("$DELETE$")) {
+                    // 从原数据中找到对应的记录获取归口单位
+                    String originalId = entity.getId();
+                    HrEmpHonor originalRecord = originalData.stream()
+                            .filter(o -> originalId.equals(o.getId()))
+                            .findFirst()
+                            .orElse(null);
+
+                    if (originalRecord == null) {
+                        log.info("未找到删除数据的原始记录，ID: {}", originalId);
+                        continue;
+                    }
+
+                    String responsibleUnit = originalRecord.getResponsibleUnit();
+                    if (responsibleUnit == null || responsibleUnit.trim().isEmpty()) {
+                        throw new IllegalArgumentException("原数据归口单位不能为空，数据ID: " + originalId);
+                    }
+
+                    // 创建删除标记的数据（只保留ID和markList）
+                    HrEmpHonor deletedEntity = new HrEmpHonor();
+                    deletedEntity.setId(originalId);
+                    deletedEntity.setResponsibleUnit(responsibleUnit);
+                    deletedEntity.setMarkList(entity.getMarkList());
+
+                    // 将删除数据加入对应归口单位组
+                    responsibleUnitGroup.computeIfAbsent(responsibleUnit, k -> new ArrayList<>()).add(deletedEntity);
                 }
             }
-            formData.put("companyCode", parentCode);
-            if (StringUtils.isNotBlank(parentCode) && parentCode.equals("0132")) {
-                formData.put("roleCode", "hrsc_dept_emp_info_mgr");
-            } else {
-                formData.put("roleCode", "hrsc_sub_emp_info_mgr");
+
+            // ================== 为每个归口单位创建审批流 ==================
+            List<String> requestIds = new ArrayList<>();
+
+            for (Map.Entry<String, List<HrEmpHonor>> entry : responsibleUnitGroup.entrySet()) {
+                String responsibleUnit = entry.getKey();
+                List<HrEmpHonor> changedDataList = entry.getValue();
+
+                try {
+                    // 创建变更申请
+                    HrEmpHonorChangeRequest changeRequest = new HrEmpHonorChangeRequest();
+                    String id = IdUtil.simpleUUID();
+                    changeRequest.setId(id);
+                    changeRequest.setUserCode(changeReqVO.getUserCode());
+
+                    // originalData放入全部原数据
+                    changeRequest.setOriginalData(originalData);
+
+                    // changedData根据归口单位严格筛选
+                    changeRequest.setChangedData(changedDataList);
+
+                    changeRequest.setStatus("PENDING");
+                    mongoTemplate.save(changeRequest);
+
+                    // 启动流程（取第一条数据用于流程参数）
+                    HrEmpHonor firstEntity = changedDataList.get(0);
+                    StartProcessInstanceDTO instanceDTO =
+                            createProcessInstanceDTO(responsibleUnit, id, deptCode, parentCode, firstEntity);
+
+                    ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
+
+                    // 回写流程ID
+                    changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
+                    mongoTemplate.save(changeRequest);
+
+                    requestIds.add(changeRequest.getId());
+
+                    log.info("归口单位[{}]的审批流已启动，请求ID: {}", responsibleUnit, id);
+
+                } catch (Exception e) {
+                    log.error("归口单位[{}]的审批流提交失败: {}", responsibleUnit, e.getMessage(), e);
+                }
             }
 
-            formData.put("Honor", MyUtils.convertToMapList(changeReqVO));
-            instanceDTO.setFormData(formData);
-            log.info("流程测试instanceDTO" + instanceDTO);
-            // 返回流程实例id
-            ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
-            log.info("流程测试processInstanceVo :{}", JSON.toJSONString(processInstanceVo));
+            if (requestIds.isEmpty()) {
+                return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "全部提交失败");
+            }
 
-            // 5. 更新流程实例ID
-            changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
-            mongoTemplate.save(changeRequest);
-            log.info("流程测试success");
-            return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交", changeRequest.getId());
+            return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交", requestIds);
+
         } catch (Exception e) {
             log.error("提交变更申请失败: {}", e.getMessage(), e);
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "提交失败");
         }
+    }
+
+    private String findParentCode(List<OrganizationTreeDTO> orgTree, String deptCode) {
+        String parentCode = null;
+        for (OrganizationTreeDTO root : orgTree) {
+            if (TreeUtils.containsBfs(root,
+                    n -> StringUtils.equals(deptCode, n.getOrgCode()),
+                    OrganizationTreeDTO::getChildren)) {
+                parentCode = root.getOrgCode();
+                break;
+            }
+        }
+        return parentCode;
+    }
+
+    private StartProcessInstanceDTO createProcessInstanceDTO(String responsibleUnit, String id,
+                                                             String deptCode, String parentCode, HrEmpHonor entity) {
+        StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
+        String bizCode = "HONOR-" + System.currentTimeMillis();
+        instanceDTO.setBizCode(bizCode);
+        instanceDTO.setBizId("honor_" + id);
+        instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
+
+        Map<String, Object> formData = new HashMap<>();
+        formData.put("responsibleUnit", responsibleUnit);
+        formData.put("deptCode", deptCode);
+        formData.put("type", "honor");
+        formData.put("companyCode", parentCode);
+
+        if (StringUtils.isNotBlank(parentCode) && parentCode.equals("0132")) {
+            formData.put("roleCode", "hrsc_dept_emp_info_mgr");
+        } else {
+            formData.put("roleCode", "hrsc_sub_emp_info_mgr");
+        }
+
+        formData.put("Honor", Collections.singletonList(
+                JSON.parseObject(JSON.toJSONString(entity), Map.class)
+        ));
+
+        instanceDTO.setFormData(formData);
+        log.info("启动流程参数: {}", JSON.toJSONString(instanceDTO));
+        return instanceDTO;
     }
 
     @GetMapping("/change-detail")

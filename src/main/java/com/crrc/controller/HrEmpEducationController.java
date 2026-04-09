@@ -24,9 +24,9 @@ import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mongodb.HrEmpEduChangeRequest;
+import com.crrc.mongodb.service.MongoDBService;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpEducationDTO;
-import com.crrc.service.CodeInfoService;
 import com.crrc.service.impl.HrEmpEducationServiceImpl;
 import com.crrc.service.impl.HrEmpMajorInfoServiceImpl;
 import com.crrc.service.impl.HrEmpSchoolInfoServiceImpl;
@@ -81,7 +81,11 @@ public class HrEmpEducationController {
     @Autowired
     private HrEmpBasicMapper hrEmpBasicMapper;
     @Autowired
+    private MongoDBService mongoDBService;
+    @Autowired
     private WkDataAPi wkDataAPi;
+    @Autowired
+    private DiffResolver diffResolver;
 
 
     @GetMapping("/getSchoolInfo")
@@ -339,10 +343,32 @@ public class HrEmpEducationController {
         return new ResponseResult<>(HttpStatus.OK.value(), "导入员工教育信息表报表成功");
     }
 
+    @PostMapping("/tempSave")
+    @Operation(summary = "暂存员工信息")
+    public ResponseResult<String> tempSave(@RequestBody HrEmpEducationDTO saveDTO) {
+        mongoDBService.saveDataByUserCode(saveDTO, saveDTO.getUserCode(), "hr_emp_education_temp_save_data");
+        return ResponseResult.success("OK");
+    }
+
+    @PostMapping("/queryData/{type}")
+    @Operation(summary = "查询驳回/暂存的数据")
+    public ResponseResult<HrEmpEducationDTO> tempQuery(@RequestBody HrEmpEducationDTO queryDTO, @PathVariable String type) {
+        if("tempSave".equals(type)) {
+            return ResponseResult.success(
+                    mongoDBService.getById(queryDTO.getUserCode(), HrEmpEducationDTO.class, "hr_emp_education_temp_save_data")
+            );
+        }
+
+        return ResponseResult.success(mongoDBService.getById(queryDTO.getUserCode(), HrEmpEducationDTO.class, "hr_emp_education_submit_data"));
+    }
 
     @PostMapping("/submit-change")
     @Operation(summary = "提交员工教育经历变更申请")
     public ResponseResult<String> submitChange(@Valid @RequestBody  HrEmpEducationDTO changeReqVO) {
+
+        // 直接保存暂存数据
+        mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_education_submit_data");
+
         try {
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
             if (flag) {
@@ -401,6 +427,9 @@ public class HrEmpEducationController {
                     hrEmpEducation.setMajor(null);
                 }
             }
+            // 全表扫描对比字段变化
+            diffResolver.resolveDifference(originalData, changeReqVO.getList(), HrEmpEducation.class);
+
             changeRequest.setChangedData(changeReqVO.getList());
 
             log.info("等待保存的教育经历变更数据：{}", JSON.toJSONString(changeReqVO.getList(), SerializerFeature.PrettyFormat));

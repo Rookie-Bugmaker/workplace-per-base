@@ -32,6 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
@@ -494,9 +495,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 .like(StringUtils.isNotBlank(dto.getUserCode()),
                         HrEmpBasic::getUserCode,
                         dto.getUserCode())
-                .like(StringUtils.isNotBlank(dto.getDept()),
-                        HrEmpBasic::getDept,
-                        dto.getDept())
+//                .like(StringUtils.isNotBlank(dto.getDept()),
+//                        HrEmpBasic::getDept,
+//                        dto.getDept())
                 .like(StringUtils.isNotBlank(dto.getIsEmployed()),
                         HrEmpBasic::getIsEmployed,
                         dto.getIsEmployed())
@@ -506,6 +507,18 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 .eq(StringUtils.isNotBlank(dto.getCategory1()),
                         HrEmpBasic::getCategory1,
                         dto.getCategory1());
+        if(StringUtils.isNotBlank(dto.getDept())) {
+            List<String> childrenOrgList = new ArrayList<>();
+            List<OrganizationTreeDTO> data = DeptUtils.treeOrganization();
+            // 后面只用到了childrenOrgList中每一项的orgCode字段
+            for (OrganizationTreeDTO root : data) {
+                Optional<OrganizationTreeDTO> nodeBfs = TreeUtils.findNodeBfs(root, n -> dto.getDept().equals(n.getOrgCode()), OrganizationTreeDTO::getChildren);
+                // 根据orgCode匹配其下级部门，并获得其展平后的List（包含所有部门Code）
+                nodeBfs.ifPresent(organizationTreeDTO -> childrenOrgList.addAll(TreeUtils.flattenDescendants(organizationTreeDTO, OrganizationTreeDTO::getChildren, true).stream().map(OrganizationTreeDTO::getOrgCode).collect(Collectors.toList())));
+            }
+
+            wrapper.in(HrEmpBasic::getDept, childrenOrgList);
+        }
 
         Set<String> category8StatusSet = new HashSet<>(Arrays.asList(
                 "002",
@@ -1388,5 +1401,34 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                     qualificationList.size() <= 1 &&
                     appointmentList.size() <= 1;
         }
+    }
+
+    // 扫描全字段，标识出修改内容
+    public void resolveDifference(HrEmpBasicDTO originalData, HrEmpBasicDTO changedData) {
+        // 获取所有字段名
+        Field[] fields = HrEmpBasicDTO.class.getDeclaredFields();
+        ArrayList<String> markList = new ArrayList<>();
+        for (Field field : fields) {
+            try {
+                // 设置字段可访问
+                field.setAccessible(true);
+                // 获取字段值
+                Object originalValue = field.get(originalData);
+                Object changedValue = field.get(changedData);
+                // 比较字段值
+                if (originalValue == null && changedValue == null) {
+                    continue;
+                }
+                if (originalValue == null || !originalValue.equals(changedValue)) {
+                    // 如果字段值不同，将字段名添加到markList
+                    String fieldName = field.getName();
+                    markList.add(fieldName);
+                }
+            } catch (IllegalAccessException e) {
+                // 处理异常
+                e.printStackTrace();
+            }
+        }
+        changedData.setMarkList(markList);
     }
 }

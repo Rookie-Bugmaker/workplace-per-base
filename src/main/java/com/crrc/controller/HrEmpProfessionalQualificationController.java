@@ -25,7 +25,9 @@ import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mongodb.HrEmpProfessionalChangeRequest;
+import com.crrc.mongodb.service.MongoDBService;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.dto.HrEmpHonorDTO;
 import com.crrc.pojo.dto.UpdateListDTO;
 import com.crrc.service.impl.HrEmpProfessionalQualificationServiceImpl;
 import com.crrc.utils.*;
@@ -51,7 +53,6 @@ import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 
 /**
@@ -82,6 +83,8 @@ public class HrEmpProfessionalQualificationController {
     private HrEmpBasicMapper hrEmpBasicMapper;
     @Autowired
     private WkDataAPi wkDataAPi;
+    @Autowired
+    private MongoDBService mongoDBService;
 
     public HrEmpProfessionalQualificationController(HrEmpProfessionalQualificationServiceImpl service) {
         this.updateUtil = new UpdateListUtil<>(
@@ -199,9 +202,32 @@ public class HrEmpProfessionalQualificationController {
         return new ResponseResult<>(HttpStatus.OK.value(), "导入员工专业职务任职资格表报表成功");
     }
 
+    @PostMapping("/tempSave")
+    @Operation(summary = "暂存员工信息")
+    public ResponseResult<String> tempSave(@RequestBody HrEmpProfessionalQualification saveDTO) {
+        mongoDBService.saveDataByUserCode(saveDTO, saveDTO.getUserCode(), "hr_emp_pro_qua_temp_save_data");
+        return ResponseResult.success("OK");
+    }
+
+    @PostMapping("/queryData/{type}")
+    @Operation(summary = "查询驳回/暂存的数据")
+    public ResponseResult<HrEmpProfessionalQualification> tempQuery(@RequestBody HrEmpProfessionalQualification queryDTO, @PathVariable String type) {
+        if("tempSave".equals(type)) {
+            return ResponseResult.success(
+                    mongoDBService.getById(queryDTO.getUserCode(), HrEmpProfessionalQualification.class, "hr_emp_pro_qua_temp_save_data")
+            );
+        }
+
+        return ResponseResult.success(mongoDBService.getById(queryDTO.getUserCode(), HrEmpProfessionalQualification.class, "hr_emp_pro_qua_submit_data"));
+    }
+
     @PostMapping("/submit-change")
     @Operation(summary = "提交专业职务任职资格变更申请")
     public ResponseResult<String> submitProfessionalChange(@Valid @RequestBody UpdateListDTO<HrEmpProfessionalQualification> changeReqVO) {
+
+        // 直接保存暂存数据
+        mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_pro_qua_submit_data");
+
         try {
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
             if (flag) {

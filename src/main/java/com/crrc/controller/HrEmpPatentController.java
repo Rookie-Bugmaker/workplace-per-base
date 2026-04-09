@@ -3,6 +3,7 @@ package com.crrc.controller;
 
 import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.EasyExcelFactory;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.alibaba.fastjson.JSON;
@@ -14,7 +15,6 @@ import com.crrc.annotation.AuditLog;
 import com.crrc.api.WkDataAPi;
 import com.crrc.api.WkWorkflowApi;
 import com.crrc.entity.HrEmpBasic;
-import com.crrc.entity.HrEmpPaper;
 import com.crrc.entity.HrEmpPatent;
 import com.crrc.entity.LoginUser;
 import com.crrc.entity.dto.ProcessInstanceVo;
@@ -26,13 +26,13 @@ import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.mapper.HrEmpBasicMapper;
-import com.crrc.mongodb.HrEmpPaperChangeRequest;
 import com.crrc.mongodb.HrEmpPatentChangeRequest;
+import com.crrc.mongodb.service.MongoDBService;
 import com.crrc.pojo.ResponseResult;
-import com.crrc.pojo.dto.HrEmpPaperDTO;
 import com.crrc.pojo.dto.HrEmpPatentDTO;
 import com.crrc.service.impl.HrEmpPatentServiceImpl;
 import com.crrc.utils.*;
+import com.crrc.utils.listener.PatentImportListener;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -81,6 +81,10 @@ public class HrEmpPatentController {
     private HrEmpBasicMapper hrEmpBasicMapper;
     @Autowired
     private WkDataAPi wkDataAPi;
+    @Autowired
+    private MongoDBService mongoDBService;
+    @Autowired
+    private DiffResolver diffResolver;
 
     @GetMapping("/getDetails")
     @Operation(summary = "获得员工专利信息实体")
@@ -215,6 +219,18 @@ public class HrEmpPatentController {
                 .doWrite(hrEmpPatentList);
     }
 
+    @PostMapping("/importPatent")
+    @AuditLog(value = "导入专利信息表报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
+    @Operation(summary = "导入专利信息表报表")
+    public ResponseResult<Boolean> importPatent(@RequestBody MultipartFile file) throws IOException {
+        EasyExcelFactory.read(file.getInputStream(), HrEmpPatent.class,
+                        new PatentImportListener(hrEmpPatentService))
+                .headRowNumber(1)
+                .sheet()
+                .doRead();
+        return new ResponseResult<>(HttpStatus.OK.value(), "导入专利信息表报表成功");
+    }
+
     @PostMapping("/import")
     @AuditLog(value = "导入专利信息表报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
     @Operation(summary = "导入专利信息表报表")
@@ -227,10 +243,34 @@ public class HrEmpPatentController {
         return new ResponseResult<>(HttpStatus.OK.value(), "导入专利信息表报表成功");
     }
 
+    @PostMapping("/tempSave")
+    @Operation(summary = "暂存员工信息")
+    public ResponseResult<String> tempSave(@RequestBody HrEmpPatentDTO saveDTO) {
+        mongoDBService.saveDataByUserCode(saveDTO, saveDTO.getUserCode(), "hr_emp_patent_temp_save_data");
+        return ResponseResult.success("OK");
+    }
+
+    @PostMapping("/queryData/{type}")
+    @Operation(summary = "查询驳回/暂存的数据")
+    public ResponseResult<HrEmpPatentDTO> tempQuery(@RequestBody HrEmpPatentDTO queryDTO, @PathVariable String type) {
+        if("tempSave".equals(type)) {
+            return ResponseResult.success(
+                    mongoDBService.getById(queryDTO.getUserCode(), HrEmpPatentDTO.class, "hr_emp_patent_temp_save_data")
+            );
+        }
+
+        return ResponseResult.success(mongoDBService.getById(queryDTO.getUserCode(), HrEmpPatentDTO.class, "hr_emp_patent_submit_data"));
+    }
+
     @PostMapping("/submit-change")
     @Operation(summary = "提交员工专利变更申请")
-    public ResponseResult<String> submitChange(@Valid @RequestBody HrEmpPatentDTO changeReqVO) {
+    public ResponseResult<List<String>> submitChange(@Valid @RequestBody HrEmpPatentDTO changeReqVO) {
+
+        // 直接保存暂存数据
+        mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_patent_submit_data");
+
         try {
+            // ================== 超级管理员直接更新 ==================
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
             if (flag) {
                 log.info("权限校验通过，用户拥有'公司超级管理员'角色，直接进行更新");
@@ -241,94 +281,118 @@ public class HrEmpPatentController {
                     log.warn("权限校验成功，但直接更新失败，尝试走审批流");
                 }
             }
+
             log.warn("权限校验失败，用户缺少'公司超级管理员'角色");
-            // 1. 获取当前数据快照
-            List<HrEmpPatent> originalData = getMsg(changeReqVO.getUserCode()).getData();
-            log.info("提交审批流时查询回来的专利原始数据：{}", JSON.toJSONString(originalData, SerializerFeature.PrettyFormat));
 
-            // 2. 创建变更申请文档
-            HrEmpPatentChangeRequest changeRequest = new HrEmpPatentChangeRequest();
-            changeRequest.setId(IdUtil.simpleUUID());
-            changeRequest.setUserCode(changeReqVO.getUserCode());
-            changeRequest.setOriginalData(originalData);
-            changeRequest.setChangedData(changeReqVO.getList());
-            changeRequest.setStatus("PENDING");
-
-            // 3. 保存到MongoDB
-            mongoTemplate.save(changeRequest);
-
-            // 4. 启动审批流程
-            // 封装数据，提交审批流
-            StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
-            String bizCode = "PATENT-" + System.currentTimeMillis();
-            instanceDTO.setBizCode(bizCode);
-            // 封装数据主键，存在MongoDB里面的生成的simpleUUID
-            instanceDTO.setBizId("patent_" + changeRequest.getId());
-            // 封装业务模板编码
-            instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
-            // 封装业务表单数据，20250924上线暂时没用，如果之后需要修改审批流分支，需使用该数据
-            Map<String, Object> formData = new HashMap<>();
+            // ================== 获取登录人信息 ==================
             LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
             if (loginUser == null || loginUser.getUser() == null) {
-                log.error("获取登录用户信息失败，用户为空");
                 throw new IllegalArgumentException("获取登录用户信息失败，用户为空");
             }
 
             if (StringUtils.isBlank(loginUser.getUser().getJobNo())) {
-                log.error("获取用户工号失败，工号为空");
                 throw new IllegalArgumentException("获取用户工号失败，工号为空");
             }
 
+            // ================== 查询部门 ==================
             LambdaQueryWrapper<HrEmpBasic> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(HrEmpBasic::getUserCode, loginUser.getUser().getJobNo());
-            String deptCode = hrEmpBasicMapper.selectOne(wrapper).getDept();
+            HrEmpBasic emp = hrEmpBasicMapper.selectOne(wrapper);
 
-            if (StringUtils.isBlank(deptCode)) {
-                log.error("获取用户部门失败，部门查询错误，工号:" + loginUser.getUser().getJobNo());
-                throw new IllegalArgumentException("获取用户部门失败，部门查询错误");
+            if (emp == null || StringUtils.isBlank(emp.getDept())) {
+                throw new IllegalArgumentException("获取用户部门失败");
             }
 
-            formData.put("deptCode", deptCode);
-            formData.put("type", "patent");
+            String deptCode = emp.getDept();
 
-            // 如果是子公司的，则PUT子公司管理员，反之PUT部门管理员
-            // 获取全部部门信息
-            // 获取所有的组织数据
+            // ================== 获取组织树（只查一次，优化性能） ==================
             ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
             if (listResponseResultDTO == null || org.apache.commons.lang3.ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
-                throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
-            }
-            List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
-            String parentCode = null;
-            for (OrganizationTreeDTO root : data) {
-                if (TreeUtils.containsBfs(root, n -> StringUtils.equals(deptCode, n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
-                    parentCode = root.getOrgCode();
-                    break;
-                }
-            }
-            formData.put("companyCode", parentCode);
-            if (StringUtils.isNotBlank(parentCode) && parentCode.equals("0132")) {
-                formData.put("roleCode", "hrsc_dept_emp_info_mgr");
-            } else {
-                formData.put("roleCode", "hrsc_sub_emp_info_mgr");
+                throw new IllegalArgumentException("获取组织树失败");
             }
 
-            formData.put("Patent", MyUtils.convertToMapList(changeReqVO));
-            instanceDTO.setFormData(formData);
-            log.info("流程测试instanceDTO" + instanceDTO);
-            // 返回流程实例id
+            List<OrganizationTreeDTO> orgTree = listResponseResultDTO.getData();
+            String parentCode = findParentCode(orgTree, deptCode);
+
+            // ================== 查询原始数据（只查一次） ==================
+            List<HrEmpPatent> originalData = getMsg(changeReqVO.getUserCode()).getData();
+
+            // 创建变更申请
+            HrEmpPatentChangeRequest changeRequest = new HrEmpPatentChangeRequest();
+            changeRequest.setId(IdUtil.simpleUUID());
+            changeRequest.setUserCode(changeReqVO.getUserCode());
+            changeRequest.setOriginalData(originalData);
+
+            // 全表扫描对比字段变化
+            diffResolver.resolveDifference(originalData, changeReqVO.getList(), HrEmpPatent.class);
+            changeRequest.setChangedData(changeReqVO.getList());
+
+            changeRequest.setStatus("PENDING");
+            mongoTemplate.save(changeRequest);
+
+            // 启动流程
+            StartProcessInstanceDTO instanceDTO = createProcessInstanceDTO(deptCode, parentCode, changeReqVO);
             ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
-            log.info("流程测试processInstanceVo :{}", JSON.toJSONString(processInstanceVo));
 
-            // 5. 更新流程实例ID
+            // 回写流程ID
             changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
             mongoTemplate.save(changeRequest);
-            log.info("流程测试success");
-            return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交", changeRequest.getId());
+
+
+
+            return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交");
         } catch (Exception e) {
             log.error("提交变更申请失败: {}", e.getMessage(), e);
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "提交失败");
         }
+    }
+
+    private String findParentCode(List<OrganizationTreeDTO> orgTree, String deptCode) {
+        String parentCode = null;
+        for (OrganizationTreeDTO root : orgTree) {
+            if (TreeUtils.containsBfs(root,
+                    n -> StringUtils.equals(deptCode, n.getOrgCode()),
+                    OrganizationTreeDTO::getChildren)) {
+                parentCode = root.getOrgCode();
+                break;
+            }
+        }
+        return parentCode;
+    }
+
+    private Map<String, Integer> buildIdMap(List<HrEmpPatent> originalData) {
+        Map<String, Integer> idmap = new HashMap<>();
+        Integer i = 0;
+        for (HrEmpPatent empPatent : originalData) {
+            idmap.put(empPatent.getId(), i);
+            i++;
+        }
+        return idmap;
+    }
+
+    private StartProcessInstanceDTO createProcessInstanceDTO(String deptCode, String parentCode, HrEmpPatentDTO changeReqVO) {
+        StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
+        String bizCode = "PATENT-" + System.currentTimeMillis();
+        instanceDTO.setBizCode(bizCode);
+        instanceDTO.setBizId("patent_" + IdUtil.simpleUUID());
+        instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
+
+        Map<String, Object> formData = new HashMap<>();
+        formData.put("deptCode", deptCode);
+        formData.put("type", "patent");
+        formData.put("companyCode", parentCode);
+
+        if (StringUtils.isNotBlank(parentCode) && parentCode.equals("0132")) {
+            formData.put("roleCode", "hrsc_dept_emp_info_mgr");
+        } else {
+            formData.put("roleCode", "hrsc_sub_emp_info_mgr");
+        }
+
+        formData.put("Patent", MyUtils.convertToMapList(changeReqVO));
+
+        instanceDTO.setFormData(formData);
+        log.info("启动流程参数: {}", JSON.toJSONString(instanceDTO));
+        return instanceDTO;
     }
 
     @GetMapping("/change-detail")

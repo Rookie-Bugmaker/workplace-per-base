@@ -8,40 +8,31 @@ import com.crrc.api.WkDataAPi;
 import com.crrc.client.SysServerClient;
 import com.crrc.common.PaginationGrid;
 import com.crrc.common.ResultData;
-import com.crrc.entity.BorrowedPersonnelApprovalFormRelation;
 import com.crrc.entity.CodeInfo;
 import com.crrc.entity.HrEmpBasic;
-import com.crrc.entity.dict.vo.DictItemVO;
-import com.crrc.entity.dict.vo.DictVO;
 import com.crrc.entity.dto.*;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
-import com.crrc.pojo.dto.SysDeptPersonDTO;
 import com.crrc.pojo.dto.SysUserDTO;
 import com.crrc.pojo.dto.SysUserRequestDTO;
 import com.crrc.service.impl.CodeInfoServiceImpl;
 import com.crrc.service.impl.HrEmpBasicServiceImpl;
-import com.crrc.utils.DictTypeUtils;
-import com.crrc.utils.DictUtils;
+import com.crrc.utils.FlowableUtils;
 import com.crrc.utils.TreeUtils;
 import io.jsonwebtoken.lang.Objects;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.ObjectUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.*;
@@ -79,6 +70,8 @@ public class HrEmpFlowableController {
 
     @Value("${crrc.role.audit.emp.dept.id}")
     private Long HRSC_DEPT_EMP_INFO_MGR_ROLE_ID;
+    @Autowired
+    private FlowableUtils flowableUtils;
 
     @TenantIgnore
     @GetMapping("/findApprovalByRoleIdList")
@@ -168,6 +161,24 @@ public class HrEmpFlowableController {
         result.setTotal((long) sysUsers.size());
 
         return result;
+    }
+
+    @PostMapping("/batchApproval")
+    @Operation(summary = "批量审批")
+    public ResponseResult<String> batchApproval(@RequestBody List<String> processInstanceIds) {
+        for (String processInstanceId : processInstanceIds) {
+            flowableUtils.done(processInstanceId, "批量同意");
+        }
+        return ResponseResult.success("OK");
+    }
+
+    @PostMapping("/batchReject")
+    @Operation(summary = "批量审批拒绝")
+    public ResponseResult<String> batchReject(@RequestBody List<String> processInstanceIds) {
+        for (String processInstanceId : processInstanceIds) {
+            flowableUtils.refuse(processInstanceId, "批量不同意");
+        }
+        return ResponseResult.success("OK");
     }
 
     @GetMapping("/findUserByDeptIdAndRoleCode")
@@ -269,6 +280,53 @@ public class HrEmpFlowableController {
             log.info("未查到审批人数据");
             return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "未查到审批人数据!");
         }
+
+        return ResponseResult.success(result);
+    }
+
+    @GetMapping("/responsibleUnit")
+    @Operation(summary = "HrEmpFlowableController工作流获取审批人信息")
+    @AuditLog(value = "HrEmpFlowableController工作流获取审批人信息", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResult<List<SysUserDTO>> responsibleUnit(
+            String companyCode,
+            String roleCode,
+            String responsibleUnit
+    ) {
+
+        log.info("查询参数 companyCode:{}, roleCode:{}, responsibleUnit:{}",
+                companyCode, roleCode, responsibleUnit);
+
+
+
+        List<SysUserDTO> result;
+
+        // ================== ⭐ 归口单位 → roleCode ==================
+        Map<String, String> roleMap = new HashMap<>();
+        roleMap.put("1", "484734531758022656");   // 党委组织部
+        roleMap.put("2", "484734725752971264");   // 宣传部
+        roleMap.put("3", "484734899485237248");       // 团委
+        roleMap.put("4", "484735049175752704");       // 工会
+        roleMap.put("5", "484735169137041408");          // 人力资源部
+        roleMap.put("6", "484735447135510528");          // 其他
+
+        if (StringUtils.isNotBlank(responsibleUnit)) {
+            roleCode = roleMap.get(responsibleUnit);
+        }
+
+        if (StringUtils.isBlank(roleCode)) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "roleCode不能为空");
+        }
+
+        // ================== ⭐ 调用新接口 ==================
+
+        ResultData<List<SysUserDTO>> resultData = sysServerClient.findUserByRoleId(Long.valueOf(roleCode));
+
+        if (resultData == null || ObjectUtils.isEmpty(resultData.getResult())) {
+            log.info("角色查询为空:{}", roleCode);
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "未查到审批人数据!");
+        }
+
+        result = resultData.getResult();
 
         return ResponseResult.success(result);
     }

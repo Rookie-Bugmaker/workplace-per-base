@@ -1,15 +1,13 @@
 package com.crrc.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.api.WkDataAPi;
 import com.crrc.entity.CostCenter;
 import com.crrc.entity.HrEmpBasic;
-import com.crrc.entity.dto.mainData.OrganizationDTO;
-import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.mapper.CostCenterMapper;
 import com.crrc.pojo.dto.BundleEmpAndCostCenterVO;
-import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.vo.HrBasicCostCenterDetailVO;
 import com.crrc.service.CostCenterService;
 import org.springframework.beans.BeanUtils;
@@ -19,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,6 +25,19 @@ public class CostCenterServiceImpl extends WorkServiceImpl<CostCenterMapper, Cos
     WkDataAPi wkDataApi;
     @Autowired
     private HrEmpBasicServiceImpl hrEmpBasicService;
+    @Autowired
+    private CostCenterMapper costCenterMapper;
+
+    /**
+     * 根据编码查询成本中心信息
+     * @param code 成本中心编码
+     * @return CostCenter 成本中心对象
+     */
+    public CostCenter translateByCode(String code) {
+        LambdaQueryWrapper<CostCenter> queryWrapper = new LambdaQueryWrapper<CostCenter>()
+                .eq(CostCenter::getCode, code);
+        return costCenterMapper.selectOne(queryWrapper);
+    }
 
     public void queryVO(Page<CostCenter> page, CostCenter pageReqVO) {
         this.query(page, pageReqVO);

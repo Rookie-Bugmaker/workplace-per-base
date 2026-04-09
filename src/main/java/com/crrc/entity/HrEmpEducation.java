@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
 import com.crrc.pojo.dto.SysFileDTO;
+import com.crrc.utils.DiffMarkable;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -29,7 +30,7 @@ import java.util.List;
 @Schema(description = "员工教育信息表")
 @Data
 @NoArgsConstructor
-public class HrEmpEducation extends BaseEntity implements Serializable {
+public class HrEmpEducation extends BaseEntity implements Serializable, DiffMarkable {
 
     @Schema(description = "主键")
     @TableId(value = "id", type = IdType.AUTO)
@@ -136,4 +137,8 @@ public class HrEmpEducation extends BaseEntity implements Serializable {
     @Schema(description = "通过fileHeaderId，查询回的文件列表")
     @TableField(exist = false)
     private List<SysFileDTO> files;
+
+    @Schema(description = "变动字段统计")
+    @TableField(exist = false)
+    private List<String> markList;
 }

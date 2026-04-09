@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -27,10 +29,12 @@ import java.time.LocalDate;
 @Schema(description = "员工基本信息表")
 @Data
 @NoArgsConstructor
+@Document
 public class HrEmpBasic extends BaseEntity implements Serializable {
 
     @Schema(description = "主键")
     @TableId(value = "id", type = IdType.AUTO)
+    @Id
     private String id;
 
     @Schema(description = "备注", example = "demo")
@@ -56,37 +60,37 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     private String userCode;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"性别"}, index = 2)
+    @ExcelProperty(value = {"性别"})
     @Schema(description = "性别")
     private String gender;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"民族"}, index = 3)
+    @ExcelProperty(value = {"民族"})
     @Schema(description = "民族")
     private String nation;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"籍贯名称"}, index = 4)
+    @ExcelProperty(value = {"籍贯名称"})
     @Schema(description = "籍贯名称")
     private String nativePlaceName;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"国籍"}, index = 5)
+    @ExcelProperty(value = {"国籍"})
     @Schema(description = "国籍")
     private String nationality;
 
-    @ExcelProperty(value = {"出生日期"}, index = 6)
+    @ExcelProperty(value = {"出生日期"})
     @Schema(description = "出生日期")
     private LocalDate birthDate;
 
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"年龄"}, index = 7)
+    @ExcelProperty(value = {"年龄"})
     @Schema(description = "年龄")
     private Integer age;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"出生地"}, index = 8)
+    @ExcelProperty(value = {"出生地"})
     @Schema(description = "出生地")
     private String birthPlace;
     
@@ -96,41 +100,41 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     @TableField(exist = false)
     @QueryMethod(method = QueryType.EQ)
     @Schema(description = "政治面貌")
-    @ExcelProperty(value = {"政治面貌"}, index = 9)
+    @ExcelProperty(value = {"政治面貌"})
     private String politicalValue;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"姓名"}, index = 10)
+    @ExcelProperty(value = {"姓名"})
     @Schema(description = "姓名")
     private String name;
 
-    @ExcelProperty(value = {"加入党组织时间"}, index = 11)
+    @ExcelProperty(value = {"加入党组织时间"})
     @Schema(description = "加入党组织时间")
     private LocalDate partyJoinDate;
 
 
-    @ExcelProperty(value = {"开始工作日期"}, index = 12)
+    @ExcelProperty(value = {"开始工作日期"})
     @Schema(description = "开始工作日期")
     private LocalDate workDate;
 
 
-    @ExcelProperty(value = {"入司日期"}, index = 13)
+    @ExcelProperty(value = {"入司日期"})
     @Schema(description = "入司日期")
     private LocalDate entryDate;
 
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"员工来源"}, index = 14)
+    @ExcelProperty(value = {"员工来源"})
     @Schema(description = "员工来源")
     private String empSource;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"婚姻状况"}, index = 15)
+    @ExcelProperty(value = {"婚姻状况"})
     @Schema(description = "婚姻状况")
     private String maritalStatus;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"身份类型"}, index = 16)
+    @ExcelProperty(value = {"身份类型"})
     @Schema(description = "身份类型")
 
     /**
@@ -139,48 +143,48 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     private String identityType;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"职务层级"}, index = 17)
+    @ExcelProperty(value = {"职务层级"})
     @Schema(description = "职务层级")
     private String empJob;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"职级层级"}, index = 18)
+    @ExcelProperty(value = {"职级层级"})
     @Schema(description = "职级层级")
     private String empRank;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"校招届数"}, index = 19)
+    @ExcelProperty(value = {"校招届数"})
     @Schema(description = "校招届数")
     private String campusPeriod;
 
 
 	@QueryMethod(method = QueryType.EQ)
-	@ExcelProperty(value = {"入职日期"}, index = 20)
+	@ExcelProperty(value = {"入职日期"})
 	@Schema(description = "入职日期")
 	private LocalDate hireDate;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"籍贯编码"}, index = 21)
+    @ExcelProperty(value = {"籍贯编码"})
     @Schema(description = "籍贯编码")
     private String nativePlaceCode;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"部门"}, index = 22)
+    @ExcelProperty(value = {"部门"})
     @Schema(description = "部门")
     private String dept;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"成本中心"}, index = 23)
+    @ExcelProperty(value = {"成本中心"})
     @Schema(description = "成本中心")
     private String costCenter;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"是否存在正在被修改的状态"}, index = 24)
+    @ExcelProperty(value = {"是否存在正在被修改的状态"})
     @Schema(description = "是否存在正在被修改的状态，0为否，1为是")
     private String isUpdating;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"人员分类1"}, index = 25)
+    @ExcelProperty(value = {"人员分类1"})
     @Schema(description = "人员分类1")
     private String category1;
 
@@ -190,67 +194,67 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     private String category4;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"人员分类7"}, index = 27)
+    @ExcelProperty(value = {"人员分类7"})
     @Schema(description = "人员分类7")
     private String category7;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"人员分类8"}, index = 28)
+    @ExcelProperty(value = {"人员分类8"})
     @Schema(description = "人员分类8")
     private String category8;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"人员在岗状态"}, index = 29)
+    @ExcelProperty(value = {"人员在岗状态"})
     @Schema(description = "人员在岗状态，和任职信息中的在岗状态实际上相同，这里仅仅用于存储并展示")
     private String status;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"入伍时间"}, index = 30)
+    @ExcelProperty(value = {"入伍时间"})
     @Schema(description = "入伍时间")
     private LocalDate enlistmentDate;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"曾用名"}, index = 31)
+    @ExcelProperty(value = {"曾用名"})
     @Schema(description = "曾用名")
     private String formerName;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"提中干时间"}, index = 32)
+    @ExcelProperty(value = {"提中干时间"})
     @Schema(description = "提中干时间")
     private LocalDate promotionTime;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"死亡时间"}, index = 33)
+    @ExcelProperty(value = {"死亡时间"})
     @Schema(description = "死亡时间")
     private LocalDate deathTime;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"工龄间断时间"}, index = 34)
+    @ExcelProperty(value = {"工龄间断时间"})
     @Schema(description = "工龄间断时间")
     private String serviceBreakTime;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"是否离职标记"}, index = 35)
+    @ExcelProperty(value = {"是否离职标记"})
     @Schema(description = "是否离职标记，0为离职，1为在职")
     private String isEmployed;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"人员类别"}, index = 36)
+    @ExcelProperty(value = {"人员类别"})
     @Schema(description = "人员类别：校社京博工挂他临")
     private String empType;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"附件挂载Id"}, index = 37)
+    @ExcelProperty(value = {"附件挂载Id"})
     @Schema(description = "附件挂载Id")
     private String fileHeaderId;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"用户图片的文件id"}, index = 38)
+    @ExcelProperty(value = {"用户图片的文件id"})
     @Schema(description = "用户图片的文件id")
     private String profilePicture;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"用户人脸识别（考勤打卡）的图片id"}, index = 39)
+    @ExcelProperty(value = {"用户人脸识别（考勤打卡）的图片id"})
     @Schema(description = "用户人脸识别（考勤打卡）的图片id")
     private String attendanceImageId;
 }

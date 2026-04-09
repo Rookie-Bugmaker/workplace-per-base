@@ -25,7 +25,9 @@ import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mongodb.HrEmpRewardsChangeRequest;
+import com.crrc.mongodb.service.MongoDBService;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.dto.HrEmpHonorDTO;
 import com.crrc.pojo.dto.UpdateListDTO;
 import com.crrc.service.impl.HrEmpRewardsServiceImpl;
 import com.crrc.utils.*;
@@ -80,6 +82,8 @@ public class HrEmpRewardsController {
     private HrEmpBasicMapper hrEmpBasicMapper;
     @Autowired
     private WkDataAPi wkDataAPi;
+    @Autowired
+    private MongoDBService mongoDBService;
 
     public HrEmpRewardsController(HrEmpRewardsServiceImpl service) {
         this.updateUtil = new UpdateListUtil<>(
@@ -197,9 +201,31 @@ public class HrEmpRewardsController {
         return new ResponseResult<>(HttpStatus.OK.value(), "导入员工奖励情况表报表成功");
     }
 
+    @PostMapping("/tempSave")
+    @Operation(summary = "暂存员工信息")
+    public ResponseResult<String> tempSave(@RequestBody HrEmpRewards saveDTO) {
+        mongoDBService.saveDataByUserCode(saveDTO, saveDTO.getUserCode(), "hr_emp_reward_temp_save_data");
+        return ResponseResult.success("OK");
+    }
+
+    @PostMapping("/queryData/{type}")
+    @Operation(summary = "查询驳回/暂存的数据")
+    public ResponseResult<HrEmpRewards> tempQuery(@RequestBody HrEmpRewards queryDTO, @PathVariable String type) {
+        if("tempSave".equals(type)) {
+            return ResponseResult.success(
+                    mongoDBService.getById(queryDTO.getUserCode(), HrEmpRewards.class, "hr_emp_reward_temp_save_data")
+            );
+        }
+
+        return ResponseResult.success(mongoDBService.getById(queryDTO.getUserCode(), HrEmpRewards.class, "hr_emp_reward_submit_data"));
+    }
+
     @PostMapping("/submit-change")
     @Operation(summary = "提交员工奖励情况变更申请")
     public ResponseResult<String> submitRewardChange(@Valid @RequestBody UpdateListDTO<HrEmpRewards> changeReqVO) {
+        // 直接保存暂存数据
+        mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_reward_submit_data");
+
         try {
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
             if (flag) {
