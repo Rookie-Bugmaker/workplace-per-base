@@ -200,11 +200,10 @@ public class HrEmpPaperController {
         return ResponseResult.success("OK");
     }
 
-    @PostMapping("/export")
+    @PostMapping("/export/template")
     @AuditLog(value = "导出员工论文论著信息表报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
     @Operation(summary = "导出员工论文论著信息表报表")
-    public void exportHrEmpPaper(@Validated @RequestBody(required = false) HrEmpPaper exportReqVO,
-                                 @RequestParam(required = false, defaultValue = "xlsx") String type,
+    public void exportHrEmpPaper(@RequestParam(required = false, defaultValue = "xlsx") String type,
                                  HttpServletResponse response) throws IOException {
         String contentType = "csv".equals(type) ? "text/csv;charset=UTF-8" :
                 ("xls".equals(type) ? "application/vnd.ms-excel" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
@@ -216,15 +215,14 @@ public class HrEmpPaperController {
                 .replaceAll("\\+", "%20");
         response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." + type);
 
-        exportReqVO = (exportReqVO == null) ? new HrEmpPaper() : exportReqVO;
-        List<HrEmpPaper> hrEmpPaperList = hrEmpPaperService.query(exportReqVO);
+        List<HrEmpPaper> emptyList = new ArrayList<>();
         ExcelTypeEnum typeEnum = "csv".equals(type) ? ExcelTypeEnum.CSV : ("xls".equals(type) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
         EasyExcel.write(response.getOutputStream(), HrEmpPaper.class)
                 .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
                 .autoCloseStream(true)
                 .excelType(typeEnum)
                 .sheet("员工论文论著信息表报表")
-                .doWrite(hrEmpPaperList);
+                .doWrite(emptyList);
     }
 
     @PostMapping("/import")

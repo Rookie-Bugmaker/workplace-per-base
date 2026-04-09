@@ -204,12 +204,11 @@ public class HrEmpPenaltiesController {
         return new ResponseResult<>(HttpStatus.OK.value(), "删除员工惩处信息表实体成功", hrEmpPenaltiesService.removeById(id));
     }
     
-    @PostMapping("/export")
+    @PostMapping("/export/template")
     @AuditLog(value = "导出员工惩处信息表报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
     @Operation(summary = "导出员工惩处信息表报表")
-    public void exportHrEmpPenalties(@Validated @RequestBody(required = false) HrEmpPenalties exportReqVO,
-                              @RequestParam(required = false, defaultValue = "xlsx") String type,
-                           HttpServletResponse response) throws IOException {
+    public void exportHrEmpPenalties(@RequestParam(required = false, defaultValue = "xlsx") String type,
+                                     HttpServletResponse response) throws IOException {
         String contentType = "csv".equals(type) ?  "text/csv;charset=UTF-8" :
                 ("xls".equals(type) ? "application/vnd.ms-excel" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setContentType(contentType);
@@ -220,15 +219,14 @@ public class HrEmpPenaltiesController {
                 .replaceAll("\\+", "%20");
         response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." +type);
 
-        exportReqVO = (exportReqVO == null) ? new HrEmpPenalties() : exportReqVO;
-        List<HrEmpPenalties> hrEmpPenaltiesList = hrEmpPenaltiesService.query(exportReqVO);
+        List<HrEmpPenalties> emptyList = new ArrayList<>();
         ExcelTypeEnum typeEnum = "csv".equals(type) ?  ExcelTypeEnum.CSV : ("xls".equals(type) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
         EasyExcel.write(response.getOutputStream(), HrEmpPenalties.class)
                 .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
                 .autoCloseStream(true)
                 .excelType(typeEnum)
                 .sheet("员工惩处信息表报表")
-                .doWrite(hrEmpPenaltiesList);
+                .doWrite(emptyList);
     }
 
     @PostMapping("/import")

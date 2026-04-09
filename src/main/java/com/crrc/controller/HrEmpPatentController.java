@@ -192,11 +192,10 @@ public class HrEmpPatentController {
         return new ResponseResult<>(HttpStatus.OK.value(), "删除专利信息表实体成功", hrEmpPatentService.removeById(id));
     }
 
-    @PostMapping("/export")
+    @PostMapping("/export/template")
     @AuditLog(value = "导出专利信息表报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
     @Operation(summary = "导出专利信息表报表")
-    public void exportHrEmpPatent(@Validated @RequestBody(required = false) HrEmpPatent exportReqVO,
-                                  @RequestParam(required = false, defaultValue = "xlsx") String type,
+    public void exportHrEmpPatent(@RequestParam(required = false, defaultValue = "xlsx") String type,
                                   HttpServletResponse response) throws IOException {
         String contentType = "csv".equals(type) ? "text/csv;charset=UTF-8" :
                 ("xls".equals(type) ? "application/vnd.ms-excel" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
@@ -208,15 +207,14 @@ public class HrEmpPatentController {
                 .replaceAll("\\+", "%20");
         response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." + type);
 
-        exportReqVO = (exportReqVO == null) ? new HrEmpPatent() : exportReqVO;
-        List<HrEmpPatent> hrEmpPatentList = hrEmpPatentService.query(exportReqVO);
+        List<HrEmpPatent> emptyList = new ArrayList<>();
         ExcelTypeEnum typeEnum = "csv".equals(type) ? ExcelTypeEnum.CSV : ("xls".equals(type) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
         EasyExcel.write(response.getOutputStream(), HrEmpPatent.class)
                 .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
                 .autoCloseStream(true)
                 .excelType(typeEnum)
                 .sheet("专利信息表报表")
-                .doWrite(hrEmpPatentList);
+                .doWrite(emptyList);
     }
 
     @PostMapping("/importPatent")
