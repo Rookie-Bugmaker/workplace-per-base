@@ -68,6 +68,19 @@ public class PaperImportListener implements ReadListener<HrEmpPaper> {
             "其他", "5"
     );
 
+    //论文论著奖励等次
+    private final Map<String, String> sciEiIstpTranslateMap = ImmutableMap.of(
+            "SCI", "0",
+            "EI", "1",
+            "ISTP", "2",
+            "否", "3"
+    );
+
+    private final Map<String, String> coreJournalTranslateMap = ImmutableMap.of(
+            "否", "0",
+            "是", "1"
+    );
+
     private final HrEmpPaperServiceImpl paperService;
 
     private final List<HrEmpPaper> buffer = new ArrayList<>();
@@ -76,15 +89,16 @@ public class PaperImportListener implements ReadListener<HrEmpPaper> {
         this.paperService = paperService;
     }
 
-
     @Override
     public void invoke(HrEmpPaper hrEmpPaper, AnalysisContext analysisContext) {
         hrEmpPaper.setId(IdUtil.randomUUID());
+        hrEmpPaper.setIsSciEiIstp(sciEiIstpTranslateMap.getOrDefault(hrEmpPaper.getIsSciEiIstp(), hrEmpPaper.getIsSciEiIstp()));
         hrEmpPaper.setPaperCategory(categoryTranslateMap.getOrDefault(hrEmpPaper.getPaperCategory(), hrEmpPaper.getPaperCategory()));
         hrEmpPaper.setPaperType(typeTranslateMap.getOrDefault(hrEmpPaper.getPaperType(), hrEmpPaper.getPaperType()));
         hrEmpPaper.setJournalLevel(journalLevelTranslateMap.getOrDefault(hrEmpPaper.getJournalLevel(), hrEmpPaper.getJournalLevel()));
         hrEmpPaper.setAwardLevel(awardLevelTranslateMap.getOrDefault(hrEmpPaper.getAwardLevel(), hrEmpPaper.getAwardLevel()));
         hrEmpPaper.setAwardRank(awardRankTranslateMap.getOrDefault(hrEmpPaper.getAwardRank(), hrEmpPaper.getAwardRank()));
+        hrEmpPaper.setIsCoreJournal(coreJournalTranslateMap.getOrDefault(hrEmpPaper.getIsCoreJournal(), hrEmpPaper.getIsCoreJournal()));
         buffer.add(hrEmpPaper);
         if(buffer.size() > 1000) {
             flush();

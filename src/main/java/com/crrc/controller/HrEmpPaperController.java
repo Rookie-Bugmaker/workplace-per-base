@@ -229,7 +229,7 @@ public class HrEmpPaperController {
     @AuditLog(value = "导入员工论文论著信息表报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
     @Operation(summary = "导入员工论文论著信息表报表")
     public ResponseResult<Boolean> imports(MultipartFile file) throws IOException {
-        EasyExcel.read(file.getInputStream(), HrEmpPaper.class,
+        EasyExcelFactory.read(file.getInputStream(), HrEmpPaper.class,
                         new ImportExcelListener<HrEmpPaper, HrEmpPaperServiceImpl>(hrEmpPaperService))
                 .headRowNumber(1)
                 .sheet()
