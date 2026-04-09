@@ -151,6 +151,13 @@ public class HonorImportListener implements ReadListener<HrEmpHonor> {
             .put("其他R9999", "84")
             .build();
 
+    //是否为负责人
+    private final Map<String, String> isPersonInChargeTranslateMap = ImmutableMap.of(
+            "否", "0",
+            "是", "1"
+    );
+
+
     HrEmpHonorServiceImpl hrEmpHonorService;
 
     List<HrEmpHonor> buffer = new ArrayList<>();
@@ -175,6 +182,13 @@ public class HonorImportListener implements ReadListener<HrEmpHonor> {
         if(!StringUtils.hasText(hrEmpHonor.getHonorName())) {
             throw new IllegalArgumentException("荣誉名称必填");
         }
+        try {
+            if(Integer.parseInt(hrEmpHonor.getPersonalRank()) > 20) {
+                throw new IllegalArgumentException("个人排名必须20以下");
+            }
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("个人排名必须为纯数字");
+        }
         if(!titleTypeTranslateMap.containsKey(hrEmpHonor.getTitleType())) {
             throw new IllegalArgumentException("荣誉称号类别填写有误，应为综合或单项");
         }
@@ -197,6 +211,9 @@ public class HonorImportListener implements ReadListener<HrEmpHonor> {
         if(StringUtils.hasText(hrEmpHonor.getCategory()) && !categoryTranslateMap.containsKey(hrEmpHonor.getCategory())) {
             throw new IllegalArgumentException("荣誉所属类别填写有误，应为人才荣誉类、人才奖励类、集体奖励类等");
         }
+        if(StringUtils.hasText(hrEmpHonor.getIsPersonInCharge()) && !isPersonInChargeTranslateMap.containsKey(hrEmpHonor.getIsPersonInCharge())) {
+            throw new IllegalArgumentException("是否为负责人填写有误，应为是或否");
+        }
 
         hrEmpHonor.setTitleType(titleTypeTranslateMap.getOrDefault(hrEmpHonor.getTitleType(), hrEmpHonor.getTitleType()));
         hrEmpHonor.setGroupOrPersonal(groupOrPersonalTranslateMap.getOrDefault(hrEmpHonor.getGroupOrPersonal(), hrEmpHonor.getGroupOrPersonal()));
@@ -205,6 +222,7 @@ public class HonorImportListener implements ReadListener<HrEmpHonor> {
         hrEmpHonor.setObtainMethod(obtainMethodTranslateMap.getOrDefault(hrEmpHonor.getObtainMethod(), hrEmpHonor.getObtainMethod()));
         hrEmpHonor.setCategory(categoryTranslateMap.getOrDefault(hrEmpHonor.getCategory(), hrEmpHonor.getCategory()));
         hrEmpHonor.setHonorType(honorCategoriesTranslateMap.getOrDefault(hrEmpHonor.getHonorType(), hrEmpHonor.getHonorType()));
+        hrEmpHonor.setIsPersonInCharge(isPersonInChargeTranslateMap.getOrDefault(hrEmpHonor.getIsPersonInCharge(), hrEmpHonor.getIsPersonInCharge()));
 
         buffer.add(hrEmpHonor);
         if(buffer.size() > 1000) {

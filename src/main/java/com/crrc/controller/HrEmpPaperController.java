@@ -200,6 +200,7 @@ public class HrEmpPaperController {
                     .doRead();
             return ResponseResult.success("OK");
         } catch (Exception e) {
+            log.error("导出员工论文论著信息表报表错误", e);
             return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
     }

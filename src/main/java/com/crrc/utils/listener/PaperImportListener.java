@@ -103,8 +103,12 @@ public class PaperImportListener implements ReadListener<HrEmpPaper> {
         if(!StringUtils.hasText(hrEmpPaper.getJournalName())) {
             throw new IllegalArgumentException("刊物/出版社名称必填");
         }
-        if(!StringUtils.hasText(hrEmpPaper.getPersonRank())) {
-            throw new IllegalArgumentException("个人排名必填");
+        try {
+            if(!StringUtils.hasText(hrEmpPaper.getPersonRank()) && Integer.parseInt(hrEmpPaper.getPersonRank()) > 20) {
+                throw new IllegalArgumentException("个人排名必填，且必须20以下");
+            }
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("个人排名必须为纯数字");
         }
         if(!StringUtils.hasText(hrEmpPaper.getTotalRank())) {
             throw new IllegalArgumentException("排名总人数必填");

@@ -44,6 +44,12 @@ public class PatentImportListener implements ReadListener<HrEmpPatent> {
             "已授权", "1"
     );
 
+    //是否获奖
+    private final Map<String, String> isAwardedTranslateMap = ImmutableMap.of(
+            "否", "0",
+            "是", "1"
+    );
+
     private final HrEmpPatentServiceImpl patentService;
 
     private final List<HrEmpPatent> buffer = new ArrayList<>();
@@ -65,8 +71,12 @@ public class PatentImportListener implements ReadListener<HrEmpPatent> {
         if(!StringUtils.hasText(hrEmpPatent.getPatentNo())) {
             throw new IllegalArgumentException("专利号必填");
         }
-        if(!StringUtils.hasText(hrEmpPatent.getPersonalRank())) {
-            throw new IllegalArgumentException("个人排名必填");
+        try {
+            if(!StringUtils.hasText(hrEmpPatent.getPersonalRank()) && Integer.parseInt(hrEmpPatent.getPersonalRank()) > 20) {
+                throw new IllegalArgumentException("个人排名必填，且必须20以下");
+            }
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("个人排名必须为纯数字");
         }
         if(!StringUtils.hasText(hrEmpPatent.getTotalParticipants())) {
             throw new IllegalArgumentException("排名总人数必填");
@@ -90,10 +100,15 @@ public class PatentImportListener implements ReadListener<HrEmpPatent> {
         if(StringUtils.hasText(hrEmpPatent.getStatus()) && !patentStatusTranslateMap.containsKey(hrEmpPatent.getStatus())) {
             throw new IllegalArgumentException("专利状态填写有误，应为申请或已授权");
         }
+        if(StringUtils.hasText(hrEmpPatent.getIsAwarded()) && !isAwardedTranslateMap.containsKey(hrEmpPatent.getIsAwarded())) {
+            throw new IllegalArgumentException("是否获奖填写有误，应为是或否");
+        }
+
         hrEmpPatent.setPatentType(patentTypeTranslateMap.getOrDefault(hrEmpPatent.getPatentType(), hrEmpPatent.getPatentType()));
         hrEmpPatent.setPatentLevel(patentLevelTranslateMap.getOrDefault(hrEmpPatent.getPatentLevel(), hrEmpPatent.getPatentLevel()));
         hrEmpPatent.setAwardGrade(awardGradeTranslateMap.getOrDefault(hrEmpPatent.getAwardGrade(), hrEmpPatent.getAwardGrade()));
         hrEmpPatent.setStatus(patentStatusTranslateMap.getOrDefault(hrEmpPatent.getStatus(), hrEmpPatent.getStatus()));
+        hrEmpPatent.setIsAwarded(isAwardedTranslateMap.getOrDefault(hrEmpPatent.getIsAwarded(), hrEmpPatent.getIsAwarded()));
         buffer.add(hrEmpPatent);
         if(buffer.size() > 1000) {
             flush();

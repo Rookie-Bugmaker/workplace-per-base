@@ -241,6 +241,7 @@ public class HrEmpHonorController {
                     .doRead();
             return new ResponseResult<>(HttpStatus.OK.value(), "导入荣誉信息表报表成功");
         } catch (Exception e) {
+            log.error("导入荣誉信息表报表错误", e);
             return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
     }
