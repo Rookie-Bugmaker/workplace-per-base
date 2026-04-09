@@ -16,7 +16,9 @@ import org.springframework.util.StringUtils;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * 角色相关工具类
@@ -35,6 +37,19 @@ public class DeptUtils {
         DeptUtils.wkCoreApi = wkCoreApi;
         DeptUtils.codeInfoService = codeInfoService;
         DeptUtils.wkDataApi = wkDataApi;
+    }
+
+    public static Map<String, String> getDeptTranslateMap() {
+        ResponseResultDTO<List<OrganizationDTO>> listResponseResultDTO = wkDataApi.allOrganization();
+        if(listResponseResultDTO == null || ObjectUtils.isEmpty(listResponseResultDTO)) {
+            throw new IllegalArgumentException("获取部门信息失败，请检查wkData服务的状态");
+        }
+
+        return listResponseResultDTO.getData().stream().collect(Collectors.toMap(
+                OrganizationDTO::getOrgCode,
+                OrganizationDTO::getOrgName,
+                (oldData, newData) -> oldData
+        ));
     }
 
     /**

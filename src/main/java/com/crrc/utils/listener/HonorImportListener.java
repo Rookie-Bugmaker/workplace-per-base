@@ -4,12 +4,18 @@ import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.context.AnalysisContext;
 import com.alibaba.excel.read.listener.ReadListener;
 import com.crrc.entity.HrEmpHonor;
+import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.service.impl.HrEmpHonorServiceImpl;
+import com.crrc.utils.DeptUtils;
 import com.google.common.collect.ImmutableMap;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class HonorImportListener implements ReadListener<HrEmpHonor> {
 
@@ -155,7 +161,43 @@ public class HonorImportListener implements ReadListener<HrEmpHonor> {
 
     @Override
     public void invoke(HrEmpHonor hrEmpHonor, AnalysisContext analysisContext) {
+        // 必填
         hrEmpHonor.setId(IdUtil.randomUUID());
+        if(hrEmpHonor.getAwardDate() == null) {
+            throw new IllegalArgumentException("获奖日期必填");
+        }
+        if(!StringUtils.hasText(hrEmpHonor.getTitleLevel())) {
+            throw new IllegalArgumentException("称号级别必填");
+        }
+        if(!StringUtils.hasText(hrEmpHonor.getAwardYear())) {
+            throw new IllegalArgumentException("获奖年度必填");
+        }
+        if(!StringUtils.hasText(hrEmpHonor.getHonorName())) {
+            throw new IllegalArgumentException("荣誉名称必填");
+        }
+        if(!titleTypeTranslateMap.containsKey(hrEmpHonor.getTitleType())) {
+            throw new IllegalArgumentException("荣誉称号类别填写有误，应为综合或单项");
+        }
+        if(!groupOrPersonalTranslateMap.containsKey(hrEmpHonor.getGroupOrPersonal())) {
+            throw new IllegalArgumentException("集体/个人填写有误，应为集体或个人");
+        }
+        if(!honorCategoriesTranslateMap.containsKey(hrEmpHonor.getHonorType())) {
+            throw new IllegalArgumentException("荣誉类别填写有误，应为中国科学院院士R01、青年岗位技术能手R1604、其他R9999等");
+        }
+        if(!responsibleUnitTranslateMap.containsKey(hrEmpHonor.getResponsibleUnit())) {
+            throw new IllegalArgumentException("归口单位填写有误，应为党委组织部、党委宣传部、团委、工会、人力资源部或其他");
+        }
+        // 选填
+        if(StringUtils.hasText(hrEmpHonor.getRewardType()) && !rewardTypeTranslateMap.containsKey(hrEmpHonor.getRewardType())) {
+            throw new IllegalArgumentException("荣誉奖励类别填写有误，应为荣誉称号、奖励或其他");
+        }
+        if(StringUtils.hasText(hrEmpHonor.getObtainMethod()) && !obtainMethodTranslateMap.containsKey(hrEmpHonor.getObtainMethod())) {
+            throw new IllegalArgumentException("荣誉取得方式填写有误，应为评选、竞赛或选举");
+        }
+        if(StringUtils.hasText(hrEmpHonor.getCategory()) && !categoryTranslateMap.containsKey(hrEmpHonor.getCategory())) {
+            throw new IllegalArgumentException("荣誉所属类别填写有误，应为人才荣誉类、人才奖励类、集体奖励类等");
+        }
+
         hrEmpHonor.setTitleType(titleTypeTranslateMap.getOrDefault(hrEmpHonor.getTitleType(), hrEmpHonor.getTitleType()));
         hrEmpHonor.setGroupOrPersonal(groupOrPersonalTranslateMap.getOrDefault(hrEmpHonor.getGroupOrPersonal(), hrEmpHonor.getGroupOrPersonal()));
         hrEmpHonor.setRewardType(rewardTypeTranslateMap.getOrDefault(hrEmpHonor.getRewardType(), hrEmpHonor.getRewardType()));
@@ -163,6 +205,7 @@ public class HonorImportListener implements ReadListener<HrEmpHonor> {
         hrEmpHonor.setObtainMethod(obtainMethodTranslateMap.getOrDefault(hrEmpHonor.getObtainMethod(), hrEmpHonor.getObtainMethod()));
         hrEmpHonor.setCategory(categoryTranslateMap.getOrDefault(hrEmpHonor.getCategory(), hrEmpHonor.getCategory()));
         hrEmpHonor.setHonorType(honorCategoriesTranslateMap.getOrDefault(hrEmpHonor.getHonorType(), hrEmpHonor.getHonorType()));
+
         buffer.add(hrEmpHonor);
         if(buffer.size() > 1000) {
             flush();

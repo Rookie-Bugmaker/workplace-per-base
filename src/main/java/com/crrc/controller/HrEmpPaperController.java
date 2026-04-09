@@ -191,13 +191,17 @@ public class HrEmpPaperController {
     }
 
     @PostMapping("/importPaper")
-    public ResponseResult<String> importPaper(@RequestBody MultipartFile file) throws IOException {
-        EasyExcelFactory.read(file.getInputStream(), HrEmpPaper.class,
-                        new PaperImportListener(hrEmpPaperService))
-                .headRowNumber(1)
-                .sheet()
-                .doRead();
-        return ResponseResult.success("OK");
+    public ResponseResult<String> importPaper(@RequestBody MultipartFile file) {
+        try {
+            EasyExcelFactory.read(file.getInputStream(), HrEmpPaper.class,
+                            new PaperImportListener(hrEmpPaperService))
+                    .headRowNumber(1)
+                    .sheet()
+                    .doRead();
+            return ResponseResult.success("OK");
+        } catch (Exception e) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
     }
 
     @PostMapping("/export/template")

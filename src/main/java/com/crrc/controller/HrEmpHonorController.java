@@ -222,7 +222,7 @@ public class HrEmpHonorController {
     @AuditLog(value = "导入荣誉信息表报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
     @Operation(summary = "导入荣誉信息表报表")
     public ResponseResult<Boolean> imports(MultipartFile file) throws IOException {
-        EasyExcel.read(file.getInputStream(), HrEmpHonor.class,
+        EasyExcelFactory.read(file.getInputStream(), HrEmpHonor.class,
                         new ImportExcelListener<HrEmpHonor, HrEmpHonorServiceImpl>(hrEmpHonorService))
                 .headRowNumber(1)
                 .sheet()
@@ -232,13 +232,17 @@ public class HrEmpHonorController {
     }
 
     @PostMapping("/importHonor")
-    public ResponseResult<String> importHonor(@RequestBody MultipartFile file) throws IOException {
-        EasyExcelFactory.read(file.getInputStream(), HrEmpHonor.class,
-                        new HonorImportListener(hrEmpHonorService))
-                .headRowNumber(1)
-                .sheet()
-                .doRead();
-        return new ResponseResult<>(HttpStatus.OK.value(), "导入荣誉信息表报表成功");
+    public ResponseResult<String> importHonor(@RequestBody MultipartFile file) {
+        try {
+            EasyExcelFactory.read(file.getInputStream(), HrEmpHonor.class,
+                            new HonorImportListener(hrEmpHonorService))
+                    .headRowNumber(1)
+                    .sheet()
+                    .doRead();
+            return new ResponseResult<>(HttpStatus.OK.value(), "导入荣誉信息表报表成功");
+        } catch (Exception e) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
     }
 
     @PostMapping("/tempSave")
