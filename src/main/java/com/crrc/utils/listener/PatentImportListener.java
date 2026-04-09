@@ -71,16 +71,29 @@ public class PatentImportListener implements ReadListener<HrEmpPatent> {
         if(!StringUtils.hasText(hrEmpPatent.getPatentNo())) {
             throw new IllegalArgumentException("专利号必填");
         }
+        // 必填且 要么为其他，要么在20及以下
         try {
-            if(!StringUtils.hasText(hrEmpPatent.getPersonalRank()) || Integer.parseInt(hrEmpPatent.getPersonalRank()) > 20) {
-                throw new IllegalArgumentException("个人排名必填，且必须20以下");
+            if(
+                    !StringUtils.hasText(hrEmpPatent.getPersonalRank()) ||
+                            (!"其他".equals(hrEmpPatent.getPersonalRank()) && Integer.parseInt(hrEmpPatent.getPersonalRank()) > 20)
+            ) {
+                throw new IllegalArgumentException("个人排名必填，且必须20以下，或为其他");
             }
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("个人排名必须为纯数字");
+            throw new IllegalArgumentException("个人排名必须为纯数字或其他");
         }
-        if(!StringUtils.hasText(hrEmpPatent.getTotalParticipants())) {
-            throw new IllegalArgumentException("排名总人数必填");
+        // 必填且 要么为其他，要么在20及以下
+        try {
+            if(
+                    !StringUtils.hasText(hrEmpPatent.getTotalParticipants()) ||
+                            (!"其他".equals(hrEmpPatent.getTotalParticipants()) && Integer.parseInt(hrEmpPatent.getTotalParticipants()) > 20)
+            ) {
+                throw new IllegalArgumentException("排名总人数必填，且必须20以下，或为其他");
+            }
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("排名总人数必须为纯数字或其他");
         }
+
         if(!StringUtils.hasText(hrEmpPatent.getAppraisalAuthority())) {
             throw new IllegalArgumentException("鉴定单位必填");
         }

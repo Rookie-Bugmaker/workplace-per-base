@@ -182,12 +182,16 @@ public class HonorImportListener implements ReadListener<HrEmpHonor> {
         if(!StringUtils.hasText(hrEmpHonor.getHonorName())) {
             throw new IllegalArgumentException("荣誉名称必填");
         }
+        // 选填，如果填了，要么为其他，要么在20及以下
         try {
-            if(StringUtils.hasText(hrEmpHonor.getPersonalRank()) && Integer.parseInt(hrEmpHonor.getPersonalRank()) > 20) {
-                throw new IllegalArgumentException("个人排名必须20以下");
+            if(
+                    StringUtils.hasText(hrEmpHonor.getPersonalRank()) &&
+                    (!"其他".equals(hrEmpHonor.getPersonalRank()) && Integer.parseInt(hrEmpHonor.getPersonalRank()) > 20)
+            ) {
+                throw new IllegalArgumentException("个人排名必须20以下，或为其他");
             }
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("个人排名必须为纯数字");
+            throw new IllegalArgumentException("个人排名必须为纯数字或其他");
         }
         if(!titleTypeTranslateMap.containsKey(hrEmpHonor.getTitleType())) {
             throw new IllegalArgumentException("荣誉称号类别填写有误，应为综合或单项");

@@ -103,16 +103,23 @@ public class PaperImportListener implements ReadListener<HrEmpPaper> {
         if(!StringUtils.hasText(hrEmpPaper.getJournalName())) {
             throw new IllegalArgumentException("刊物/出版社名称必填");
         }
+        // 必填且 要么为其他，要么在20及以下
         try {
-            if(!StringUtils.hasText(hrEmpPaper.getPersonRank()) || Integer.parseInt(hrEmpPaper.getPersonRank()) > 20) {
-                throw new IllegalArgumentException("个人排名必填，且必须20以下");
+            if(!StringUtils.hasText(hrEmpPaper.getPersonRank()) || (!"其他".equals(hrEmpPaper.getPersonRank()) && Integer.parseInt(hrEmpPaper.getPersonRank()) > 20)) {
+                throw new IllegalArgumentException("个人排名必填，且必须20以下，或为其他");
             }
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("个人排名必须为纯数字");
+            throw new IllegalArgumentException("个人排名必须为纯数字或其他");
         }
-        if(!StringUtils.hasText(hrEmpPaper.getTotalRank())) {
-            throw new IllegalArgumentException("排名总人数必填");
+        // 必填且 要么为其他，要么在20及以下
+        try {
+            if(!StringUtils.hasText(hrEmpPaper.getTotalRank()) || (!"其他".equals(hrEmpPaper.getTotalRank()) && Integer.parseInt(hrEmpPaper.getTotalRank()) > 20)) {
+                throw new IllegalArgumentException("排名总人数必填，且必须20以下，或为其他");
+            }
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("排名总人数必须为纯数字或其他");
         }
+
         if(!sciEiIstpTranslateMap.containsKey(hrEmpPaper.getIsSciEiIstp())) {
             throw new IllegalStateException("是否被SCI、EI、ISTP检索填写有误，应为SCI、EI、ISTP或否");
         }
