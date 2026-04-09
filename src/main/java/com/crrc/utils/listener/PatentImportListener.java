@@ -72,7 +72,7 @@ public class PatentImportListener implements ReadListener<HrEmpPatent> {
             throw new IllegalArgumentException("专利号必填");
         }
         try {
-            if(!StringUtils.hasText(hrEmpPatent.getPersonalRank()) && Integer.parseInt(hrEmpPatent.getPersonalRank()) > 20) {
+            if(!StringUtils.hasText(hrEmpPatent.getPersonalRank()) || Integer.parseInt(hrEmpPatent.getPersonalRank()) > 20) {
                 throw new IllegalArgumentException("个人排名必填，且必须20以下");
             }
         } catch (NumberFormatException e) {

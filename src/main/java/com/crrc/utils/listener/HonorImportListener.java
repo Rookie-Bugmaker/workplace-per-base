@@ -183,7 +183,7 @@ public class HonorImportListener implements ReadListener<HrEmpHonor> {
             throw new IllegalArgumentException("荣誉名称必填");
         }
         try {
-            if(Integer.parseInt(hrEmpHonor.getPersonalRank()) > 20) {
+            if(StringUtils.hasText(hrEmpHonor.getPersonalRank()) && Integer.parseInt(hrEmpHonor.getPersonalRank()) > 20) {
                 throw new IllegalArgumentException("个人排名必须20以下");
             }
         } catch (NumberFormatException e) {
