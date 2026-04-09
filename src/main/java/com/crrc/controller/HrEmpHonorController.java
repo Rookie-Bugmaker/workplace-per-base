@@ -193,11 +193,10 @@ public class HrEmpHonorController {
         return new ResponseResult<>(HttpStatus.OK.value(), "删除荣誉信息表实体成功", hrEmpHonorService.removeById(id));
     }
 
-    @PostMapping("/export")
+    @PostMapping("/export/template")
     @AuditLog(value = "导出荣誉信息表报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
     @Operation(summary = "导出荣誉信息表报表")
-    public void exportHrEmpHonor(@Validated @RequestBody(required = false) HrEmpHonor exportReqVO,
-                                 @RequestParam(required = false, defaultValue = "xlsx") String type,
+    public void exportHrEmpHonor(@RequestParam(required = false, defaultValue = "xlsx") String type,
                                  HttpServletResponse response) throws IOException {
         String contentType = "csv".equals(type) ? "text/csv;charset=UTF-8" :
                 ("xls".equals(type) ? "application/vnd.ms-excel" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
@@ -209,15 +208,14 @@ public class HrEmpHonorController {
                 .replaceAll("\\+", "%20");
         response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." + type);
 
-        exportReqVO = (exportReqVO == null) ? new HrEmpHonor() : exportReqVO;
-        List<HrEmpHonor> hrEmpHonorList = hrEmpHonorService.query(exportReqVO);
+        List<HrEmpHonor> emptyList = new ArrayList<>();
         ExcelTypeEnum typeEnum = "csv".equals(type) ? ExcelTypeEnum.CSV : ("xls".equals(type) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
         EasyExcel.write(response.getOutputStream(), HrEmpHonor.class)
                 .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
                 .autoCloseStream(true)
                 .excelType(typeEnum)
                 .sheet("荣誉信息表报表")
-                .doWrite(hrEmpHonorList);
+                .doWrite(emptyList);
     }
 
     @PostMapping("/import")
