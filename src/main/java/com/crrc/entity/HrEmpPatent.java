@@ -126,7 +126,6 @@ public class HrEmpPatent extends BaseEntity implements Serializable, DiffMarkabl
     private String status;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"是否存在正在被修改的状态"})
     @Schema(description = "是否存在正在被修改的状态，0为否，1为是")
     private String isUpdating;
 
