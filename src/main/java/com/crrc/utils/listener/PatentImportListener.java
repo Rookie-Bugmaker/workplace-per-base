@@ -50,6 +50,19 @@ public class PatentImportListener implements ReadListener<HrEmpPatent> {
             "是", "1"
     );
 
+    // 获奖级别
+    private final Map<String, String> awardLevelTranslateMap = ImmutableMap.of(
+            "国际级", "1",
+            "国家级", "2",
+            "省部级（全国性行业协会）", "3",
+            "铁总级", "4",
+            "集团级", "5",
+            "地市级", "6",
+            "子公司级", "7",
+            "部门级", "8",
+            "其他", "9"
+    );
+
     private final HrEmpPatentServiceImpl patentService;
 
     private final List<HrEmpPatent> buffer = new ArrayList<>();
@@ -115,6 +128,9 @@ public class PatentImportListener implements ReadListener<HrEmpPatent> {
         }
         if(StringUtils.hasText(hrEmpPatent.getIsAwarded()) && !isAwardedTranslateMap.containsKey(hrEmpPatent.getIsAwarded())) {
             throw new IllegalArgumentException("是否获奖填写有误，应为是或否");
+        }
+        if(StringUtils.hasText(hrEmpPatent.getAwardLevel()) && !awardLevelTranslateMap.containsKey(hrEmpPatent.getAwardLevel())) {
+            throw new IllegalArgumentException("获奖级别填写有误，应为国际级、国家级、省部级（全国性行业协会）等");
         }
 
         hrEmpPatent.setPatentType(patentTypeTranslateMap.getOrDefault(hrEmpPatent.getPatentType(), hrEmpPatent.getPatentType()));
