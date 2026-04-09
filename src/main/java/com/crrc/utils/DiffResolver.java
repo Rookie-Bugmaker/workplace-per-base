@@ -59,6 +59,10 @@ public class DiffResolver {
 
                     // 遍历字段，比较字段值是否一致
                     for (Field field : fields) {
+                        if(field.getName().equals("isUpdated")) {
+                            // 跳过判定指定字段
+                            continue;
+                        }
                         field.setAccessible(true);
                         try {
                             Object originalValue = field.get(originalRecord);
