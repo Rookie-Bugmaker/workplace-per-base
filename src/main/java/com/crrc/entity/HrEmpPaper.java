@@ -115,22 +115,22 @@ public class HrEmpPaper extends BaseEntity implements Serializable, DiffMarkable
     private String totalRank;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"国内刊物期号"})
+    // @ExcelProperty(value = {"国内刊物期号"})
     @Schema(description = "国内刊物期号")
     private String domesticIssue;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"国际刊物期号"})
+    // @ExcelProperty(value = {"国际刊物期号"})
     @Schema(description = "国际刊物期号")
     private String internationalIssue;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"字数"})
+    // @ExcelProperty(value = {"字数"})
     @Schema(description = "字数")
     private Integer wordCount;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"论文分类"})
+    // @ExcelProperty(value = {"论文分类"})
     @Schema(description = "论文分类")
     private String paperCategory;
 

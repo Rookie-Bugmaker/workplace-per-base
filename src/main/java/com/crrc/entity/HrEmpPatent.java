@@ -101,7 +101,7 @@ public class HrEmpPatent extends BaseEntity implements Serializable, DiffMarkabl
     private String totalParticipants;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"附件挂载Id"})
+    // @ExcelProperty(value = {"附件挂载Id"})
     @Schema(description = "附件挂载Id")
     private String fileHeaderId;
     

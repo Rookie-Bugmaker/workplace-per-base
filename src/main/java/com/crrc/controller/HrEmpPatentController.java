@@ -220,13 +220,18 @@ public class HrEmpPatentController {
     @PostMapping("/importPatent")
     @AuditLog(value = "导入专利信息表报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
     @Operation(summary = "导入专利信息表报表")
-    public ResponseResult<Boolean> importPatent(@RequestBody MultipartFile file) throws IOException {
-        EasyExcelFactory.read(file.getInputStream(), HrEmpPatent.class,
-                        new PatentImportListener(hrEmpPatentService))
-                .headRowNumber(1)
-                .sheet()
-                .doRead();
-        return new ResponseResult<>(HttpStatus.OK.value(), "导入专利信息表报表成功");
+    public ResponseResult<Boolean> importPatent(@RequestBody MultipartFile file) {
+        try {
+            EasyExcelFactory.read(file.getInputStream(), HrEmpPatent.class,
+                            new PatentImportListener(hrEmpPatentService))
+                    .headRowNumber(1)
+                    .sheet()
+                    .doRead();
+            return new ResponseResult<>(HttpStatus.OK.value(), "导入专利信息表报表成功");
+        } catch (Exception e) {
+            log.error("导入专利信息表报表错误", e);
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
     }
 
     @PostMapping("/import")

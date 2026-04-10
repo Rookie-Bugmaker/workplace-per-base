@@ -191,13 +191,18 @@ public class HrEmpPaperController {
     }
 
     @PostMapping("/importPaper")
-    public ResponseResult<String> importPaper(@RequestBody MultipartFile file) throws IOException {
-        EasyExcelFactory.read(file.getInputStream(), HrEmpPaper.class,
-                        new PaperImportListener(hrEmpPaperService))
-                .headRowNumber(1)
-                .sheet()
-                .doRead();
-        return ResponseResult.success("OK");
+    public ResponseResult<String> importPaper(@RequestBody MultipartFile file) {
+        try {
+            EasyExcelFactory.read(file.getInputStream(), HrEmpPaper.class,
+                            new PaperImportListener(hrEmpPaperService))
+                    .headRowNumber(1)
+                    .sheet()
+                    .doRead();
+            return ResponseResult.success("OK");
+        } catch (Exception e) {
+            log.error("导出员工论文论著信息表报表错误", e);
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
     }
 
     @PostMapping("/export/template")
@@ -229,7 +234,7 @@ public class HrEmpPaperController {
     @AuditLog(value = "导入员工论文论著信息表报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
     @Operation(summary = "导入员工论文论著信息表报表")
     public ResponseResult<Boolean> imports(MultipartFile file) throws IOException {
-        EasyExcel.read(file.getInputStream(), HrEmpPaper.class,
+        EasyExcelFactory.read(file.getInputStream(), HrEmpPaper.class,
                         new ImportExcelListener<HrEmpPaper, HrEmpPaperServiceImpl>(hrEmpPaperService))
                 .headRowNumber(1)
                 .sheet()
