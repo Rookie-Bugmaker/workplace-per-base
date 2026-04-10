@@ -12,6 +12,7 @@ import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
 import com.crrc.annotation.IgnoreTenant;
+import com.crrc.annotation.TenantIgnore;
 import com.crrc.constants.AuditConstants;
 import com.crrc.entity.*;
 import com.crrc.enums.LogType;
@@ -744,6 +745,7 @@ public class ExternalController {
     @PostMapping("/queryForKingdie")
     @Operation(summary = "接收总线WebService请求，返回人员信息XML")
     @AuditLog(value = "接收总线请求返回人员信息", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @TenantIgnore
     public ResponseEntity<String> queryForKingdie() {
         // 1. 获取有效人员列表
         List<ExceptionCasePerson> effectiveList = exceptionCasePersonService.selectEffectivePerson();

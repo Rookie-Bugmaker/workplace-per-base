@@ -1,5 +1,8 @@
 package com.crrc.controller;
 
+import com.alibaba.excel.EasyExcelFactory;
+import com.alibaba.excel.support.ExcelTypeEnum;
+import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.crrc.annotation.AuditLog;
 import com.crrc.annotation.DecryptBody;
 import com.crrc.api.WkCoreAPi;
@@ -25,10 +28,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -102,6 +106,38 @@ public class CommonController {
             return openGaussJdbcTemplate.update(dto.getA(), args);
         }
         return 0;
+    }
+
+    @PostMapping("/download/kqdk/template")
+    @AuditLog(value = "导出报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
+    @Operation(summary = "导出报表")
+    public void exportCostCenter(@RequestParam(required = false, defaultValue = "xlsx") String type,
+                                 HttpServletResponse response) throws IOException {
+        String contentType = "csv".equals(type) ?  "text/csv;charset=UTF-8" :
+                ("xls".equals(type) ? "application/vnd.ms-excel" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setContentType(contentType);
+        response.setCharacterEncoding("utf-8");
+        // 这里URLEncoder.encode可以防止中文乱码
+        String fileName = URLEncoder.encode("报表-" + new SimpleDateFormat("yyyyMMddhhmmss")
+                        .format(System.currentTimeMillis()), "UTF-8")
+                .replaceAll("\\+", "%20");
+        response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." +type);
+
+        List<List<String>> dataList = Collections.singletonList(
+                Arrays.asList("013200031192", "马弈尧")
+        );
+        ExcelTypeEnum typeEnum = "csv".equals(type) ?  ExcelTypeEnum.CSV : ("xls".equals(type) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
+        EasyExcelFactory.write(response.getOutputStream())
+                .head(Arrays.asList(
+                        Collections.singletonList("档案号"),
+                        Collections.singletonList("员工姓名"),
+                        Collections.singletonList("备注：请填写12位档案号和员工姓名，两列都要填写，解密后导入")
+                ))
+                .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
+                .autoCloseStream(true)
+                .excelType(typeEnum)
+                .sheet("报表")
+                .doWrite(dataList);
     }
 
     private static class DeepCopyDTO {

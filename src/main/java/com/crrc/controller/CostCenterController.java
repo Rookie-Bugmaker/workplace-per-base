@@ -32,8 +32,10 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author yukun
@@ -154,7 +156,7 @@ public class CostCenterController {
         exportReqVO = (exportReqVO == null) ? new CostCenter() : exportReqVO;
         List<CostCenter> positionInfoList = costCenterService.query(exportReqVO);
         ExcelTypeEnum typeEnum = "csv".equals(type) ?  ExcelTypeEnum.CSV : ("xls".equals(type) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
-        EasyExcel.write(response.getOutputStream(), CostCenter.class)
+        EasyExcelFactory.write(response.getOutputStream(), CostCenter.class)
                 .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
                 .autoCloseStream(true)
                 .excelType(typeEnum)
@@ -177,14 +179,21 @@ public class CostCenterController {
                 .replaceAll("\\+", "%20");
         response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." +type);
 
-        List<CostCenterImportVO> positionInfoList = Collections.singletonList(new CostCenterImportVO("013200012345"));
+        List<List<String>> dataList = Collections.singletonList(
+                Arrays.asList("013200031192", "01320103")
+        );
         ExcelTypeEnum typeEnum = "csv".equals(type) ?  ExcelTypeEnum.CSV : ("xls".equals(type) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
-        EasyExcel.write(response.getOutputStream(), CostCenterImportVO.class)
+        EasyExcelFactory.write(response.getOutputStream())
+                .head(Arrays.asList(
+                        Collections.singletonList("档案号"),
+                        Collections.singletonList("费用列支单位编号"),
+                        Collections.singletonList("备注：填写12位档案号，解密后导入")
+                ))
                 .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
                 .autoCloseStream(true)
                 .excelType(typeEnum)
                 .sheet("报表")
-                .doWrite(positionInfoList);
+                .doWrite(dataList);
     }
 
     @PostMapping("/import/{costCenterId}")

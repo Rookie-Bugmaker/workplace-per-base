@@ -110,7 +110,7 @@ public class PatentImportListener implements ReadListener<HrEmpPatent> {
         if(!StringUtils.hasText(hrEmpPatent.getAppraisalAuthority())) {
             throw new IllegalArgumentException("鉴定单位必填");
         }
-        if(!StringUtils.hasText(hrEmpPatent.getCreationDate())) {
+        if(hrEmpPatent.getCreationDate() == null) {
             throw new IllegalArgumentException("创作时间必填");
         }
         if(!patentTypeTranslateMap.containsKey(hrEmpPatent.getPatentType())) {
