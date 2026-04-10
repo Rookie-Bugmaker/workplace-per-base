@@ -334,7 +334,7 @@ public class HrEmpPatentController {
             mongoTemplate.save(changeRequest);
 
             // 启动流程
-            StartProcessInstanceDTO instanceDTO = createProcessInstanceDTO(deptCode, parentCode, changeReqVO);
+            StartProcessInstanceDTO instanceDTO = createProcessInstanceDTO(deptCode, parentCode, changeReqVO, changeRequest.getId());
             ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
 
             // 回写流程ID
@@ -373,11 +373,11 @@ public class HrEmpPatentController {
         return idmap;
     }
 
-    private StartProcessInstanceDTO createProcessInstanceDTO(String deptCode, String parentCode, HrEmpPatentDTO changeReqVO) {
+    private StartProcessInstanceDTO createProcessInstanceDTO(String deptCode, String parentCode, HrEmpPatentDTO changeReqVO, String id) {
         StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
         String bizCode = "PATENT-" + System.currentTimeMillis();
         instanceDTO.setBizCode(bizCode);
-        instanceDTO.setBizId("patent_" + IdUtil.simpleUUID());
+        instanceDTO.setBizId("patent_" + id);
         instanceDTO.setTemplateAlias(SystemConstants.PROCESS_TEMPLATE_ALIAS);
 
         Map<String, Object> formData = new HashMap<>();

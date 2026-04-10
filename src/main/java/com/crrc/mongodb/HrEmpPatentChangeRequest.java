@@ -1,6 +1,5 @@
 package com.crrc.mongodb;
 
-import com.crrc.entity.HrEmpPaper;
 import com.crrc.entity.HrEmpPatent;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
@@ -10,7 +9,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
-@Document(collection = "hr_emp_paper_change_requests")
+@Document(collection = "hr_emp_patent_change_requests")
 public class HrEmpPatentChangeRequest {
     @Id
     private String id; // MongoDB ObjectId

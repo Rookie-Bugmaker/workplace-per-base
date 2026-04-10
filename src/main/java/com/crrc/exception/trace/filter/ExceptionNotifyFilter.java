@@ -5,6 +5,7 @@ import com.crrc.utils.MessageUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.servlet.FilterChain;
@@ -21,6 +22,9 @@ import java.util.List;
 public class ExceptionNotifyFilter extends OncePerRequestFilter {
 
     private final MessageUtils messageUtils;
+
+    @Value("${crrc.env}")
+    private String env;
 
     @Override
     protected void doFilterInternal(@NotNull HttpServletRequest request,
@@ -54,7 +58,8 @@ public class ExceptionNotifyFilter extends OncePerRequestFilter {
         Throwable rootCause = ExceptionTraceUtils.getRootCause(ex);
 
         String content = String.format(
-                "请求方法: %s%n请求路径: %s%n查询参数: %s%n客户端IP: %s%n异常类型: %s%n异常消息: %s%n错误位置: %s%n错误文件: %s%n错误行号: %s",
+                "%s：请求方法: %s%n请求路径: %s%n查询参数: %s%n客户端IP: %s%n异常类型: %s%n异常消息: %s%n错误位置: %s%n错误文件: %s%n错误行号: %s",
+                "test".equals(env) ? "测试环境" : "生产环境",
                 request.getMethod(),
                 request.getRequestURI(),
                 request.getQueryString(),
