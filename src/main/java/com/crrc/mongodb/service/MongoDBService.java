@@ -21,9 +21,16 @@ public class MongoDBService {
 
     /**
      * 以userCode作为Id保存数据
-     * @param data 数据
+     * @param obj 数据
      */
-    public <T> void saveDataByUserCode(T data, String userCode) {
+    public <T> void saveDataByUserCode(T obj, String userCode) {
+        Object data;
+        try {
+            data = obj.getClass().newInstance();
+        } catch (InstantiationException | IllegalAccessException e) {
+            throw new IllegalArgumentException(e);
+        }
+        BeanUtils.copyProperties(obj, data);
         setDataId(data, userCode);
         mongoTemplate.save(data);
     }
