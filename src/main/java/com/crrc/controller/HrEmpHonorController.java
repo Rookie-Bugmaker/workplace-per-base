@@ -326,7 +326,7 @@ public class HrEmpHonorController {
             // ================== 按归口单位分组处理数据 ==================
             Map<String, List<HrEmpHonor>> responsibleUnitGroup = new HashMap<>();
 
-            // 1. 处理新增和修改的数据：以新的归口单位为准
+            // 处理新增和修改的数据：以新的归口单位为准
             for (HrEmpHonor entity : changeReqVO.getList()) {
                 // 跳过无变化的数据（markList为空）
                 if (entity.getMarkList() == null || entity.getMarkList().isEmpty()) {
@@ -343,37 +343,37 @@ public class HrEmpHonorController {
                 responsibleUnitGroup.computeIfAbsent(responsibleUnit, k -> new ArrayList<>()).add(entity);
             }
 
-            // 2. 处理删除的数据：以原归口单位为准
-            // diffResolver会将删除的数据添加到changedData中，并标记$DELETE$
-            for (HrEmpHonor entity : changeReqVO.getList()) {
-                if (entity.getMarkList() != null && entity.getMarkList().contains("$DELETE$")) {
-                    // 从原数据中找到对应的记录获取归口单位
-                    String originalId = entity.getId();
-                    HrEmpHonor originalRecord = originalData.stream()
-                            .filter(o -> originalId.equals(o.getId()))
-                            .findFirst()
-                            .orElse(null);
-
-                    if (originalRecord == null) {
-                        log.info("未找到删除数据的原始记录，ID: {}", originalId);
-                        continue;
-                    }
-
-                    String responsibleUnit = originalRecord.getResponsibleUnit();
-                    if (responsibleUnit == null || responsibleUnit.trim().isEmpty()) {
-                        throw new IllegalArgumentException("原数据归口单位不能为空，数据ID: " + originalId);
-                    }
-
-                    // 创建删除标记的数据（只保留ID和markList）
-                    HrEmpHonor deletedEntity = new HrEmpHonor();
-                    deletedEntity.setId(originalId);
-                    deletedEntity.setResponsibleUnit(responsibleUnit);
-                    deletedEntity.setMarkList(entity.getMarkList());
-
-                    // 将删除数据加入对应归口单位组
-                    responsibleUnitGroup.computeIfAbsent(responsibleUnit, k -> new ArrayList<>()).add(deletedEntity);
-                }
-            }
+//            // 2. 处理删除的数据：以原归口单位为准
+//            // diffResolver会将删除的数据添加到changedData中，并标记$DELETE$
+//            for (HrEmpHonor entity : changeReqVO.getList()) {
+//                if (entity.getMarkList() != null && entity.getMarkList().contains("$DELETE$")) {
+//                    // 从原数据中找到对应的记录获取归口单位
+//                    String originalId = entity.getId();
+//                    HrEmpHonor originalRecord = originalData.stream()
+//                            .filter(o -> originalId.equals(o.getId()))
+//                            .findFirst()
+//                            .orElse(null);
+//
+//                    if (originalRecord == null) {
+//                        log.info("未找到删除数据的原始记录，ID: {}", originalId);
+//                        continue;
+//                    }
+//
+//                    String responsibleUnit = originalRecord.getResponsibleUnit();
+//                    if (responsibleUnit == null || responsibleUnit.trim().isEmpty()) {
+//                        throw new IllegalArgumentException("原数据归口单位不能为空，数据ID: " + originalId);
+//                    }
+//
+//                    // 创建删除标记的数据（只保留ID和markList）
+//                    HrEmpHonor deletedEntity = new HrEmpHonor();
+//                    deletedEntity.setId(originalId);
+//                    deletedEntity.setResponsibleUnit(responsibleUnit);
+//                    deletedEntity.setMarkList(entity.getMarkList());
+//
+//                    // 将删除数据加入对应归口单位组
+//                    responsibleUnitGroup.computeIfAbsent(responsibleUnit, k -> new ArrayList<>()).add(deletedEntity);
+//                }
+//            }
 
             // ================== 为每个归口单位创建审批流 ==================
             List<String> requestIds = new ArrayList<>();
