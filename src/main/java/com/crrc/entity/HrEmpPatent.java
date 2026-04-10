@@ -113,7 +113,7 @@ public class HrEmpPatent extends BaseEntity implements Serializable, DiffMarkabl
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"创作时间"})
     @Schema(description = "创作时间")
-    private String creationDate;
+    private LocalDate creationDate;
 
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"专利期限"})

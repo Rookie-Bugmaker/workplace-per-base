@@ -157,6 +157,19 @@ public class HonorImportListener implements ReadListener<HrEmpHonor> {
             "是", "1"
     );
 
+    // 称号级别
+    private final Map<String, String> titleLevelTranslateMap = ImmutableMap.of(
+            "国际级", "1",
+            "国家级", "2",
+            "省部级（全国性行业协会）", "3",
+            "铁总级", "4",
+            "集团级", "5",
+            "地市级", "6",
+            "子公司级", "7",
+            "部门级", "8",
+            "其他", "9"
+    );
+
 
     HrEmpHonorServiceImpl hrEmpHonorService;
 
@@ -173,8 +186,8 @@ public class HonorImportListener implements ReadListener<HrEmpHonor> {
         if(hrEmpHonor.getAwardDate() == null) {
             throw new IllegalArgumentException("获奖日期必填");
         }
-        if(!StringUtils.hasText(hrEmpHonor.getTitleLevel())) {
-            throw new IllegalArgumentException("称号级别必填");
+        if(!titleLevelTranslateMap.containsKey(hrEmpHonor.getTitleLevel())) {
+            throw new IllegalArgumentException("称号级别填写有误，应为国际级、国家级、省部级（全国性行业协会）等");
         }
         if(!StringUtils.hasText(hrEmpHonor.getAwardYear())) {
             throw new IllegalArgumentException("获奖年度必填");
