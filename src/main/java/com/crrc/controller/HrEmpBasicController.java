@@ -1078,12 +1078,16 @@ public class HrEmpBasicController {
     @Operation(summary = "查询驳回/暂存的数据")
     public ResponseResult<HrEmpBasicDTO> tempQuery(@RequestBody HrEmpBasicDTO queryDTO, @PathVariable String type) {
         if("tempSave".equals(type)) {
+            HrEmpBasicDTO hrEmpBasicTempSaveData = mongoDBService.getById(queryDTO.getUserCode(), HrEmpBasicDTO.class, "hr_emp_basic_temp_save_data");
+            hrEmpBasicTempSaveData.setId(queryDTO.getId());
             return ResponseResult.success(
-                    mongoDBService.getById(queryDTO.getUserCode(), HrEmpBasicDTO.class, "hr_emp_basic_temp_save_data")
+                    hrEmpBasicTempSaveData
             );
         }
 
-        return ResponseResult.success(mongoDBService.getById(queryDTO.getUserCode(), HrEmpBasicDTO.class, "hr_emp_basic_submit_data"));
+        HrEmpBasicDTO hrEmpBasicSubmitData = mongoDBService.getById(queryDTO.getUserCode(), HrEmpBasicDTO.class, "hr_emp_basic_submit_data");
+        hrEmpBasicSubmitData.setId(hrEmpBasicSubmitData.getId());
+        return ResponseResult.success(hrEmpBasicSubmitData);
     }
 
     @PostMapping("/submit-change")
@@ -1097,7 +1101,7 @@ public class HrEmpBasicController {
             // 直接保存暂存数据
             mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_basic_submit_data");
 
-            HrEmpBasic byId = hrEmpBasicService.getByUserCode(changeReqVO.getId());
+            HrEmpBasic byId = hrEmpBasicService.getById(changeReqVO.getId());
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin") || ("0".equals(byId.getIsEmployed()) && RoleUtils.checkAnyMatch("hrsc_emp_non_inc_info_mgr"));
             if (flag) {
                 log.info("权限校验通过，用户拥有'公司超级管理员'或'非在职人员管理'角色，直接进行更新");
