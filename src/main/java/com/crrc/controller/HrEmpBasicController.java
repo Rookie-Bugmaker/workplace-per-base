@@ -1078,12 +1078,16 @@ public class HrEmpBasicController {
     @Operation(summary = "查询驳回/暂存的数据")
     public ResponseResult<HrEmpBasicDTO> tempQuery(@RequestBody HrEmpBasicDTO queryDTO, @PathVariable String type) {
         if("tempSave".equals(type)) {
+            HrEmpBasicDTO hrEmpBasicTempSaveData = mongoDBService.getById(queryDTO.getUserCode(), HrEmpBasicDTO.class, "hr_emp_basic_temp_save_data");
+            hrEmpBasicTempSaveData.setId(queryDTO.getId());
             return ResponseResult.success(
-                    mongoDBService.getById(queryDTO.getUserCode(), HrEmpBasicDTO.class, "hr_emp_basic_temp_save_data")
+                    hrEmpBasicTempSaveData
             );
         }
 
-        return ResponseResult.success(mongoDBService.getById(queryDTO.getUserCode(), HrEmpBasicDTO.class, "hr_emp_basic_submit_data"));
+        HrEmpBasicDTO hrEmpBasicSubmitData = mongoDBService.getById(queryDTO.getUserCode(), HrEmpBasicDTO.class, "hr_emp_basic_submit_data");
+        hrEmpBasicSubmitData.setId(hrEmpBasicSubmitData.getId());
+        return ResponseResult.success(hrEmpBasicSubmitData);
     }
 
     @PostMapping("/submit-change")
