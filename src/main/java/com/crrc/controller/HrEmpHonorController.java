@@ -442,7 +442,7 @@ public class HrEmpHonorController {
 
         } catch (Exception e) {
             log.error("提交变更申请失败: {}", e.getMessage(), e);
-            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "提交失败");
+            return ResponseResult.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage());
         }
     }
 

@@ -399,7 +399,7 @@ public class HrEmpFamMemberController {
             return new ResponseResult<>(HttpStatus.OK.value(), "家庭成员变更申请已提交", changeRequest.getId());
         } catch (Exception e) {
             log.error("提交家庭成员变更申请失败: {}", e.getMessage(), e);
-            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "提交失败");
+            return ResponseResult.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage());
         }
     }
 

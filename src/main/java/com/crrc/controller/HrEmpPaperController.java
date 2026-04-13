@@ -362,7 +362,7 @@ public class HrEmpPaperController {
             return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交");
         } catch (Exception e) {
             log.error("提交变更申请失败: {}", e.getMessage(), e);
-            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "提交失败");
+            return ResponseResult.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage());
         }
     }
 
