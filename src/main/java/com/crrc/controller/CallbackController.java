@@ -925,8 +925,10 @@ public class CallbackController {
     private void updateIsUpdating(String isUpdating, String userCode, UpdateType updateType) {
         switch (updateType) {
             case BASIC:
-            case PICTURE:
                 updateBasicIsUpdating(isUpdating, userCode);
+                break;
+            case PICTURE:
+                updatePicIsUpdating(isUpdating, userCode);
                 break;
             case EDU:
                 updateEduIsUpdating(isUpdating, userCode);
@@ -961,6 +963,18 @@ public class CallbackController {
             default:
                 log.warn("未知的更新类型: {}", updateType);
                 break;
+        }
+    }
+
+    private void updatePicIsUpdating(String isUpdating, String userCode) {
+        List<HrEmpBasicDTO> basics = hrEmpBasicService.selectMsg(userCode);
+        if (!basics.isEmpty()) {
+            HrEmpBasic temp = basics.get(0);
+            temp.setIsPicUpdating(isUpdating);
+            // 防止dept被误修改
+            temp.setDept(null);
+            temp.setOrgCode(null);
+            hrEmpBasicService.updateById(temp);
         }
     }
 
