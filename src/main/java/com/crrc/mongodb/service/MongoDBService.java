@@ -64,7 +64,7 @@ public class MongoDBService {
     }
 
     public <T> List<T> getByUserCode(String userCode, Class<T> entityClass, String collectionName) {
-        Query idQuery = new Query(Criteria.where("user_code").is(userCode));
+        Query idQuery = new Query(Criteria.where("userCode").is(userCode));
         return mongoTemplate.find(idQuery, entityClass, collectionName);
     }
 }
