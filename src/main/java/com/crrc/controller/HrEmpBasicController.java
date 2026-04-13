@@ -1079,6 +1079,13 @@ public class HrEmpBasicController {
     public ResponseResult<HrEmpBasicDTO> tempQuery(@RequestBody HrEmpBasicDTO queryDTO, @PathVariable String type) {
         if("tempSave".equals(type)) {
             HrEmpBasicDTO hrEmpBasicTempSaveData = mongoDBService.getById(queryDTO.getUserCode(), HrEmpBasicDTO.class, "hr_emp_basic_temp_save_data");
+            if(hrEmpBasicTempSaveData == null) {
+                List<HrEmpBasicDTO> hrEmpBasicDTOS = hrEmpBasicService.selectMsg(queryDTO.getUserCode());
+                if(ObjectUtils.isEmpty(hrEmpBasicDTOS)) {
+                    return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "用户信息不存在");
+                }
+                return ResponseResult.success(hrEmpBasicDTOS.get(0));
+            }
             hrEmpBasicTempSaveData.setId(queryDTO.getId());
             return ResponseResult.success(
                     hrEmpBasicTempSaveData
@@ -1086,6 +1093,13 @@ public class HrEmpBasicController {
         }
 
         HrEmpBasicDTO hrEmpBasicSubmitData = mongoDBService.getById(queryDTO.getUserCode(), HrEmpBasicDTO.class, "hr_emp_basic_submit_data");
+        if(hrEmpBasicSubmitData == null) {
+            List<HrEmpBasicDTO> hrEmpBasicDTOS = hrEmpBasicService.selectMsg(queryDTO.getUserCode());
+            if(ObjectUtils.isEmpty(hrEmpBasicDTOS)) {
+                return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "用户信息不存在");
+            }
+            return ResponseResult.success(hrEmpBasicDTOS.get(0));
+        }
         hrEmpBasicSubmitData.setId(hrEmpBasicSubmitData.getId());
         return ResponseResult.success(hrEmpBasicSubmitData);
     }
