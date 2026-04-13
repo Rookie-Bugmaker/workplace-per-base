@@ -107,6 +107,11 @@ public class PatentImportListener implements ReadListener<HrEmpPatent> {
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("排名总人数必须为纯数字或其他");
         }
+        // 交叉校验：个人排名必须小于等于排名总人数（两者均为数字时）
+        if (!"其他".equals(hrEmpPatent.getPersonalRank()) && !"其他".equals(hrEmpPatent.getTotalParticipants()) && Integer.parseInt(hrEmpPatent.getPersonalRank()) > Integer.parseInt(hrEmpPatent.getTotalParticipants())) {
+                throw new IllegalArgumentException("个人排名必须小于等于排名总人数");
+            }
+
 
         if(!StringUtils.hasText(hrEmpPatent.getAppraisalAuthority())) {
             throw new IllegalArgumentException("鉴定单位必填");
