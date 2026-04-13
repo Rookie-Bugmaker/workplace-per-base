@@ -167,7 +167,8 @@ public class HonorImportListener implements ReadListener<HrEmpHonor> {
             "地市级", "6",
             "子公司级", "7",
             "部门级", "8",
-            "其他", "9"
+            "其他", "9",
+            "公司级", "10"
     );
 
 

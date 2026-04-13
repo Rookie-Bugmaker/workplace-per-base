@@ -43,7 +43,8 @@ public class PaperImportListener implements ReadListener<HrEmpPaper> {
             "地市级", "6",
             "子公司级", "7",
             "部门级", "8",
-            "其他", "9"
+            "其他", "9",
+            "公司级", "10"
     );
 
     //论文论著奖励级别
@@ -56,7 +57,8 @@ public class PaperImportListener implements ReadListener<HrEmpPaper> {
             "地市级", "6",
             "子公司级", "7",
             "部门级", "8",
-            "其他", "9"
+            "其他", "9",
+            "公司级", "10"
     );
 
     //论文论著奖励等次

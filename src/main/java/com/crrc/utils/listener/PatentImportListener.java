@@ -60,7 +60,8 @@ public class PatentImportListener implements ReadListener<HrEmpPatent> {
             "地市级", "6",
             "子公司级", "7",
             "部门级", "8",
-            "其他", "9"
+            "其他", "9",
+            "公司级", "10"
     );
 
     private final HrEmpPatentServiceImpl patentService;
