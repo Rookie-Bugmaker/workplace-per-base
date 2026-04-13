@@ -280,6 +280,13 @@ public class HrEmpFamMemberController {
             List<HrEmpFamMember> originalData = hrEmpFamMemberService.selectMsg(changeReqVO.getUserCode());
             log.info("提交审批流时查询回来的家庭成员原始数据：{}", JSON.toJSONString(originalData, SerializerFeature.PrettyFormat));
 
+            // 检查是否存在正在修改中的数据
+            for (HrEmpFamMember item : originalData) {
+                if ("1".equals(item.getIsUpdating())) {
+                    throw new IllegalArgumentException("请不要重复提交");
+                }
+            }
+
             // 2. 验证紧急联系人设置
             boolean isEmergency = true;
             int emergencyNum = 0;

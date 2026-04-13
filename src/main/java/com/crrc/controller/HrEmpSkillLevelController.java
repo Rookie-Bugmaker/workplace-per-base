@@ -246,6 +246,13 @@ public class HrEmpSkillLevelController {
             List<HrEmpSkillLevel> originalData = hrEmpSkillLevelService.selectMsg(changeReqVO.getUserCode());
             log.info("职业技能等级原始数据：{}", JSON.toJSONString(originalData));
 
+            // 检查是否存在正在修改中的数据
+            for (HrEmpSkillLevel item : originalData) {
+                if ("1".equals(item.getIsUpdating())) {
+                    throw new IllegalArgumentException("请不要重复提交");
+                }
+            }
+
             // 2. 创建变更申请文档
             HrEmpSkillsChangeRequest changeRequest = new HrEmpSkillsChangeRequest();
             changeRequest.setId(IdUtil.simpleUUID());

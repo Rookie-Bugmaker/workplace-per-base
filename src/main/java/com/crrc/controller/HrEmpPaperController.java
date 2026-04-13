@@ -316,6 +316,13 @@ public class HrEmpPaperController {
             // ================== 查询原始数据（只查一次） ==================
             List<HrEmpPaper> originalData = getMsg(changeReqVO.getUserCode()).getData();
 
+            // 检查是否存在正在修改中的数据
+            for (HrEmpPaper item : originalData) {
+                if ("1".equals(item.getIsUpdating())) {
+                    throw new IllegalArgumentException("请不要重复提交");
+                }
+            }
+
             try {
                 // 创建变更申请
                 HrEmpPaperChangeRequest changeRequest = new HrEmpPaperChangeRequest();

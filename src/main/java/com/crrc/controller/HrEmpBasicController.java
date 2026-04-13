@@ -1133,6 +1133,9 @@ public class HrEmpBasicController {
             if (originalData == null) {
                 return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "员工信息不存在");
             }
+            if ("1".equals(originalData.getIsUpdating())) {
+                throw new IllegalArgumentException("请不要重复提交");
+            }
 
             hrEmpBasicService.resolveFields(originalData);
             // 2. 创建变更申请文档

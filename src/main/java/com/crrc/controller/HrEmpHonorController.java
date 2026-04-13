@@ -320,6 +320,13 @@ public class HrEmpHonorController {
             // ================== 查询原始数据（只查一次）==================
             List<HrEmpHonor> originalData = getMsg(changeReqVO.getUserCode()).getData();
 
+            // 检查是否存在正在修改中的数据
+            for (HrEmpHonor item : originalData) {
+                if ("1".equals(item.getIsUpdating())) {
+                    throw new IllegalArgumentException("请不要重复提交");
+                }
+            }
+
             // ================== 使用diffResolver扫描变更字段 ==================
             diffResolver.resolveDifference(originalData, changeReqVO.getList(), HrEmpHonor.class);
 

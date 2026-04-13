@@ -364,7 +364,7 @@ public class HrEmpEducationController {
 
     @PostMapping("/submit-change")
     @Operation(summary = "提交员工教育经历变更申请")
-    public ResponseResult<String> submitChange(@Valid @RequestBody  HrEmpEducationDTO changeReqVO) {
+    public ResponseResult<String> submitChange(@Valid @RequestBody HrEmpEducationDTO changeReqVO) {
 
         // 直接保存暂存数据
         mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_education_submit_data");
@@ -384,6 +384,13 @@ public class HrEmpEducationController {
             // 1. 获取当前数据快照
             List<HrEmpEducation> originalData = getMsg(changeReqVO.getUserCode()).getData();
             log.info("提交审批流时查询回来的教育经历原始数据：{}", JSON.toJSONString(originalData, SerializerFeature.PrettyFormat));
+
+            // 检查是否存在正在修改中的数据
+            for (HrEmpEducation item : originalData) {
+                if ("1".equals(item.getIsUpdating())) {
+                    throw new IllegalArgumentException("请不要重复提交");
+                }
+            }
 
             // 判断传入数据里面有无最高学历
             boolean isHighestEdu = true;
