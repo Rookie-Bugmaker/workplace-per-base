@@ -9,6 +9,8 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class MongoDBService {
 
@@ -59,5 +61,10 @@ public class MongoDBService {
     public <T> T getById(String id, Class<T> entityClass, String collectionName) {
         Query idQuery = new Query(Criteria.where("id").is(id));
         return mongoTemplate.findOne(idQuery, entityClass, collectionName);
+    }
+
+    public <T> List<T> getByUserCode(String userCode, Class<T> entityClass, String collectionName) {
+        Query idQuery = new Query(Criteria.where("user_code").is(userCode));
+        return mongoTemplate.find(idQuery, entityClass, collectionName);
     }
 }

@@ -37,6 +37,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
@@ -327,6 +328,14 @@ public class HrEmpPatentController {
                 }
             }
 
+            // 如果没有数据，需要校验mongoDB中是否存在已有数据
+            if (ObjectUtils.isEmpty(originalData)) {
+                List<HrEmpPatentChangeRequest> reqs = mongoDBService.getByUserCode(changeReqVO.getUserCode(), HrEmpPatentChangeRequest.class, "hr_emp_patent_change_requests");
+                if (reqs.stream().anyMatch(e -> "PENDING".equals(e.getStatus()))) {
+                    throw new IllegalArgumentException("请不要重复提交");
+                }
+            }
+
             // 创建变更申请
             HrEmpPatentChangeRequest changeRequest = new HrEmpPatentChangeRequest();
             changeRequest.setId(IdUtil.simpleUUID());
@@ -347,8 +356,6 @@ public class HrEmpPatentController {
             // 回写流程ID
             changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
             mongoTemplate.save(changeRequest);
-
-
 
             return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交");
         } catch (Exception e) {

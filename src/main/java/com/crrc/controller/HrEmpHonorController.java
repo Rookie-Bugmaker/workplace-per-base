@@ -37,6 +37,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
@@ -323,6 +324,14 @@ public class HrEmpHonorController {
             // 检查是否存在正在修改中的数据
             for (HrEmpHonor item : originalData) {
                 if ("1".equals(item.getIsUpdating())) {
+                    throw new IllegalArgumentException("请不要重复提交");
+                }
+            }
+
+            // 如果没有数据，需要校验mongoDB中是否存在已有数据
+            if (ObjectUtils.isEmpty(originalData)) {
+                List<HrEmpHonorChangeRequest> reqs = mongoDBService.getByUserCode(changeReqVO.getUserCode(), HrEmpHonorChangeRequest.class, "hr_emp_honor_change_requests");
+                if (reqs.stream().anyMatch(e -> "PENDING".equals(e.getStatus()))) {
                     throw new IllegalArgumentException("请不要重复提交");
                 }
             }
