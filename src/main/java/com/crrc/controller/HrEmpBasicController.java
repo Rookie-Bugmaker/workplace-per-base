@@ -1112,9 +1112,6 @@ public class HrEmpBasicController {
             changeReqVO.setDept(null);
             changeReqVO.setOrgCode(null);
 
-            // 直接保存暂存数据
-            mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_basic_submit_data");
-
             HrEmpBasic basic = hrEmpBasicService.getByUserCode(changeReqVO.getUserCode());
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin") || ("0".equals(basic.getIsEmployed()) && RoleUtils.checkAnyMatch("hrsc_emp_non_inc_info_mgr"));
             if (flag) {
@@ -1152,6 +1149,9 @@ public class HrEmpBasicController {
             // 3. 保存到MongoDB
             mongoTemplate.save(changeRequest);
             log.info("流程测试changeRequest" + changeRequest);
+
+            // 保存到MongoDB之后再保存暂存数据
+            mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_basic_submit_data");
 
             // 4. 启动审批流程
             // 封装数据，提交审批流

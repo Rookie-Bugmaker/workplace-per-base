@@ -366,10 +366,6 @@ public class HrEmpEducationController {
     @PostMapping("/submit-change")
     @Operation(summary = "提交员工教育经历变更申请")
     public ResponseResult<String> submitChange(@Valid @RequestBody HrEmpEducationDTO changeReqVO) {
-
-        // 直接保存暂存数据
-        mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_education_submit_data");
-
         try {
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
             if (flag) {
@@ -453,6 +449,8 @@ public class HrEmpEducationController {
             mongoTemplate.save(changeRequest);
             log.info("流程测试changeRequest" + changeRequest);
 
+            // 保存到MongoDB之后再保存暂存数据
+            mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_education_submit_data");
 
             // 4. 启动审批流程
             // 封装数据，提交审批流

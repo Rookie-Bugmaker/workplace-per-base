@@ -270,9 +270,6 @@ public class HrEmpPatentController {
     @Operation(summary = "提交员工专利变更申请")
     public ResponseResult<List<String>> submitChange(@Valid @RequestBody HrEmpPatentDTO changeReqVO) {
 
-        // 直接保存暂存数据
-        mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_patent_submit_data");
-
         try {
             // ================== 超级管理员直接更新 ==================
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
@@ -348,6 +345,9 @@ public class HrEmpPatentController {
 
             changeRequest.setStatus("PENDING");
             mongoTemplate.save(changeRequest);
+
+            // 保存到MongoDB之后再保存暂存数据
+            mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_patent_submit_data");
 
             // 启动流程
             StartProcessInstanceDTO instanceDTO = createProcessInstanceDTO(deptCode, parentCode, changeReqVO, changeRequest.getId());

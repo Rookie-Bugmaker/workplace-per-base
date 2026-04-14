@@ -903,7 +903,7 @@ public class CallbackController {
             toSaveOrUpdate.add(hrEmpEducation);
         }
         // 没有最高学历,且教育信息列表不为空时
-        if(isHighestEdu && !changedData.isEmpty()) {
+        if(isHighestEdu && !changedData.isEmpty() && deleteIdList.size() != changedData.size()) {
             throw new RuntimeException("录入教育经历中未设置最高学历！");
         }
 

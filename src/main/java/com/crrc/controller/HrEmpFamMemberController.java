@@ -263,8 +263,6 @@ public class HrEmpFamMemberController {
     @PostMapping("/submit-change")
     @Operation(summary = "提交员工家庭成员变更申请")
     public ResponseResult<String> submitChange(@Valid @RequestBody HrEmpFamMemberDTO changeReqVO) {
-        // 直接保存暂存数据
-        mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_fam_member_submit_data");
         try {
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
             if (flag) {
@@ -330,6 +328,9 @@ public class HrEmpFamMemberController {
             // 4. 保存到MongoDB
             mongoTemplate.save(changeRequest);
             log.info("家庭成员变更请求已保存: {}", changeRequest);
+
+            // 保存到MongoDB之后再保存暂存数据
+            mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_fam_member_submit_data");
 
             // 5. 启动审批流程
             StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();

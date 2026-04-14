@@ -269,9 +269,6 @@ public class HrEmpHonorController {
     @PostMapping("/submit-change")
     @Operation(summary = "提交员工荣誉变更申请")
     public ResponseResult<List<String>> submitChange(@Valid @RequestBody HrEmpHonorDTO changeReqVO) {
-        // 直接保存暂存数据
-        mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_honor_submit_data");
-
         try {
             // ================== 超级管理员直接更新 ==================
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
@@ -338,6 +335,9 @@ public class HrEmpHonorController {
 
             // ================== 使用diffResolver扫描变更字段 ==================
             diffResolver.resolveDifference(originalData, changeReqVO.getList(), HrEmpHonor.class);
+
+            // 保存到MongoDB之后再保存暂存数据
+            mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_honor_submit_data");
 
             // ================== 按归口单位分组处理数据 ==================
             Map<String, List<HrEmpHonor>> responsibleUnitGroup = new HashMap<>();
