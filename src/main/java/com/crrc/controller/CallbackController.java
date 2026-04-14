@@ -616,7 +616,7 @@ public class CallbackController {
             toSaveOrUpdate.add(hrEmpFamMember);
         }
         // 没有紧急联系人,且家庭成员列表不为空时
-        if(isEmergency && !changedData.isEmpty()) {
+        if(isEmergency && !changedData.isEmpty() && changedData.size() != deleteIdList.size()) {
             throw new RuntimeException("录入员工主要家庭成员中未设置紧急联系人！");
         }
 
