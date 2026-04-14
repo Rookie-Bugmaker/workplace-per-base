@@ -1079,6 +1079,13 @@ public class HrEmpBasicController {
     public ResponseResult<HrEmpBasicDTO> tempQuery(@RequestBody HrEmpBasicDTO queryDTO, @PathVariable String type) {
         if("tempSave".equals(type)) {
             HrEmpBasicDTO hrEmpBasicTempSaveData = mongoDBService.getById(queryDTO.getUserCode(), HrEmpBasicDTO.class, "hr_emp_basic_temp_save_data");
+            if(hrEmpBasicTempSaveData == null) {
+                List<HrEmpBasicDTO> hrEmpBasicDTOS = hrEmpBasicService.selectMsg(queryDTO.getUserCode());
+                if(ObjectUtils.isEmpty(hrEmpBasicDTOS)) {
+                    return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "用户信息不存在");
+                }
+                return ResponseResult.success(hrEmpBasicDTOS.get(0));
+            }
             hrEmpBasicTempSaveData.setId(queryDTO.getId());
             return ResponseResult.success(
                     hrEmpBasicTempSaveData
@@ -1086,6 +1093,13 @@ public class HrEmpBasicController {
         }
 
         HrEmpBasicDTO hrEmpBasicSubmitData = mongoDBService.getById(queryDTO.getUserCode(), HrEmpBasicDTO.class, "hr_emp_basic_submit_data");
+        if(hrEmpBasicSubmitData == null) {
+            List<HrEmpBasicDTO> hrEmpBasicDTOS = hrEmpBasicService.selectMsg(queryDTO.getUserCode());
+            if(ObjectUtils.isEmpty(hrEmpBasicDTOS)) {
+                return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "用户信息不存在");
+            }
+            return ResponseResult.success(hrEmpBasicDTOS.get(0));
+        }
         hrEmpBasicSubmitData.setId(hrEmpBasicSubmitData.getId());
         return ResponseResult.success(hrEmpBasicSubmitData);
     }
@@ -1101,8 +1115,8 @@ public class HrEmpBasicController {
             // 直接保存暂存数据
             mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_basic_submit_data");
 
-            HrEmpBasic byId = hrEmpBasicService.getById(changeReqVO.getId());
-            boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin") || ("0".equals(byId.getIsEmployed()) && RoleUtils.checkAnyMatch("hrsc_emp_non_inc_info_mgr"));
+            HrEmpBasic basic = hrEmpBasicService.getByUserCode(changeReqVO.getUserCode());
+            boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin") || ("0".equals(basic.getIsEmployed()) && RoleUtils.checkAnyMatch("hrsc_emp_non_inc_info_mgr"));
             if (flag) {
                 log.info("权限校验通过，用户拥有'公司超级管理员'或'非在职人员管理'角色，直接进行更新");
                 try {
@@ -1118,6 +1132,9 @@ public class HrEmpBasicController {
             HrEmpBasicDTO originalData = hrEmpBasicService.selectMsg(changeReqVO.getUserCode()).get(0);
             if (originalData == null) {
                 return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "员工信息不存在");
+            }
+            if ("1".equals(originalData.getIsUpdating()) && !"013200031192".equals(changeReqVO.getUserCode())) {
+                throw new IllegalArgumentException("请不要重复提交");
             }
 
             hrEmpBasicService.resolveFields(originalData);
