@@ -8,11 +8,11 @@
 
 
     <springProperty scope="context" name="name" source="spring.application.name" />
-    <springProperty scope="context" name="host" source="spring.cloud.client.ipAddress"/>  1
+    <springProperty scope="context" name="host" source="spring.cloud.client.ipAddress"/>
     <springProperty scope="context" name="port" source="server.port" />
     <springProperty scope="context" name="level" source="${root.log.level}" />
     <conversionRule conversionWord="ip"
-                    converterClass="com.crrc.workflow.common.LogIpConfig" />  1
+                    converterClass="com.crrc.common.LogIpConfig" />
     <springProperty scope="context" name="SERVICE_NAME"
                     source="spring.application.name"/>
     <property name="LOG_HOME" value="/var/log/workplace-new"/>
@@ -93,8 +93,29 @@
         </filter>
     </appender>
 
-    <springProfile name="dev | test-hw | product">
-        <logger name="com.crrc.workplace-per-base" level="debug" />
+    <!--    打印日志等级调整，可根据需要调整不同环境下的日志等级，debug,info 如 level="info"-->
+    <!--    dev开发环境日志等级为debug-->
+    <springProfile name="dev">
+        <logger name="com.crrc" level="debug" />
+        <!-- 日志输出级别 -->
+        <root level="INFO">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="FILE_INFO_DEBUG" />
+            <appender-ref ref="FILE_ERROR" />
+        </root>
+    </springProfile>
+    <springProfile name="test-hw">
+        <logger name="com.crrc" level="info" />
+        <!-- 日志输出级别 -->
+        <root level="INFO">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="FILE_INFO_DEBUG" />
+            <appender-ref ref="FILE_ERROR" />
+        </root>
+    </springProfile>
+    <!--  product生产环境日志等级为info-->
+    <springProfile name="product">
+        <logger name="com.crrc" level="info" />
         <!-- 日志输出级别 -->
         <root level="INFO">
             <appender-ref ref="CONSOLE" />
