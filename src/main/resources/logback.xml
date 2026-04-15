@@ -4,232 +4,90 @@
     <!-- 1. TraceID转换规则（必须放在最前） -->
     <conversionRule conversionWord="tid"
                     converterClass="org.apache.skywalking.apm.toolkit.log.logback.v1.x.LogbackPatternConverter"/>
-    <include resource="org/springframework/boot/logging/logback/defaults.xml" />
-
-
-    <springProperty scope="context" name="name" source="spring.application.name" />
-    <springProperty scope="context" name="host" source="spring.cloud.client.ipAddress"/>
-    <springProperty scope="context" name="port" source="server.port" />
-    <springProperty scope="context" name="level" source="${root.log.level}" />
-    <conversionRule conversionWord="ip"
-                    converterClass="com.crrc.common.LogIpConfig" />
-    <springProperty scope="context" name="SERVICE_NAME"
-                    source="spring.application.name"/>
-    <property name="LOG_HOME" value="/var/log/workplace-new"/>
 
     <!-- 2. 基础属性 -->
-<!--    <property name="SERVICE_NAME" value="workplace-per-base"/>-->
-
+    <property name="SERVICE_NAME" value="workplace-per-base"/>
+    <property name="LOG_HOME" value="/var/log/workplace-new"/>
 
     <!-- 3. 优化后的日志模式（已修复换行问题） -->
     <!-- 控制台专用带颜色版本 -->
-    <property name="CONSOLE_LOG_PATTERN"
+    <property name="HIGHLIGHT_PATTERN"
               value="%yellow(%d{yyyy-MM-dd HH:mm:ss.SSS}) [%blue(%tid)] [%magenta(${SERVICE_NAME})] [%thread] %highlight(%-5level) %green(%logger{30}) - %msg%n%ex{5}"/>
 
     <!-- 文件输出简洁版本 -->
-    <property name="FILE_LOG_PATTERN"
+    <property name="TRACE_PATTERN"
               value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%tid] [${SERVICE_NAME}] [%thread] %-5level %logger{30} - %msg%n%ex{5}"/>
 
     <!-- 4. 控制台输出优化 -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <pattern>${HIGHLIGHT_PATTERN}</pattern>
             <charset>UTF-8</charset>
         </encoder>
-<!--        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">-->
-<!--            <level>DEBUG</level>-->
-<!--        </filter>-->
-    </appender>
-
-
-    <!-- ALL级别的文件输出(ZIP归档) -->
-    <appender name="FILE_INFO_DEBUG"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}/${SERVICE_NAME}.log</file>
-        <!-- 定义归档 -->
-        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${LOG_HOME}/${SERVICE_NAME}-%d{yyyy-MM-dd}-
-                %i.log.zip</fileNamePattern>
-            <minIndex>1</minIndex>
-            <maxIndex>12</maxIndex>
-        </rollingPolicy>
-        <!-- 定义文件大小 -->
-        <triggeringPolicy
-                class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
-            <maxFileSize>50MB</maxFileSize>
-        </triggeringPolicy>
-        <!-- 格式化输出 -->
-        <encoder>
-            <pattern>${FILE_LOG_PATTERN}</pattern>
-            <charset>UTF-8</charset>
-        </encoder>
-    </appender>
-
-    <!-- ERROR级别的文件输出(ZIP归档) -->
-    <appender name="FILE_ERROR"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}/${SERVICE_NAME}-error.log</file>
-        <!-- 定义归档 -->
-        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${LOG_HOME}/${SERVICE_NAME}-error-%d{yyyy-MM-dd}-
-                %i.log.zip</fileNamePattern>
-            <minIndex>1</minIndex>
-            <maxIndex>12</maxIndex>
-        </rollingPolicy>
-        <!-- 定义文件大小 -->
-        <triggeringPolicy
-                class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
-            <maxFileSize>50MB</maxFileSize>
-        </triggeringPolicy>
-        <!-- 格式化输出 -->
-        <encoder>
-            <pattern>${FILE_LOG_PATTERN}</pattern>
-            <charset>UTF-8</charset>
-        </encoder>
-        <!-- 临界值过滤器，过滤掉低于指定临界值的日志。当日志级别等于或高于临界值时，过滤器返
-        回NEUTRAL；当日志级别低于临界值时，日志会被拒绝,OFF>ERROR>WARN>INFO>DEBUG>TRACE>ALL -->
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>ERROR</level>
+            <level>DEBUG</level>
         </filter>
     </appender>
 
-    <!--    打印日志等级调整，可根据需要调整不同环境下的日志等级，debug,info 如 level="info"-->
-    <!--    dev开发环境日志等级为debug-->
-    <springProfile name="dev">
-        <logger name="com.crrc" level="debug" />
-        <!-- 日志输出级别 -->
-        <root level="INFO">
-            <appender-ref ref="CONSOLE" />
-            <appender-ref ref="FILE_INFO_DEBUG" />
-            <appender-ref ref="FILE_ERROR" />
-        </root>
-    </springProfile>
-    <springProfile name="test-hw">
-        <logger name="com.crrc" level="info" />
-        <!-- 日志输出级别 -->
-        <root level="INFO">
-            <appender-ref ref="CONSOLE" />
-            <appender-ref ref="FILE_INFO_DEBUG" />
-            <appender-ref ref="FILE_ERROR" />
-        </root>
-    </springProfile>
-    <!--  product生产环境日志等级为info-->
-    <springProfile name="product">
-        <logger name="com.crrc" level="info" />
-        <!-- 日志输出级别 -->
-        <root level="INFO">
-            <appender-ref ref="CONSOLE" />
-            <appender-ref ref="FILE_INFO_DEBUG" />
-            <appender-ref ref="FILE_ERROR" />
-        </root>
-    </springProfile>
+    <!-- 5. 文件滚动输出（生产环境） -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/${SERVICE_NAME}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/${SERVICE_NAME}-%d{yyyy-MM-dd}-%i.log.zip</fileNamePattern>
+            <maxHistory>7</maxHistory>
+            <totalSizeCap>10GB</totalSizeCap>
+            <maxFileSize>100MB</maxFileSize>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${TRACE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
 
-    <springProfile name="test-hw">
-        <logger name="com.crrc.workplace-per-base" level="debug" />
-        <!-- logstash 设置 -->
-        <appender name="LOGSTASH"
-                  class="net.logstash.logback.appender.LogstashTcpSocketAppender">
-            <param name="Encoding" value="UTF-8"/>
-            <!-- logstash 服务器 ip -->
-            <remoteHost>@logstash.host@</remoteHost>
-            <!-- logstash tcp 端口-->
-            <port>@logstash.port@</port>
-            <!-- encoder is required -->
-            <encoder charset="UTF-8"
-                     class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
-                <providers>
-                    <timestamp>
-                        <timeZone>UTC</timeZone>
-                    </timestamp>
-                    <pattern>
-                        <pattern>
-                            {
-                            "host": "%ip",
-                            "projectName": "v5",
-                            "profile": "@env@",
-                            "serviceName": "${name}",
-                            "level": "%level",
-                            "message": "%message",
-                            3 本地启动验证服务是否成功改造
-                            控制台出现此种格式日志表示配置成功
-                            4 推送代码制作镜像并部署
-                            注意镜像配置有所示核心配置
-                            "stack_trace": "%exception{5}",
-                            "pid": "${PID:-}",
-                            "thread": "%thread",
-                            "class": "%logger"
-                            }
-                        </pattern>
-                    </pattern>
-                </providers>
-            </encoder>
-            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-                <level>@logstash.log.level@</level>
-            </filter>
-        </appender>
-        <!--异步发送日志-->
-        <appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
-            <appender-ref ref="LOGSTASH" />
-        </appender>
-        <!-- 日志输出级别 -->
-        <root level="INFO">
-            <appender-ref ref="CONSOLE" />
-            <appender-ref ref="FILE_INFO_DEBUG" />
-            <appender-ref ref="FILE_ERROR" />
-            <appender-ref ref="ASYNC" />
-        </root>
-    </springProfile>
+    <!-- 6. SkyWalking gRPC日志上报 -->
+    <appender name="GRPC_LOG" class="org.apache.skywalking.apm.toolkit.log.logback.v1.x.log.GRPCLogClientAppender">
+        <encoder>
+            <!-- JSON格式便于SkyWalking分析 -->
+            <pattern>
+                {
+                "timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSS}",
+                "trace_id":"%tid",
+                "service":"${SERVICE_NAME}",
+                "level":"%level",
+                "thread":"%thread",
+                "logger":"%logger",
+                "message":"%message",
+                "exception":"%exception"
+                }
+            </pattern>
+        </encoder>
+    </appender>
 
-<!--    &lt;!&ndash; 5. 文件滚动输出（生产环境） &ndash;&gt;-->
-<!--    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">-->
-<!--        <file>${LOG_HOME}/${SERVICE_NAME}.log</file>-->
-<!--        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">-->
-<!--            <fileNamePattern>${LOG_HOME}/${SERVICE_NAME}-%d{yyyy-MM-dd}-%i.log.zip</fileNamePattern>-->
-<!--            <maxHistory>7</maxHistory>-->
-<!--            <totalSizeCap>10GB</totalSizeCap>-->
-<!--            <maxFileSize>100MB</maxFileSize>-->
-<!--        </rollingPolicy>-->
-<!--        <encoder>-->
-<!--            <pattern>${TRACE_PATTERN}</pattern>-->
-<!--            <charset>UTF-8</charset>-->
-<!--        </encoder>-->
-<!--    </appender>-->
+    <!-- 7. 异步日志包装（提升性能） -->
+    <appender name="ASYNC_GRPC" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>1024</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <appender-ref ref="GRPC_LOG"/>
+    </appender>
 
-<!--    &lt;!&ndash; 6. SkyWalking gRPC日志上报 &ndash;&gt;-->
-<!--    <appender name="GRPC_LOG" class="org.apache.skywalking.apm.toolkit.log.logback.v1.x.log.GRPCLogClientAppender">-->
-<!--        <encoder>-->
-<!--            &lt;!&ndash; JSON格式便于SkyWalking分析 &ndash;&gt;-->
-<!--            <pattern>-->
-<!--                {-->
-<!--                "timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSS}",-->
-<!--                "trace_id":"%tid",-->
-<!--                "service":"${SERVICE_NAME}",-->
-<!--                "level":"%level",-->
-<!--                "thread":"%thread",-->
-<!--                "logger":"%logger",-->
-<!--                "message":"%message",-->
-<!--                "exception":"%exception"-->
-<!--                }-->
-<!--            </pattern>-->
-<!--        </encoder>-->
-<!--    </appender>-->
+    <!-- 8. 日志级别控制 -->
+    <logger name="org.apache.skywalking" level="WARN" additivity="false"/>
+    <logger name="com.crrc" level="INFO"/>
 
-<!--    &lt;!&ndash; 7. 异步日志包装（提升性能） &ndash;&gt;-->
-<!--    <appender name="ASYNC_GRPC" class="ch.qos.logback.classic.AsyncAppender">-->
-<!--        <queueSize>1024</queueSize>-->
-<!--        <discardingThreshold>0</discardingThreshold>-->
-<!--        <appender-ref ref="GRPC_LOG"/>-->
-<!--    </appender>-->
+    <!-- MyBatis SQL 打印配置 -->
+    <logger name="com.crrc.apply.mapper" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
 
-<!--    &lt;!&ndash; 8. 日志级别控制 &ndash;&gt;-->
-<!--    <logger name="org.apache.skywalking" level="WARN" additivity="false"/>-->
-<!--    <logger name="com.crrc" level="INFO"/>-->
+    <logger name="com.crrc.basedata.mapper" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
 
-<!--    &lt;!&ndash; 9. 根日志配置 &ndash;&gt;-->
-<!--    <root level="INFO">-->
-<!--        <appender-ref ref="CONSOLE"/>-->
-<!--        <appender-ref ref="FILE"/>-->
-<!--        <appender-ref ref="ASYNC_GRPC"/>-->
-<!--    </root>-->
+    <!-- 9. 根日志配置 -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+        <appender-ref ref="ASYNC_GRPC"/>
+    </root>
 
 </configuration>
