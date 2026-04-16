@@ -5,6 +5,7 @@ import com.crrc.common.ResultData;
 import com.crrc.entity.CodeInfo;
 import com.crrc.entity.HrEmpForeignLanguage;
 import com.crrc.mapper.HrEmpForeignLanguageMapper;
+import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.vo.TreeVO;
 import com.crrc.service.CodeInfoService;
 import com.crrc.service.HrEmpForeignLanguageService;
@@ -73,12 +74,12 @@ public class HrEmpForeignLanguageServiceImpl extends WorkServiceImpl<HrEmpForeig
             return;
         }
 
-        ResultData<TreeVO<CodeInfo>> resultData = perRequireClient.getTreeById("00000000-0000-0000-0000-000000000001");
+        ResponseResult<TreeVO<CodeInfo>> resultData = perRequireClient.getTreeById("00000000-0000-0000-0000-000000000001");
         Map<String, String> translateMap;
-        if(resultData == null || resultData.getResult() == null) {
+        if(resultData == null || resultData.getData() == null) {
             translateMap = new HashMap<>();
         } else {
-            translateMap = TreeUtils.flattenDescendants(resultData.getResult(), TreeVO::getChildren, true)
+            translateMap = TreeUtils.flattenDescendants(resultData.getData(), TreeVO::getChildren, true)
                     .stream().collect(Collectors.toMap(
                             k -> k.getNode().getCode(),
                             v -> v.getNode().getCodeValue(),

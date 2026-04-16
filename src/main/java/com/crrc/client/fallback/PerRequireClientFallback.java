@@ -1,9 +1,10 @@
 package com.crrc.client.fallback;
 
 import com.crrc.client.PerRequireClient;
-import com.crrc.common.ResultData;
 import com.crrc.entity.CodeInfo;
+import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.vo.TreeVO;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class PerRequireClientFallback implements PerRequireClient {
 
     @Override
-    public ResultData<TreeVO<CodeInfo>> getTreeById(@RequestParam("id") String id) {
-        return ResultData.fallback("获取字典表树形数据失败，服务不可用");
+    public ResponseResult<TreeVO<CodeInfo>> getTreeById(@RequestParam("id") String id) {
+        return ResponseResult.fail(HttpStatus.SERVICE_UNAVAILABLE.value(), "获取字典表树形数据失败，服务不可用");
     }
 }

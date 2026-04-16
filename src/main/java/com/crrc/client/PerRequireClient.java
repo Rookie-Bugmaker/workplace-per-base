@@ -1,8 +1,8 @@
 package com.crrc.client;
 
 import com.crrc.client.fallback.PerRequireClientFallback;
-import com.crrc.common.ResultData;
 import com.crrc.entity.CodeInfo;
+import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.vo.TreeVO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,5 +23,5 @@ public interface PerRequireClient {
      * @return 字典表树形数据
      */
     @GetMapping("/codeInfo/get")
-    ResultData<TreeVO<CodeInfo>> getTreeById(@RequestParam("id") String id);
+    ResponseResult<TreeVO<CodeInfo>> getTreeById(@RequestParam("id") String id);
 }
