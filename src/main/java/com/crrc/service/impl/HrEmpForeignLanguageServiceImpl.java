@@ -1,15 +1,25 @@
 package com.crrc.service.impl;
 
+import com.crrc.client.PerRequireClient;
+import com.crrc.common.ResultData;
+import com.crrc.entity.CodeInfo;
 import com.crrc.entity.HrEmpForeignLanguage;
 import com.crrc.mapper.HrEmpForeignLanguageMapper;
+import com.crrc.pojo.vo.TreeVO;
+import com.crrc.service.CodeInfoService;
 import com.crrc.service.HrEmpForeignLanguageService;
 import com.crrc.utils.FileUtils;
+import com.crrc.utils.TreeUtils;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -23,8 +33,20 @@ import java.util.List;
 @Service
 public class HrEmpForeignLanguageServiceImpl extends WorkServiceImpl<HrEmpForeignLanguageMapper, HrEmpForeignLanguage> implements HrEmpForeignLanguageService {
 
+    private static final String TABLE_NAME = "hr_emp_foreign_language";
+    private static final String LANGUAGE_TYPE = "FOREIGN_LANGUAGE";
+    private static final String CERT_TYPE = "FOREIGN_LANGUAGE_CERT";
+    // 证书码值为"10"时允许填写手写名称
+    private static final String CERT_CODE_ALLOW_WRITE = "10";
+
     @Autowired
     private HrEmpForeignLanguageMapper hrEmpForeignLanguageMapper;
+
+    @Autowired
+    private CodeInfoService codeInfoService;
+    @Qualifier("com.crrc.client.PerRequireClient")
+    @Autowired
+    private PerRequireClient perRequireClient;
 
     @Override
     public List<HrEmpForeignLanguage> selectMsg(String userCode) {
@@ -44,5 +66,46 @@ public class HrEmpForeignLanguageServiceImpl extends WorkServiceImpl<HrEmpForeig
         } catch (Exception e) {
             log.warn("外语能力附件信息解析失败, {}", e.getMessage());
         }
+    }
+
+    /**
+     * 翻译语种和证书名称的字典码为显示值
+     */
+    public void resolveLanguageAndCertValues(List<HrEmpForeignLanguage> hrEmpForeignLanguageList) {
+        if (hrEmpForeignLanguageList == null || hrEmpForeignLanguageList.isEmpty()) {
+            return;
+        }
+
+        ResultData<TreeVO<CodeInfo>> resultData = perRequireClient.getTreeById("00000000-0000-0000-0000-000000000001");
+        Map<String, String> translateMap;
+        if(resultData == null || resultData.getResult() == null) {
+            translateMap = new HashMap<>();
+        } else {
+            translateMap = TreeUtils.flattenDescendants(resultData.getResult(), TreeVO::getChildren, true)
+                    .stream().collect(Collectors.toMap(
+                            k -> k.getNode().getCode(),
+                            v -> v.getNode().getCodeValue(),
+                            (a, b) -> a
+                    ));
+        }
+
+        hrEmpForeignLanguageList.forEach(lang -> {
+            lang.setLanguageValue(translateMap.getOrDefault(lang.getLanguage(), lang.getLanguage()));
+            lang.setCertificateNameValue(translateMap.getOrDefault(lang.getCertificateName(), lang.getCertificateName()));
+        });
+    }
+
+    /**
+     * 校验证书手写内容：仅当证书名称码值为"10"时允许填写，否则清空
+     */
+    public void clearCertificateNameWriteIfNotApplicable(List<HrEmpForeignLanguage> hrEmpForeignLanguageList) {
+        if (hrEmpForeignLanguageList == null || hrEmpForeignLanguageList.isEmpty()) {
+            return;
+        }
+        hrEmpForeignLanguageList.forEach(lang -> {
+            if (!CERT_CODE_ALLOW_WRITE.equals(lang.getCertificateName())) {
+                lang.setCertificateNameWrite(null);
+            }
+        });
     }
 }

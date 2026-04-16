@@ -100,6 +100,9 @@ public class HrEmpForeignLanguageController {
         } catch (Exception e) {
             log.info("外语能力附件信息解析失败");
         }
+        // 翻译字典码为显示值
+        hrEmpForeignLanguageService.resolveLanguageAndCertValues(result);
+
         log.info("userCode:{},外语能力数据：{}", userCode, JSON.toJSONString(result, SerializerFeature.PrettyFormat));
         return new ResponseResult<>(HttpStatus.OK.value(), "获取员工外语能力实体成功", result);
     }
@@ -142,6 +145,8 @@ public class HrEmpForeignLanguageController {
     @AuditLog(value = "创建员工外语能力信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
     @Parameter(name = "createReqVO", description = "需要创建的实体对象", required = true)
     public ResponseResult<Boolean> createHrEmpForeignLanguage(@Valid @RequestBody HrEmpForeignLanguage createReqVO) {
+        // 校验证书手写内容：仅当证书名称码值为"10"时允许填写
+        hrEmpForeignLanguageService.clearCertificateNameWriteIfNotApplicable(Collections.singletonList(createReqVO));
         return new ResponseResult<>(HttpStatus.OK.value(), "创建员工外语能力信息表实体", hrEmpForeignLanguageService.save(createReqVO));
     }
 
@@ -151,6 +156,9 @@ public class HrEmpForeignLanguageController {
     @Parameter(name = "updateReqVO", description = "需要更新的实体对象", required = true)
     public ResponseResult<Boolean> updateHrEmpForeignLanguage(@Valid @RequestBody HrEmpForeignLanguageDTO updateReqVO) {
         try {
+            // 校验证书手写内容：仅当证书名称码值为"10"时允许填写
+            hrEmpForeignLanguageService.clearCertificateNameWriteIfNotApplicable(updateReqVO.getList());
+
             // 查询现有数据
             List<HrEmpForeignLanguage> existList = hrEmpForeignLanguageService.selectMsg(updateReqVO.getUserCode());
             Set<String> existIds = existList.stream()
@@ -270,6 +278,9 @@ public class HrEmpForeignLanguageController {
     @Operation(summary = "提交员工外语能力变更申请")
     public ResponseResult<List<String>> submitChange(@Valid @RequestBody HrEmpForeignLanguageDTO changeReqVO) {
         try {
+            // 校验证书手写内容：仅当证书名称码值为"10"时允许填写
+            hrEmpForeignLanguageService.clearCertificateNameWriteIfNotApplicable(changeReqVO.getList());
+
             // ================== 超级管理员直接更新 ==================
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
             if (flag) {

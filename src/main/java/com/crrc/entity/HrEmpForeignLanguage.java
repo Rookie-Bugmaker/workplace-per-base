@@ -100,4 +100,16 @@ public class HrEmpForeignLanguage extends BaseEntity implements Serializable, Di
     @TableField(exist = false)
     private List<String> markList;
 
+    @Schema(description = "语种翻译值")
+    @TableField(exist = false)
+    private String languageValue;
+
+    @Schema(description = "证书名称翻译值")
+    @TableField(exist = false)
+    private String certificateNameValue;
+
+    @Schema(description = "证书名称手写内容（仅当证书名称码值为10时允许填写）")
+    @TableField("certificate_name_write")
+    private String certificateNameWrite;
+
 }

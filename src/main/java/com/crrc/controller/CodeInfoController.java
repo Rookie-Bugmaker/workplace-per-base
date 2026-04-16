@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -36,6 +37,14 @@ public class CodeInfoController {
     public CodeInfoController(CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataAPi) {
         this.codeInfoService = codeInfoService;
         this.wkDataAPi = wkDataAPi;
+    }
+
+    @GetMapping("/getCodeInfo")
+    public ResponseResult<List<CodeInfo>> getCodeInfo(
+            @RequestParam String tableName,
+            @RequestParam String type
+    ) {
+        return ResponseResult.success(codeInfoService.getCodeInfoList(tableName, type));
     }
 
     @GetMapping("/syncOrgInfo")

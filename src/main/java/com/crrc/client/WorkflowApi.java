@@ -1,4 +1,4 @@
-package com.crrc.feign;
+package com.crrc.client;
 
 import com.crrc.common.ResultData;
 import org.springframework.cloud.openfeign.FeignClient;

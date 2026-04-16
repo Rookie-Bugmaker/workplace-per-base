@@ -46,6 +46,8 @@ public class ForeignLanguageImportListener implements ReadListener<HrEmpForeignL
     }
 
     private void flush() {
+        // 校验证书手写内容：仅当证书名称码值为"10"时允许填写
+        hrEmpForeignLanguageService.clearCertificateNameWriteIfNotApplicable(buffer);
         hrEmpForeignLanguageService.saveOrUpdateBatch(buffer);
         buffer.clear();
     }
