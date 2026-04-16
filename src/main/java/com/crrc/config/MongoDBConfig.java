@@ -1,5 +1,6 @@
 package com.crrc.config;
 
+import com.crrc.mongodb.convert.StringToLocalDateConverter;
 import com.crrc.mongodb.convert.StringToYearMonthConverter;
 import com.crrc.mongodb.convert.YearMonthToStringConverter;
 import org.springframework.context.annotation.Bean;
@@ -14,7 +15,8 @@ public class MongoDBConfig {
     public MongoCustomConversions customConversions() {
         return new MongoCustomConversions(Arrays.asList(
                 new YearMonthToStringConverter(),
-                new StringToYearMonthConverter()
+                new StringToYearMonthConverter(),
+                new StringToLocalDateConverter()
         ));
     }
 }

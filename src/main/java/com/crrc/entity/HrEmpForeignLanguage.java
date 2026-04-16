@@ -12,6 +12,7 @@ import java.util.List;
 
 import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
+import com.crrc.pojo.dto.SysFileDTO;
 import com.crrc.utils.DiffMarkable;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -107,4 +108,7 @@ public class HrEmpForeignLanguage extends BaseEntity implements Serializable, Di
     @TableField("certificate_name_write")
     private String certificateNameWrite;
 
+    @Schema(description = "通过fileHeaderId，查询回的文件列表")
+    @TableField(exist = false)
+    private List<SysFileDTO> files;
 }

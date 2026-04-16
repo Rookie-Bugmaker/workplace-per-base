@@ -344,11 +344,11 @@ public class HrEmpForeignLanguageController {
                 }
             }
 
-            // ================== 使用diffResolver扫描变更字段 ==================
-            diffResolver.resolveDifference(originalData, changeReqVO.getList(), HrEmpForeignLanguage.class);
-
             // 保存到MongoDB之后再保存暂存数据
             mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_foreign_language_submit_data");
+
+            // ================== 使用diffResolver扫描变更字段 ==================
+            diffResolver.resolveDifference(originalData, changeReqVO.getList(), HrEmpForeignLanguage.class);
 
             // ================== 创建变更申请（单一审批流，不区分归口单位）==================
             List<String> requestIds = new ArrayList<>();
