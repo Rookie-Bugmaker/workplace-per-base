@@ -9,8 +9,8 @@ import java.util.List;
 
 import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
-import com.crrc.pojo.dto.SysFileDTO;
 import com.crrc.utils.DiffMarkable;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -68,11 +68,13 @@ public class HrEmpForeignLanguage extends BaseEntity implements Serializable, Di
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"考试时间"})
     @Schema(description = "考试时间")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDateTime examDate;
 
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"证书取得时间"})
     @Schema(description = "证书取得时间")
+    @JsonFormat(pattern = "yyyy-MM")
     private LocalDateTime certificateDate;
 
     @QueryMethod(method = QueryType.EQ)
