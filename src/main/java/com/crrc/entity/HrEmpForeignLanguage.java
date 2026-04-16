@@ -2,15 +2,19 @@ package com.crrc.entity;
 
 import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
+import com.alibaba.excel.annotation.format.DateTimeFormat;
 import com.baomidou.mybatisplus.annotation.*;
 import java.io.Serializable;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 
 import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
 import com.crrc.utils.DiffMarkable;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -69,13 +73,14 @@ public class HrEmpForeignLanguage extends BaseEntity implements Serializable, Di
     @ExcelProperty(value = {"考试时间"})
     @Schema(description = "考试时间")
     @JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDateTime examDate;
+    private LocalDate examDate;
 
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"证书取得时间"})
     @Schema(description = "证书取得时间")
+    @DateTimeFormat(value = "yyyy-MM")
     @JsonFormat(pattern = "yyyy-MM")
-    private LocalDateTime certificateDate;
+    private YearMonth certificateDate;
 
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"附件"})
