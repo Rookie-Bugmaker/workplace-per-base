@@ -81,20 +81,8 @@ public class HrEmpForeignLanguage extends BaseEntity implements Serializable, Di
     private String attachment;
 
     @QueryMethod(method = QueryType.EQ)
-    @Schema(description = "附件挂载Id")
-    private String fileHeaderId;
-
-    @QueryMethod(method = QueryType.EQ)
     @Schema(description = "是否存在正在被修改的状态，0为否，1为是")
     private String isUpdating;
-
-    @Schema(description = "备注")
-    @TableField(value = "remark")
-    private String remark;
-
-    @Schema(description = "通过fileHeaderId，查询回的文件列表")
-    @TableField(exist = false)
-    private List<SysFileDTO> files;
 
     @Schema(description = "变动字段统计")
     @TableField(exist = false)

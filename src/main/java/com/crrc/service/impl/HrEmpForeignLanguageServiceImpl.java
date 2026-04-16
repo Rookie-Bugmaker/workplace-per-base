@@ -33,9 +33,6 @@ import java.util.stream.Collectors;
 @Service
 public class HrEmpForeignLanguageServiceImpl extends WorkServiceImpl<HrEmpForeignLanguageMapper, HrEmpForeignLanguage> implements HrEmpForeignLanguageService {
 
-    private static final String TABLE_NAME = "hr_emp_foreign_language";
-    private static final String LANGUAGE_TYPE = "FOREIGN_LANGUAGE";
-    private static final String CERT_TYPE = "FOREIGN_LANGUAGE_CERT";
     // 证书码值为"10"时允许填写手写名称
     private static final String CERT_CODE_ALLOW_WRITE = "10";
 
