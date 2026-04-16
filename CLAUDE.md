@@ -23,3 +23,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - review 时必须区分 style、hardcoding 与 correctness 三类问题。
 - 对硬编码保持高敏感度，尤其是敏感信息、环境配置、租户身份标识、业务状态码、魔法数字和重复字面量。
 - 没有明确证据时，不要臆断问题；要说明不确定性来源。
+
+## Bug fix policy
+- For non-trivial Java bug fixes, prefer `/fix-bug-safe`.
+- A bug fix is not complete unless an automated Java test captures the bug and passes after the fix.
+- Keep bug-fix changes narrow. Do not mix broad refactors into a bug fix.
+- Preserve null-handling, exception semantics, default-value semantics, and precedence semantics unless the requested fix explicitly changes them.
+- Comments should explain non-obvious intent, edge cases, or invariants only.
+
+## Java verification
+- Prefer the repository's existing Maven Wrapper or Gradle Wrapper when present.
+- Run the narrowest relevant Java test first, then nearby tests for regression coverage.
