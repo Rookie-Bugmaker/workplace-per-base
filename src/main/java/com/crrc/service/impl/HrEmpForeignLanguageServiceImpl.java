@@ -40,8 +40,6 @@ public class HrEmpForeignLanguageServiceImpl extends WorkServiceImpl<HrEmpForeig
     @Autowired
     private HrEmpForeignLanguageMapper hrEmpForeignLanguageMapper;
 
-    @Autowired
-    private CodeInfoService codeInfoService;
     @Qualifier("com.crrc.client.PerRequireClient")
     @Autowired
     private PerRequireClient perRequireClient;
@@ -60,6 +58,7 @@ public class HrEmpForeignLanguageServiceImpl extends WorkServiceImpl<HrEmpForeig
      */
     public void resolveFiles(List<HrEmpForeignLanguage> hrEmpForeignLanguageList) {
         try {
+            hrEmpForeignLanguageList.forEach(item -> item.setFileHeaderId(item.getAttachment()));
             FileUtils.resolveFilesByHeaderId(hrEmpForeignLanguageList);
         } catch (Exception e) {
             log.warn("外语能力附件信息解析失败, {}", e.getMessage());

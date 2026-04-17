@@ -111,4 +111,7 @@ public class HrEmpForeignLanguage extends BaseEntity implements Serializable, Di
     @Schema(description = "通过fileHeaderId，查询回的文件列表")
     @TableField(exist = false)
     private List<SysFileDTO> files;
+
+    @TableField(exist = false)
+    private String fileHeaderId;
 }

@@ -22,6 +22,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -385,7 +386,9 @@ public class CallbackController {
 
     /**
      * 更新专业职务任职资格信息
+     * @deprecated 不会回调，只会被人事令驱动
      */
+    @Deprecated
     private void updateHrEmpProfessionalNew(List<HrEmpProfessionalQualification> changedData) {
         if (changedData == null || changedData.isEmpty()) {
             return;
@@ -632,7 +635,7 @@ public class CallbackController {
                 continue;
             }
 
-            if (hrEmpFamMember.getId() == null) {
+            if (hrEmpFamMember.getId() == null || hrEmpFamMember.getMarkList().stream().anyMatch("$NEW$"::equals)) {
                 // 生成新ID
                 hrEmpFamMember.setId(IdUtil.simpleUUID());
             }
@@ -685,7 +688,7 @@ public class CallbackController {
                 continue;
             }
 
-            if (hrEmpPaper.getId() == null) {
+            if (hrEmpPaper.getId() == null || hrEmpPaper.getMarkList().stream().anyMatch("$NEW$"::equals)) {
                 // 生成新ID
                 hrEmpPaper.setId(IdUtil.simpleUUID());
             }
@@ -726,7 +729,7 @@ public class CallbackController {
                 continue;
             }
 
-            if (hrEmpPatent.getId() == null) {
+            if (hrEmpPatent.getId() == null || hrEmpPatent.getMarkList().stream().anyMatch("$NEW$"::equals)) {
                 // 生成新ID
                 hrEmpPatent.setId(IdUtil.simpleUUID());
             }
@@ -767,7 +770,7 @@ public class CallbackController {
                 continue;
             }
 
-            if (hrEmpHonor.getId() == null) {
+            if (hrEmpHonor.getId() == null || hrEmpHonor.getMarkList().stream().anyMatch("$NEW$"::equals)) {
                 // 生成新ID
                 hrEmpHonor.setId(IdUtil.simpleUUID());
             }
@@ -808,7 +811,7 @@ public class CallbackController {
                 continue;
             }
 
-            if (lang.getId() == null) {
+            if (lang.getId() == null || lang.getMarkList().stream().anyMatch("$NEW$"::equals)) {
                 // 生成新ID
                 lang.setId(IdUtil.simpleUUID());
             }
@@ -964,7 +967,7 @@ public class CallbackController {
                 continue;
             }
 
-            if (hrEmpEducation.getId() == null) {
+            if (hrEmpEducation.getId() == null || hrEmpEducation.getMarkList().stream().anyMatch(e -> ObjectUtils.nullSafeEquals(e, "$NEW$"))) {
                 // 生成新ID
                 hrEmpEducation.setId(IdUtil.simpleUUID());
             }

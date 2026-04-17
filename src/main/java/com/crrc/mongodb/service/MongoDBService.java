@@ -1,5 +1,6 @@
 package com.crrc.mongodb.service;
 
+import com.crrc.utils.DiffMarkable;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
@@ -8,8 +9,10 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class MongoDBService {
@@ -54,6 +57,27 @@ public class MongoDBService {
             throw new IllegalArgumentException(e);
         }
         BeanUtils.copyProperties(obj, data);
+
+        BeanWrapper beanWrapper = new BeanWrapperImpl(data);
+        if(beanWrapper.isReadableProperty("list")) {
+            Class<?> propertyClass = beanWrapper.getPropertyType("list");
+            if(propertyClass != null && List.class.isAssignableFrom(propertyClass)) {
+                List<Object> value = (List<Object>) beanWrapper.getPropertyValue("list");
+                if(value != null) {
+                    value = value.stream().filter(e -> {
+                        if(e instanceof DiffMarkable && ((DiffMarkable) e).getMarkList() != null && !((DiffMarkable) e).getMarkList().isEmpty()) {
+                            return ((DiffMarkable) e).getMarkList().stream().noneMatch("$DELETE$"::equals);
+                        }
+                        return true;
+                    }).collect(Collectors.toList());
+
+                    if(beanWrapper.isWritableProperty("list")) {
+                        beanWrapper.setPropertyValue("list", value);
+                    }
+                }
+            }
+        }
+
         setDataId(data, userCode);
         mongoTemplate.save(data, collectionName);
     }
