@@ -104,4 +104,9 @@ public class PositionInfo extends BaseEntity {
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"上级职位名称"})
     private String parentPositionName;
+
+    @Schema(description = "标准岗级")
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"标准岗级"})
+    private String jobGrade;
 }
