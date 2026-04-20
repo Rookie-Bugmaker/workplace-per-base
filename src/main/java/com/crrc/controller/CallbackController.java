@@ -6,7 +6,7 @@ import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.crrc.annotation.IgnoreTenant;
 import com.crrc.client.WorkFlowClient;
 import com.crrc.entity.*;
-import com.crrc.feign.WorkflowApi;
+import com.crrc.client.WorkflowApi;
 import com.crrc.mongodb.*;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
@@ -22,6 +22,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -91,6 +92,8 @@ public class CallbackController {
     private HrEmpPatentServiceImpl hrEmpPatentService;
     @Autowired
     private HrEmpHonorServiceImpl hrEmpHonorService;
+    @Autowired
+    private HrEmpForeignLanguageServiceImpl hrEmpForeignLanguageService;
 
     @Autowired
     private MongoTemplate mongoTemplate;
@@ -124,6 +127,8 @@ public class CallbackController {
         PATENT,
         // 荣誉
         HONOR,
+        // 外语能力
+        LANGUAGE,
     }
 
 
@@ -178,6 +183,8 @@ public class CallbackController {
                     return processPatentRequest(param);
                 case "honor":
                     return processHonorRequest(param);
+                case "language":
+                    return processLanguageRequest(param);
                 default:
                     return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "不支持的变更类型: " , false);
             }
@@ -379,7 +386,9 @@ public class CallbackController {
 
     /**
      * 更新专业职务任职资格信息
+     * @deprecated 不会回调，只会被人事令驱动
      */
+    @Deprecated
     private void updateHrEmpProfessionalNew(List<HrEmpProfessionalQualification> changedData) {
         if (changedData == null || changedData.isEmpty()) {
             return;
@@ -550,6 +559,33 @@ public class CallbackController {
     }
 
     /**
+     * 处理外语能力变更请求
+     */
+    private ResponseResult<Boolean> processLanguageRequest(WorkflowWriteBackParamDTO param) {
+        Query query = new Query(Criteria.where("_id").is(param.getBizId()));
+
+        log.info("流程实例ID：{}", param.getBizId());
+        HrEmpForeignLanguageChangeRequest request = mongoTemplate.findOne(query, HrEmpForeignLanguageChangeRequest.class);
+
+        if (request == null) {
+            return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "外语能力变更申请不存在", false);
+        }
+
+        log.info("等待更新的外语能力变更数据：{}", JSON.toJSONString(request.getChangedData(), SerializerFeature.PrettyFormat));
+
+        return processRequest(
+                request,
+                request.getStatus(),
+                request.getUserCode(),
+                request::setStatus,
+                () -> updateHrEmpForeignLanguageNew(request.getChangedData()),
+                APPROVED::equals,
+                param.getProcessInstanceStatus(),
+                UpdateType.LANGUAGE
+        );
+    }
+
+    /**
      * 处理家庭主要成员的变更请求
      */
     private ResponseResult<Boolean> processFamilyRequest(WorkflowWriteBackParamDTO param) {
@@ -599,7 +635,7 @@ public class CallbackController {
                 continue;
             }
 
-            if (hrEmpFamMember.getId() == null) {
+            if (hrEmpFamMember.getId() == null || hrEmpFamMember.getMarkList().stream().anyMatch("$NEW$"::equals)) {
                 // 生成新ID
                 hrEmpFamMember.setId(IdUtil.simpleUUID());
             }
@@ -616,7 +652,7 @@ public class CallbackController {
             toSaveOrUpdate.add(hrEmpFamMember);
         }
         // 没有紧急联系人,且家庭成员列表不为空时
-        if(isEmergency && !changedData.isEmpty()) {
+        if(isEmergency && !changedData.isEmpty() && changedData.size() != deleteIdList.size()) {
             throw new RuntimeException("录入员工主要家庭成员中未设置紧急联系人！");
         }
 
@@ -652,7 +688,7 @@ public class CallbackController {
                 continue;
             }
 
-            if (hrEmpPaper.getId() == null) {
+            if (hrEmpPaper.getId() == null || hrEmpPaper.getMarkList().stream().anyMatch("$NEW$"::equals)) {
                 // 生成新ID
                 hrEmpPaper.setId(IdUtil.simpleUUID());
             }
@@ -693,7 +729,7 @@ public class CallbackController {
                 continue;
             }
 
-            if (hrEmpPatent.getId() == null) {
+            if (hrEmpPatent.getId() == null || hrEmpPatent.getMarkList().stream().anyMatch("$NEW$"::equals)) {
                 // 生成新ID
                 hrEmpPatent.setId(IdUtil.simpleUUID());
             }
@@ -734,7 +770,7 @@ public class CallbackController {
                 continue;
             }
 
-            if (hrEmpHonor.getId() == null) {
+            if (hrEmpHonor.getId() == null || hrEmpHonor.getMarkList().stream().anyMatch("$NEW$"::equals)) {
                 // 生成新ID
                 hrEmpHonor.setId(IdUtil.simpleUUID());
             }
@@ -749,6 +785,51 @@ public class CallbackController {
         // 批量删除
         if (!deleteIdList.isEmpty()) {
             hrEmpHonorService.removeByIds(deleteIdList);
+        }
+    }
+
+    /**
+     * 更新外语能力信息
+     */
+    private void updateHrEmpForeignLanguageNew(List<HrEmpForeignLanguage> changedData) {
+        if (changedData == null || changedData.isEmpty()) {
+            return;
+        }
+        // 获取用户编码
+        String userCode = changedData.get(0).getUserCode();
+
+        // 准备新增、更新的数据
+        List<HrEmpForeignLanguage> toSaveOrUpdate = new ArrayList<>();
+
+        // 新增待删除数据列表
+        List<String> deleteIdList = new ArrayList<>();
+
+        for (HrEmpForeignLanguage lang : changedData) {
+            // 检查删除标记，有就删除
+            if (!lang.getMarkList().isEmpty() && ("$DELETE$").equals(lang.getMarkList().get(0))) {
+                deleteIdList.add(lang.getId());
+                continue;
+            }
+
+            if (lang.getId() == null || lang.getMarkList().stream().anyMatch("$NEW$"::equals)) {
+                // 生成新ID
+                lang.setId(IdUtil.simpleUUID());
+            }
+
+            lang.setUserCode(userCode);
+            // 校验证书手写内容：仅当证书名称码值为"10"时允许填写
+            if (!"10".equals(lang.getCertificateName())) {
+                lang.setCertificateNameWrite(null);
+            }
+            toSaveOrUpdate.add(lang);
+        }
+
+        // 批量保存或更新
+        hrEmpForeignLanguageService.saveOrUpdateBatch(toSaveOrUpdate);
+
+        // 批量删除
+        if (!deleteIdList.isEmpty()) {
+            hrEmpForeignLanguageService.removeByIds(deleteIdList);
         }
     }
 
@@ -886,7 +967,7 @@ public class CallbackController {
                 continue;
             }
 
-            if (hrEmpEducation.getId() == null) {
+            if (hrEmpEducation.getId() == null || hrEmpEducation.getMarkList().stream().anyMatch(e -> ObjectUtils.nullSafeEquals(e, "$NEW$"))) {
                 // 生成新ID
                 hrEmpEducation.setId(IdUtil.simpleUUID());
             }
@@ -903,7 +984,7 @@ public class CallbackController {
             toSaveOrUpdate.add(hrEmpEducation);
         }
         // 没有最高学历,且教育信息列表不为空时
-        if(isHighestEdu && !changedData.isEmpty()) {
+        if(isHighestEdu && !changedData.isEmpty() && deleteIdList.size() != changedData.size()) {
             throw new RuntimeException("录入教育经历中未设置最高学历！");
         }
 
@@ -925,8 +1006,10 @@ public class CallbackController {
     private void updateIsUpdating(String isUpdating, String userCode, UpdateType updateType) {
         switch (updateType) {
             case BASIC:
-            case PICTURE:
                 updateBasicIsUpdating(isUpdating, userCode);
+                break;
+            case PICTURE:
+                updatePicIsUpdating(isUpdating, userCode);
                 break;
             case EDU:
                 updateEduIsUpdating(isUpdating, userCode);
@@ -958,9 +1041,24 @@ public class CallbackController {
             case HONOR:
                 updateHonorIsUpdating(isUpdating, userCode);
                 break;
+            case LANGUAGE:
+                updateLanguageIsUpdating(isUpdating, userCode);
+                break;
             default:
                 log.warn("未知的更新类型: {}", updateType);
                 break;
+        }
+    }
+
+    private void updatePicIsUpdating(String isUpdating, String userCode) {
+        List<HrEmpBasicDTO> basics = hrEmpBasicService.selectMsg(userCode);
+        if (!basics.isEmpty()) {
+            HrEmpBasic temp = basics.get(0);
+            temp.setIsPicUpdating(isUpdating);
+            // 防止dept被误修改
+            temp.setDept(null);
+            temp.setOrgCode(null);
+            hrEmpBasicService.updateById(temp);
         }
     }
 
@@ -1039,6 +1137,14 @@ public class CallbackController {
         for(HrEmpHonor temp : honor) {
             temp.setIsUpdating(isUpdating);
             hrEmpHonorService.updateById(temp);
+        }
+    }
+
+    private void updateLanguageIsUpdating(String isUpdating, String userCode) {
+        List<HrEmpForeignLanguage> languages = hrEmpForeignLanguageService.selectMsg(userCode);
+        for(HrEmpForeignLanguage temp : languages) {
+            temp.setIsUpdating(isUpdating);
+            hrEmpForeignLanguageService.updateById(temp);
         }
     }
 

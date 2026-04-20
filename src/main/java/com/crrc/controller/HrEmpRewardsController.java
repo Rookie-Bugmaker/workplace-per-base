@@ -242,6 +242,13 @@ public class HrEmpRewardsController {
             List<HrEmpRewards> originalData = hrEmpRewardsService.selectMsg(changeReqVO.getUserCode());
             log.info("员工奖励情况原始数据：{}", JSON.toJSONString(originalData));
 
+            // 检查是否存在正在修改中的数据
+            for (HrEmpRewards item : originalData) {
+                if ("1".equals(item.getIsUpdating())) {
+                    throw new IllegalArgumentException("请不要重复提交");
+                }
+            }
+
             // 2. 创建变更申请文档
             HrEmpRewardsChangeRequest changeRequest = new HrEmpRewardsChangeRequest();
             changeRequest.setId(IdUtil.simpleUUID());

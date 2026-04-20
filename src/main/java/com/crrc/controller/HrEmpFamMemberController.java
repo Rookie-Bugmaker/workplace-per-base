@@ -34,6 +34,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
@@ -262,8 +263,6 @@ public class HrEmpFamMemberController {
     @PostMapping("/submit-change")
     @Operation(summary = "提交员工家庭成员变更申请")
     public ResponseResult<String> submitChange(@Valid @RequestBody HrEmpFamMemberDTO changeReqVO) {
-        // 直接保存暂存数据
-        mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_fam_member_submit_data");
         try {
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
             if (flag) {
@@ -279,6 +278,21 @@ public class HrEmpFamMemberController {
             // 1. 获取当前数据快照
             List<HrEmpFamMember> originalData = hrEmpFamMemberService.selectMsg(changeReqVO.getUserCode());
             log.info("提交审批流时查询回来的家庭成员原始数据：{}", JSON.toJSONString(originalData, SerializerFeature.PrettyFormat));
+
+            // 检查是否存在正在修改中的数据
+            for (HrEmpFamMember item : originalData) {
+                if ("1".equals(item.getIsUpdating())) {
+                    throw new IllegalArgumentException("请不要重复提交");
+                }
+            }
+
+            // 如果没有数据，需要校验mongoDB中是否存在已有数据
+            if (ObjectUtils.isEmpty(originalData)) {
+                List<HrEmpFamMemberChangeRequest> reqs = mongoDBService.getByUserCode(changeReqVO.getUserCode(), HrEmpFamMemberChangeRequest.class, "hr_emp_famMem_change_requests");
+                if (reqs.stream().anyMatch(e -> "PENDING".equals(e.getStatus()))) {
+                    throw new IllegalArgumentException("请不要重复提交");
+                }
+            }
 
             // 2. 验证紧急联系人设置
             boolean isEmergency = true;
@@ -314,6 +328,9 @@ public class HrEmpFamMemberController {
             // 4. 保存到MongoDB
             mongoTemplate.save(changeRequest);
             log.info("家庭成员变更请求已保存: {}", changeRequest);
+
+            // 保存到MongoDB之后再保存暂存数据
+            mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_fam_member_submit_data");
 
             // 5. 启动审批流程
             StartProcessInstanceDTO instanceDTO = new StartProcessInstanceDTO();
@@ -383,7 +400,7 @@ public class HrEmpFamMemberController {
             return new ResponseResult<>(HttpStatus.OK.value(), "家庭成员变更申请已提交", changeRequest.getId());
         } catch (Exception e) {
             log.error("提交家庭成员变更申请失败: {}", e.getMessage(), e);
-            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "提交失败");
+            return ResponseResult.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage());
         }
     }
 

@@ -752,6 +752,34 @@ public class HrEmpBasicController {
         return ResponseResult.success("OK");
     }
 
+    @PostMapping("/export/politicalStatus/template")
+    @Transactional(rollbackFor = Exception.class)
+    public void exportPoliticalStatusTemplate(@RequestParam(required = false, defaultValue = "xlsx") String type,
+                                              HttpServletResponse response) throws IOException {
+        String contentType = "csv".equals(type) ? "text/csv;charset=UTF-8" :
+                ("xls".equals(type) ? "application/vnd.ms-excel" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setContentType(contentType);
+        response.setCharacterEncoding("utf-8");
+        // 这里URLEncoder.encode可以防止中文乱码
+        String fileName = URLEncoder.encode("专利信息表报表-" + new SimpleDateFormat("yyyyMMddhhmmss")
+                        .format(System.currentTimeMillis()), "UTF-8")
+                .replaceAll("\\+", "%20");
+        response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." + type);
+
+        List<HrEmpPatent> emptyList = new ArrayList<>();
+        ExcelTypeEnum typeEnum = "csv".equals(type) ? ExcelTypeEnum.CSV : ("xls".equals(type) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
+        EasyExcelFactory.write(response.getOutputStream())
+                .head(Arrays.asList(
+                        Collections.singletonList("档案号"),
+                        Collections.singletonList("政治面貌")
+                ))
+                .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
+                .autoCloseStream(true)
+                .excelType(typeEnum)
+                .sheet("政治面貌导入模板")
+                .doWrite(emptyList);
+    }
+
     @PostMapping("/setCategory8Batch")
     public ResponseResult<Boolean> setCategory8Batch(@RequestBody MultipartFile file) throws IOException {
         if(RoleUtils.checkAnyMatch("hrsc_admin")) {
@@ -1112,9 +1140,6 @@ public class HrEmpBasicController {
             changeReqVO.setDept(null);
             changeReqVO.setOrgCode(null);
 
-            // 直接保存暂存数据
-            mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_basic_submit_data");
-
             HrEmpBasic basic = hrEmpBasicService.getByUserCode(changeReqVO.getUserCode());
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin") || ("0".equals(basic.getIsEmployed()) && RoleUtils.checkAnyMatch("hrsc_emp_non_inc_info_mgr"));
             if (flag) {
@@ -1133,7 +1158,7 @@ public class HrEmpBasicController {
             if (originalData == null) {
                 return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "员工信息不存在");
             }
-            if ("1".equals(originalData.getIsUpdating()) && !"013200031192".equals(changeReqVO.getUserCode())) {
+            if ("1".equals(originalData.getIsUpdating())) {
                 throw new IllegalArgumentException("请不要重复提交");
             }
 
@@ -1152,6 +1177,9 @@ public class HrEmpBasicController {
             // 3. 保存到MongoDB
             mongoTemplate.save(changeRequest);
             log.info("流程测试changeRequest" + changeRequest);
+
+            // 保存到MongoDB之后再保存暂存数据
+            mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_basic_submit_data");
 
             // 4. 启动审批流程
             // 封装数据，提交审批流

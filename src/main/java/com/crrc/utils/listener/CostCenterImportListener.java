@@ -40,9 +40,10 @@ public class CostCenterImportListener implements ReadListener<HrEmpSalaryInfo> {
                 existMsgList.get(0).setDepartmentCode(hrEmpSalaryInfo.getDepartmentCode());
                 buffer.add(existMsgList.get(0));
             } else {
-                hrEmpSalaryInfo.setId(IdUtil.simpleUUID());
-                buffer.add(hrEmpSalaryInfo);
-
+                errors.add("第 " + rowIndex + "行，该人员无薪资信息，不计入本部工资系统，无法导入成本中心，请删除人员后重试");
+                return;
+//                hrEmpSalaryInfo.setId(IdUtil.simpleUUID());
+//                buffer.add(hrEmpSalaryInfo);
             }
             if(buffer.size() > 1000) {
                 flush();

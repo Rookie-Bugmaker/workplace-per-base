@@ -244,6 +244,13 @@ public class HrEmpProfessionalQualificationController {
             List<HrEmpProfessionalQualification> originalData = hrEmpProfessionalQualificationService.selectMsg(changeReqVO.getUserCode());
             log.info("专业职务任职资格原始数据：{}", JSON.toJSONString(originalData));
 
+            // 检查是否存在正在修改中的数据
+            for (HrEmpProfessionalQualification item : originalData) {
+                if ("1".equals(item.getIsUpdating())) {
+                    throw new IllegalArgumentException("请不要重复提交");
+                }
+            }
+
             // 2. 创建变更申请文档
             HrEmpProfessionalChangeRequest changeRequest = new HrEmpProfessionalChangeRequest();
             changeRequest.setId(IdUtil.simpleUUID());

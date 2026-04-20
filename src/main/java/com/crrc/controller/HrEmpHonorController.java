@@ -37,6 +37,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
@@ -268,9 +269,6 @@ public class HrEmpHonorController {
     @PostMapping("/submit-change")
     @Operation(summary = "提交员工荣誉变更申请")
     public ResponseResult<List<String>> submitChange(@Valid @RequestBody HrEmpHonorDTO changeReqVO) {
-        // 直接保存暂存数据
-        mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_honor_submit_data");
-
         try {
             // ================== 超级管理员直接更新 ==================
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
@@ -320,8 +318,26 @@ public class HrEmpHonorController {
             // ================== 查询原始数据（只查一次）==================
             List<HrEmpHonor> originalData = getMsg(changeReqVO.getUserCode()).getData();
 
+            // 检查是否存在正在修改中的数据
+            for (HrEmpHonor item : originalData) {
+                if ("1".equals(item.getIsUpdating())) {
+                    throw new IllegalArgumentException("请不要重复提交");
+                }
+            }
+
+            // 如果没有数据，需要校验mongoDB中是否存在已有数据
+            if (ObjectUtils.isEmpty(originalData)) {
+                List<HrEmpHonorChangeRequest> reqs = mongoDBService.getByUserCode(changeReqVO.getUserCode(), HrEmpHonorChangeRequest.class, "hr_emp_honor_change_requests");
+                if (reqs.stream().anyMatch(e -> "PENDING".equals(e.getStatus()))) {
+                    throw new IllegalArgumentException("请不要重复提交");
+                }
+            }
+
             // ================== 使用diffResolver扫描变更字段 ==================
             diffResolver.resolveDifference(originalData, changeReqVO.getList(), HrEmpHonor.class);
+
+            // 保存到MongoDB之后再保存暂存数据
+            mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_honor_submit_data");
 
             // ================== 按归口单位分组处理数据 ==================
             Map<String, List<HrEmpHonor>> responsibleUnitGroup = new HashMap<>();
@@ -426,7 +442,7 @@ public class HrEmpHonorController {
 
         } catch (Exception e) {
             log.error("提交变更申请失败: {}", e.getMessage(), e);
-            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "提交失败");
+            return ResponseResult.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage());
         }
     }
 

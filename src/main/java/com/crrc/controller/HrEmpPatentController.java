@@ -37,6 +37,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
@@ -269,9 +270,6 @@ public class HrEmpPatentController {
     @Operation(summary = "提交员工专利变更申请")
     public ResponseResult<List<String>> submitChange(@Valid @RequestBody HrEmpPatentDTO changeReqVO) {
 
-        // 直接保存暂存数据
-        mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_patent_submit_data");
-
         try {
             // ================== 超级管理员直接更新 ==================
             boolean flag = RoleUtils.checkAnyMatch("hrsc_super_admin");
@@ -320,6 +318,21 @@ public class HrEmpPatentController {
             // ================== 查询原始数据（只查一次） ==================
             List<HrEmpPatent> originalData = getMsg(changeReqVO.getUserCode()).getData();
 
+            // 检查是否存在正在修改中的数据
+            for (HrEmpPatent item : originalData) {
+                if ("1".equals(item.getIsUpdating())) {
+                    throw new IllegalArgumentException("请不要重复提交");
+                }
+            }
+
+            // 如果没有数据，需要校验mongoDB中是否存在已有数据
+            if (ObjectUtils.isEmpty(originalData)) {
+                List<HrEmpPatentChangeRequest> reqs = mongoDBService.getByUserCode(changeReqVO.getUserCode(), HrEmpPatentChangeRequest.class, "hr_emp_patent_change_requests");
+                if (reqs.stream().anyMatch(e -> "PENDING".equals(e.getStatus()))) {
+                    throw new IllegalArgumentException("请不要重复提交");
+                }
+            }
+
             // 创建变更申请
             HrEmpPatentChangeRequest changeRequest = new HrEmpPatentChangeRequest();
             changeRequest.setId(IdUtil.simpleUUID());
@@ -333,6 +346,9 @@ public class HrEmpPatentController {
             changeRequest.setStatus("PENDING");
             mongoTemplate.save(changeRequest);
 
+            // 保存到MongoDB之后再保存暂存数据
+            mongoDBService.saveDataByUserCode(changeReqVO, changeReqVO.getUserCode(), "hr_emp_patent_submit_data");
+
             // 启动流程
             StartProcessInstanceDTO instanceDTO = createProcessInstanceDTO(deptCode, parentCode, changeReqVO, changeRequest.getId());
             ResultData<ProcessInstanceVo> processInstanceVo = wkWorkflowApi.startProcessInstance(instanceDTO);
@@ -341,12 +357,10 @@ public class HrEmpPatentController {
             changeRequest.setProcessInstanceId(processInstanceVo.getResult().getProcessInstanceId());
             mongoTemplate.save(changeRequest);
 
-
-
             return new ResponseResult<>(HttpStatus.OK.value(), "变更申请已提交");
         } catch (Exception e) {
             log.error("提交变更申请失败: {}", e.getMessage(), e);
-            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "提交失败");
+            return ResponseResult.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage());
         }
     }
 

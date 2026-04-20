@@ -22,9 +22,7 @@ import java.util.List;
 public class ExceptionNotifyFilter extends OncePerRequestFilter {
 
     private final MessageUtils messageUtils;
-
-    @Value("${crrc.env}")
-    private String env;
+    private final String env;
 
     @Override
     protected void doFilterInternal(@NotNull HttpServletRequest request,
