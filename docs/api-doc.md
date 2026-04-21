@@ -460,11 +460,11 @@ Content-Type: application/json
 
 **与 `/pageFullForOrder` 的区别**:
 - `/page` 使用精确查询，所有条件为等值匹配
-- `/pageFullForOrder` 支持模糊查询（name 字段可模糊匹配姓名或档案号），且额外为每条记录补充组织/公司层级信息（org、orgCode、orgName），专门为外部派入、借出业务场景设计
+- `/pageFullForOrder` 支持模糊查询（name 字段可模糊匹配姓名或档案号），且额外为每条记录补充组织/公司层级信息（org、orgCode、orgName），专门为人事令前端选人场景设计
 
 ---
 
-### 9. 分页查询（支持模糊查询，外部派入/借出场景）
+### 9. 分页查询（支持模糊查询，人事使用）
 
 - **接口路径**: `POST /hrEmpBasic/pageFullForOrder`
 - **功能说明**: 分页查询员工信息，支持模糊查询。`name` 参数可模糊匹配姓名或档案号（全数字时自动识别为档案号）。自动补充组织/公司层级信息。
