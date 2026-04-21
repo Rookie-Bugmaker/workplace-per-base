@@ -1173,18 +1173,18 @@ GET /hrEmpBasic/getDutyStatusDict
 
 ### 查询类接口对比
 
-| 接口 | 方法 | 返回类型 | 查询方式 | 是否分页 | 扩展字段 | 主要用途      |
-|------|------|----------|----------|----------|----------|-----------|
-| `/getList` | POST | `List<HrEmpBasic>` | 档案号列表精确查询 | 否 | 无 | 批量获取原始实体  |
-| `/getDetails` | GET | `List<HrEmpBasicDTO>` | 单个档案号查询 | 否 | 有 | 单个员工详情    |
-| `/getDetailList` | POST | `List<HrEmpBasicDTO>` | 档案号列表精确查询 | 否 | 有 | 批量获取详情    |
-| `/get` | GET | `HrEmpBasic` | 主键 ID 精确查询 | 否 | 无 | 单条记录查询    |
-| `/getFullData` | POST | `List<HrFullDataDTO>` | 档案号列表精确查询 | 否 | 9 模块全量数据 | 获取员工完整信息  |
-| `/page` | POST | `IPage<HrEmpBasicDTO>` | 精确条件过滤 | 是 | 有 | 常规分页查询    |
-| `/pageFullForOrder` | POST | `IPage<HrEmpBasicDTO>` | 模糊查询 | 是 | 有 + 组织层级 | 暂不知什么场景   |
-| `/pageForPerSelf` | POST | `Page<HrEmpBasic>` | 模糊查询 | 是 | 无 | 个人信息查询    |
-| `/pageForException` | POST | `Page<ExceptionPersonQueryDTO>` | 模糊查询 | 是 | 有 | 外部派入，借出接口 |
-| `/query` | POST | `List<HrEmpBasic>` | 精确条件过滤 | 否 | 无 | 非分页列表查询   |
+| 接口 | 方法 | 返回类型 | 查询方式 | 是否分页 | 扩展字段 | 主要用途                   |
+|------|------|----------|----------|----------|----------|------------------------|
+| `/getList` | POST | `List<HrEmpBasic>` | 档案号列表精确查询 | 否 | 无 | 批量获取原始实体               |
+| `/getDetails` | GET | `List<HrEmpBasicDTO>` | 单个档案号查询 | 否 | 有 | 单个员工详情                 |
+| `/getDetailList` | POST | `List<HrEmpBasicDTO>` | 档案号列表精确查询 | 否 | 有 | 批量获取详情                 |
+| `/get` | GET | `HrEmpBasic` | 主键 ID 精确查询 | 否 | 无 | 单条记录查询                 |
+| `/getFullData` | POST | `List<HrFullDataDTO>` | 档案号列表精确查询 | 否 | 9 模块全量数据 | 获取员工完整信息，人事令前端带入详细信息使用 |
+| `/page` | POST | `IPage<HrEmpBasicDTO>` | 精确条件过滤 | 是 | 有 | 常规分页查询                 |
+| `/pageFullForOrder` | POST | `IPage<HrEmpBasicDTO>` | 模糊查询 | 是 | 有 + 组织层级 | 人事令前端选人使用              |
+| `/pageForPerSelf` | POST | `Page<HrEmpBasic>` | 模糊查询 | 是 | 无 | 个人信息查询                 |
+| `/pageForException` | POST | `Page<ExceptionPersonQueryDTO>` | 模糊查询 | 是 | 有 | 外部派入，借出接口              |
+| `/query` | POST | `List<HrEmpBasic>` | 精确条件过滤 | 否 | 无 | 非分页列表查询                |
 
 ### 导入/导出类接口对比
 
