@@ -1217,31 +1217,42 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         }
 
         // 如果是借，那么取其他任职最新一条，否则取任职信息最新一条
-        if("002".equals(category8)) {
-            data.appointmentList = hrEmpOtherAppointmentMapper.selectList(
-                    JoinWrappers.lambda(HrEmpOtherAppointment.class)
-                            .selectAll()
-                            .eq(HrEmpOtherAppointment::getUserCode, userCode)
-                            .orderByDesc(HrEmpOtherAppointment::getCreateTime)
-                            .last("NULLS LAST")
-                    ).stream().filter(e -> e.getStartDate() != null).sorted(
-                            Comparator.comparing(HrEmpOtherAppointment::getStartDate).reversed()
-                    ).map(item -> {
-                        HrEmpAppointment hrEmpAppointment = new HrEmpAppointment();
-                        BeanUtils.copyProperties(item, hrEmpAppointment);
-                        return hrEmpAppointment;
-                    }).collect(Collectors.toList());
+        if ("002".equals(category8)) {
+            List<HrEmpOtherAppointment> otherAppointments = hrEmpOtherAppointmentMapper.selectList(
+                            JoinWrappers.lambda(HrEmpOtherAppointment.class)
+                                    .selectAll()
+                                    .eq(HrEmpOtherAppointment::getUserCode, userCode)
+                                    .orderByDesc(HrEmpOtherAppointment::getCreateTime)
+                                    .last("NULLS LAST")
+                    ).stream()
+                    .filter(e -> e.getStartDate() != null)
+                    .sorted(Comparator.comparing(HrEmpOtherAppointment::getStartDate).reversed())
+                    .collect(Collectors.toList());
+
+            if (!otherAppointments.isEmpty()) {
+                HrEmpAppointment hrEmpAppointment = new HrEmpAppointment();
+                BeanUtils.copyProperties(otherAppointments.get(0), hrEmpAppointment);
+                data.appointmentList = Collections.singletonList(hrEmpAppointment);
+            } else {
+                data.appointmentList = Collections.emptyList();
+            }
         } else {
-            // 任职信息（最新一条）
-            data.appointmentList = hrEmpAppointmentMapper.selectList(
-                    JoinWrappers.lambda(HrEmpAppointment.class)
-                            .selectAll()
-                            .eq(HrEmpAppointment::getUserCode, userCode)
-                            .orderByDesc(HrEmpAppointment::getCreateTime)
-                            .last("NULLS LAST")
-            ).stream().filter(e -> e.getStartDate() != null).sorted(
-                    Comparator.comparing(HrEmpAppointment::getStartDate).reversed()
-            ).collect(Collectors.toList());
+            List<HrEmpAppointment> appointments = hrEmpAppointmentMapper.selectList(
+                            JoinWrappers.lambda(HrEmpAppointment.class)
+                                    .selectAll()
+                                    .eq(HrEmpAppointment::getUserCode, userCode)
+                                    .orderByDesc(HrEmpAppointment::getCreateTime)
+                                    .last("NULLS LAST")
+                    ).stream()
+                    .filter(e -> e.getStartDate() != null)
+                    .sorted(Comparator.comparing(HrEmpAppointment::getStartDate).reversed())
+                    .collect(Collectors.toList());
+
+            if (!appointments.isEmpty()) {
+                data.appointmentList = Collections.singletonList(appointments.get(0));
+            } else {
+                data.appointmentList = Collections.emptyList();
+            }
         }
 
 
@@ -1426,7 +1437,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 }
             } catch (IllegalAccessException e) {
                 // 处理异常
-                e.printStackTrace();
+                log.info(e.getMessage());
             }
         }
         changedData.setMarkList(markList);
