@@ -302,12 +302,13 @@ public class HrEmpFlowableController {
 
         // ================== ⭐ 归口单位 → roleCode ==================
         Map<String, String> roleMap = new HashMap<>();
-        roleMap.put("1", "484734531758022656");   // 党委组织部
-        roleMap.put("2", "484734725752971264");   // 宣传部
-        roleMap.put("3", "484734899485237248");       // 团委
-        roleMap.put("4", "484735049175752704");       // 工会
-        roleMap.put("5", "484735169137041408");          // 人力资源部
-        roleMap.put("6", "484735447135510528");          // 其他
+        // TODO 这里应该用角色编码或配置到nacos里
+        roleMap.put("1", "493068586035871744");   // 党委组织部
+        roleMap.put("2", "493068417638748160");   // 宣传部
+        roleMap.put("3", "493068775740035072");       // 团委
+        roleMap.put("4", "493069276078555136");       // 工会
+        roleMap.put("5", "493068257726722048");          // 人力资源部
+        roleMap.put("6", "493068678860001280");          // 其他
 
         if (StringUtils.isNotBlank(responsibleUnit)) {
             roleCode = roleMap.get(responsibleUnit);
