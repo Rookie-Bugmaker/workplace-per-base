@@ -169,22 +169,25 @@ public class PositionInfoController {
 //        return new ResponseResult<>(HttpStatus.OK.value(), false);
 //    }
 
-    @PostMapping("/truncate/import")
+    /**
+     *
+     * @param file 导入文件，只输入编码code和标准岗级jobGrade
+     * @return 导入结果
+     */
+    @PostMapping("/import")
     @AuditLog(value = "导入报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
     @Operation(summary = "导入报表")
     public ResponseResult<Boolean> imports(MultipartFile file) throws IOException {
-        if (RoleUtils.checkAnyMatch("hrsc_admin")) {
-            openGaussJdbcTemplate.execute("TRUNCATE TABLE position_info");
-
+        try {
             EasyExcel.read(file.getInputStream(), PositionInfo.class,
                             new PositionInfoImportListener(positionInfoService))
                     .headRowNumber(1)
                     .sheet()
                     .doRead();
-
-            return new ResponseResult<>(HttpStatus.OK.value(), true);
+            return new ResponseResult<>(HttpStatus.OK.value(), "批量导入标准岗级成功！");
+        } catch (Exception e) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "批量导入失败，" + e.getMessage());
         }
-        return new ResponseResult<>(HttpStatus.OK.value(), false);
     }
 }
 

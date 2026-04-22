@@ -45,4 +45,9 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
         wrapper.last("order by update_time desc nulls last");
         baseMapper.selectPage(page, wrapper);
     }
+
+    @Override
+    public List<PositionInfo> selectByCodes(List<String> codes) {
+        return baseMapper.selectList(new QueryWrapper<PositionInfo>().in("code", codes));
+    }
 }

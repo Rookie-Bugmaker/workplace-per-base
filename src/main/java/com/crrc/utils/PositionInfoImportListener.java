@@ -6,9 +6,8 @@ import com.crrc.entity.PositionInfo;
 import com.crrc.service.impl.PositionInfoServiceImpl;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author myy
@@ -35,6 +34,11 @@ public class PositionInfoImportListener implements ReadListener<PositionInfo> {
             return;
         }
 
+        if (!StringUtils.hasText(row.getJobGrade())) {
+            errors.add("第 " + rowIndex + " 行：标准岗级为空");
+            return;
+        }
+
         if(row.getCode().startsWith("-")) {
             row.setCode(row.getCode().replaceFirst("-", ""));
         }
@@ -51,11 +55,47 @@ public class PositionInfoImportListener implements ReadListener<PositionInfo> {
             return;
         }
 
-        positionInfoService.saveBatch(buffer);
+        // 用于记录未被录入的职位编码
+        List<String> notExistCodes = new ArrayList<>();
 
+        // 用于保存最终需要更新的职位信息
+        List<PositionInfo> updatedPositions = new ArrayList<>();
+
+        // 遍历 buffer 中的职位信息，逐个查询是否存在
+        for (PositionInfo positionInfo : buffer) {
+            String code = positionInfo.getCode();
+
+            List<String> codes = new ArrayList<>();
+            codes.add(code);
+
+            // 单条查询
+            List<PositionInfo> existingList = positionInfoService.selectByCodes(codes);
+            if (existingList.isEmpty()) {
+                notExistCodes.add(code);
+                continue;
+            }
+
+            // 获取查询到的完整数据
+            PositionInfo existing = existingList.get(0);
+
+            // 设置标准岗级（使用 buffer 中的 jobGrade）
+            existing.setJobGrade(positionInfo.getJobGrade());
+
+            // 将更新后的数据加入待保存列表
+            updatedPositions.add(existing);
+        }
+
+        // 如果存在未被录入的职位编码，抛出异常
+        if (!notExistCodes.isEmpty()) {
+            throw new IllegalArgumentException("只允许录入已存在职位的标准岗级，职位编码" + String.join("、", notExistCodes) + "未被录入过，请检查导入Excel，删掉未录入的职位后进行重试");
+        }
+
+        // 执行批量保存或更新操作（使用查询后的完整数据）
+        positionInfoService.saveOrUpdateBatch(updatedPositions);
+
+        // 清空缓冲区
         buffer.clear();
     }
-
     @Override
     public void doAfterAllAnalysed(AnalysisContext analysisContext) {
         flush();
