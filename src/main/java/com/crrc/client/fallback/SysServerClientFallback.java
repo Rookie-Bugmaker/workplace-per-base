@@ -13,7 +13,7 @@ import java.util.List;
 
 /**
  * @author 谭永强
- * @date 2025-09-18
+ * 2025-09-18
  */
 @Component
 public class SysServerClientFallback implements SysServerClient {
@@ -34,6 +34,11 @@ public class SysServerClientFallback implements SysServerClient {
 
     @Override
     public ResultData<List<SysUserDTO>> findUserByRoleId(Long roleId) {
+        return ResultData.fallback();
+    }
+
+    @Override
+    public ResultData<List<SysUserDTO>> findUserByRoleCode(String roleCode) {
         return ResultData.fallback();
     }
 
