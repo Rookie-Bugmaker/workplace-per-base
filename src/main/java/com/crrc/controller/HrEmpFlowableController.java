@@ -241,7 +241,10 @@ public class HrEmpFlowableController {
                 log.info("子公司人员信息管理角色查询为空:{}", resultData);
             }
 
-            List<SysUserDTO> userByRoleId = resultData.getResult();
+            List<SysUserDTO> userByRoleId = null;
+            if (resultData != null) {
+                userByRoleId = resultData.getResult();
+            }
 
             // 排除在字典中配置过的人员
             List<String> userCodeList = userByRoleId.stream().map(SysUserDTO::getUserName).filter(userName -> !auditUserCodeList.contains(userName)).collect(Collectors.toList());
@@ -263,7 +266,10 @@ public class HrEmpFlowableController {
                 log.info("部门人员信息管理角色查询为空:{}", resultData);
             }
 
-            List<SysUserDTO> userByRoleId = resultData.getResult();
+            List<SysUserDTO> userByRoleId = null;
+            if (resultData != null) {
+                userByRoleId = resultData.getResult();
+            }
             // 排除在字典中配置过的人员
             List<String> userCodeList = userByRoleId.stream().map(SysUserDTO::getUserName).filter(userName -> !auditUserCodeList.contains(userName)).collect(Collectors.toList());
 
@@ -296,19 +302,15 @@ public class HrEmpFlowableController {
         log.info("查询参数 companyCode:{}, roleCode:{}, responsibleUnit:{}",
                 companyCode, roleCode, responsibleUnit);
 
-
-
-        List<SysUserDTO> result;
-
         // ================== ⭐ 归口单位 → roleCode ==================
         Map<String, String> roleMap = new HashMap<>();
-        // TODO 这里应该用角色编码或配置到nacos里
-        roleMap.put("1", "493068586035871744");   // 党委组织部
-        roleMap.put("2", "493068417638748160");   // 宣传部
-        roleMap.put("3", "493068775740035072");       // 团委
-        roleMap.put("4", "493069276078555136");       // 工会
-        roleMap.put("5", "493068257726722048");          // 人力资源部
-        roleMap.put("6", "493068678860001280");          // 其他
+        roleMap.put("1", "role_party_org");   // 党委组织部
+        roleMap.put("2", "role_publicity");   // 宣传部
+        roleMap.put("3", "role_youth");       // 团委
+        roleMap.put("4", "role_union");       // 工会
+        roleMap.put("5", "role_hr");          // 人力资源部
+        roleMap.put("6", "hr_other");          // 其他
+
 
         if (StringUtils.isNotBlank(responsibleUnit)) {
             roleCode = roleMap.get(responsibleUnit);
@@ -320,14 +322,15 @@ public class HrEmpFlowableController {
 
         // ================== ⭐ 调用新接口 ==================
 
-        ResultData<List<SysUserDTO>> resultData = sysServerClient.findUserByRoleId(Long.valueOf(roleCode));
+        // 注意!!! wkcoreApi的对应方法无效，请使用该方法通过roleCode查询角色下用户
+        ResultData<List<SysUserDTO>> resultData = sysServerClient.findUserByRoleCode(roleCode);
 
         if (resultData == null || ObjectUtils.isEmpty(resultData.getResult())) {
             log.info("角色查询为空:{}", roleCode);
             return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "未查到审批人数据!");
         }
 
-        result = resultData.getResult();
+        List<SysUserDTO> result = resultData.getResult();
 
         return ResponseResult.success(result);
     }

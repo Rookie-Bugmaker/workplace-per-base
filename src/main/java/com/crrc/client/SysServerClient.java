@@ -14,7 +14,7 @@ import java.util.List;
 
 /**
  * @author 谭永强
- * @date 2025-09-18
+ * 2025-09-18
  */
 @FeignClient(name = "sys-server", fallback = SysServerClientFallback.class)
 public interface SysServerClient {
@@ -55,6 +55,15 @@ public interface SysServerClient {
      */
     @GetMapping("/role/getBindUserByRoleId")
     ResultData<List<SysUserDTO>> findUserByRoleId(@RequestParam("roleId") Long roleId);
+
+    /**
+     * 注意wkcoreApi的方法无效，请使用该方法通过roleCode查询角色下用户
+     * 查询角色编码绑定的用户列表
+     * @param roleCode 角色编码
+     * @return 绑定的用户列表
+     */
+    @GetMapping("/role/get_role_users_by_roleCode")
+    ResultData<List<SysUserDTO>> findUserByRoleCode(@RequestParam("roleCode") String roleCode);
 
     /**
      * 根据租户id和角色编码获取用户信息

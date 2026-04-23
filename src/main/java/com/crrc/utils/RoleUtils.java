@@ -87,6 +87,55 @@ public class RoleUtils {
     }
 
     /**
+     * 判断当前登录用户是否全都不具有指定名称的角色编码列表中所有角色
+     * @param roleCodeSet 角色编码Set
+     * @return 是否不具有
+     */
+    public static boolean checkNoneMatch(Collection<String> roleCodeSet) {
+        try {
+            LoginUser currentUser = SecurityFrameworkUtils.getLoginUser();
+            if (currentUser == null) {
+                log.warn("获取当前登录用户失败!");
+                return false;
+            }
+
+            // 权限校验逻辑
+            List<UserWithRoleDTO> usersWithRoles = wkCoreApi.getUsersWithRoles(
+                    Collections.singletonList(currentUser.getUser().getId()));
+
+            return usersWithRoles.stream()
+                    .findFirst()
+                    .map(UserWithRoleDTO::getRoles)
+                    .orElse(Collections.emptyList())
+                    .stream()
+                    // 修复角色名引用
+                    .noneMatch(role -> roleCodeSet.contains(role.getRoleKey()));
+
+        } catch (Exception e) {
+            log.error("权限校验异常 | 角色: {} | 错误: {}", roleCodeSet, e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * 判断当前登录用户是否不具有指定名称的角色编码
+     * @param roleCode 角色编码
+     * @return 是否不具有
+     */
+    public static boolean checkNoneMatch(String roleCode) {
+        return checkNoneMatch(Collections.singletonList(roleCode));
+    }
+
+    /**
+     * 判断当前登录用户是否不具有指定名称的角色编码
+     * @param roleCodes 角色编码
+     * @return 是否不具有
+     */
+    public static boolean checkNoneMatch(String... roleCodes) {
+        return checkNoneMatch(new HashSet<>(Arrays.asList(roleCodes)));
+    }
+
+    /**
      * 判断当前登录用户是否具有指定名称的角色编码
      * @param roleCode 角色编码
      * @return 是否具有
