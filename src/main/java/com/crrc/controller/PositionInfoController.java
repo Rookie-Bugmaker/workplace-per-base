@@ -13,8 +13,6 @@ import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.service.impl.PositionInfoServiceImpl;
-import com.crrc.utils.PositionInfoImportListener;
-import com.crrc.utils.RoleUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -170,7 +168,6 @@ public class PositionInfoController {
 //    }
 
     /**
-     *
      * @param file 导入文件，只输入编码code和标准岗级jobGrade
      * @return 导入结果
      */
@@ -179,11 +176,7 @@ public class PositionInfoController {
     @Operation(summary = "导入报表")
     public ResponseResult<Boolean> imports(MultipartFile file) throws IOException {
         try {
-            EasyExcel.read(file.getInputStream(), PositionInfo.class,
-                            new PositionInfoImportListener(positionInfoService))
-                    .headRowNumber(1)
-                    .sheet()
-                    .doRead();
+            positionInfoService.importJobGrade(file);
             return new ResponseResult<>(HttpStatus.OK.value(), "批量导入标准岗级成功！");
         } catch (Exception e) {
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "批量导入失败，" + e.getMessage());

@@ -7,6 +7,7 @@ import com.crrc.service.impl.PositionInfoServiceImpl;
 import org.springframework.util.StringUtils;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -61,28 +62,30 @@ public class PositionInfoImportListener implements ReadListener<PositionInfo> {
         // 用于保存最终需要更新的职位信息
         List<PositionInfo> updatedPositions = new ArrayList<>();
 
+        // 构建查询出的code和position的map
+        Map<String, PositionInfo> resultMap = positionInfoService.selectByCodes(buffer.stream().map(PositionInfo::getCode).collect(Collectors.toList()))
+                .stream().collect(Collectors.toMap(
+                PositionInfo::getCode,
+                Function.identity(),
+                (a, b) -> a
+        ));
+
         // 遍历 buffer 中的职位信息，逐个查询是否存在
         for (PositionInfo positionInfo : buffer) {
-            String code = positionInfo.getCode();
 
-            List<String> codes = new ArrayList<>();
-            codes.add(code);
+            // 获取Map中的数据
+            PositionInfo existing = resultMap.get(positionInfo.getCode());
 
-            // 单条查询
-            List<PositionInfo> existingList = positionInfoService.selectByCodes(codes);
-            if (existingList.isEmpty()) {
-                notExistCodes.add(code);
-                continue;
+            // 如果Map中没有对应的code，证明没有查到
+            if (existing == null) {
+                notExistCodes.add(positionInfo.getCode());
+            } else {
+                // 设置标准岗级（使用 buffer 中的 jobGrade）
+                existing.setJobGrade(positionInfo.getJobGrade());
+
+                // 将更新后的数据加入待保存列表
+                updatedPositions.add(existing);
             }
-
-            // 获取查询到的完整数据
-            PositionInfo existing = existingList.get(0);
-
-            // 设置标准岗级（使用 buffer 中的 jobGrade）
-            existing.setJobGrade(positionInfo.getJobGrade());
-
-            // 将更新后的数据加入待保存列表
-            updatedPositions.add(existing);
         }
 
         // 如果存在未被录入的职位编码，抛出异常
