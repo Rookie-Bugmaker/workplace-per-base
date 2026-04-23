@@ -258,9 +258,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         // 确保只要HrEmpBasic表有数据就能显示
         // 注意：这个条件要在基础表分页里保留
         // 下面的权限逻辑只是改了“使用谁的 wrapper”，业务逻辑不变
-
+        // 如果有hrsc_emp_inc_info_mgr（公司在职人员信息管理），那么允许查看全公司
         if (
-                RoleUtils.checkAnyMatch("hrsc_sub_emp_info_mgr", "hrsc_dept_emp_info_mgr")
+                RoleUtils.checkAnyMatch("hrsc_sub_emp_info_mgr", "hrsc_dept_emp_info_mgr") &&
+                RoleUtils.checkNoneMatch("hrsc_emp_inc_info_mgr")
         ) {
 //            // 不查部门，查询公司
 //            dto.setDept(null);
@@ -312,7 +313,6 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 //            dto.setDeptSet(childrenOrgList.stream()
 //                    .map(OrganizationTreeDTO::getOrgCode)
 //                    .collect(Collectors.toSet()));
-
             String orgCode = getCurrentUserOrgCode();
 
             // 查找字典数据
