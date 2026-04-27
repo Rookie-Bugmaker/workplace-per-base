@@ -65,7 +65,7 @@ public interface HrEmpSalaryStandardMapper extends BaseMapper<HrEmpSalaryStandar
      */
     @Select("<script>" +
             "WITH ranked_data AS (" +
-            "    SELECT id, user_code, tenant_id" +
+            "    SELECT id, user_code, tenant_id," +
             "           ROW_NUMBER() OVER (" +
             "               PARTITION BY user_code " +
             "               ORDER BY " +
