@@ -254,7 +254,7 @@ public class HrEmpSalaryStandardController {
             try {
                 positionSalary = new BigDecimal(positionSalaryStr.trim());
             } catch (NumberFormatException e) {
-                log.warn("岗位工资格式错误，userCode={}, positionSalary={}", userCode, positionSalaryStr);
+                log.info("岗位工资格式错误，userCode={}, positionSalary={}", userCode, positionSalaryStr);
                 skipCount++;
                 continue;
             }
@@ -262,15 +262,23 @@ public class HrEmpSalaryStandardController {
             // 根据positionSalary找到对应的salaryGrade
             String salaryGrade = salaryToGradeMap.get(positionSalary);
             if (StrUtil.isBlank(salaryGrade)) {
-                log.warn("未找到匹配的岗级记录，userCode={}, positionSalary={}", userCode, positionSalary);
-                skipCount++;
-                continue;
+                // 尝试抹零处理（去除小数点后多余的0并避免科学计数法）
+                BigDecimal strippedPositionSalary = positionSalary.stripTrailingZeros();
+                // 转换为普通数字格式
+                strippedPositionSalary = new BigDecimal(strippedPositionSalary.toPlainString());
+                salaryGrade = salaryToGradeMap.get(strippedPositionSalary);
+                // 如果还是找不到，那就确实没有匹配记录了
+                if (StrUtil.isBlank(salaryGrade)) {
+                    log.info("未找到匹配的岗级记录，userCode={}, positionSalary={}", userCode, positionSalary);
+                    skipCount++;
+                    continue;
+                }
             }
 
             // 获取该用户最新的薪资标准
             HrEmpSalaryStandard standard = standardMap.get(userCode);
             if (standard == null) {
-                log.warn("未找到薪资标准记录，userCode={}", userCode);
+                log.info("未找到薪资标准记录，userCode={}", userCode);
                 skipCount++;
                 continue;
             }
