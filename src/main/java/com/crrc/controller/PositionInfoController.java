@@ -1,6 +1,7 @@
 package com.crrc.controller;
 
 import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.EasyExcelFactory;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -8,6 +9,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
 import com.crrc.annotation.TenantIgnore;
+import com.crrc.entity.HrEmpPatent;
 import com.crrc.entity.PositionInfo;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
@@ -29,6 +31,9 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -181,6 +186,39 @@ public class PositionInfoController {
         } catch (Exception e) {
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "批量导入失败，" + e.getMessage());
         }
+    }
+
+    /**
+     * 获得编码code和标准岗级jobGrade导入模板
+     */
+    @PostMapping("/export")
+    @AuditLog(value = "导入报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
+    @Operation(summary = "导入报表")
+    public void imports(@RequestParam(required = false, defaultValue = "xlsx") String type,
+                        HttpServletResponse response) throws IOException {
+        String contentType = "csv".equals(type) ? "text/csv;charset=UTF-8" :
+                ("xls".equals(type) ? "application/vnd.ms-excel" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setContentType(contentType);
+        response.setCharacterEncoding("utf-8");
+        // 这里URLEncoder.encode可以防止中文乱码
+        String fileName = URLEncoder.encode("专利信息表报表-" + new SimpleDateFormat("yyyyMMddhhmmss")
+                        .format(System.currentTimeMillis()), "UTF-8")
+                .replaceAll("\\+", "%20");
+        response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." + type);
+
+        List<List<String>> exampleList = Collections.singletonList(Arrays.asList("132010049", "40"));
+        ExcelTypeEnum typeEnum = "csv".equals(type) ? ExcelTypeEnum.CSV : ("xls".equals(type) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
+        EasyExcelFactory.write(response.getOutputStream())
+                .head(Arrays.asList(
+                        Collections.singletonList("编码"),
+                        Collections.singletonList("标准岗级"),
+                        Collections.singletonList("填写职位编码和对应的标准岗级，不要导入不存在的职位编码，解密文件后导入")
+                ))
+                .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
+                .autoCloseStream(true)
+                .excelType(typeEnum)
+                .sheet("政治面貌导入模板")
+                .doWrite(exampleList);
     }
 }
 
