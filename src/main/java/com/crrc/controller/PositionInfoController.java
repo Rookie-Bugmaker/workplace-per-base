@@ -130,33 +130,6 @@ public class PositionInfoController {
         return new ResponseResult<>(HttpStatus.OK.value(), "删除实体成功", positionInfoService.removeBatchByIds(idList));
     }
 
-    @PostMapping("/export")
-    @AuditLog(value = "导出报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
-    @Operation(summary = "导出报表")
-    public void exportPositionInfo(@Validated @RequestBody(required = false) PositionInfo exportReqVO,
-                                   @RequestParam(required = false, defaultValue = "xlsx") String type,
-                                   HttpServletResponse response) throws IOException {
-        String contentType = "csv".equals(type) ? "text/csv;charset=UTF-8" :
-                ("xls".equals(type) ? "application/vnd.ms-excel" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        response.setContentType(contentType);
-        response.setCharacterEncoding("utf-8");
-        // 这里URLEncoder.encode可以防止中文乱码
-        String fileName = URLEncoder.encode("报表-" + new SimpleDateFormat("yyyyMMddhhmmss")
-                        .format(System.currentTimeMillis()), "UTF-8")
-                .replaceAll("\\+", "%20");
-        response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." + type);
-
-        exportReqVO = (exportReqVO == null) ? new PositionInfo() : exportReqVO;
-        List<PositionInfo> positionInfoList = positionInfoService.query(exportReqVO);
-        ExcelTypeEnum typeEnum = "csv".equals(type) ? ExcelTypeEnum.CSV : ("xls".equals(type) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
-        EasyExcel.write(response.getOutputStream(), PositionInfo.class)
-                .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
-                .autoCloseStream(true)
-                .excelType(typeEnum)
-                .sheet("报表")
-                .doWrite(positionInfoList);
-    }
-
 //    @PostMapping("/setJobType")
 //    @Transactional(rollbackFor = Exception.class)
 //    public ResponseResult<Boolean> setJobType(@RequestBody MultipartFile file) throws IOException {
