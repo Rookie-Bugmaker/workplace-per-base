@@ -3,6 +3,7 @@ package com.crrc.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.crrc.entity.PositionInfo;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -27,4 +28,9 @@ public interface PositionInfoService extends IService<PositionInfo> {
      * @return 查询回的职位列表，如果没查询到职位会返回空值
      */
     List<PositionInfo> selectByCodes(List<String> codes);
+
+    /**
+     * 导入文件，只输入编码code和标准岗级jobGrade
+     */
+    void importJobGrade(MultipartFile file) throws Exception;
 }

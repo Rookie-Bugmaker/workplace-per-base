@@ -1,14 +1,18 @@
 package com.crrc.service.impl;
 
+import com.alibaba.excel.EasyExcelFactory;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.entity.PositionInfo;
 import com.crrc.entity.PostCatalogInfo;
 import com.crrc.mapper.PositionInfoMapper;
 import com.crrc.service.PositionInfoService;
+import com.crrc.utils.PositionInfoImportListener;
 import com.crrc.utils.WrapperUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -49,5 +53,15 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
     @Override
     public List<PositionInfo> selectByCodes(List<String> codes) {
         return baseMapper.selectList(new QueryWrapper<PositionInfo>().in("code", codes));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void importJobGrade(MultipartFile file) throws Exception {
+        EasyExcelFactory.read(file.getInputStream(), PositionInfo.class,
+                        new PositionInfoImportListener(this))
+                .headRowNumber(1)
+                .sheet()
+                .doRead();
     }
 }
