@@ -761,7 +761,7 @@ public class HrEmpBasicController {
         response.setContentType(contentType);
         response.setCharacterEncoding("utf-8");
         // 这里URLEncoder.encode可以防止中文乱码
-        String fileName = URLEncoder.encode("专利信息表报表-" + new SimpleDateFormat("yyyyMMddhhmmss")
+        String fileName = URLEncoder.encode("政治面貌导入模板-" + new SimpleDateFormat("yyyyMMddhhmmss")
                         .format(System.currentTimeMillis()), "UTF-8")
                 .replaceAll("\\+", "%20");
         response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." + type);
@@ -770,7 +770,7 @@ public class HrEmpBasicController {
         ExcelTypeEnum typeEnum = "csv".equals(type) ? ExcelTypeEnum.CSV : ("xls".equals(type) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
         EasyExcelFactory.write(response.getOutputStream())
                 .head(Arrays.asList(
-                        Collections.singletonList("档案号"),
+                        Collections.singletonList("工号"),
                         Collections.singletonList("政治面貌")
                 ))
                 .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
