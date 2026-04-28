@@ -74,6 +74,15 @@
     <logger name="org.apache.skywalking" level="WARN" additivity="false"/>
     <logger name="com.crrc" level="INFO"/>
 
+    <!-- MyBatis SQL 打印配置 -->
+    <logger name="com.crrc.apply.mapper" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <logger name="com.crrc.basedata.mapper" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
     <!-- 9. 根日志配置 -->
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>

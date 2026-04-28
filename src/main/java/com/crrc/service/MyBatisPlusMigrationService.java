@@ -2,7 +2,6 @@ package com.crrc.service;
 
 import com.crrc.api.WkDataAPi;
 import com.crrc.entity.*;
-import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.service.impl.CodeInfoServiceImpl;
 import com.crrc.service.impl.PostCatalogInfoServiceImpl;
 import com.crrc.utils.MyBatisPlusTableUtil;
@@ -1192,6 +1191,7 @@ public class MyBatisPlusMigrationService {
         String primaryKey = tableUtil.getPrimaryKey(hrEmpBasicClass);
         columns.add(primaryKey);
 
+        columns.remove("is_pic_updating");
         columns.add("department_code");
 
         log.info("开始迁移表: " + tableName);

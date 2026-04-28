@@ -1158,7 +1158,7 @@ public class HrEmpBasicController {
             if (originalData == null) {
                 return new ResponseResult<>(HttpStatus.NOT_FOUND.value(), "员工信息不存在");
             }
-            if ("1".equals(originalData.getIsUpdating()) && !"013200031192".equals(changeReqVO.getUserCode())) {
+            if ("1".equals(originalData.getIsUpdating())) {
                 throw new IllegalArgumentException("请不要重复提交");
             }
 

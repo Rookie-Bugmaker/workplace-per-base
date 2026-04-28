@@ -183,7 +183,23 @@ public class HrEmpSalaryInfoController {
     public ResponseResult<Boolean> deleteHrEmpSalaryInfo(@RequestParam("id") Long id) {
         return new ResponseResult<>(HttpStatus.OK.value(), "删除员工薪资信息表实体成功", hrEmpSalaryInfoService.removeById(id));
     }
-    
+
+    @Transactional(rollbackFor = Exception.class)
+    @PostMapping("/deleteBatch")
+    @Operation(summary = "删除员工薪资信息表实体")
+    @AuditLog(value = "删除员工薪资信息表实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_DELETE)
+    @Parameter(name = "id", description = "主键编号", required = true, example = "1")
+    public ResponseResult<Boolean> deleteHrEmpSalaryInfoBatch(@RequestBody List<String> userCodes) {
+        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
+            return ResponseResult.success(
+                    hrEmpSalaryInfoService.lambdaUpdate()
+                            .in(HrEmpSalaryInfo::getUserCode, userCodes)
+                            .remove()
+            );
+        }
+        return ResponseResult.fail(HttpStatus.FORBIDDEN.value(), "权限不足");
+    }
+
     @PostMapping("/export")
     @AuditLog(value = "导出员工薪资信息表报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
     @Operation(summary = "导出员工薪资信息表报表")
