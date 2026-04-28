@@ -770,7 +770,7 @@ public class HrEmpBasicController {
         ExcelTypeEnum typeEnum = "csv".equals(type) ? ExcelTypeEnum.CSV : ("xls".equals(type) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
         EasyExcelFactory.write(response.getOutputStream())
                 .head(Arrays.asList(
-                        Collections.singletonList("档案号"),
+                        Collections.singletonList("工号"),
                         Collections.singletonList("政治面貌")
                 ))
                 .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
