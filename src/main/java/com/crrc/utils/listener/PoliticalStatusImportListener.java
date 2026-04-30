@@ -59,7 +59,7 @@ public class PoliticalStatusImportListener implements ReadListener<HrEmpBasic> {
                 LambdaUpdateWrapper<HrEmpBasic> wrapper = new LambdaUpdateWrapper<>();
                 wrapper.eq(HrEmpBasic::getUserCode, basic.getUserCode());
                 wrapper.set(HrEmpBasic::getPolitical, political);
-                wrapper.set("".equals(political), HrEmpBasic::getPartyJoinDate, basic.getPartyJoinDate());
+                wrapper.set("01".equals(political), HrEmpBasic::getPartyJoinDate, basic.getPartyJoinDate());
                 mapper.update(wrapper);
             }
 
