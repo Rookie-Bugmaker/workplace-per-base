@@ -27,6 +27,7 @@ import com.crrc.mongodb.HrEmpEduChangeRequest;
 import com.crrc.mongodb.service.MongoDBService;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpEducationDTO;
+import com.crrc.service.CodeInfoService;
 import com.crrc.service.impl.HrEmpEducationServiceImpl;
 import com.crrc.service.impl.HrEmpMajorInfoServiceImpl;
 import com.crrc.service.impl.HrEmpSchoolInfoServiceImpl;
@@ -87,6 +88,8 @@ public class HrEmpEducationController {
     private WkDataAPi wkDataAPi;
     @Autowired
     private DiffResolver diffResolver;
+    @Autowired
+    private CodeInfoService codeInfoService;
 
 
     @GetMapping("/getSchoolInfo")
@@ -347,6 +350,14 @@ public class HrEmpEducationController {
     @PostMapping("/tempSave")
     @Operation(summary = "暂存员工信息")
     public ResponseResult<String> tempSave(@RequestBody HrEmpEducationDTO saveDTO) {
+        Map<String, String> codeMap = codeInfoService.getTranslateMap("hr_emp_education", "EDU_MAJOR_CODE").entrySet().stream().collect(Collectors.toMap(
+                Map.Entry::getValue,
+                Map.Entry::getKey,
+                (a, b) -> a
+        ));
+
+        List<HrEmpEducation> collect = saveDTO.getList().stream().filter(e -> !e.getMajorCode().matches("\\d+")).collect(Collectors.toList());
+        collect.forEach(item -> item.setMajorCode(codeMap.getOrDefault(item.getMajor(), item.getMajor())));
         mongoDBService.saveDataByUserCode(saveDTO, saveDTO.getUserCode(), "hr_emp_education_temp_save_data");
         return ResponseResult.success("OK");
     }
