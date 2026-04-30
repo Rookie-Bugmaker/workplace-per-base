@@ -355,9 +355,10 @@ public class HrEmpEducationController {
                 Map.Entry::getKey,
                 (a, b) -> a
         ));
-
-        List<HrEmpEducation> collect = saveDTO.getList().stream().filter(e -> !e.getMajorCode().matches("\\d+")).collect(Collectors.toList());
-        collect.forEach(item -> item.setMajorCode(codeMap.getOrDefault(item.getMajor(), item.getMajor())));
+        if(saveDTO.getList() != null) {
+            List<HrEmpEducation> collect = saveDTO.getList().stream().filter(e -> e.getMajorCode() != null && !e.getMajorCode().matches("\\d+")).collect(Collectors.toList());
+            collect.forEach(item -> item.setMajorCode(codeMap.getOrDefault(item.getMajor(), item.getMajor())));
+        }
         mongoDBService.saveDataByUserCode(saveDTO, saveDTO.getUserCode(), "hr_emp_education_temp_save_data");
         return ResponseResult.success("OK");
     }
