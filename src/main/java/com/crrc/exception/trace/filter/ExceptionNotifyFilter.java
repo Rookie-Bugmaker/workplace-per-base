@@ -4,6 +4,7 @@ import com.crrc.exception.trace.utils.ExceptionTraceUtils;
 import com.crrc.utils.MessageUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.skywalking.apm.toolkit.trace.TraceContext;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -56,7 +57,7 @@ public class ExceptionNotifyFilter extends OncePerRequestFilter {
         Throwable rootCause = ExceptionTraceUtils.getRootCause(ex);
 
         String content = String.format(
-                "%s：请求方法: %s%n请求路径: %s%n查询参数: %s%n客户端IP: %s%n异常类型: %s%n异常消息: %s%n错误位置: %s%n错误文件: %s%n错误行号: %s",
+                "%s：请求方法: %s%n请求路径: %s%n查询参数: %s%n客户端IP: %s%n异常类型: %s%n异常消息: %s%n错误位置: %s%n错误文件: %s%n错误行号: %s%%ntraceId: %s",
                 "test".equals(env) ? "测试环境" : "生产环境",
                 request.getMethod(),
                 request.getRequestURI(),
@@ -66,7 +67,8 @@ public class ExceptionNotifyFilter extends OncePerRequestFilter {
                 rootCause.getMessage(),
                 ExceptionTraceUtils.formatFrame(bestFrame),
                 bestFrame.getFileName() != null ? bestFrame.getFileName() : "UnknownSource",
-                bestFrame.getLineNumber() >= 0 ? bestFrame.getLineNumber() : "UnknownLine"
+                bestFrame.getLineNumber() >= 0 ? bestFrame.getLineNumber() : "UnknownLine",
+                TraceContext.traceId()
         );
 
         try {
