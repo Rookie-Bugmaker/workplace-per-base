@@ -771,7 +771,8 @@ public class HrEmpBasicController {
         EasyExcelFactory.write(response.getOutputStream())
                 .head(Arrays.asList(
                         Collections.singletonList("工号"),
-                        Collections.singletonList("政治面貌")
+                        Collections.singletonList("政治面貌"),
+                        Collections.singletonList("加入党组织时间")
                 ))
                 .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
                 .autoCloseStream(true)

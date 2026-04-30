@@ -55,9 +55,11 @@ public class PoliticalStatusImportListener implements ReadListener<HrEmpBasic> {
         // 1. 打开一个BATCH模式的SqlSession，关闭自动提交
         try (SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.BATCH, false)) {
             for (HrEmpBasic basic : buffer) {
+                String political = translateMap.get(basic.getPoliticalValue());
                 LambdaUpdateWrapper<HrEmpBasic> wrapper = new LambdaUpdateWrapper<>();
                 wrapper.eq(HrEmpBasic::getUserCode, basic.getUserCode());
-                wrapper.set(HrEmpBasic::getPolitical, translateMap.get(basic.getPoliticalValue()));
+                wrapper.set(HrEmpBasic::getPolitical, political);
+                wrapper.set("".equals(political), HrEmpBasic::getPartyJoinDate, basic.getPartyJoinDate());
                 mapper.update(wrapper);
             }
 
