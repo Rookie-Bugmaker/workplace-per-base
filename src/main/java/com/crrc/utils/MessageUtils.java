@@ -29,7 +29,7 @@ import java.util.Map;
 public class MessageUtils {
 
     private final ObjectMapper objectMapper;
-    private String accessToken = "";
+    private volatile String accessToken = "";
     @Value("${rs.agentId}")
     private String agentId;
     @Value("${rs.corpSecret}")
@@ -67,6 +67,7 @@ public class MessageUtils {
         Object accessTokenObj = map.get("access_token");
         if (accessTokenObj != null) {
             accessToken = accessTokenObj.toString();
+            log.info("accessToken: {}", accessToken);
         }
     }
 
@@ -123,11 +124,13 @@ public class MessageUtils {
         if (!StringUtils.hasText(accessToken)) {
             createAccessToken();
         }
-        UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromHttpUrl(postMsgUrl);
-        urlBuilder.queryParam("access_token", accessToken);
-        String msgUrl = urlBuilder.toUriString();
-        log.info("msgUrl = {}", msgUrl);
+
         for(int i = 0; i < 4; i++) {
+            UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromHttpUrl(postMsgUrl);
+            urlBuilder.queryParam("access_token", accessToken);
+            String msgUrl = urlBuilder.toUriString();
+            log.info("msgUrl = {}", msgUrl);
+
             String result = HttpUtil.post(msgUrl, JSON.toJSONString(requestMap));
             RsMessageDTO rsMessageDTO = objectMapper.readValue(result, RsMessageDTO.class);
             log.info("rsMessageDTO: {}", rsMessageDTO);

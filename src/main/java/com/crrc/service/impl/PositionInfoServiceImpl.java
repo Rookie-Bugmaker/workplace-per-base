@@ -7,8 +7,10 @@ import com.crrc.entity.PositionInfo;
 import com.crrc.entity.PostCatalogInfo;
 import com.crrc.mapper.PositionInfoMapper;
 import com.crrc.service.PositionInfoService;
+import com.crrc.utils.DeptUtils;
 import com.crrc.utils.PositionInfoImportListener;
 import com.crrc.utils.WrapperUtils;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +34,8 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
                 (a, b) -> a
         ));
 
+        Map<String, String> deptTranslateMap = DeptUtils.getDeptTranslateMap();
+
 
         records.forEach(position -> {
             String[] split = position.getJobType().split("-");
@@ -40,12 +44,16 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
                 position.setJobGroupValue(translateMap.getOrDefault(String.join("-", split[0], split[1]), String.join("-", split[0], split[1])));
                 position.setJobTypeValue(translateMap.getOrDefault(position.getJobType(), position.getJobType()));
             }
+
+            position.setOrgUnitValue(deptTranslateMap.getOrDefault(position.getOrgUnit(), position.getOrgUnit()));
         });
     }
 
     @Override
     public void queryByOrder(Page<PositionInfo> page, PositionInfo pageReqVO) {
         QueryWrapper<PositionInfo> wrapper = WrapperUtils.buildWrapper(pageReqVO, WrapperUtils.StringMode.LIKE);
+
+        wrapper.eq(StringUtils.isNotEmpty(pageReqVO.getOrgUnit()), "org_unit", pageReqVO.getOrgUnit());
         wrapper.last("order by update_time desc nulls last");
         baseMapper.selectPage(page, wrapper);
     }

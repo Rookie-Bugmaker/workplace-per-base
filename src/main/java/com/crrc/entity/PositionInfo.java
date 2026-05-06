@@ -33,8 +33,12 @@ public class PositionInfo extends BaseEntity {
     /** 所属组织单元 */
     @Schema(description = "所属组织单元")
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"所属组织单元"})
     private String orgUnit;
+
+    /** 所属组织单元 */
+    @TableField(exist = false)
+    @ExcelProperty(value = {"所属组织单元"})
+    private String orgUnitValue;
 
     /** 工作中心 */
     @Schema(description = "工作中心")
