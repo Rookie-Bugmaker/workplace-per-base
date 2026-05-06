@@ -17,6 +17,7 @@ import com.crrc.pojo.ResponseResult;
 import com.crrc.service.impl.PositionInfoServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
@@ -112,13 +113,15 @@ public class PositionInfoController {
     @AuditLog(value = "更新实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
     public ResponseResult<Boolean> updatePositionInfo(@Valid @RequestBody PositionInfo updateReqVO) {
-        LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(PositionInfo::getCode, updateReqVO.getCode());
-        if(positionInfoService.exists(wrapper)) {
-            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "职位编码不能重复");
-        } else {
-            return new ResponseResult<>(HttpStatus.OK.value(), "更新职位信息成功", positionInfoService.saveOrUpdate(updateReqVO));
+        if(updateReqVO.getId() != null) {
+            LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(PositionInfo::getCode, updateReqVO.getCode());
+            if(positionInfoService.exists(wrapper)) {
+                return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "职位编码不能重复");
+            }
         }
+
+        return new ResponseResult<>(HttpStatus.OK.value(), "更新职位信息成功", positionInfoService.saveOrUpdate(updateReqVO));
     }
 
     @Transactional(rollbackFor = Exception.class)
