@@ -10,6 +10,7 @@ import com.crrc.service.PositionInfoService;
 import com.crrc.utils.DeptUtils;
 import com.crrc.utils.PositionInfoImportListener;
 import com.crrc.utils.WrapperUtils;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,6 +52,8 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
     @Override
     public void queryByOrder(Page<PositionInfo> page, PositionInfo pageReqVO) {
         QueryWrapper<PositionInfo> wrapper = WrapperUtils.buildWrapper(pageReqVO, WrapperUtils.StringMode.LIKE);
+
+        wrapper.eq(StringUtils.isNotEmpty(pageReqVO.getOrgUnit()), "org_unit", pageReqVO.getOrgUnit());
         wrapper.last("order by update_time desc nulls last");
         baseMapper.selectPage(page, wrapper);
     }
