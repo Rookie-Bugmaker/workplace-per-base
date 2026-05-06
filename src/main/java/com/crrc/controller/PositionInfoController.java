@@ -1,6 +1,5 @@
 package com.crrc.controller;
 
-import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.EasyExcelFactory;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
@@ -9,7 +8,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
 import com.crrc.annotation.TenantIgnore;
-import com.crrc.entity.HrEmpPatent;
 import com.crrc.entity.PositionInfo;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
@@ -17,7 +15,6 @@ import com.crrc.pojo.ResponseResult;
 import com.crrc.service.impl.PositionInfoServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
@@ -32,7 +29,6 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -113,14 +109,14 @@ public class PositionInfoController {
     @AuditLog(value = "更新实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
     public ResponseResult<Boolean> updatePositionInfo(@Valid @RequestBody PositionInfo updateReqVO) {
-        if(updateReqVO.getId() != null) {
-            LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(PositionInfo::getCode, updateReqVO.getCode());
-            if(positionInfoService.exists(wrapper)) {
-                return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "职位编码不能重复");
-            }
+        // 如果传入的职位有id，证明为已有职位，可以更新
+        LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(PositionInfo::getCode, updateReqVO.getCode());
+        // 如果查到传入的职位编码已经存在，且id为空（新增数据），此时禁止操作，因为不能允许职位编码重复
+        if (positionInfoService.exists(wrapper) && updateReqVO.getId() == null) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "职位编码不能重复");
         }
-
+        // 库中无传入职位编码，且为修改，直接允许更新
         return new ResponseResult<>(HttpStatus.OK.value(), "更新职位信息成功", positionInfoService.saveOrUpdate(updateReqVO));
     }
 
