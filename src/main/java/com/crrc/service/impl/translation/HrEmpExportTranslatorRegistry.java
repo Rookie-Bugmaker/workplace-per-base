@@ -3,6 +3,7 @@ package com.crrc.service.impl.translation;
 import com.crrc.entity.*;
 import com.crrc.service.CodeInfoService;
 import com.crrc.utils.DeptUtils;
+import com.crrc.utils.listener.PatentImportListener;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -66,11 +67,13 @@ public class HrEmpExportTranslatorRegistry {
         // HrEmpFamMember
         register(HrEmpFamMember.class, "isEmergencyContact", ExportFieldTranslationRule.booleanFlag());
         register(HrEmpFamMember.class, "famPoliticalStatus", ExportFieldTranslationRule.codeInfo("hr_emp_fam_member", "FAM_POLITICAL_STATUS"));
+        register(HrEmpFamMember.class, "relation", ExportFieldTranslationRule.codeInfo("hr_emp_fam_member", "FAM_RELATION"));
 
         // HrEmpProfessionalQualification
         register(HrEmpProfessionalQualification.class, "quaId", ExportFieldTranslationRule.codeInfo("hr_emp_pro_qualification", "QUA_ID"));
         register(HrEmpProfessionalQualification.class, "quaTitleLevel", ExportFieldTranslationRule.codeInfo("hr_emp_pro_qualification", "QUA_LEVEL"));
         register(HrEmpProfessionalQualification.class, "quaPath", ExportFieldTranslationRule.codeInfo("hr_emp_pro_qualification", "QUA_PATH"));
+        register(HrEmpProfessionalQualification.class, "quaApprovalUnit", ExportFieldTranslationRule.dept());
         register(HrEmpProfessionalQualification.class, "isHighest", ExportFieldTranslationRule.booleanFlag());
         register(HrEmpProfessionalQualification.class, "isAppointed", ExportFieldTranslationRule.booleanFlag());
 
@@ -79,6 +82,7 @@ public class HrEmpExportTranslatorRegistry {
         register(HrEmpSkillLevel.class, "skillLevel", ExportFieldTranslationRule.codeInfo("hr_emp_skill_level", "SKILL_LEVEL"));
         register(HrEmpSkillLevel.class, "isHighest", ExportFieldTranslationRule.booleanFlag());
         register(HrEmpSkillLevel.class, "isAppointed", ExportFieldTranslationRule.booleanFlag());
+        register(HrEmpSkillLevel.class, "getMethod", ExportFieldTranslationRule.codeInfo("hr_emp_skill_level", "SKILL_LEVEL_GET_METHOD"));
 
         // HrEmpSalaryInfo - no confirmed dictionary mappings yet
 
@@ -86,7 +90,13 @@ public class HrEmpExportTranslatorRegistry {
 
         // HrEmpPenalties - no confirmed dictionary mappings yet
 
-        // HrEmpPatent - no confirmed dictionary mappings yet
+        // HrEmpPatent
+        register(HrEmpPatent.class, "patentType", ExportFieldTranslationRule.map(PatentImportListener.patentTypeTranslateMap));
+        register(HrEmpPatent.class, "patentLevel", ExportFieldTranslationRule.map(PatentImportListener.patentLevelTranslateMap));
+        register(HrEmpPatent.class, "isAwarded", ExportFieldTranslationRule.booleanFlag());
+        register(HrEmpPatent.class, "awardGrade", ExportFieldTranslationRule.map(PatentImportListener.awardGradeTranslateMap));
+        register(HrEmpPatent.class, "awardLevel", ExportFieldTranslationRule.map(PatentImportListener.awardLevelTranslateMap));
+        register(HrEmpPatent.class, "status", ExportFieldTranslationRule.map(PatentImportListener.patentStatusTranslateMap));
 
         // HrEmpPaper - no confirmed dictionary mappings yet
 
@@ -218,6 +228,8 @@ public class HrEmpExportTranslatorRegistry {
             switch (rule.getType()) {
                 case CODE_INFO:
                     return translateCodeInfo(rule, rawStr, rowData);
+                case MAP:
+                    return translateMap(rule, rawStr, rowData);
                 case DEPT:
                     return translateDept(rawStr);
                 case BOOLEAN_FLAG:
@@ -238,9 +250,36 @@ public class HrEmpExportTranslatorRegistry {
         }
     }
 
+    private String translateMap(ExportFieldTranslationRule rule, String rawValue, Object rowData) {
+        String codeValue = extractCodeValue(rule, rawValue, rowData);
+        if (codeValue == null || codeValue.isEmpty()) {
+            return codeValue;
+        }
+
+        return rule.getTranslateMapCollection().getOrDefault(codeValue, codeValue);
+    }
+
     private String translateNaivePlace(ExportFieldTranslationRule rule, String rawValue, Object rawData) {
-        String[] split = rawValue.split(",");
+        // 如果有 sourceField，从源字段取原始码值
+        String codeValue = extractCodeValue(rule, rawValue, rawData);
+        if (codeValue == null || codeValue.isEmpty()) {
+            return codeValue;
+        }
+
+        String[] split = codeValue.split(",");
         return Arrays.stream(split).map(item -> translateCodeInfo(rule, item, rawData)).collect(Collectors.joining());
+
+    }
+
+    private String extractCodeValue(ExportFieldTranslationRule rule, String rawValue, Object rawData) {
+        String codeValue = rawValue;
+        if (rule.getSourceField() != null && rawData != null) {
+            Object sourceVal = reflectFieldValue(rawData, rule.getSourceField());
+            if (sourceVal != null) {
+                codeValue = sourceVal.toString();
+            }
+        }
+        return codeValue;
     }
 
     private String translateGenderFlag(String rawValue) {
@@ -254,13 +293,7 @@ public class HrEmpExportTranslatorRegistry {
      */
     private String translateCodeInfo(ExportFieldTranslationRule rule, String rawValue, Object rowData) {
         // 如果有 sourceField，从源字段取原始码值
-        String codeValue = rawValue;
-        if (rule.getSourceField() != null && rowData != null) {
-            Object sourceVal = reflectFieldValue(rowData, rule.getSourceField());
-            if (sourceVal != null) {
-                codeValue = sourceVal.toString();
-            }
-        }
+        String codeValue = extractCodeValue(rule, rawValue, rowData);
         if (codeValue == null || codeValue.isEmpty()) {
             return codeValue;
         }

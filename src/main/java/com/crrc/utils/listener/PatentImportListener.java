@@ -15,7 +15,7 @@ import java.util.Map;
 public class PatentImportListener implements ReadListener<HrEmpPatent> {
 
     //专利类型
-    private final Map<String, String> patentTypeTranslateMap = ImmutableMap.of(
+    public static final Map<String, String> patentTypeTranslateMap = ImmutableMap.of(
             "发明", "0",
             "实用新型", "1",
             "外观设计", "2",
@@ -23,13 +23,13 @@ public class PatentImportListener implements ReadListener<HrEmpPatent> {
     );
 
     //专利级别
-    private final Map<String, String> patentLevelTranslateMap = ImmutableMap.of(
+    public static final Map<String, String> patentLevelTranslateMap = ImmutableMap.of(
             "国内", "0",
             "国外", "1"
     );
 
     //专利奖励等次
-    private final Map<String, String> awardGradeTranslateMap = ImmutableMap.of(
+    public static final Map<String, String> awardGradeTranslateMap = ImmutableMap.of(
             "金奖", "0",
             "银奖", "1",
             "一等奖", "2",
@@ -39,19 +39,19 @@ public class PatentImportListener implements ReadListener<HrEmpPatent> {
     );
 
     //专利状态
-    private final Map<String, String> patentStatusTranslateMap = ImmutableMap.of(
+    public static final Map<String, String> patentStatusTranslateMap = ImmutableMap.of(
             "申请", "0",
             "已授权", "1"
     );
 
     //是否获奖
-    private final Map<String, String> isAwardedTranslateMap = ImmutableMap.of(
+    public static final Map<String, String> isAwardedTranslateMap = ImmutableMap.of(
             "否", "0",
             "是", "1"
     );
 
     // 获奖级别
-    private final Map<String, String> awardLevelTranslateMap = ImmutableMap.of(
+    public static final Map<String, String> awardLevelTranslateMap = ImmutableMap.of(
             "国际级", "1",
             "国家级", "2",
             "省部级（全国性行业协会）", "3",

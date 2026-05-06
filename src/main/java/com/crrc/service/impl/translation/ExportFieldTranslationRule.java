@@ -1,12 +1,19 @@
 package com.crrc.service.impl.translation;
 
+import lombok.Getter;
+
+import java.util.Map;
+
 /**
  * 导出字段翻译规则
  */
+@Getter
 public class ExportFieldTranslationRule {
 
     /** 翻译类型 */
     public enum Type {
+        /** map字典翻译 */
+        MAP,
         /** CodeInfo 字典翻译 */
         CODE_INFO,
         /** 部门/组织翻译 */
@@ -34,6 +41,20 @@ public class ExportFieldTranslationRule {
      * 例如 politicalValue 需要从 political 字段取原始码值
      */
     private final String sourceField;
+
+    /**
+     * 翻译map
+     */
+    private final Map<String, String> translateMapCollection;
+
+    public static ExportFieldTranslationRule map(Map<String, String> map) {
+
+        return new ExportFieldTranslationRule(Type.MAP, null, null, null, map);
+    }
+
+    public static ExportFieldTranslationRule map(Map<String, String> map, String sourceField) {
+        return new ExportFieldTranslationRule(Type.MAP, null, null, sourceField, map);
+    }
 
     public static ExportFieldTranslationRule codeInfo(String tableName, String typeCode) {
         return new ExportFieldTranslationRule(Type.CODE_INFO, tableName, typeCode, null);
@@ -88,10 +109,14 @@ public class ExportFieldTranslationRule {
         this.tableName = tableName;
         this.typeCode = typeCode;
         this.sourceField = sourceField;
+        this.translateMapCollection = null;
     }
 
-    public Type getType() { return type; }
-    public String getTableName() { return tableName; }
-    public String getTypeCode() { return typeCode; }
-    public String getSourceField() { return sourceField; }
+    private ExportFieldTranslationRule(Type type, String tableName, String typeCode, String sourceField, Map<String, String> map) {
+        this.type = type;
+        this.tableName = tableName;
+        this.typeCode = typeCode;
+        this.sourceField = sourceField;
+        this.translateMapCollection = map;
+    }
 }

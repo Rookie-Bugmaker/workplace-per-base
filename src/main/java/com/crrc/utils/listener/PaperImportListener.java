@@ -27,14 +27,14 @@ public class PaperImportListener implements ReadListener<HrEmpPaper> {
 //    );
 
     //论文/论著
-    private final Map<String, String> typeTranslateMap = ImmutableMap.of(
+    public final Map<String, String> typeTranslateMap = ImmutableMap.of(
             "论文", "0",
             "论著", "1",
             "职业教材", "2"
     );
 
     //论文论著刊物级别
-    private final Map<String, String> journalLevelTranslateMap = ImmutableMap.of(
+    public final Map<String, String> journalLevelTranslateMap = ImmutableMap.of(
             "国际级", "1",
             "国家级", "2",
             "省部级（全国性行业协会）", "3",
@@ -48,7 +48,7 @@ public class PaperImportListener implements ReadListener<HrEmpPaper> {
     );
 
     //论文论著奖励级别
-    private final Map<String, String> awardLevelTranslateMap = ImmutableMap.of(
+    public final Map<String, String> awardLevelTranslateMap = ImmutableMap.of(
             "国际级", "1",
             "国家级", "2",
             "省部级（全国性行业协会）", "3",
@@ -62,7 +62,7 @@ public class PaperImportListener implements ReadListener<HrEmpPaper> {
     );
 
     //论文论著奖励等次
-    private final Map<String, String> awardRankTranslateMap = ImmutableMap.of(
+    public final Map<String, String> awardRankTranslateMap = ImmutableMap.of(
             "特等奖", "0",
             "一等奖", "1",
             "二等奖", "2",
@@ -72,7 +72,7 @@ public class PaperImportListener implements ReadListener<HrEmpPaper> {
     );
 
     //是否被SCI、EI、ISTP检索
-    private final Map<String, String> sciEiIstpTranslateMap = ImmutableMap.of(
+    public final Map<String, String> sciEiIstpTranslateMap = ImmutableMap.of(
             "SCI", "0",
             "EI", "1",
             "ISTP", "2",
@@ -80,7 +80,7 @@ public class PaperImportListener implements ReadListener<HrEmpPaper> {
     );
 
     //是否核心期刊
-    private final Map<String, String> coreJournalTranslateMap = ImmutableMap.of(
+    public final Map<String, String> coreJournalTranslateMap = ImmutableMap.of(
             "否", "0",
             "是", "1"
     );
