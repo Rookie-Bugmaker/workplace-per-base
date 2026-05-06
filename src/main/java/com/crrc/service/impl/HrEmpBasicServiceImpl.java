@@ -378,7 +378,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                     .collect(Collectors.toSet()));
 
             // 添加框架中不存在的部门
-            dto.getDeptSet().addAll(items.stream().map(CodeInfo::getCode).collect(Collectors.toSet()));
+            dto.getDeptSet().addAll(managerOrgCodes);
         }
 
         // ========= 2. 用 HrEmpBasic 先做一次分页（只走主表，不 join 大表） =========
