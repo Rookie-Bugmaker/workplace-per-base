@@ -16,6 +16,8 @@ import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.pojo.dto.DeptReqDTO;
 import com.crrc.pojo.dto.QueryDTO;
+import com.crrc.pojo.dto.HrEmpBatchExportRequest;
+import com.crrc.service.HrEmpBatchExportService;
 import com.crrc.utils.RoleUtils;
 import com.crrc.utils.TreeUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,6 +48,8 @@ public class CommonController {
     private SysServerClient sysServerClient;
     @Autowired
     private JdbcTemplate openGaussJdbcTemplate;
+    @Autowired
+    private HrEmpBatchExportService hrEmpBatchExportService;
 
     private final static int IV_LEN = 12;
 
@@ -138,6 +142,14 @@ public class CommonController {
                 .excelType(typeEnum)
                 .sheet("报表")
                 .doWrite(dataList);
+    }
+
+    @PostMapping("/export/hrEmp/batch")
+    @AuditLog(value = "人员信息集批量导出", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
+    @Operation(summary = "人员信息集批量导出")
+    public void batchExportHrEmpInfo(@RequestBody HrEmpBatchExportRequest request,
+                                     HttpServletResponse response) throws IOException {
+        hrEmpBatchExportService.batchExport(request, response);
     }
 
     private static class DeepCopyDTO {
