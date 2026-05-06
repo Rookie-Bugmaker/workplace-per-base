@@ -38,48 +38,48 @@ public class HrEmpCareerPath extends BaseEntity implements Serializable {
     private Integer deleted;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"工号"}, index = 1)
+    @ExcelProperty(value = {"工号"})
     @Schema(description = "工号")
     private String userCode;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"职业发展通道"}, index = 2)
+    @ExcelProperty(value = {"职业发展通道"})
     @Schema(description = "职业发展通道")
     private String pathId;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"职业发展等级"}, index = 3)
+    @ExcelProperty(value = {"职业发展等级"})
     @Schema(description = "职业发展等级")
     private String levelId;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"职业发展等级名称"}, index = 4)
+    @ExcelProperty(value = {"职业发展等级名称"})
     @Schema(description = "职业发展等级名称")
     private String levelName;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"职业发展层级"}, index = 5)
+    @ExcelProperty(value = {"职业发展层级"})
     @Schema(description = "职业发展层级 20205/10/30 应人力要求字段作废")
     private String hierarchy;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"获得资格时间"}, index = 6)
+    @ExcelProperty(value = {"获得资格时间"})
     @Schema(description = "获得资格时间")
     private LocalDate qualificationDate;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"既有等级生效时间"}, index = 7)
+    @ExcelProperty(value = {"既有等级生效时间"})
     @Schema(description = "既有等级生效时间")
     private LocalDate effectiveDate;
 
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"失效时间"}, index = 8)
+    @ExcelProperty(value = {"失效时间"})
     @Schema(description = "失效时间")
     private LocalDate expiryDate;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"是否失效"}, index = 9)
+    @ExcelProperty(value = {"是否失效"})
     @Schema(description = "是否失效")
     private String isExpired;
 
@@ -87,7 +87,6 @@ public class HrEmpCareerPath extends BaseEntity implements Serializable {
     private String isExpiredValue;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"是否存在正在被修改的状态"}, index = 7)
     @Schema(description = "是否存在正在被修改的状态，0为否，1为是")
     private String isUpdating;
 }

@@ -40,53 +40,52 @@ public class HrEmpFamMember extends BaseEntity implements Serializable, DiffMark
     private Integer deleted;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"工号"}, index = 1)
+    @ExcelProperty(value = {"工号"})
     @Schema(description = "工号")
     private String userCode;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"姓名"}, index = 2)
+    @ExcelProperty(value = {"姓名"})
     @Schema(description = "姓名")
     private String famName;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"称谓"}, index = 3)
+    @ExcelProperty(value = {"称谓"})
     @Schema(description = "称谓")
     private String relation;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"出生日期"}, index = 4)
+    @ExcelProperty(value = {"出生日期"})
     @Schema(description = "出生日期")
     private LocalDate famBirthDate;
 
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"是否紧急联系人"}, index = 5)
+    @ExcelProperty(value = {"是否紧急联系人"})
     @Schema(description = "是否紧急联系人")
     private String isEmergencyContact;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"工作单位"}, index = 6)
+    @ExcelProperty(value = {"工作单位"})
     @Schema(description = "工作单位")
     private String famUnit;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"职务"}, index = 7)
+    @ExcelProperty(value = {"职务"})
     @Schema(description = "职务")
     private String famPosition;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"政治面貌"}, index = 8)
+    @ExcelProperty(value = {"政治面貌"})
     @Schema(description = "政治面貌")
     private String famPoliticalStatus;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"联系电话"}, index = 9)
+    @ExcelProperty(value = {"联系电话"})
     @Schema(description = "联系电话")
     private String famPhone;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"是否存在正在被修改的状态"}, index = 10)
     @Schema(description = "是否存在正在被修改的状态，0为否，1为是")
     private String isUpdating;
 
