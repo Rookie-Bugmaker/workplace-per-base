@@ -1,6 +1,5 @@
 package com.crrc.service.impl;
 
-import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.EasyExcelFactory;
 import com.alibaba.excel.ExcelWriter;
 import com.alibaba.excel.annotation.ExcelProperty;
@@ -12,7 +11,9 @@ import com.crrc.entity.*;
 import com.crrc.enums.HrEmpExportType;
 import com.crrc.mapper.*;
 import com.crrc.pojo.dto.HrEmpBatchExportRequest;
+import com.crrc.service.CodeInfoService;
 import com.crrc.service.HrEmpBatchExportService;
+import com.crrc.service.impl.translation.HrEmpExportTranslatorRegistry;
 import com.crrc.utils.HrEmpExportMergeStrategy;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.Getter;
@@ -85,6 +86,10 @@ public class HrEmpBatchExportServiceImpl implements HrEmpBatchExportService {
     private HrEmpResumeMapper hrEmpResumeMapper;
     @Autowired
     private HrEmpRewardsMapper hrEmpRewardsMapper;
+    @Autowired
+    private CodeInfoService codeInfoService;
+    @Autowired
+    private HrEmpExportTranslatorRegistry translatorRegistry;
 
     @Override
     public void batchExport(HrEmpBatchExportRequest request, HttpServletResponse response) throws IOException {
@@ -95,7 +100,13 @@ public class HrEmpBatchExportServiceImpl implements HrEmpBatchExportService {
         // 2. 确定要导出的信息集
         List<HrEmpExportType> exportTypes = resolveExportTypes(request.getExportTypes());
 
-        // 3. 设置响应头
+        // 3. 预加载翻译数据
+        Set<Class<?>> entityClasses = exportTypes.stream()
+                .map(HrEmpExportType::getEntityClass)
+                .collect(Collectors.toSet());
+        translatorRegistry.prefetchAll(entityClasses, codeInfoService);
+
+        // 4. 设置响应头
         setupResponse(response);
 
         // 4. 逐个信息集写入 Sheet
@@ -175,7 +186,8 @@ public class HrEmpBatchExportServiceImpl implements HrEmpBatchExportService {
      * 写入基本信息 Sheet
      */
     private void writeBasicSheet(ExcelWriter excelWriter, List<HrEmpBasic> basicList) {
-        List<ExportFieldMeta> fieldMetas = extractFieldMetas(HrEmpBasic.class);
+        Class<?> entityClass = HrEmpBasic.class;
+        List<ExportFieldMeta> fieldMetas = extractFieldMetas(entityClass);
 
         // 前两列固定为姓名、档案号
         List<List<String>> head = buildBasicHead();
@@ -190,12 +202,14 @@ public class HrEmpBatchExportServiceImpl implements HrEmpBatchExportService {
             row.add(basic.getName());
             row.add(basic.getUserCode());
             for (ExportFieldMeta meta : fieldMetas) {
-                row.add(getFieldValue(basic, meta.getField()));
+                Object rawValue = getFieldValue(basic, meta.getField());
+                Object exportValue = translatorRegistry.translate(entityClass, meta.getField(), rawValue, basic);
+                row.add(exportValue);
             }
             data.add(row);
         }
 
-        WriteSheet writeSheet = EasyExcel.writerSheet("基本信息").head(head).build();
+        WriteSheet writeSheet = EasyExcelFactory.writerSheet("基本信息").head(head).build();
         excelWriter.write(data, writeSheet);
     }
 
@@ -206,9 +220,10 @@ public class HrEmpBatchExportServiceImpl implements HrEmpBatchExportService {
      */
     private void writeSubTableSheet(ExcelWriter excelWriter, HrEmpExportType exportType,
                                     List<HrEmpBasic> basicList, List<String> userCodes) {
+        Class<?> entityClass = exportType.getEntityClass();
         List<?> subData = querySubTable(exportType, userCodes);
 
-        List<ExportFieldMeta> fieldMetas = extractFieldMetas(exportType.getEntityClass());
+        List<ExportFieldMeta> fieldMetas = extractFieldMetas(entityClass);
 
         // 构建 userCode -> 子表记录列表 的映射
         Map<String, List<Object>> subMap = new LinkedHashMap<>();
@@ -249,7 +264,9 @@ public class HrEmpBatchExportServiceImpl implements HrEmpBatchExportService {
                     row.add(basic.getName());
                     row.add(basic.getUserCode());
                     for (ExportFieldMeta meta : fieldMetas) {
-                        row.add(getFieldValue(subItem, meta.getField()));
+                        Object rawValue = getFieldValue(subItem, meta.getField());
+                        Object exportValue = translatorRegistry.translate(entityClass, meta.getField(), rawValue, subItem);
+                        row.add(exportValue);
                     }
                     data.add(row);
                     rowUserCodes.add(basic.getUserCode());
@@ -260,7 +277,7 @@ public class HrEmpBatchExportServiceImpl implements HrEmpBatchExportService {
         // 构建合并策略
         HrEmpExportMergeStrategy mergeStrategy = new HrEmpExportMergeStrategy(rowUserCodes);
 
-        WriteSheet writeSheet = EasyExcel.writerSheet(exportType.getSheetName())
+        WriteSheet writeSheet = EasyExcelFactory.writerSheet(exportType.getSheetName())
                 .head(head)
                 .registerWriteHandler(mergeStrategy)
                 .build();

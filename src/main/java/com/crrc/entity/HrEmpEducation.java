@@ -57,6 +57,11 @@ public class HrEmpEducation extends BaseEntity implements Serializable, DiffMark
     @ExcelProperty(value = {"学校名称"})
     @Schema(description = "学校名称")
     private String schoolName;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"学校名称(手填)"})
+    @Schema(description = "学校名称(手填)")
+    private String inputSchoolName;
     
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"专业名称"})
@@ -65,7 +70,7 @@ public class HrEmpEducation extends BaseEntity implements Serializable, DiffMark
     private String major;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"学院"})
+//    @ExcelProperty(value = {"学院"})
     @Schema(description = "学院")
     private String college;
     
@@ -110,12 +115,12 @@ public class HrEmpEducation extends BaseEntity implements Serializable, DiffMark
     private String degreeMajor;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"学校编码"})
+//    @ExcelProperty(value = {"学校编码"})
     @Schema(description = "学校编码")
     private String schoolCode;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"专业编码"})
+//    @ExcelProperty(value = {"专业编码"})
     @Schema(description = "专业编码")
     private String majorCode;
 
@@ -124,14 +129,8 @@ public class HrEmpEducation extends BaseEntity implements Serializable, DiffMark
     private String isUpdating;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"附件挂载Id"})
     @Schema(description = "附件挂载Id")
     private String fileHeaderId;
-
-    @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"手动输入的学校名称"})
-    @Schema(description = "手动输入的学校名称")
-    private String inputSchoolName;
 
     @Schema(description = "通过fileHeaderId，查询回的文件列表")
     @TableField(exist = false)
