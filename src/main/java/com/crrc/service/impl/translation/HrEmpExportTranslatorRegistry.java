@@ -29,6 +29,12 @@ public class HrEmpExportTranslatorRegistry {
     private Map<String, String> deptTranslateMap = Collections.emptyMap();
 
     // ==================== 注册 ====================
+    private Map<String, String> reverseMap(Map<String, String> map) {
+        return map.entrySet().stream().collect(Collectors.toMap(
+                Map.Entry::getValue,
+                Map.Entry::getKey
+        ));
+    }
 
     @PostConstruct
     public void init() {
@@ -91,12 +97,12 @@ public class HrEmpExportTranslatorRegistry {
         // HrEmpPenalties - no confirmed dictionary mappings yet
 
         // HrEmpPatent
-        register(HrEmpPatent.class, "patentType", ExportFieldTranslationRule.map(PatentImportListener.patentTypeTranslateMap));
-        register(HrEmpPatent.class, "patentLevel", ExportFieldTranslationRule.map(PatentImportListener.patentLevelTranslateMap));
+        register(HrEmpPatent.class, "patentType", ExportFieldTranslationRule.map(reverseMap(PatentImportListener.patentTypeTranslateMap)));
+        register(HrEmpPatent.class, "patentLevel", ExportFieldTranslationRule.map(reverseMap(PatentImportListener.patentLevelTranslateMap)));
         register(HrEmpPatent.class, "isAwarded", ExportFieldTranslationRule.booleanFlag());
-        register(HrEmpPatent.class, "awardGrade", ExportFieldTranslationRule.map(PatentImportListener.awardGradeTranslateMap));
-        register(HrEmpPatent.class, "awardLevel", ExportFieldTranslationRule.map(PatentImportListener.awardLevelTranslateMap));
-        register(HrEmpPatent.class, "status", ExportFieldTranslationRule.map(PatentImportListener.patentStatusTranslateMap));
+        register(HrEmpPatent.class, "awardGrade", ExportFieldTranslationRule.map(reverseMap(PatentImportListener.awardGradeTranslateMap)));
+        register(HrEmpPatent.class, "awardLevel", ExportFieldTranslationRule.map(reverseMap(PatentImportListener.awardLevelTranslateMap)));
+        register(HrEmpPatent.class, "status", ExportFieldTranslationRule.map(reverseMap(PatentImportListener.patentStatusTranslateMap)));
 
         // HrEmpPaper - no confirmed dictionary mappings yet
 
@@ -268,7 +274,6 @@ public class HrEmpExportTranslatorRegistry {
 
         String[] split = codeValue.split(",");
         return Arrays.stream(split).map(item -> translateCodeInfo(rule, item, rawData)).collect(Collectors.joining());
-
     }
 
     private String extractCodeValue(ExportFieldTranslationRule rule, String rawValue, Object rawData) {

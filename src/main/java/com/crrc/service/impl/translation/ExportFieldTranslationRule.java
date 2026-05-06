@@ -3,6 +3,7 @@ package com.crrc.service.impl.translation;
 import lombok.Getter;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 导出字段翻译规则
