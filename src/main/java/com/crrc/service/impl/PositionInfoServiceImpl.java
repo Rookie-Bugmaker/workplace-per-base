@@ -7,6 +7,7 @@ import com.crrc.entity.PositionInfo;
 import com.crrc.entity.PostCatalogInfo;
 import com.crrc.mapper.PositionInfoMapper;
 import com.crrc.service.PositionInfoService;
+import com.crrc.utils.DeptUtils;
 import com.crrc.utils.PositionInfoImportListener;
 import com.crrc.utils.WrapperUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,8 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
                 (a, b) -> a
         ));
 
+        Map<String, String> deptTranslateMap = DeptUtils.getDeptTranslateMap();
+
 
         records.forEach(position -> {
             String[] split = position.getJobType().split("-");
@@ -40,6 +43,8 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
                 position.setJobGroupValue(translateMap.getOrDefault(String.join("-", split[0], split[1]), String.join("-", split[0], split[1])));
                 position.setJobTypeValue(translateMap.getOrDefault(position.getJobType(), position.getJobType()));
             }
+
+            position.setOrgUnitValue(deptTranslateMap.getOrDefault(position.getOrgUnit(), position.getOrgUnit()));
         });
     }
 
