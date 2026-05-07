@@ -7,6 +7,9 @@ import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.metadata.WriteSheet;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.crrc.entity.*;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.enums.HrEmpExportType;
@@ -22,7 +25,6 @@ import com.crrc.utils.HrEmpExportMergeStrategy;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -53,6 +55,15 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
      * 前两列已手动固定为姓名、档案号，不再从实体字段中提取
      */
     private static final Set<String> FIXED_HEAD_FIELDS = new HashSet<>(Arrays.asList("name", "userCode"));
+
+    /**
+     * userCode 分批查询大小。
+     * <p>
+     * 说明：避免超长 IN SQL 导致 MyBatis-Plus SQL 解析失败或数据库执行失败；
+     * 兼容 Oracle 等数据库 IN 条件 1000 个元素限制。
+     * </p>
+     */
+    private static final int USER_CODE_IN_BATCH_SIZE = 500;
 
     @Autowired
     private HrEmpBasicMapper hrEmpBasicMapper;
@@ -312,71 +323,76 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
         Class<?> entityClass = exportType.getEntityClass();
 
         if (entityClass == HrEmpEducation.class) {
-            LambdaQueryWrapper<HrEmpEducation> wrapper = new LambdaQueryWrapper<>();
-            wrapper.in(HrEmpEducation::getUserCode, userCodes);
-            return hrEmpEducationMapper.selectList(wrapper);
+            return selectListByUserCodesInBatches(hrEmpEducationMapper, HrEmpEducation::getUserCode, userCodes);
         } else if (entityClass == HrEmpCareerPath.class) {
-            LambdaQueryWrapper<HrEmpCareerPath> wrapper = new LambdaQueryWrapper<>();
-            wrapper.in(HrEmpCareerPath::getUserCode, userCodes);
-            return hrEmpCareerPathMapper.selectList(wrapper);
+            return selectListByUserCodesInBatches(hrEmpCareerPathMapper, HrEmpCareerPath::getUserCode, userCodes);
         } else if (entityClass == HrEmpFamMember.class) {
-            LambdaQueryWrapper<HrEmpFamMember> wrapper = new LambdaQueryWrapper<>();
-            wrapper.in(HrEmpFamMember::getUserCode, userCodes);
-            return hrEmpFamMemberMapper.selectList(wrapper);
+            return selectListByUserCodesInBatches(hrEmpFamMemberMapper, HrEmpFamMember::getUserCode, userCodes);
         } else if (entityClass == HrEmpProfessionalQualification.class) {
-            LambdaQueryWrapper<HrEmpProfessionalQualification> wrapper = new LambdaQueryWrapper<>();
-            wrapper.in(HrEmpProfessionalQualification::getUserCode, userCodes);
-            return hrEmpProQualificationMapper.selectList(wrapper);
+            return selectListByUserCodesInBatches(hrEmpProQualificationMapper, HrEmpProfessionalQualification::getUserCode, userCodes);
         } else if (entityClass == HrEmpSkillLevel.class) {
-            LambdaQueryWrapper<HrEmpSkillLevel> wrapper = new LambdaQueryWrapper<>();
-            wrapper.in(HrEmpSkillLevel::getUserCode, userCodes);
-            return hrEmpSkillLevelMapper.selectList(wrapper);
+            return selectListByUserCodesInBatches(hrEmpSkillLevelMapper, HrEmpSkillLevel::getUserCode, userCodes);
         } else if (entityClass == HrEmpSalaryInfo.class) {
-            LambdaQueryWrapper<HrEmpSalaryInfo> wrapper = new LambdaQueryWrapper<>();
-            wrapper.in(HrEmpSalaryInfo::getUserCode, userCodes);
-            return hrEmpSalaryInfoMapper.selectList(wrapper);
+            return selectListByUserCodesInBatches(hrEmpSalaryInfoMapper, HrEmpSalaryInfo::getUserCode, userCodes);
         } else if (entityClass == HrEmpSalaryStandard.class) {
-            LambdaQueryWrapper<HrEmpSalaryStandard> wrapper = new LambdaQueryWrapper<>();
-            wrapper.in(HrEmpSalaryStandard::getUserCode, userCodes);
-            return hrEmpSalaryStandardMapper.selectList(wrapper);
+            return selectListByUserCodesInBatches(hrEmpSalaryStandardMapper, HrEmpSalaryStandard::getUserCode, userCodes);
         } else if (entityClass == HrEmpPenalties.class) {
-            LambdaQueryWrapper<HrEmpPenalties> wrapper = new LambdaQueryWrapper<>();
-            wrapper.in(HrEmpPenalties::getUserCode, userCodes);
-            return hrEmpPenaltiesMapper.selectList(wrapper);
+            return selectListByUserCodesInBatches(hrEmpPenaltiesMapper, HrEmpPenalties::getUserCode, userCodes);
         } else if (entityClass == HrEmpPatent.class) {
-            LambdaQueryWrapper<HrEmpPatent> wrapper = new LambdaQueryWrapper<>();
-            wrapper.in(HrEmpPatent::getUserCode, userCodes);
-            return hrEmpPatentMapper.selectList(wrapper);
+            return selectListByUserCodesInBatches(hrEmpPatentMapper, HrEmpPatent::getUserCode, userCodes);
         } else if (entityClass == HrEmpPaper.class) {
-            LambdaQueryWrapper<HrEmpPaper> wrapper = new LambdaQueryWrapper<>();
-            wrapper.in(HrEmpPaper::getUserCode, userCodes);
-            return hrEmpPaperMapper.selectList(wrapper);
+            return selectListByUserCodesInBatches(hrEmpPaperMapper, HrEmpPaper::getUserCode, userCodes);
         } else if (entityClass == HrEmpAppointment.class) {
-            LambdaQueryWrapper<HrEmpAppointment> wrapper = new LambdaQueryWrapper<>();
-            wrapper.in(HrEmpAppointment::getUserCode, userCodes);
-            return hrEmpAppointmentMapper.selectList(wrapper);
+            return selectListByUserCodesInBatches(hrEmpAppointmentMapper, HrEmpAppointment::getUserCode, userCodes);
         } else if (entityClass == HrEmpOtherAppointment.class) {
-            LambdaQueryWrapper<HrEmpOtherAppointment> wrapper = new LambdaQueryWrapper<>();
-            wrapper.in(HrEmpOtherAppointment::getUserCode, userCodes);
-            return hrEmpOtherAppointmentMapper.selectList(wrapper);
+            return selectListByUserCodesInBatches(hrEmpOtherAppointmentMapper, HrEmpOtherAppointment::getUserCode, userCodes);
         } else if (entityClass == HrEmpForeignLanguage.class) {
-            LambdaQueryWrapper<HrEmpForeignLanguage> wrapper = new LambdaQueryWrapper<>();
-            wrapper.in(HrEmpForeignLanguage::getUserCode, userCodes);
-            return hrEmpForeignLanguageMapper.selectList(wrapper);
+            return selectListByUserCodesInBatches(hrEmpForeignLanguageMapper, HrEmpForeignLanguage::getUserCode, userCodes);
         } else if (entityClass == HrEmpHonor.class) {
-            LambdaQueryWrapper<HrEmpHonor> wrapper = new LambdaQueryWrapper<>();
-            wrapper.in(HrEmpHonor::getUserCode, userCodes);
-            return hrEmpHonorMapper.selectList(wrapper);
+            return selectListByUserCodesInBatches(hrEmpHonorMapper, HrEmpHonor::getUserCode, userCodes);
         } else if (entityClass == HrEmpResume.class) {
-            LambdaQueryWrapper<HrEmpResume> wrapper = new LambdaQueryWrapper<>();
-            wrapper.in(HrEmpResume::getUserCode, userCodes);
-            return hrEmpResumeMapper.selectList(wrapper);
+            return selectListByUserCodesInBatches(hrEmpResumeMapper, HrEmpResume::getUserCode, userCodes);
         } else if (entityClass == HrEmpRewards.class) {
-            LambdaQueryWrapper<HrEmpRewards> wrapper = new LambdaQueryWrapper<>();
-            wrapper.in(HrEmpRewards::getUserCode, userCodes);
-            return hrEmpRewardsMapper.selectList(wrapper);
+            return selectListByUserCodesInBatches(hrEmpRewardsMapper, HrEmpRewards::getUserCode, userCodes);
         }
         return Collections.emptyList();
+    }
+
+    /**
+     * 按 userCode 分批查询子表数据，避免 userCodes 过大导致 IN SQL 过长。
+     *
+     * @param mapper         MyBatis-Plus BaseMapper
+     * @param userCodeColumn userCode 字段 Lambda 引用
+     * @param userCodes      待查询的 userCode 集合
+     * @param <T>            实体类型
+     * @return 查询结果列表
+     */
+    private <T> List<T> selectListByUserCodesInBatches(BaseMapper<T> mapper,
+                                                       SFunction<T, ?> userCodeColumn,
+                                                       Collection<String> userCodes) {
+        if (userCodes == null || userCodes.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<String> distinctUserCodes = userCodes.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (distinctUserCodes.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<T> result = new ArrayList<>();
+        for (int fromIndex = 0; fromIndex < distinctUserCodes.size(); fromIndex += USER_CODE_IN_BATCH_SIZE) {
+            int toIndex = Math.min(fromIndex + USER_CODE_IN_BATCH_SIZE, distinctUserCodes.size());
+            List<String> batchUserCodes = distinctUserCodes.subList(fromIndex, toIndex);
+
+            LambdaQueryWrapper<T> wrapper = Wrappers.lambdaQuery();
+            wrapper.in(userCodeColumn, batchUserCodes);
+            result.addAll(mapper.selectList(wrapper));
+        }
+        return result;
     }
 
     /**
