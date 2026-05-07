@@ -1,5 +1,6 @@
 package com.crrc.service.impl;
 
+import cn.hutool.core.util.ObjectUtil;
 import com.alibaba.excel.EasyExcelFactory;
 import com.alibaba.excel.ExcelWriter;
 import com.alibaba.excel.annotation.ExcelProperty;
@@ -21,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -236,7 +238,6 @@ public class HrEmpBatchExportServiceImpl implements HrEmpBatchExportService {
                 subMap.get(uc).add(item);
             }
         }
-
         // 表头：姓名 + 档案号 + 子表业务字段
         List<List<String>> head = buildBasicHead();
         for (ExportFieldMeta meta : fieldMetas) {
@@ -248,17 +249,7 @@ public class HrEmpBatchExportServiceImpl implements HrEmpBatchExportService {
         List<String> rowUserCodes = new ArrayList<>();
         for (HrEmpBasic basic : basicList) {
             List<Object> subItems = subMap.getOrDefault(basic.getUserCode(), Collections.emptyList());
-            if (subItems.isEmpty()) {
-                // 该人员在子表中无记录，仍输出一行（业务字段为空）
-                List<Object> row = new ArrayList<>();
-                row.add(basic.getName());
-                row.add(basic.getUserCode());
-                for (int i = 0; i < fieldMetas.size(); i++) {
-                    row.add(null);
-                }
-                data.add(row);
-                rowUserCodes.add(basic.getUserCode());
-            } else {
+            if (!subItems.isEmpty()) {
                 for (Object subItem : subItems) {
                     List<Object> row = new ArrayList<>();
                     row.add(basic.getName());

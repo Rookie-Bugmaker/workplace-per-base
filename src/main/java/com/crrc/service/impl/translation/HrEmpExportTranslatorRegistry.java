@@ -3,6 +3,8 @@ package com.crrc.service.impl.translation;
 import com.crrc.entity.*;
 import com.crrc.service.CodeInfoService;
 import com.crrc.utils.DeptUtils;
+import com.crrc.utils.listener.HonorImportListener;
+import com.crrc.utils.listener.PaperImportListener;
 import com.crrc.utils.listener.PatentImportListener;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -104,7 +106,24 @@ public class HrEmpExportTranslatorRegistry {
         register(HrEmpPatent.class, "awardLevel", ExportFieldTranslationRule.map(reverseMap(PatentImportListener.awardLevelTranslateMap)));
         register(HrEmpPatent.class, "status", ExportFieldTranslationRule.map(reverseMap(PatentImportListener.patentStatusTranslateMap)));
 
-        // HrEmpPaper - no confirmed dictionary mappings yet
+        // HrEmpPaper
+        register(HrEmpPaper.class, "paperType", ExportFieldTranslationRule.map(reverseMap(PaperImportListener.typeTranslateMap)));
+        register(HrEmpPaper.class, "isSciEiIstp", ExportFieldTranslationRule.map(reverseMap(PaperImportListener.sciEiIstpTranslateMap)));
+        register(HrEmpPaper.class, "isCoreJournal", ExportFieldTranslationRule.map(reverseMap(PaperImportListener.coreJournalTranslateMap)));
+        register(HrEmpPaper.class, "journalLevel", ExportFieldTranslationRule.map(reverseMap(PaperImportListener.journalLevelTranslateMap)));
+        register(HrEmpPaper.class, "awardLevel", ExportFieldTranslationRule.map(reverseMap(PaperImportListener.awardLevelTranslateMap)));
+        register(HrEmpPaper.class, "awardRank", ExportFieldTranslationRule.map(reverseMap(PaperImportListener.awardRankTranslateMap)));
+
+        // HrEmpHonor
+        register(HrEmpHonor.class, "titleType", ExportFieldTranslationRule.map(reverseMap(HonorImportListener.titleTypeTranslateMap)));
+        register(HrEmpHonor.class, "titleLevel", ExportFieldTranslationRule.map(reverseMap(HonorImportListener.titleLevelTranslateMap)));
+        register(HrEmpHonor.class, "groupOrPersonal", ExportFieldTranslationRule.map(reverseMap(HonorImportListener.groupOrPersonalTranslateMap)));
+        register(HrEmpHonor.class, "rewardType", ExportFieldTranslationRule.map(reverseMap(HonorImportListener.rewardTypeTranslateMap)));
+        register(HrEmpHonor.class, "responsibleUnit", ExportFieldTranslationRule.map(reverseMap(HonorImportListener.responsibleUnitTranslateMap)));
+        register(HrEmpHonor.class, "obtainMethod", ExportFieldTranslationRule.map(reverseMap(HonorImportListener.obtainMethodTranslateMap)));
+        register(HrEmpHonor.class, "category", ExportFieldTranslationRule.map(reverseMap(HonorImportListener.categoryTranslateMap)));
+        register(HrEmpHonor.class, "honorType", ExportFieldTranslationRule.map(reverseMap(HonorImportListener.honorCategoriesTranslateMap)));
+        register(HrEmpHonor.class, "isPersonInCharge", ExportFieldTranslationRule.map(reverseMap(HonorImportListener.isPersonInChargeTranslateMap)));
 
         // HrEmpAppointment
         register(HrEmpAppointment.class, "changeEvent", ExportFieldTranslationRule.codeInfo("hr_emp_appointment", "APPOINTMENT_CHANGE_EVENT"));
@@ -121,10 +140,9 @@ public class HrEmpExportTranslatorRegistry {
         register(HrEmpOtherAppointment.class, "dept", ExportFieldTranslationRule.dept());
         register(HrEmpOtherAppointment.class, "positionCategory", ExportFieldTranslationRule.codeInfo("hr_emp_appointment", "APPOINTMENT_POSITION_CATEGORY"));
         register(HrEmpOtherAppointment.class, "dutyStatus", ExportFieldTranslationRule.codeInfo("hr_emp_appointment", "APPOINTMENT_DUTY_STATUS"));
+        register(HrEmpOtherAppointment.class, "otherAppointmentType", ExportFieldTranslationRule.codeInfo("hr_emp_appointment", "APPOINTMENT_CHANGE_TYPE"));
 
         // HrEmpForeignLanguage - no confirmed dictionary mappings yet
-
-        // HrEmpHonor - no confirmed dictionary mappings yet
 
         // HrEmpResume
         register(HrEmpResume.class, "changeType", ExportFieldTranslationRule.codeInfo("hr_emp_appointment", "APPOINTMENT_CHANGE_TYPE"));

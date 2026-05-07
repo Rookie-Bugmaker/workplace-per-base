@@ -20,23 +20,23 @@ import java.util.stream.Collectors;
 public class HonorImportListener implements ReadListener<HrEmpHonor> {
 
     //荣誉称号类别
-    public final Map<String, String> titleTypeTranslateMap = ImmutableMap.of(
+    public static final Map<String, String> titleTypeTranslateMap = ImmutableMap.of(
             "综合", "0",
             "单项", "1"
     );
     // 集体/个人
-    public final Map<String, String> groupOrPersonalTranslateMap = ImmutableMap.of(
+    public static final Map<String, String> groupOrPersonalTranslateMap = ImmutableMap.of(
             "集体", "1",
             "个人", "2"
     );
     //荣誉奖励类别
-    public final Map<String, String> rewardTypeTranslateMap = ImmutableMap.of(
+    public static final Map<String, String> rewardTypeTranslateMap = ImmutableMap.of(
             "荣誉称号", "1",
             "奖励", "2",
             "其他", "3"
     );
     // 归口单位
-    public final Map<String, String> responsibleUnitTranslateMap = ImmutableMap.of(
+    public static final Map<String, String> responsibleUnitTranslateMap = ImmutableMap.of(
             "党委组织部", "1",
             "党委宣传部", "2",
             "团委", "3",
@@ -46,14 +46,14 @@ public class HonorImportListener implements ReadListener<HrEmpHonor> {
     );
 
     // 荣誉取得方式
-    public final Map<String, String> obtainMethodTranslateMap = ImmutableMap.of(
+    public static final Map<String, String> obtainMethodTranslateMap = ImmutableMap.of(
             "评选", "0",
             "竞赛", "1",
             "选举", "2"
     );
 
     // 荣誉所属类别
-    public final Map<String, String> categoryTranslateMap = ImmutableMap.of(
+    public static final Map<String, String> categoryTranslateMap = ImmutableMap.of(
             "人才荣誉类", "0",
             "人才奖励类", "1",
             "人才培养类", "2",
@@ -63,7 +63,7 @@ public class HonorImportListener implements ReadListener<HrEmpHonor> {
             "集体认定类", "6"
     );
 
-    public final Map<String, String> honorCategoriesTranslateMap = ImmutableMap.<String, String>builder()
+    public static final Map<String, String> honorCategoriesTranslateMap = ImmutableMap.<String, String>builder()
             .put("中国科学院院士R01", "0")
             .put("中国科学院院士R0101", "1")
             .put("中国工程院院士R02", "2")
@@ -152,13 +152,13 @@ public class HonorImportListener implements ReadListener<HrEmpHonor> {
             .build();
 
     //是否为负责人
-    public final Map<String, String> isPersonInChargeTranslateMap = ImmutableMap.of(
+    public static final Map<String, String> isPersonInChargeTranslateMap = ImmutableMap.of(
             "否", "0",
             "是", "1"
     );
 
     // 称号级别
-    public final Map<String, String> titleLevelTranslateMap = ImmutableMap.of(
+    public static final Map<String, String> titleLevelTranslateMap = ImmutableMap.of(
             "国际级", "1",
             "国家级", "2",
             "省部级（全国性行业协会）", "3",

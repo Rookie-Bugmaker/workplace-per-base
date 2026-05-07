@@ -12,6 +12,7 @@ import java.util.List;
 
 import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
+import com.crrc.excel.YearMonthStringConverter;
 import com.crrc.pojo.dto.SysFileDTO;
 import com.crrc.utils.DiffMarkable;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -77,7 +78,7 @@ public class HrEmpForeignLanguage extends BaseEntity implements Serializable, Di
     private LocalDate examDate;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"证书取得时间"})
+    @ExcelProperty(value = {"证书取得时间"}, converter = YearMonthStringConverter.class)
     @Schema(description = "证书取得时间")
     @DateTimeFormat(value = "yyyy-MM")
     @JsonFormat(pattern = "yyyy-MM")
