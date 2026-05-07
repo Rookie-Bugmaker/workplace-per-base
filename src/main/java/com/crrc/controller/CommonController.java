@@ -20,7 +20,6 @@ import com.crrc.pojo.dto.QueryDTO;
 import com.crrc.pojo.dto.HrEmpBatchExportRequest;
 import com.crrc.pojo.vo.ExportTaskStatusVO;
 import com.crrc.pojo.vo.ExportTaskSubmitVO;
-import com.crrc.service.HrEmpBatchExportService;
 import com.crrc.service.HrEmpExportAsyncService;
 import com.crrc.service.HrEmpExportTaskService;
 import com.crrc.utils.RoleUtils;
@@ -55,14 +54,12 @@ public class CommonController {
     @Autowired
     private JdbcTemplate openGaussJdbcTemplate;
     @Autowired
-    private HrEmpBatchExportService hrEmpBatchExportService;
-    @Autowired
     private HrEmpExportTaskService hrEmpExportTaskService;
     @Autowired
     private HrEmpExportAsyncService hrEmpExportAsyncService;
 
-    private final static int IV_LEN = 12;
-    private final static int TAG_LEN_BIT = 128;
+//    private final static int IV_LEN = 12;
+//    private final static int TAG_LEN_BIT = 128;
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @GetMapping("/dept/treeDept")

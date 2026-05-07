@@ -73,6 +73,6 @@ public class HrEmpExportMergeStrategy extends AbstractMergeStrategy {
         sheet.addMergedRegion(new CellRangeAddress(firstRow, lastRow, 1, 1));
 
         mergedStartRows.add(relativeRowIndex);
-        mergedStartRows.addAll(IntStream.rangeClosed(firstRow, lastRow).boxed().collect(Collectors.toSet()));
+        mergedStartRows.addAll(IntStream.rangeClosed(relativeRowIndex, endDataIndex).boxed().collect(Collectors.toSet()));
     }
 }

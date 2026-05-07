@@ -8,6 +8,7 @@ import com.alibaba.excel.write.metadata.WriteSheet;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.crrc.entity.*;
+import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.enums.HrEmpExportType;
 import com.crrc.excel.YearMonthStringConverter;
 import com.crrc.mapper.*;
@@ -16,6 +17,7 @@ import com.crrc.service.CodeInfoService;
 import com.crrc.service.ExportProgressUpdater;
 import com.crrc.service.HrEmpExportService;
 import com.crrc.service.impl.translation.HrEmpExportTranslatorRegistry;
+import com.crrc.utils.DeptUtils;
 import com.crrc.utils.HrEmpExportMergeStrategy;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.Getter;
@@ -159,8 +161,13 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
         if (StringUtils.isNotBlank(request.getUserCode())) {
             wrapper.like(HrEmpBasic::getUserCode, request.getUserCode());
         }
+
         if (StringUtils.isNotBlank(request.getDeptCode())) {
-            wrapper.eq(HrEmpBasic::getDept, request.getDeptCode());
+            Set<String> deptSet = DeptUtils.childrenOrganization(request.getDeptCode(), true)
+                    .stream()
+                    .map(OrganizationTreeDTO::getOrgCode)
+                    .collect(Collectors.toSet());
+            wrapper.in(HrEmpBasic::getDept, deptSet);
         }
 
         return hrEmpBasicMapper.selectList(wrapper);

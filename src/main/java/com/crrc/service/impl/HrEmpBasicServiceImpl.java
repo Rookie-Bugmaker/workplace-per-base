@@ -511,14 +511,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                         HrEmpBasic::getCategory1,
                         dto.getCategory1());
         if(StringUtils.isNotBlank(dto.getDept())) {
-            List<String> childrenOrgList = new ArrayList<>();
-            List<OrganizationTreeDTO> data = DeptUtils.treeOrganization();
-            // 后面只用到了childrenOrgList中每一项的orgCode字段
-            for (OrganizationTreeDTO root : data) {
-                Optional<OrganizationTreeDTO> nodeBfs = TreeUtils.findNodeBfs(root, n -> dto.getDept().equals(n.getOrgCode()), OrganizationTreeDTO::getChildren);
-                // 根据orgCode匹配其下级部门，并获得其展平后的List（包含所有部门Code）
-                nodeBfs.ifPresent(organizationTreeDTO -> childrenOrgList.addAll(TreeUtils.flattenDescendants(organizationTreeDTO, OrganizationTreeDTO::getChildren, true).stream().map(OrganizationTreeDTO::getOrgCode).collect(Collectors.toList())));
-            }
+            // 根据orgCode匹配其下级部门，并获得其展平后的List（包含所有部门Code）
+            List<String> childrenOrgList = DeptUtils.childrenOrganization(dto.getDept(), true)
+                    .stream().map(OrganizationTreeDTO::getOrgCode)
+                    .collect(Collectors.toList());
 
             wrapper.in(HrEmpBasic::getDept, childrenOrgList);
         }
