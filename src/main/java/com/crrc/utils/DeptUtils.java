@@ -1,6 +1,7 @@
 package com.crrc.utils;
 
 
+import cn.hutool.core.util.StrUtil;
 import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
 import com.crrc.entity.dto.DeptDTO;
@@ -14,10 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -70,6 +68,28 @@ public class DeptUtils {
             log.error("treeOrganization出现内部错误", e);
             return Collections.emptyList();
         }
+    }
+
+    /**
+     * 获得所有儿子部门
+     * @param deptCode 父部门编码
+     * @param containsRoot 是否包含父部门
+     */
+    public static List<OrganizationTreeDTO> childrenOrganization(String deptCode, boolean containsRoot) {
+        if(!StringUtils.hasText(deptCode)) {
+            return Collections.emptyList();
+        }
+
+        List<OrganizationTreeDTO> childrenOrgList = new ArrayList<>();
+        List<OrganizationTreeDTO> data = treeOrganization();
+        // 后面只用到了childrenOrgList中每一项的orgCode字段
+        for (OrganizationTreeDTO root : data) {
+            Optional<OrganizationTreeDTO> nodeBfs = TreeUtils.findNodeBfs(root, n -> deptCode.equals(n.getOrgCode()), OrganizationTreeDTO::getChildren);
+            // 根据orgCode匹配其下级部门，并获得其展平后的List（包含所有部门Code）
+            nodeBfs.ifPresent(organizationTreeDTO -> childrenOrgList.addAll(TreeUtils.flattenDescendants(organizationTreeDTO, OrganizationTreeDTO::getChildren, containsRoot)));
+        }
+
+        return childrenOrgList;
     }
 
     /**

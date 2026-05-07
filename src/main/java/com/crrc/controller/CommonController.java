@@ -12,12 +12,19 @@ import com.crrc.common.ResultData;
 import com.crrc.entity.dto.DeptDTO;
 import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
+import com.crrc.enums.ExportTaskTypeEnum;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.pojo.dto.DeptReqDTO;
 import com.crrc.pojo.dto.QueryDTO;
+import com.crrc.pojo.dto.HrEmpBatchExportRequest;
+import com.crrc.pojo.vo.ExportTaskStatusVO;
+import com.crrc.pojo.vo.ExportTaskSubmitVO;
+import com.crrc.service.HrEmpExportAsyncService;
+import com.crrc.service.HrEmpExportTaskService;
 import com.crrc.utils.RoleUtils;
 import com.crrc.utils.TreeUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -46,10 +53,14 @@ public class CommonController {
     private SysServerClient sysServerClient;
     @Autowired
     private JdbcTemplate openGaussJdbcTemplate;
+    @Autowired
+    private HrEmpExportTaskService hrEmpExportTaskService;
+    @Autowired
+    private HrEmpExportAsyncService hrEmpExportAsyncService;
 
-    private final static int IV_LEN = 12;
-
-    private final static int TAG_LEN_BIT = 128;
+//    private final static int IV_LEN = 12;
+//    private final static int TAG_LEN_BIT = 128;
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @GetMapping("/dept/treeDept")
     @Operation(summary = "获取全量部门信息")
@@ -138,6 +149,40 @@ public class CommonController {
                 .excelType(typeEnum)
                 .sheet("报表")
                 .doWrite(dataList);
+    }
+
+    @PostMapping("/export/hrEmp/batch")
+    @AuditLog(value = "人员信息集批量导出", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
+    @Operation(summary = "人员信息集批量导出")
+    public ResultData<ExportTaskSubmitVO> batchExportHrEmpInfo(@RequestBody HrEmpBatchExportRequest request) {
+        try {
+            // 1. 将请求参数序列化为JSON
+            String requestParamJson = objectMapper.writeValueAsString(request);
+
+            // 2. 创建导出任务
+            com.crrc.entity.HrEmpExportTask task = hrEmpExportTaskService.createTask(
+                    ExportTaskTypeEnum.HR_EMP_BATCH_EXPORT.getCode(), requestParamJson);
+
+            // 3. 触发异步执行
+            hrEmpExportAsyncService.executeAsync(task.getTaskId());
+
+            // 4. 返回 taskId
+            ExportTaskSubmitVO vo = new ExportTaskSubmitVO();
+            vo.setTaskId(task.getTaskId());
+            return ResultData.success(vo);
+        } catch (Exception e) {
+            return ResultData.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), "创建导出任务失败: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/export/hrEmp/batch/task/{taskId}")
+    @Operation(summary = "查询人员信息导出任务状态")
+    public ResultData<ExportTaskStatusVO> queryExportTaskStatus(@PathVariable String taskId) {
+        ExportTaskStatusVO statusVO = hrEmpExportTaskService.queryStatus(taskId);
+        if (statusVO == null) {
+            return ResultData.fail(HttpStatus.NOT_FOUND.value(), "任务不存在");
+        }
+        return ResultData.success(statusVO);
     }
 
     private static class DeepCopyDTO {

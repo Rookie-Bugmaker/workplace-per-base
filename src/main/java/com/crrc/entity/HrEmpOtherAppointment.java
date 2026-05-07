@@ -41,87 +41,87 @@ public class HrEmpOtherAppointment extends BaseEntity implements Serializable {
     private Integer deleted;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"开始日期"}, index = 0)
+    @ExcelProperty(value = {"开始日期"})
     @Schema(description = "开始日期")
     private LocalDate startDate;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"预计结束日期"}, index = 1)
+    @ExcelProperty(value = {"预计结束日期"})
     @Schema(description = "预计结束日期")
     private LocalDate expectedEndDate;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"结束日期"}, index = 2)
+    @ExcelProperty(value = {"结束日期"})
     @Schema(description = "结束日期")
     private LocalDate endDate;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"人员类别"}, index = 3)
+    @ExcelProperty(value = {"人员类别"})
     @Schema(description = "人员类别")
     private String personnelCategory;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"组织"}, index = 4)
+    @ExcelProperty(value = {"组织"})
     @Schema(description = "组织")
     private String org;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"部门"}, index = 5)
+    @ExcelProperty(value = {"部门"})
     @Schema(description = "部门")
     private String dept;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"组织单元"}, index = 6)
+    @ExcelProperty(value = {"组织单元"})
     @Schema(description = "组织单元")
     private String orgUnit;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"档案关系弱化"}, index = 7)
+    @ExcelProperty(value = {"档案关系弱化"})
     @Schema(description = "档案关系弱化")
     private String archiveRelationWeaken;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"职位"}, index = 8)
+    @ExcelProperty(value = {"职位"})
     @Schema(description = "职位")
     private String position;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"其他任职类型"}, index = 9)
+    @ExcelProperty(value = {"其他任职类型"})
     @Schema(description = "其他任职类型")
     private String otherAppointmentType;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"集团外任职信息"}, index = 10)
+    @ExcelProperty(value = {"集团外任职信息"})
     @Schema(description = "集团外任职信息")
     private String externalApp;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"职务类别"}, index = 11)
+    @ExcelProperty(value = {"职务类别"})
     @Schema(description = "职务类别")
     private String positionCategory;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"在岗状态"}, index = 12)
+    @ExcelProperty(value = {"在岗状态"})
     @Schema(description = "在岗状态")
     private String dutyStatus;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"组织路径"}, index = 13)
+    @ExcelProperty(value = {"组织路径"})
     @Schema(description = "组织路径")
     private String orgPath;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"部门路径"}, index = 14)
+    @ExcelProperty(value = {"部门路径"})
     @Schema(description = "部门路径")
     private String deptPath;
     
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"工号"}, index = 16)
+    @ExcelProperty(value = {"工号"})
     @Schema(description = "工号")
     private String userCode;
 
     @QueryMethod(method = QueryType.EQ)
-    @ExcelProperty(value = {"职种编码"}, index = 17)
+    @ExcelProperty(value = {"职种编码"})
     @Schema(description = "职种编码")
     private String jobType;
 }
