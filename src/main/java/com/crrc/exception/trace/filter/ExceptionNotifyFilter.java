@@ -57,7 +57,7 @@ public class ExceptionNotifyFilter extends OncePerRequestFilter {
         Throwable rootCause = ExceptionTraceUtils.getRootCause(ex);
 
         String content = String.format(
-                "%s：请求方法: %s%n请求路径: %s%n查询参数: %s%n客户端IP: %s%n异常类型: %s%n异常消息: %s%n错误位置: %s%n错误文件: %s%n错误行号: %s%%ntraceId: %s",
+                "%s：请求方法: %s%n请求路径: %s%n查询参数: %s%n客户端IP: %s%n异常类型: %s%n异常消息: %s%n错误位置: %s%n错误文件: %s%n错误行号: %s%ntraceId: %s",
                 "test".equals(env) ? "测试环境" : "生产环境",
                 request.getMethod(),
                 request.getRequestURI(),
