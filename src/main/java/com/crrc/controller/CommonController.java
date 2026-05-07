@@ -13,8 +13,10 @@ import com.crrc.entity.dto.DeptDTO;
 import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.enums.ExportTaskTypeEnum;
+import com.crrc.enums.HrEmpExportType;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
+import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.DeptReqDTO;
 import com.crrc.pojo.dto.QueryDTO;
 import com.crrc.pojo.dto.HrEmpBatchExportRequest;
@@ -151,10 +153,21 @@ public class CommonController {
                 .doWrite(dataList);
     }
 
+    @PostMapping("/export/hrEmp/batch/type")
+    @AuditLog(value = "获得人员信息集导出类型", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
+    @Operation(summary = "获得人员信息集导出类型")
+    public ResponseResult<List<HrEmpExportType>> getBatchExportHrEmpInfoType(@RequestBody HrEmpBatchExportRequest request) {
+        try {
+            return ResponseResult.success(HrEmpExportType.allTypes());
+        } catch (Exception e) {
+            return ResponseResult.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), "获得人员信息集导出类型失败: " + e.getMessage());
+        }
+    }
+
     @PostMapping("/export/hrEmp/batch")
     @AuditLog(value = "人员信息集批量导出", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
     @Operation(summary = "人员信息集批量导出")
-    public ResultData<ExportTaskSubmitVO> batchExportHrEmpInfo(@RequestBody HrEmpBatchExportRequest request) {
+    public ResponseResult<ExportTaskSubmitVO> batchExportHrEmpInfo(@RequestBody HrEmpBatchExportRequest request) {
         try {
             // 1. 将请求参数序列化为JSON
             String requestParamJson = objectMapper.writeValueAsString(request);
@@ -169,20 +182,20 @@ public class CommonController {
             // 4. 返回 taskId
             ExportTaskSubmitVO vo = new ExportTaskSubmitVO();
             vo.setTaskId(task.getTaskId());
-            return ResultData.success(vo);
+            return ResponseResult.success(vo);
         } catch (Exception e) {
-            return ResultData.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), "创建导出任务失败: " + e.getMessage());
+            return ResponseResult.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), "创建导出任务失败: " + e.getMessage());
         }
     }
 
     @GetMapping("/export/hrEmp/batch/task/{taskId}")
     @Operation(summary = "查询人员信息导出任务状态")
-    public ResultData<ExportTaskStatusVO> queryExportTaskStatus(@PathVariable String taskId) {
+    public ResponseResult<ExportTaskStatusVO> queryExportTaskStatus(@PathVariable String taskId) {
         ExportTaskStatusVO statusVO = hrEmpExportTaskService.queryStatus(taskId);
         if (statusVO == null) {
-            return ResultData.fail(HttpStatus.NOT_FOUND.value(), "任务不存在");
+            return ResponseResult.fail(HttpStatus.NOT_FOUND.value(), "任务不存在");
         }
-        return ResultData.success(statusVO);
+        return ResponseResult.success(statusVO);
     }
 
     private static class DeepCopyDTO {

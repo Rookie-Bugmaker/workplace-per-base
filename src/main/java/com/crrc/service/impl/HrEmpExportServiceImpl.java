@@ -22,6 +22,7 @@ import com.crrc.utils.HrEmpExportMergeStrategy;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -156,18 +157,14 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
         wrapper.selectAll(HrEmpBasic.class);
 
         if (StringUtils.isNotBlank(request.getName())) {
-            wrapper.like(HrEmpBasic::getName, request.getName());
+            wrapper.like(HrEmpBasic::getName, request.getName().trim());
         }
         if (StringUtils.isNotBlank(request.getUserCode())) {
-            wrapper.like(HrEmpBasic::getUserCode, request.getUserCode());
+            wrapper.like(HrEmpBasic::getUserCode, request.getUserCode().trim());
         }
 
-        if (StringUtils.isNotBlank(request.getDeptCode())) {
-            Set<String> deptSet = DeptUtils.childrenOrganization(request.getDeptCode(), true)
-                    .stream()
-                    .map(OrganizationTreeDTO::getOrgCode)
-                    .collect(Collectors.toSet());
-            wrapper.in(HrEmpBasic::getDept, deptSet);
+        if (ObjectUtils.isNotEmpty(request.getDeptCodes())) {
+            wrapper.in(HrEmpBasic::getDept, request.getDeptCodes());
         }
 
         return hrEmpBasicMapper.selectList(wrapper);
