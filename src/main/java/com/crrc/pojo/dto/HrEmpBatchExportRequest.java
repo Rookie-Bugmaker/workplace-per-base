@@ -19,7 +19,7 @@ public class HrEmpBatchExportRequest {
     private String userCode;
 
     @Schema(description = "部门编码，精确查询")
-    private List<String> deptCodes;
+    private String deptCode;
 
     @Schema(description = "要导出的信息集类型列表，为空时默认导出全部")
     private List<String> exportTypes;

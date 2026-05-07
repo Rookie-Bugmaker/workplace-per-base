@@ -163,8 +163,13 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
             wrapper.like(HrEmpBasic::getUserCode, request.getUserCode().trim());
         }
 
-        if (ObjectUtils.isNotEmpty(request.getDeptCodes())) {
-            wrapper.in(HrEmpBasic::getDept, request.getDeptCodes());
+        if (StringUtils.isNotEmpty(request.getDeptCode())) {
+            Set<String> deptCodes = DeptUtils.childrenOrganization(request.getDeptCode(), true)
+                    .stream()
+                    .map(OrganizationTreeDTO::getOrgCode)
+                    .collect(Collectors.toSet());
+
+            wrapper.in(HrEmpBasic::getDept, deptCodes);
         }
 
         return hrEmpBasicMapper.selectList(wrapper);
@@ -175,7 +180,7 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
      */
     private List<HrEmpExportType> resolveExportTypes(List<String> exportTypes) {
         if (exportTypes == null || exportTypes.isEmpty()) {
-            return HrEmpExportType.allTypes();
+            return Arrays.asList(HrEmpExportType.values());
         }
         List<HrEmpExportType> result = new ArrayList<>();
         for (String code : exportTypes) {

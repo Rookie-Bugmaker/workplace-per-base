@@ -46,7 +46,12 @@ public enum HrEmpExportType {
         return CODE_MAP.get(code);
     }
 
-    public static List<HrEmpExportType> allTypes() {
-        return Arrays.asList(values());
+    public static List<CodeInfo> allTypes() {
+        return Arrays.stream(values()).map(item -> {
+            CodeInfo codeInfo = new CodeInfo();
+            codeInfo.setCode(item.getCode());
+            codeInfo.setCodeValue(item.getSheetName());
+            return codeInfo;
+        }).collect(Collectors.toList());
     }
 }

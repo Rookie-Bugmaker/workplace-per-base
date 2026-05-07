@@ -9,6 +9,7 @@ import com.crrc.api.WkCoreAPi;
 import com.crrc.api.WkDataAPi;
 import com.crrc.client.SysServerClient;
 import com.crrc.common.ResultData;
+import com.crrc.entity.CodeInfo;
 import com.crrc.entity.dto.DeptDTO;
 import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
@@ -153,10 +154,10 @@ public class CommonController {
                 .doWrite(dataList);
     }
 
-    @PostMapping("/export/hrEmp/batch/type")
+    @GetMapping("/export/hrEmp/batch/type")
     @AuditLog(value = "获得人员信息集导出类型", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
     @Operation(summary = "获得人员信息集导出类型")
-    public ResponseResult<List<HrEmpExportType>> getBatchExportHrEmpInfoType(@RequestBody HrEmpBatchExportRequest request) {
+    public ResponseResult<List<CodeInfo>> getBatchExportHrEmpInfoType() {
         try {
             return ResponseResult.success(HrEmpExportType.allTypes());
         } catch (Exception e) {
