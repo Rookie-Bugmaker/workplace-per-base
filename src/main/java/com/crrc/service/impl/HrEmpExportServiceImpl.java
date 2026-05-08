@@ -105,10 +105,16 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
     private HrEmpExportTranslatorRegistry translatorRegistry;
 
     @Override
-    public byte[] exportHrEmpInfo(HrEmpBatchExportRequest request, ExportProgressUpdater progressUpdater) {
+    public byte[] exportHrEmpInfo(HrEmpBatchExportRequest request,
+                                  ExportProgressUpdater progressUpdater) {
+
         // 1. 查询人员基本信息
         List<HrEmpBasic> basicList = queryBasicList(request);
-        List<String> userCodes = basicList.stream().map(HrEmpBasic::getUserCode).collect(Collectors.toList());
+        List<String> userCodes = basicList.stream()
+                .map(HrEmpBasic::getUserCode)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
 
         // 2. 确定要导出的信息集
         List<HrEmpExportType> exportTypes = resolveExportTypes(request.getExportTypes());
@@ -119,24 +125,25 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
                 .collect(Collectors.toSet());
         translatorRegistry.prefetchAll(entityClasses, codeInfoService);
 
-        // 4. 计算 totalCount（主表记录数 + 各个子表记录数）
-        int totalCount = basicList.size(); // 基本信息行
+        // 4. 子表数据只查询一次，并缓存
+        Map<HrEmpExportType, List<?>> subDataMap = new EnumMap<>(HrEmpExportType.class);
+
         for (HrEmpExportType exportType : exportTypes) {
             if (exportType != HrEmpExportType.BASIC) {
                 List<?> subData = querySubTable(exportType, userCodes);
-                totalCount += subData.size();
+                subDataMap.put(exportType, subData);
             }
         }
 
-        // 初始化进度
+        // 5. 计算真实写入行数
+        int totalCount = calculateExportTotalCount(exportTypes, basicList, subDataMap) + 1;
+
         if (progressUpdater != null) {
             progressUpdater.initTotal(totalCount);
-            // 基本信息行已处理
-            progressUpdater.increment(basicList.size());
         }
 
-        // 5. 生成 Excel 到 ByteArrayOutputStream
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
         ExcelWriter excelWriter = EasyExcelFactory.write(baos)
                 .registerConverter(new YearMonthStringConverter())
                 .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
@@ -148,9 +155,22 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
             for (HrEmpExportType exportType : exportTypes) {
                 if (exportType == HrEmpExportType.BASIC) {
                     writeBasicSheet(excelWriter, basicList);
+
+                    // BASIC Sheet 写入成功后再更新进度
+                    if (progressUpdater != null) {
+                        progressUpdater.increment(basicList.size());
+                    }
                 } else {
-                    List<?> subData = querySubTable(exportType, userCodes);
-                    writeSubTableSheetWithProgress(excelWriter, exportType, basicList, userCodes, subData, progressUpdater);
+                    List<?> subData = subDataMap.getOrDefault(exportType, Collections.emptyList());
+
+                    writeSubTableSheetWithProgress(
+                            excelWriter,
+                            exportType,
+                            basicList,
+                            userCodes,
+                            subData,
+                            progressUpdater
+                    );
                 }
             }
         } finally {
@@ -158,6 +178,38 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
         }
 
         return baos.toByteArray();
+    }
+
+    private int calculateExportTotalCount(List<HrEmpExportType> exportTypes,
+                                          List<HrEmpBasic> basicList,
+                                          Map<HrEmpExportType, List<?>> subDataMap) {
+        int totalCount = 0;
+
+        for (HrEmpExportType exportType : exportTypes) {
+            if (exportType == HrEmpExportType.BASIC) {
+                totalCount += basicList.size();
+                continue;
+            }
+
+            List<?> subData = subDataMap.getOrDefault(exportType, Collections.emptyList());
+
+            Map<String, Integer> subCountMap = new HashMap<>();
+            for (Object item : subData) {
+                String uc = getUserCode(item);
+                if (uc != null) {
+                    subCountMap.merge(uc, 1, Integer::sum);
+                }
+            }
+
+            for (HrEmpBasic basic : basicList) {
+                String userCode = basic.getUserCode();
+                if (userCode != null) {
+                    totalCount += subCountMap.getOrDefault(userCode, 0);
+                }
+            }
+        }
+
+        return totalCount;
     }
 
     /**
@@ -243,17 +295,20 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
     /**
      * 写入子表 Sheet（带进度更新）
      */
-    private void writeSubTableSheetWithProgress(ExcelWriter excelWriter, HrEmpExportType exportType,
-                                                 List<HrEmpBasic> basicList, List<String> userCodes,
-                                                 List<?> subData, ExportProgressUpdater progressUpdater) {
+    private void writeSubTableSheetWithProgress(ExcelWriter excelWriter,
+                                                HrEmpExportType exportType,
+                                                List<HrEmpBasic> basicList,
+                                                List<String> userCodes,
+                                                List<?> subData,
+                                                ExportProgressUpdater progressUpdater) {
         Class<?> entityClass = exportType.getEntityClass();
         List<ExportFieldMeta> fieldMetas = extractFieldMetas(entityClass);
 
-        // 构建 userCode -> 子表记录列表 的映射
         Map<String, List<Object>> subMap = new LinkedHashMap<>();
         for (String uc : userCodes) {
             subMap.put(uc, new ArrayList<>());
         }
+
         for (Object item : subData) {
             String uc = getUserCode(item);
             if (uc != null && subMap.containsKey(uc)) {
@@ -261,56 +316,83 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
             }
         }
 
-        // 表头：姓名 + 档案号 + 子表业务字段
         List<List<String>> head = buildBasicHead();
         for (ExportFieldMeta meta : fieldMetas) {
             head.add(Collections.singletonList(meta.getHeaderName()));
         }
 
-        // 数据：按 basicList 顺序展开
-        List<List<Object>> data = new ArrayList<>();
+        // 先计算行对应的 userCode，用于合并策略
         List<String> rowUserCodes = new ArrayList<>();
-        int batchCounter = 0;
-        final int BATCH_SIZE = 100;
-
         for (HrEmpBasic basic : basicList) {
-            List<Object> subItems = subMap.getOrDefault(basic.getUserCode(), Collections.emptyList());
-            if (!subItems.isEmpty()) {
-                for (Object subItem : subItems) {
-                    List<Object> row = new ArrayList<>();
-                    row.add(basic.getName());
-                    row.add(basic.getUserCode());
-                    for (ExportFieldMeta meta : fieldMetas) {
-                        Object rawValue = getFieldValue(subItem, meta.getField());
-                        Object exportValue = translatorRegistry.translate(entityClass, meta.getField(), rawValue, subItem);
-                        row.add(exportValue);
-                    }
-                    data.add(row);
-                    rowUserCodes.add(basic.getUserCode());
+            List<Object> subItems = subMap.getOrDefault(
+                    basic.getUserCode(),
+                    Collections.emptyList()
+            );
 
-                    // 每 BATCH_SIZE 条更新一次进度
-                    batchCounter++;
-                    if (progressUpdater != null && batchCounter % BATCH_SIZE == 0) {
-                        progressUpdater.increment(batchCounter);
-                        batchCounter = 0;
-                    }
-                }
+            for (int i = 0; i < subItems.size(); i++) {
+                rowUserCodes.add(basic.getUserCode());
             }
         }
 
-        // 更新剩余进度
-        if (progressUpdater != null && batchCounter > 0) {
-            progressUpdater.increment(batchCounter);
-        }
-
-        // 构建合并策略
         HrEmpExportMergeStrategy mergeStrategy = new HrEmpExportMergeStrategy(rowUserCodes);
 
         WriteSheet writeSheet = EasyExcelFactory.writerSheet(exportType.getSheetName())
                 .head(head)
                 .registerWriteHandler(mergeStrategy)
                 .build();
-        excelWriter.write(data, writeSheet);
+
+        final int batchSize = 100;
+        List<List<Object>> batchData = new ArrayList<>(batchSize);
+
+        for (HrEmpBasic basic : basicList) {
+            List<Object> subItems = subMap.getOrDefault(
+                    basic.getUserCode(),
+                    Collections.emptyList()
+            );
+
+            for (Object subItem : subItems) {
+                List<Object> row = new ArrayList<>();
+
+                row.add(basic.getName());
+                row.add(basic.getUserCode());
+
+                for (ExportFieldMeta meta : fieldMetas) {
+                    Object rawValue = getFieldValue(subItem, meta.getField());
+                    Object exportValue = translatorRegistry.translate(
+                            entityClass,
+                            meta.getField(),
+                            rawValue,
+                            subItem
+                    );
+                    row.add(exportValue);
+                }
+
+                batchData.add(row);
+
+                if (batchData.size() >= batchSize) {
+                    excelWriter.write(batchData, writeSheet);
+
+                    if (progressUpdater != null) {
+                        progressUpdater.increment(batchData.size());
+                    }
+
+                    batchData.clear();
+                }
+            }
+        }
+
+        if (!batchData.isEmpty()) {
+            excelWriter.write(batchData, writeSheet);
+
+            if (progressUpdater != null) {
+                progressUpdater.increment(batchData.size());
+            }
+        }
+
+        // 没有数据时也写出空 Sheet 表头
+        if (rowUserCodes.isEmpty()) {
+            excelWriter.write(Collections.emptyList(), writeSheet);
+        }
     }
 
     /**
