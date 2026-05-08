@@ -109,14 +109,22 @@ public class PositionInfoController {
     @AuditLog(value = "更新实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
     public ResponseResult<Boolean> updatePositionInfo(@Valid @RequestBody PositionInfo updateReqVO) {
-        // 如果传入的职位有id，证明为已有职位，可以更新
+        updateReqVO.setCode(updateReqVO.getCode().trim());
+
         LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
+        // 新建职位，需要保证新建的code不能存在
         wrapper.eq(PositionInfo::getCode, updateReqVO.getCode());
-        // 如果查到传入的职位编码已经存在，且id为空（新增数据），此时禁止操作，因为不能允许职位编码重复
-        if (positionInfoService.exists(wrapper) && updateReqVO.getId() == null) {
+
+        // 已有职位，需要保证修改后的code不能存在（或没有修改code）
+        if(updateReqVO.getId() != null) {
+            wrapper.ne(PositionInfo::getId, updateReqVO.getId());
+        }
+
+        if(positionInfoService.exists(wrapper)) {
             return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "职位编码不能重复");
         }
-        // 库中无传入职位编码，且为修改，直接允许更新
+
+        // 库中无传入职位编码，且为无重复，允许更新
         return new ResponseResult<>(HttpStatus.OK.value(), "更新职位信息成功", positionInfoService.saveOrUpdate(updateReqVO));
     }
 
