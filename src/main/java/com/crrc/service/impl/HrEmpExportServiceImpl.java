@@ -32,6 +32,7 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -103,40 +104,95 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
     private CodeInfoService codeInfoService;
     @Autowired
     private HrEmpExportTranslatorRegistry translatorRegistry;
+    @Autowired
+    private HrEmpExportTaskServiceImpl hrEmpExportTaskService;
 
     @Override
     public byte[] exportHrEmpInfo(HrEmpBatchExportRequest request,
                                   ExportProgressUpdater progressUpdater) {
 
+        if (progressUpdater != null) {
+            progressUpdater.updateProgress(HrEmpExportTaskServiceImpl.QUERY_START_PROGRESS);
+        }
+
         // 1. 查询人员基本信息
         List<HrEmpBasic> basicList = queryBasicList(request);
+
+        if (progressUpdater != null) {
+            progressUpdater.updateProgress(10);
+        }
+
         List<String> userCodes = basicList.stream()
                 .map(HrEmpBasic::getUserCode)
                 .filter(Objects::nonNull)
-                .distinct()
                 .collect(Collectors.toList());
 
         // 2. 确定要导出的信息集
         List<HrEmpExportType> exportTypes = resolveExportTypes(request.getExportTypes());
 
+        if (progressUpdater != null) {
+            progressUpdater.updateProgress(HrEmpExportTaskServiceImpl.EXPORT_PRERESOLVE_END_PROGRESS);
+        }
+
         // 3. 预加载翻译数据
         Set<Class<?>> entityClasses = exportTypes.stream()
                 .map(HrEmpExportType::getEntityClass)
                 .collect(Collectors.toSet());
+
         translatorRegistry.prefetchAll(entityClasses, codeInfoService);
+
+        if (progressUpdater != null) {
+            progressUpdater.updateProgress(HrEmpExportTaskServiceImpl.TRANSLATE_END_PROGRESS);
+        }
 
         // 4. 子表数据只查询一次，并缓存
         Map<HrEmpExportType, List<?>> subDataMap = new EnumMap<>(HrEmpExportType.class);
 
-        for (HrEmpExportType exportType : exportTypes) {
-            if (exportType != HrEmpExportType.BASIC) {
-                List<?> subData = querySubTable(exportType, userCodes);
-                subDataMap.put(exportType, subData);
-            }
+        List<HrEmpExportType> subExportTypes = exportTypes.stream()
+                .filter(type -> type != HrEmpExportType.BASIC)
+                .collect(Collectors.toList());
+
+        int batchCountPerSubTable = countUserCodeBatches(userCodes);
+        int totalQueryBatchCount = batchCountPerSubTable * subExportTypes.size();
+
+        AtomicInteger finishedQueryBatchCount = new AtomicInteger(0);
+        AtomicInteger lastQueryProgress = new AtomicInteger(0);
+
+        if (progressUpdater != null) {
+            progressUpdater.updateProgress(HrEmpExportTaskServiceImpl.TRANSLATE_END_PROGRESS);
+        }
+
+        for (HrEmpExportType exportType : subExportTypes) {
+            List<?> subData = querySubTable(exportType, userCodes, () -> {
+                if (progressUpdater == null) {
+                    return;
+                }
+
+                int finished = finishedQueryBatchCount.incrementAndGet();
+
+                int progress = hrEmpExportTaskService.calculateStageProgress(
+                        HrEmpExportTaskServiceImpl.TRANSLATE_END_PROGRESS,
+                        HrEmpExportTaskServiceImpl.QUERY_END_PROGRESS,
+                        finished,
+                        totalQueryBatchCount
+                );
+
+                // 避免同一个百分比重复 update 数据库
+                int lastProgress = lastQueryProgress.get();
+                if (progress > lastProgress && lastQueryProgress.compareAndSet(lastProgress, progress)) {
+                    progressUpdater.updateProgress(progress);
+                }
+            });
+
+            subDataMap.put(exportType, subData);
+        }
+
+        if (progressUpdater != null) {
+            progressUpdater.updateProgress(HrEmpExportTaskServiceImpl.QUERY_END_PROGRESS);
         }
 
         // 5. 计算真实写入行数
-        int totalCount = calculateExportTotalCount(exportTypes, basicList, subDataMap) + 1;
+        int totalCount = calculateExportTotalCount(exportTypes, basicList, subDataMap);
 
         if (progressUpdater != null) {
             progressUpdater.initTotal(totalCount);
@@ -156,7 +212,6 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
                 if (exportType == HrEmpExportType.BASIC) {
                     writeBasicSheet(excelWriter, basicList);
 
-                    // BASIC Sheet 写入成功后再更新进度
                     if (progressUpdater != null) {
                         progressUpdater.increment(basicList.size());
                     }
@@ -177,7 +232,28 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
             excelWriter.finish();
         }
 
+        if (progressUpdater != null) {
+            progressUpdater.updateProgress(HrEmpExportTaskServiceImpl.FINISH_EXCEL_PROGRESS);
+        }
+
         return baos.toByteArray();
+    }
+
+    private int countUserCodeBatches(Collection<String> userCodes) {
+        if (userCodes == null || userCodes.isEmpty()) {
+            return 0;
+        }
+
+        long distinctCount = userCodes.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .count();
+
+        if (distinctCount == 0) {
+            return 0;
+        }
+
+        return (int) ((distinctCount + USER_CODE_IN_BATCH_SIZE - 1) / USER_CODE_IN_BATCH_SIZE);
     }
 
     private int calculateExportTotalCount(List<HrEmpExportType> exportTypes,
@@ -398,45 +474,129 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
     /**
      * 查询子表数据
      */
-    private List<?> querySubTable(HrEmpExportType exportType, List<String> userCodes) {
+    private List<?> querySubTable(HrEmpExportType exportType,
+                                  List<String> userCodes,
+                                  Runnable afterBatchQueryCompleted) {
         if (userCodes == null || userCodes.isEmpty()) {
             return Collections.emptyList();
         }
+
         Class<?> entityClass = exportType.getEntityClass();
 
         if (entityClass == HrEmpEducation.class) {
-            return selectListByUserCodesInBatches(hrEmpEducationMapper, HrEmpEducation::getUserCode, userCodes);
+            return selectListByUserCodesInBatches(
+                    hrEmpEducationMapper,
+                    HrEmpEducation::getUserCode,
+                    userCodes,
+                    afterBatchQueryCompleted
+            );
         } else if (entityClass == HrEmpCareerPath.class) {
-            return selectListByUserCodesInBatches(hrEmpCareerPathMapper, HrEmpCareerPath::getUserCode, userCodes);
+            return selectListByUserCodesInBatches(
+                    hrEmpCareerPathMapper,
+                    HrEmpCareerPath::getUserCode,
+                    userCodes,
+                    afterBatchQueryCompleted
+            );
         } else if (entityClass == HrEmpFamMember.class) {
-            return selectListByUserCodesInBatches(hrEmpFamMemberMapper, HrEmpFamMember::getUserCode, userCodes);
+            return selectListByUserCodesInBatches(
+                    hrEmpFamMemberMapper,
+                    HrEmpFamMember::getUserCode,
+                    userCodes,
+                    afterBatchQueryCompleted
+            );
         } else if (entityClass == HrEmpProfessionalQualification.class) {
-            return selectListByUserCodesInBatches(hrEmpProQualificationMapper, HrEmpProfessionalQualification::getUserCode, userCodes);
+            return selectListByUserCodesInBatches(
+                    hrEmpProQualificationMapper,
+                    HrEmpProfessionalQualification::getUserCode,
+                    userCodes,
+                    afterBatchQueryCompleted
+            );
         } else if (entityClass == HrEmpSkillLevel.class) {
-            return selectListByUserCodesInBatches(hrEmpSkillLevelMapper, HrEmpSkillLevel::getUserCode, userCodes);
+            return selectListByUserCodesInBatches(
+                    hrEmpSkillLevelMapper,
+                    HrEmpSkillLevel::getUserCode,
+                    userCodes,
+                    afterBatchQueryCompleted
+            );
         } else if (entityClass == HrEmpSalaryInfo.class) {
-            return selectListByUserCodesInBatches(hrEmpSalaryInfoMapper, HrEmpSalaryInfo::getUserCode, userCodes);
+            return selectListByUserCodesInBatches(
+                    hrEmpSalaryInfoMapper,
+                    HrEmpSalaryInfo::getUserCode,
+                    userCodes,
+                    afterBatchQueryCompleted
+            );
         } else if (entityClass == HrEmpSalaryStandard.class) {
-            return selectListByUserCodesInBatches(hrEmpSalaryStandardMapper, HrEmpSalaryStandard::getUserCode, userCodes);
+            return selectListByUserCodesInBatches(
+                    hrEmpSalaryStandardMapper,
+                    HrEmpSalaryStandard::getUserCode,
+                    userCodes,
+                    afterBatchQueryCompleted
+            );
         } else if (entityClass == HrEmpPenalties.class) {
-            return selectListByUserCodesInBatches(hrEmpPenaltiesMapper, HrEmpPenalties::getUserCode, userCodes);
+            return selectListByUserCodesInBatches(
+                    hrEmpPenaltiesMapper,
+                    HrEmpPenalties::getUserCode,
+                    userCodes,
+                    afterBatchQueryCompleted
+            );
         } else if (entityClass == HrEmpPatent.class) {
-            return selectListByUserCodesInBatches(hrEmpPatentMapper, HrEmpPatent::getUserCode, userCodes);
+            return selectListByUserCodesInBatches(
+                    hrEmpPatentMapper,
+                    HrEmpPatent::getUserCode,
+                    userCodes,
+                    afterBatchQueryCompleted
+            );
         } else if (entityClass == HrEmpPaper.class) {
-            return selectListByUserCodesInBatches(hrEmpPaperMapper, HrEmpPaper::getUserCode, userCodes);
+            return selectListByUserCodesInBatches(
+                    hrEmpPaperMapper,
+                    HrEmpPaper::getUserCode,
+                    userCodes,
+                    afterBatchQueryCompleted
+            );
         } else if (entityClass == HrEmpAppointment.class) {
-            return selectListByUserCodesInBatches(hrEmpAppointmentMapper, HrEmpAppointment::getUserCode, userCodes);
+            return selectListByUserCodesInBatches(
+                    hrEmpAppointmentMapper,
+                    HrEmpAppointment::getUserCode,
+                    userCodes,
+                    afterBatchQueryCompleted
+            );
         } else if (entityClass == HrEmpOtherAppointment.class) {
-            return selectListByUserCodesInBatches(hrEmpOtherAppointmentMapper, HrEmpOtherAppointment::getUserCode, userCodes);
+            return selectListByUserCodesInBatches(
+                    hrEmpOtherAppointmentMapper,
+                    HrEmpOtherAppointment::getUserCode,
+                    userCodes,
+                    afterBatchQueryCompleted
+            );
         } else if (entityClass == HrEmpForeignLanguage.class) {
-            return selectListByUserCodesInBatches(hrEmpForeignLanguageMapper, HrEmpForeignLanguage::getUserCode, userCodes);
-        } else if (entityClass == HrEmpHonor.class) {
-            return selectListByUserCodesInBatches(hrEmpHonorMapper, HrEmpHonor::getUserCode, userCodes);
+            return selectListByUserCodesInBatches(
+                    hrEmpForeignLanguageMapper,
+                    HrEmpForeignLanguage::getUserCode,
+                    userCodes,
+                    afterBatchQueryCompleted
+            );
+        }else if (entityClass == HrEmpHonor.class) {
+            return selectListByUserCodesInBatches(
+                    hrEmpHonorMapper,
+                    HrEmpHonor::getUserCode,
+                    userCodes,
+                    afterBatchQueryCompleted
+            );
         } else if (entityClass == HrEmpResume.class) {
-            return selectListByUserCodesInBatches(hrEmpResumeMapper, HrEmpResume::getUserCode, userCodes);
+            return selectListByUserCodesInBatches(
+                    hrEmpResumeMapper,
+                    HrEmpResume::getUserCode,
+                    userCodes,
+                    afterBatchQueryCompleted
+            );
         } else if (entityClass == HrEmpRewards.class) {
-            return selectListByUserCodesInBatches(hrEmpRewardsMapper, HrEmpRewards::getUserCode, userCodes);
+            return selectListByUserCodesInBatches(
+                    hrEmpRewardsMapper,
+                    HrEmpRewards::getUserCode,
+                    userCodes,
+                    afterBatchQueryCompleted
+            );
         }
+
         return Collections.emptyList();
     }
 
@@ -447,11 +607,13 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
      * @param userCodeColumn userCode 字段 Lambda 引用
      * @param userCodes      待查询的 userCode 集合
      * @param <T>            实体类型
+     * @param afterBatchQueryCompleted 批次完成回调
      * @return 查询结果列表
      */
     private <T> List<T> selectListByUserCodesInBatches(BaseMapper<T> mapper,
                                                        SFunction<T, ?> userCodeColumn,
-                                                       Collection<String> userCodes) {
+                                                       Collection<String> userCodes,
+                                                       Runnable afterBatchQueryCompleted) {
         if (userCodes == null || userCodes.isEmpty()) {
             return Collections.emptyList();
         }
@@ -466,14 +628,25 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
         }
 
         List<T> result = new ArrayList<>();
+
         for (int fromIndex = 0; fromIndex < distinctUserCodes.size(); fromIndex += USER_CODE_IN_BATCH_SIZE) {
             int toIndex = Math.min(fromIndex + USER_CODE_IN_BATCH_SIZE, distinctUserCodes.size());
             List<String> batchUserCodes = distinctUserCodes.subList(fromIndex, toIndex);
 
             LambdaQueryWrapper<T> wrapper = Wrappers.lambdaQuery();
             wrapper.in(userCodeColumn, batchUserCodes);
-            result.addAll(mapper.selectList(wrapper));
+
+            List<T> batchResult = mapper.selectList(wrapper);
+            if (batchResult != null && !batchResult.isEmpty()) {
+                result.addAll(batchResult);
+            }
+
+            // 关键：一批 SQL 查询完成后，推进查询进度
+            if (afterBatchQueryCompleted != null) {
+                afterBatchQueryCompleted.run();
+            }
         }
+
         return result;
     }
 

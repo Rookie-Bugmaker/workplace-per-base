@@ -19,6 +19,20 @@ import java.util.Random;
 @Service
 public class HrEmpExportTaskServiceImpl implements HrEmpExportTaskService {
 
+    public static final int PROGRESS_START = 1;
+
+    public static final int QUERY_START_PROGRESS = 5;
+    public static final int EXPORT_PRERESOLVE_END_PROGRESS = 12;
+    public static final int TRANSLATE_END_PROGRESS = 15;
+    public static final int QUERY_END_PROGRESS = 50;
+
+    public static final int WRITE_START_PROGRESS = 50;
+    public static final int WRITE_END_PROGRESS = 90;
+
+    public static final int FINISH_EXCEL_PROGRESS = 95;
+    public static final int UPLOAD_PROGRESS = 99;
+    public static final int SUCCESS_PROGRESS = 100;
+
     @Autowired
     private HrEmpExportTaskMapper hrEmpExportTaskMapper;
 
@@ -55,6 +69,32 @@ public class HrEmpExportTaskServiceImpl implements HrEmpExportTaskService {
         hrEmpExportTaskMapper.updateById(task);
     }
 
+    public int calculateStageProgress(int startProgress,
+                                       int endProgress,
+                                       int finished,
+                                       int total) {
+        if (total <= 0) {
+            return endProgress;
+        }
+
+        int range = endProgress - startProgress;
+        int progress = startProgress + (int) (finished * 1L * range / total);
+
+        if (progress > endProgress) {
+            progress = endProgress;
+        }
+
+        if (progress < startProgress) {
+            progress = startProgress;
+        }
+
+        return progress;
+    }
+
+    private int nullToZero(Integer value) {
+        return value == null ? 0 : value;
+    }
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void initTotal(String taskId, int totalCount) {
@@ -62,30 +102,56 @@ public class HrEmpExportTaskServiceImpl implements HrEmpExportTaskService {
         if (task == null) {
             return;
         }
+
         task.setTotalCount(totalCount);
         task.setFinishedCount(0);
-        task.setProgress(5);
+
+        int currentProgress = nullToZero(task.getProgress());
+
+        if (totalCount <= 0) {
+            // 没有可写入数据，认为写入阶段已经完成
+            task.setProgress(Math.max(currentProgress, WRITE_END_PROGRESS));
+        } else {
+            // 写入阶段从 50% 开始，不允许倒退
+            task.setProgress(Math.max(currentProgress, WRITE_START_PROGRESS));
+        }
+
         hrEmpExportTaskMapper.updateById(task);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void incrementFinished(String taskId, int finishedDelta) {
+        if (finishedDelta <= 0) {
+            return;
+        }
+
         HrEmpExportTask task = getByTaskId(taskId);
         if (task == null) {
             return;
         }
-        int newFinished = (task.getFinishedCount() == null ? 0 : task.getFinishedCount()) + finishedDelta;
-        task.setFinishedCount(newFinished);
-        int total = task.getTotalCount() == null ? 1 : task.getTotalCount();
-        if (total > 0) {
-            // 5%~90% 的进度区间，按真实数据量计算
-            int progress = 5 + (int) (newFinished * 85L / total);
-            if (progress > 90) {
-                progress = 90;
-            }
-            task.setProgress(progress);
+
+        int oldFinished = task.getFinishedCount() == null ? 0 : task.getFinishedCount();
+        int total = task.getTotalCount() == null ? 0 : task.getTotalCount();
+
+        int newFinished = oldFinished + finishedDelta;
+
+        if (total > 0 && newFinished > total) {
+            newFinished = total;
         }
+
+        task.setFinishedCount(newFinished);
+
+        int currentProgress = nullToZero(task.getProgress());
+        int calculatedProgress = calculateStageProgress(
+                WRITE_START_PROGRESS,
+                WRITE_END_PROGRESS,
+                newFinished,
+                total
+        );
+
+        task.setProgress(Math.max(currentProgress, calculatedProgress));
+
         hrEmpExportTaskMapper.updateById(task);
     }
 
@@ -96,15 +162,26 @@ public class HrEmpExportTaskServiceImpl implements HrEmpExportTaskService {
         if (task == null) {
             return;
         }
-        task.setFinishedCount(finishedCount);
-        int total = task.getTotalCount() == null ? 1 : task.getTotalCount();
-        if (total > 0) {
-            int progress = 5 + (int) (finishedCount * 85L / total);
-            if (progress > 90) {
-                progress = 90;
-            }
-            task.setProgress(progress);
+
+        int total = task.getTotalCount() == null ? 0 : task.getTotalCount();
+
+        int safeFinished = Math.max(finishedCount, 0);
+        if (total > 0 && safeFinished > total) {
+            safeFinished = total;
         }
+
+        task.setFinishedCount(safeFinished);
+
+        int currentProgress = nullToZero(task.getProgress());
+        int calculatedProgress = calculateStageProgress(
+                WRITE_START_PROGRESS,
+                WRITE_END_PROGRESS,
+                safeFinished,
+                total
+        );
+
+        task.setProgress(Math.max(currentProgress, calculatedProgress));
+
         hrEmpExportTaskMapper.updateById(task);
     }
 
@@ -115,11 +192,16 @@ public class HrEmpExportTaskServiceImpl implements HrEmpExportTaskService {
         if (task == null) {
             return;
         }
+
+        int currentProgress = nullToZero(task.getProgress());
+        int safeProgress = Math.max(0, Math.min(progress, 100));
+
         // 进度只能递增，不能倒退
-        if (progress <= task.getProgress()) {
+        if (safeProgress <= currentProgress) {
             return;
         }
-        task.setProgress(progress);
+
+        task.setProgress(safeProgress);
         hrEmpExportTaskMapper.updateById(task);
     }
 
@@ -146,10 +228,15 @@ public class HrEmpExportTaskServiceImpl implements HrEmpExportTaskService {
         if (task == null) {
             return;
         }
+
+        int currentProgress = nullToZero(task.getProgress());
+        int safeProgress = Math.max(0, Math.min(progress, 100));
+
         task.setStatus(ExportTaskStatusEnum.FAILED.getCode());
-        task.setProgress(progress);
+        task.setProgress(Math.max(currentProgress, safeProgress));
         task.setErrorMessage(errorMessage);
         task.setFinishTime(LocalDateTime.now());
+
         hrEmpExportTaskMapper.updateById(task);
     }
 
