@@ -109,7 +109,9 @@ public class PositionInfoController {
     @AuditLog(value = "更新实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
     public ResponseResult<Boolean> updatePositionInfo(@Valid @RequestBody PositionInfo updateReqVO) {
-        updateReqVO.setCode(updateReqVO.getCode().trim());
+        if(updateReqVO.getCode() != null) {
+            updateReqVO.setCode(updateReqVO.getCode().trim());
+        }
 
         LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
         // 新建职位，需要保证新建的code不能存在
