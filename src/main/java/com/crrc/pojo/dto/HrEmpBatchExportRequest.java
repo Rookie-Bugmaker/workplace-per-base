@@ -21,6 +21,12 @@ public class HrEmpBatchExportRequest {
     @Schema(description = "部门编码，精确查询")
     private String deptCode;
 
+    @Schema(description = "是否在职")
+    private String isEmployed;
+
+    @Schema(description = "是否实习生")
+    private String isIntern;
+
     @Schema(description = "要导出的信息集类型列表，为空时默认导出全部")
     private List<String> exportTypes;
 }

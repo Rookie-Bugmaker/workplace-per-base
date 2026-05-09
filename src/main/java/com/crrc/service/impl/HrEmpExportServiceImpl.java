@@ -22,6 +22,7 @@ import com.crrc.service.HrEmpExportService;
 import com.crrc.service.impl.translation.HrEmpExportTranslatorRegistry;
 import com.crrc.utils.DeptUtils;
 import com.crrc.utils.HrEmpExportMergeStrategy;
+import com.crrc.utils.SystemConstants;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -295,11 +296,16 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
         MPJLambdaWrapper<HrEmpBasic> wrapper = new MPJLambdaWrapper<>();
         wrapper.selectAll(HrEmpBasic.class);
 
-        if (StringUtils.isNotBlank(request.getName())) {
-            wrapper.like(HrEmpBasic::getName, request.getName().trim());
-        }
-        if (StringUtils.isNotBlank(request.getUserCode())) {
-            wrapper.like(HrEmpBasic::getUserCode, request.getUserCode().trim());
+        wrapper.like(StringUtils.isNotBlank(request.getName()), HrEmpBasic::getName, request.getName().trim());
+        wrapper.like(StringUtils.isNotBlank(request.getUserCode()), HrEmpBasic::getUserCode, request.getUserCode().trim());
+        // 如果穿了isEmployed，则根据传入的是否在职查询
+        wrapper.eq(StringUtils.isNotBlank(request.getIsEmployed()), HrEmpBasic::getIsEmployed, request.getIsEmployed());
+
+        // 如果传了isIntern且为1，那么查询实习生，否则排除实习生
+        if(StringUtils.isNotBlank(request.getIsIntern()) && SystemConstants.TRUE_FLAG.equals(request.getIsIntern())) {
+            wrapper.eq(HrEmpBasic::getCategory1, "003");
+        } else {
+            wrapper.ne(HrEmpBasic::getCategory1, "003");
         }
 
         if (StringUtils.isNotEmpty(request.getDeptCode())) {
