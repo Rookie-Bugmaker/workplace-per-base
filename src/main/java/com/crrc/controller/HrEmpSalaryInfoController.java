@@ -1,11 +1,11 @@
 package com.crrc.controller;
 
 
-import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
@@ -86,9 +86,11 @@ public class HrEmpSalaryInfoController {
         HrEmpSalaryInfo existingEntity = hrEmpSalaryInfoService.getOne(wrapper);
 
         if (existingEntity != null) {
-            // 如果存在记录，则更新
-            existingEntity.setDepartmentCode(reqVO.getCostcenterCode());
-            boolean result = hrEmpSalaryInfoService.updateById(existingEntity);
+            // 如果存在记录，则仅更新departmentCode字段
+            LambdaUpdateWrapper<HrEmpSalaryInfo> updateWrapper = new LambdaUpdateWrapper<>();
+            updateWrapper.eq(HrEmpSalaryInfo::getUserCode, reqVO.getUserCode())
+                    .set(HrEmpSalaryInfo::getDepartmentCode, reqVO.getCostcenterCode());
+            boolean result = hrEmpSalaryInfoService.update(updateWrapper);
             return new ResponseResult<>(HttpStatus.OK.value(), "更新员工成本中心成功", result);
         } else {
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "该人员无薪资信息，不计入本部工资系统，无法修改成本中心");
