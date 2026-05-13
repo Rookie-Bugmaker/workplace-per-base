@@ -1,6 +1,7 @@
 package com.crrc.enums;
 
 import com.crrc.entity.*;
+import com.crrc.pojo.vo.HrEmpBasicExportVO;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -17,7 +18,7 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public enum HrEmpExportType {
 
-    BASIC("basic", "基本信息", HrEmpBasic.class),
+    BASIC("basic", "基本信息", HrEmpBasicExportVO.class),
     EDUCATION("education", "教育经历", HrEmpEducation.class),
     CAREER_PATH("careerPath", "职业发展", HrEmpCareerPath.class),
     FAM_MEMBER("famMember", "家庭成员", HrEmpFamMember.class),

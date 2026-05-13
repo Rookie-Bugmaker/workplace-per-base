@@ -16,6 +16,7 @@ import com.crrc.enums.HrEmpExportType;
 import com.crrc.excel.YearMonthStringConverter;
 import com.crrc.mapper.*;
 import com.crrc.pojo.dto.HrEmpBatchExportRequest;
+import com.crrc.pojo.vo.HrEmpBasicExportVO;
 import com.crrc.service.CodeInfoService;
 import com.crrc.service.ExportProgressUpdater;
 import com.crrc.service.HrEmpExportService;
@@ -102,6 +103,14 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
     @Autowired
     private HrEmpRewardsMapper hrEmpRewardsMapper;
     @Autowired
+    private HrEmpCertificateMapper hrEmpCertificateMapper;
+    @Autowired
+    private HrEmpHouseholdMapper hrEmpHouseholdMapper;
+    @Autowired
+    private HrEmpCommunicationMapper hrEmpCommunicationMapper;
+    @Autowired
+    private HrEmpHealthMapper hrEmpHealthMapper;
+    @Autowired
     private CodeInfoService codeInfoService;
     @Autowired
     private HrEmpExportTranslatorRegistry translatorRegistry;
@@ -117,7 +126,7 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
         }
 
         // 1. 查询人员基本信息
-        List<HrEmpBasic> basicList = queryBasicList(request);
+        List<HrEmpBasicExportVO> basicList = queryBasicList(request);
 
         if (progressUpdater != null) {
             progressUpdater.updateProgress(10);
@@ -258,7 +267,7 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
     }
 
     private int calculateExportTotalCount(List<HrEmpExportType> exportTypes,
-                                          List<HrEmpBasic> basicList,
+                                          List<? extends HrEmpBasic> basicList,
                                           Map<HrEmpExportType, List<?>> subDataMap) {
         int totalCount = 0;
 
@@ -292,7 +301,7 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
     /**
      * 查询符合条件的人员基本信息
      */
-    private List<HrEmpBasic> queryBasicList(HrEmpBatchExportRequest request) {
+    private List<HrEmpBasicExportVO> queryBasicList(HrEmpBatchExportRequest request) {
         MPJLambdaWrapper<HrEmpBasic> wrapper = new MPJLambdaWrapper<>();
         wrapper.selectAll(HrEmpBasic.class);
         wrapper.like(StringUtils.isNotBlank(request.getName()), HrEmpBasic::getName, nvl(request.getName()).trim());
@@ -316,7 +325,80 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
             wrapper.in(HrEmpBasic::getDept, deptCodes);
         }
 
-        return hrEmpBasicMapper.selectList(wrapper);
+        List<HrEmpBasic> basicList = hrEmpBasicMapper.selectList(wrapper);
+        if (basicList.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<String> userCodes = basicList.stream()
+                .map(HrEmpBasic::getUserCode)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        // 分批查询 4 张关联表数据
+        Map<String, HrEmpCertificate> certMap = toSingleRecordMap(
+                selectListByUserCodesInBatches(hrEmpCertificateMapper, HrEmpCertificate::getUserCode, userCodes, null),
+                HrEmpCertificate::getUserCode);
+
+        Map<String, HrEmpHouseHold> householdMap = toSingleRecordMap(
+                selectListByUserCodesInBatches(hrEmpHouseholdMapper, HrEmpHouseHold::getUserCode, userCodes, null),
+                HrEmpHouseHold::getUserCode);
+
+        Map<String, HrEmpCommunication> commMap = toSingleRecordMap(
+                selectListByUserCodesInBatches(hrEmpCommunicationMapper, HrEmpCommunication::getUserCode, userCodes, null),
+                HrEmpCommunication::getUserCode);
+
+        Map<String, HrEmpHealth> healthMap = toSingleRecordMap(
+                selectListByUserCodesInBatches(hrEmpHealthMapper, HrEmpHealth::getUserCode, userCodes, null),
+                HrEmpHealth::getUserCode);
+
+        // 合并为 VO 对象
+        List<HrEmpBasicExportVO> voList = new ArrayList<>(basicList.size());
+        for (HrEmpBasic basic : basicList) {
+            HrEmpBasicExportVO vo = new HrEmpBasicExportVO();
+            org.springframework.beans.BeanUtils.copyProperties(basic, vo);
+
+            String uc = basic.getUserCode();
+
+            HrEmpCertificate cert = certMap.get(uc);
+            if (cert != null) {
+                vo.setCertiType(cert.getCertiType());
+                vo.setCertiId(cert.getCertiId());
+            }
+
+            HrEmpHouseHold hh = householdMap.get(uc);
+            if (hh != null) {
+                vo.setHouseHoldType(hh.getHouseHoldType());
+                vo.setHouseHoldLocation(hh.getHouseHoldLocation());
+                vo.setHouseHoldLocationDetail(hh.getHouseHoldLocationDetail());
+            }
+
+            HrEmpCommunication comm = commMap.get(uc);
+            if (comm != null) {
+                vo.setMobilePhone(comm.getMobilePhone());
+                vo.setWorkEmail(comm.getWorkEmail());
+                vo.setPersonalEmail(comm.getPersonalEmail());
+                vo.setAddress(comm.getAddress());
+            }
+
+            HrEmpHealth health = healthMap.get(uc);
+            if (health != null) {
+                vo.setHealthStatus(health.getHealthStatus());
+            }
+
+            voList.add(vo);
+        }
+
+        return voList;
+    }
+
+    /**
+     * 将实体列表转为以 userCode 为 key 的 Map（一对一时保留第一条）
+     */
+    private <T> Map<String, T> toSingleRecordMap(List<T> list,
+                                                  java.util.function.Function<T, String> keyExtractor) {
+        return list.stream()
+                .collect(Collectors.toMap(keyExtractor, t -> t, (a, b) -> a));
     }
 
     private String nvl(String str) {
@@ -347,8 +429,8 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
     /**
      * 写入基本信息 Sheet
      */
-    private void writeBasicSheet(ExcelWriter excelWriter, List<HrEmpBasic> basicList) {
-        Class<?> entityClass = HrEmpBasic.class;
+    private void writeBasicSheet(ExcelWriter excelWriter, List<HrEmpBasicExportVO> basicList) {
+        Class<?> entityClass = HrEmpBasicExportVO.class;
         List<ExportFieldMeta> fieldMetas = extractFieldMetas(entityClass);
 
         // 前两列固定为姓名、档案号
@@ -382,7 +464,7 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
      */
     private void writeSubTableSheetWithProgress(ExcelWriter excelWriter,
                                                 HrEmpExportType exportType,
-                                                List<HrEmpBasic> basicList,
+                                                List<? extends HrEmpBasic> basicList,
                                                 List<String> userCodes,
                                                 List<?> subData,
                                                 ExportProgressUpdater progressUpdater) {
@@ -680,26 +762,30 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
     // ==================== 字段元数据提取 ====================
 
     /**
-     * 从实体类提取可导出的字段元数据
+     * 从实体类提取可导出的字段元数据（遍历类继承链）
      */
     private List<ExportFieldMeta> extractFieldMetas(Class<?> entityClass) {
         List<ExportFieldMeta> metas = new ArrayList<>();
-        Field[] fields = entityClass.getDeclaredFields();
+        Class<?> current = entityClass;
+        while (current != null && current != Object.class) {
+            Field[] fields = current.getDeclaredFields();
 
-        for (Field field : fields) {
-            if (EXCLUDE_FIELDS.contains(field.getName())) {
-                continue;
+            for (Field field : fields) {
+                if (EXCLUDE_FIELDS.contains(field.getName())) {
+                    continue;
+                }
+                if (FIXED_HEAD_FIELDS.contains(field.getName())) {
+                    continue;
+                }
+                ExcelProperty ep = field.getAnnotation(ExcelProperty.class);
+                if (ep == null) {
+                    continue;
+                }
+                String headerName = ep.value().length > 0 ? ep.value()[0] : field.getName();
+                int sortIndex = ep.index();
+                metas.add(new ExportFieldMeta(field.getName(), headerName, sortIndex));
             }
-            if (FIXED_HEAD_FIELDS.contains(field.getName())) {
-                continue;
-            }
-            ExcelProperty ep = field.getAnnotation(ExcelProperty.class);
-            if (ep == null) {
-                continue;
-            }
-            String headerName = ep.value().length > 0 ? ep.value()[0] : field.getName();
-            int sortIndex = ep.index();
-            metas.add(new ExportFieldMeta(field.getName(), headerName, sortIndex));
+            current = current.getSuperclass();
         }
 
         metas.sort(Comparator.comparingInt(ExportFieldMeta::getSortIndex));

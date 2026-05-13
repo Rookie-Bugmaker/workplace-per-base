@@ -1,6 +1,7 @@
 package com.crrc.service.impl.translation;
 
 import com.crrc.entity.*;
+import com.crrc.pojo.vo.HrEmpBasicExportVO;
 import com.crrc.service.CodeInfoService;
 import com.crrc.utils.DeptUtils;
 import com.crrc.utils.listener.HonorImportListener;
@@ -40,21 +41,26 @@ public class HrEmpExportTranslatorRegistry {
 
     @PostConstruct
     public void init() {
-        // HrEmpBasic
-        register(HrEmpBasic.class, "dept", ExportFieldTranslationRule.dept());
-        register(HrEmpBasic.class, "gender", ExportFieldTranslationRule.genderFlag());
-        register(HrEmpBasic.class, "nation", ExportFieldTranslationRule.codeInfo("hr_emp_basic", "BASIC_NATION"));
-        register(HrEmpBasic.class, "nationality", ExportFieldTranslationRule.codeInfo("hr_emp_basic", "BASIC_NATIONALITY"));
-        register(HrEmpBasic.class, "empSource", ExportFieldTranslationRule.codeInfo("hr_emp_basic", "BASIC_EMP_SOURCE"));
-        register(HrEmpBasic.class, "maritalStatus", ExportFieldTranslationRule.codeInfo("hr_emp_basic", "BASIC_MARITAL_STATUS"));
-        register(HrEmpBasic.class, "nativePlaceCode", ExportFieldTranslationRule.nativePlace());
-        register(HrEmpBasic.class, "politicalValue", ExportFieldTranslationRule.codeInfo("hr_emp_basic", "BASIC_POLITICAL", "political"));
-        register(HrEmpBasic.class, "status", ExportFieldTranslationRule.codeInfo("hr_emp_basic", "per_status"));
-        register(HrEmpBasic.class, "category1", ExportFieldTranslationRule.codeInfo("person_category", "category1"));
-        register(HrEmpBasic.class, "category4", ExportFieldTranslationRule.codeInfo("person_category", "category4"));
-        register(HrEmpBasic.class, "category7", ExportFieldTranslationRule.codeInfo("person_category", "category7"));
-        register(HrEmpBasic.class, "category8", ExportFieldTranslationRule.codeInfo("person_category", "category8"));
-        register(HrEmpBasic.class, "isEmployed", ExportFieldTranslationRule.employedFlag());
+        // HrEmpBasicExportVO — 继承 HrEmpBasic，需要重新注册翻译规则（注册表以 Class 为 key）
+        register(HrEmpBasicExportVO.class, "dept", ExportFieldTranslationRule.dept());
+        register(HrEmpBasicExportVO.class, "gender", ExportFieldTranslationRule.genderFlag());
+        register(HrEmpBasicExportVO.class, "nation", ExportFieldTranslationRule.codeInfo("hr_emp_basic", "BASIC_NATION"));
+        register(HrEmpBasicExportVO.class, "nationality", ExportFieldTranslationRule.codeInfo("hr_emp_basic", "BASIC_NATIONALITY"));
+        register(HrEmpBasicExportVO.class, "empSource", ExportFieldTranslationRule.codeInfo("hr_emp_basic", "BASIC_EMP_SOURCE"));
+        register(HrEmpBasicExportVO.class, "maritalStatus", ExportFieldTranslationRule.codeInfo("hr_emp_basic", "BASIC_MARITAL_STATUS"));
+        register(HrEmpBasicExportVO.class, "nativePlaceCode", ExportFieldTranslationRule.nativePlace());
+        register(HrEmpBasicExportVO.class, "politicalValue", ExportFieldTranslationRule.codeInfo("hr_emp_basic", "BASIC_POLITICAL", "political"));
+        register(HrEmpBasicExportVO.class, "status", ExportFieldTranslationRule.codeInfo("hr_emp_basic", "per_status"));
+        register(HrEmpBasicExportVO.class, "category1", ExportFieldTranslationRule.codeInfo("person_category", "category1"));
+        register(HrEmpBasicExportVO.class, "category4", ExportFieldTranslationRule.codeInfo("person_category", "category4"));
+        register(HrEmpBasicExportVO.class, "category7", ExportFieldTranslationRule.codeInfo("person_category", "category7"));
+        register(HrEmpBasicExportVO.class, "category8", ExportFieldTranslationRule.codeInfo("person_category", "category8"));
+        register(HrEmpBasicExportVO.class, "isEmployed", ExportFieldTranslationRule.employedFlag());
+        register(HrEmpBasicExportVO.class, "certiType", ExportFieldTranslationRule.codeInfo("hr_emp_basic", "BASIC_CERTI_TYPE"));
+        register(HrEmpBasicExportVO.class, "houseHoldType", ExportFieldTranslationRule.codeInfo("hr_emp_household", "HOUSRHOLD_TYPE"));
+        register(HrEmpBasicExportVO.class, "healthStatus", ExportFieldTranslationRule.codeInfo("hr_emp_health", "BASIC_HEALTH_STATUS"));
+
+
 
         // HrEmpEducation
         register(HrEmpEducation.class, "major", ExportFieldTranslationRule.codeInfo("hr_emp_education", "EDU_MAJOR_CODE", "majorCode"));
