@@ -295,9 +295,8 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
     private List<HrEmpBasic> queryBasicList(HrEmpBatchExportRequest request) {
         MPJLambdaWrapper<HrEmpBasic> wrapper = new MPJLambdaWrapper<>();
         wrapper.selectAll(HrEmpBasic.class);
-
-        wrapper.like(StringUtils.isNotBlank(request.getName()), HrEmpBasic::getName, request.getName().trim());
-        wrapper.like(StringUtils.isNotBlank(request.getUserCode()), HrEmpBasic::getUserCode, request.getUserCode().trim());
+        wrapper.like(StringUtils.isNotBlank(request.getName()), HrEmpBasic::getName, nvl(request.getName()).trim());
+        wrapper.like(StringUtils.isNotBlank(request.getUserCode()), HrEmpBasic::getUserCode, nvl(request.getUserCode()).trim());
         // 如果穿了isEmployed，则根据传入的是否在职查询
         wrapper.eq(StringUtils.isNotBlank(request.getIsEmployed()), HrEmpBasic::getIsEmployed, request.getIsEmployed());
 
@@ -318,6 +317,10 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
         }
 
         return hrEmpBasicMapper.selectList(wrapper);
+    }
+
+    private String nvl(String str) {
+        return str == null ? "" : str;
     }
 
     /**

@@ -3,6 +3,7 @@ package com.crrc.service;
 import com.alibaba.excel.EasyExcelFactory;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
+import com.crrc.annotation.DataScopeIgnore;
 import com.crrc.entity.ByteArrayMultipartFile;
 import com.crrc.entity.HrEmpExportTask;
 import com.crrc.enums.ExportTaskTypeEnum;
@@ -44,12 +45,10 @@ public class HrEmpExportAsyncService {
      * @param taskId 任务ID
      */
     @Async("templateGenerateAsyncExecutor")
+    @DataScopeIgnore
     public void executeAsync(String taskId) {
         log.info("开始执行导出任务, taskId={}", taskId);
-        String oldTenant = MultiTenantHandler.tenantId.get();
         try {
-            MultiTenantHandler.tenantId.set("ignore");
-
             // 1. 更新任务状态为 RUNNING
             hrEmpExportTaskService.updateRunning(taskId);
 
@@ -106,8 +105,6 @@ public class HrEmpExportAsyncService {
             HrEmpExportTask currentTask = hrEmpExportTaskService.getByTaskId(taskId);
             int currentProgress = currentTask != null && currentTask.getProgress() != null ? currentTask.getProgress() : 0;
             hrEmpExportTaskService.updateFailed(taskId, "导出失败: " + truncateMessage(e.getMessage()), currentProgress);
-        } finally {
-            MultiTenantHandler.tenantId.set(oldTenant);
         }
     }
 
