@@ -4,6 +4,7 @@ import com.alibaba.excel.EasyExcelFactory;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.crrc.annotation.DataScopeIgnore;
+import com.crrc.annotation.TenantIgnore;
 import com.crrc.entity.ByteArrayMultipartFile;
 import com.crrc.entity.HrEmpExportTask;
 import com.crrc.enums.ExportTaskTypeEnum;
@@ -45,7 +46,7 @@ public class HrEmpExportAsyncService {
      * @param taskId 任务ID
      */
     @Async("templateGenerateAsyncExecutor")
-    @DataScopeIgnore
+    @TenantIgnore
     public void executeAsync(String taskId) {
         log.info("开始执行导出任务, taskId={}", taskId);
         try {
