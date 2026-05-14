@@ -438,7 +438,22 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 )
                 .selectAll(HrEmpSalaryInfo.class)
                 .leftJoin(HrEmpSalaryInfo.class, on -> on.eq(HrEmpSalaryInfo::getUserCode, HrEmpBasic::getUserCode))
-                // .leftJoin(HrEmpAppointment.class, HrEmpAppointment::getUserCode, HrEmpBasic::getUserCode)
+                .select("a.position")
+                .leftJoin(
+                        "(  " +
+                                "    SELECT " +
+                                "    user_code, " +
+                                "    position, " +
+                                "    row_number() OVER (PARTITION BY user_code " +
+                                "ORDER BY " +
+                                "    create_time DESC NULLS LAST, " +
+                                "    start_date DESC NULLS LAST, " +
+                                "    end_date DESC NULLS LAST) AS rn " +
+                                "FROM " +
+                                "    hr_emp_appointment " +
+                                "WHERE deleted = '0' " +
+                                ") a ON t.user_code = a.user_code AND a.rn = 1"
+                )
                 // 关键：只查本页的员工，避免全表 join
                 .in(HrEmpBasic::getUserCode, userCodes)
                 .orderByAsc(HrEmpBasic::getUserCode);
@@ -446,8 +461,25 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         // 这里不再分页，因为 userCode 已经是分页后的结果，数据量很小
         List<HrEmpBasicDTO> dtoList = hrEmpBasicMapper.selectJoinList(HrEmpBasicDTO.class, joinWrapper);
 
-        // 翻译部门
-        dtoList.forEach(item -> item.setDepartmentName(DeptUtils.getDeptNameByCode(item.getDept())));
+        // 查询职位码值
+        List<String> positions = dtoList.stream().map(HrEmpBasicDTO::getPosition).distinct().collect(Collectors.toList());
+        Map<String, String> positionMap = positionInfoServiceImpl.lambdaQuery()
+                .select(PositionInfo::getCode, PositionInfo::getName)
+                .in(PositionInfo::getCode, positions)
+                .list()
+                .stream()
+                .collect(Collectors.toMap(
+                        PositionInfo::getCode,
+                        PositionInfo::getName,
+                        (a, b) -> a
+                ));
+
+        dtoList.forEach(item -> {
+            // 翻译部门
+            item.setDepartmentName(DeptUtils.getDeptNameByCode(item.getDept()));
+            // 翻译职位
+            item.setPositionValue(positionMap.getOrDefault(item.getPosition(), item.getPosition()));
+        });
 
         // ========= 4. 组装 IPage<HrEmpBasicDTO>，保持分页信息一致 =========
 
