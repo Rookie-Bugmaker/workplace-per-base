@@ -1,6 +1,9 @@
 package com.crrc.exception.trace.filter;
 
+import com.crrc.entity.dict.vo.DictItemVO;
+import com.crrc.entity.dict.vo.DictVO;
 import com.crrc.exception.trace.utils.ExceptionTraceUtils;
+import com.crrc.utils.DictUtils;
 import com.crrc.utils.MessageUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +20,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -24,6 +28,7 @@ public class ExceptionNotifyFilter extends OncePerRequestFilter {
 
     private final MessageUtils messageUtils;
     private final String env;
+    private final DictUtils dictUtils;
 
     @Override
     protected void doFilterInternal(@NotNull HttpServletRequest request,
@@ -51,6 +56,14 @@ public class ExceptionNotifyFilter extends OncePerRequestFilter {
     }
 
     private void notifySafely(HttpServletRequest request, Exception ex) {
+        // 获得通知人
+        DictVO hrscExceptionNotifier = dictUtils.get("HRSC_EXCEPTION_NOTIFIER");
+        if(hrscExceptionNotifier == null || hrscExceptionNotifier.getItems() == null || hrscExceptionNotifier.getItems().isEmpty()) {
+            return;
+        }
+
+        List<String> receives = hrscExceptionNotifier.getItems().stream().map(DictItemVO::getItemCode).collect(Collectors.toList());
+
         List<String> projectPackages = Collections.singletonList("com.crrc"); // 改成你自己的项目根包
 
         StackTraceElement bestFrame = ExceptionTraceUtils.findBestFrame(ex, projectPackages);
@@ -72,7 +85,7 @@ public class ExceptionNotifyFilter extends OncePerRequestFilter {
         );
 
         try {
-            messageUtils.pushPlainMsg(Arrays.asList("013200031192", "013200031524"), content);
+            messageUtils.pushPlainMsg(receives, content);
         } catch (Exception notifyEx) {
             // 通知失败不能影响原始异常继续抛出
             log.error("异常通知发送失败", notifyEx);
