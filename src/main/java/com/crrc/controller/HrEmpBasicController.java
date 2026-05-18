@@ -794,9 +794,25 @@ public class HrEmpBasicController {
     }
 
     @PostMapping("/getFullData")
-    public ResponseResult<List<HrFullDataDTO>> setCategory7Batch(@RequestBody List<String> userCodes) {
+    public ResponseResult<List<HrFullDataDTO>> getFullData(@RequestBody List<String> userCodes) {
         try {
             return new ResponseResult<>(HttpStatus.OK.value(), "OK", hrEmpBasicService.getFullData(userCodes));
+        } catch (Exception e) {
+            log.error("查询出错", e);
+            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "ERROR");
+        }
+    }
+
+
+    /**
+     * 该接口用于per-cadre干部名册查询信息，与getFullData不同在于basic进行了join，字段进行了翻译
+     * @param userCodes 查询的userCode列表
+     * @return 数据
+     */
+    @PostMapping("/getFullDataTranslatedInPlace")
+    public ResponseResult<List<HrFullDataTranslatedDTO>> getFullDataTranslatedInPlace(@RequestBody List<String> userCodes) {
+        try {
+            return new ResponseResult<>(HttpStatus.OK.value(), "OK", hrEmpBasicService.getFullDataTranslatedInPlace(userCodes));
         } catch (Exception e) {
             log.error("查询出错", e);
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "ERROR");
@@ -807,7 +823,7 @@ public class HrEmpBasicController {
     @PostMapping("/setCategory7Batch")
     public ResponseResult<Boolean> setCategory7Batch(@RequestBody MultipartFile file) throws IOException {
         if(RoleUtils.checkAnyMatch("hrsc_admin")) {
-            EasyExcel.read(file.getInputStream(), HrEmpBasic.class,
+            EasyExcelFactory.read(file.getInputStream(), HrEmpBasic.class,
                             new CategoryResolveImportListener(this, hrEmpBasicService))
                     .headRowNumber(1)
                     .sheet()

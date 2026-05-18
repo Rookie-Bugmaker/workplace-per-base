@@ -45,10 +45,10 @@ public class ExceptionCasePersonController {
     @PostMapping("/page")
     @Operation(summary = "获取额外人员信息表列表 page")
     @AuditLog(value = "获取额外人员信息表列表 page", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    @Parameter(name = "pageReqVO",description = "包含查询条件的实体对象", required = false)
-    @Parameter(name = "pageNo", description = "页码", required = false, example = "1")
-    @Parameter(name = "pageSize", description = "条数", required = false, example = "10")
-    public ResponseResult<IPage> pageExceptionCasePerson(@Validated @RequestBody(required = false) ExceptionCasePerson pageReqVO,
+    @Parameter(name = "pageReqVO",description = "包含查询条件的实体对象")
+    @Parameter(name = "pageNo", description = "页码", example = "1")
+    @Parameter(name = "pageSize", description = "条数", example = "10")
+    public ResponseResult<IPage<ExceptionCasePerson>> pageExceptionCasePerson(@Validated @RequestBody(required = false) ExceptionCasePerson pageReqVO,
                                              @RequestParam(required = false, defaultValue = "1") int pageNo,
                                              @RequestParam(required = false, defaultValue = "10")int pageSize) {
         pageReqVO = (pageReqVO == null) ? new ExceptionCasePerson() : pageReqVO;
@@ -60,7 +60,7 @@ public class ExceptionCasePersonController {
     @PostMapping("/query")
     @Operation(summary = "获取额外人员信息表列表")
     @AuditLog(value = "获取额外人员信息表列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象", required = false)
+    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
     public ResponseResult<List<ExceptionCasePerson>> queryExceptionCasePerson(@Validated @RequestBody(required = false) ExceptionCasePerson queryReqVO) {
         queryReqVO = (queryReqVO == null) ? new ExceptionCasePerson() : queryReqVO;
         return new ResponseResult<>(HttpStatus.OK.value(), "获取额外人员信息表列表成功", exceptionCasePersonService.query(queryReqVO));

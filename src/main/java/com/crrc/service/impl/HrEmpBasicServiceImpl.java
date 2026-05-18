@@ -13,10 +13,7 @@ import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.mapper.*;
-import com.crrc.pojo.dto.ExceptionPersonQueryDTO;
-import com.crrc.pojo.dto.HrEmpBasicDTO;
-import com.crrc.pojo.dto.HrEmpBasicSearchDTO;
-import com.crrc.pojo.dto.HrFullDataDTO;
+import com.crrc.pojo.dto.*;
 import com.crrc.service.HrEmpBasicService;
 import com.crrc.utils.*;
 import com.github.yulichang.toolkit.JoinWrappers;
@@ -83,6 +80,10 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     private static final String DEGREE_TYPE_NAME = "EDU_DEGREE";
 
     private static final String INFO_MANAGER_TYPE_NAME = "info_manager";
+
+    private static final String PRO_QUA_ID_TYPE_NAME = "QUA_ID";
+
+    private static final String PRO_QUA_TABLE_NAME = "hr_emp_pro_qualification";
 
     private final WkDataAPi wkDataAPi;
 
@@ -737,6 +738,192 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             hrFullDataDTO.setHrEmpCareerPath(hrEmpCareerPaths.get(basic.getUserCode()));
             hrFullDataDTO.setHrEmpSalaryInfo(hrEmpSalaryInfos.get(basic.getUserCode()));
             hrFullDataDTO.setHrEmpSalaryStandard(hrEmpSalaryStandards.get(basic.getUserCode()));
+            return hrFullDataDTO;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<HrFullDataTranslatedDTO> getFullDataTranslatedInPlace(List<String> userCodes) {
+        // 查询出这些人的基本信息数据
+        List<HrEmpBasicDTO> hrEmpBasicList = selectMsgList(userCodes);
+
+        Map<String, String> orgCache = new HashMap<>();
+
+        ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
+        if (listResponseResultDTO == null || org.apache.commons.lang3.ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+            log.error("外部接口错误，获取树形组织信息失败: {}", listResponseResultDTO);
+            throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
+        }
+
+        List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+
+        OrganizationTreeDTO organizationTreeDTO = new OrganizationTreeDTO();
+        organizationTreeDTO.setChildren(data);
+        Map<String, String> orgMap = TreeUtils.flattenDescendants(organizationTreeDTO, OrganizationTreeDTO::getChildren, false)
+                .stream().collect(Collectors.toMap(
+                        OrganizationTreeDTO::getOrgCode,
+                        OrganizationTreeDTO::getOrgName,
+                        (a, b) -> a
+                ));
+
+        Map<String, String> politicalTranslateMap = codeInfoService.getTranslateMap(TABLE_NAME, POLITICAL_TYPE_NAME);
+        Map<String, String> educationTranslateMap = codeInfoService.getTranslateMap(EDUCATION_TABLE_NAME, EDUCATION_TYPE_NAME);
+        Map<String, String> degreeTranslateMap = codeInfoService.getTranslateMap(EDUCATION_TABLE_NAME, DEGREE_TYPE_NAME);
+        Map<String, String> proQuaIdTranslateMap = codeInfoService.getTranslateMap(PRO_QUA_TABLE_NAME, PRO_QUA_ID_TYPE_NAME);
+
+        for(HrEmpBasic basic : hrEmpBasicList) {
+            if(StringUtils.isNotBlank(basic.getDept())) {
+                if(!orgCache.containsKey(basic.getDept())) {
+                    String parentCode = null;
+                    for(OrganizationTreeDTO root : data) {
+                        if (TreeUtils.containsBfs(root, n -> (basic.getDept() != null) && basic.getDept().equals(n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
+                            parentCode = root.getOrgCode();
+                            break;
+                        }
+                    }
+                    basic.setOrgCode(parentCode);
+                    orgCache.put(basic.getDept(), parentCode);
+                } else {
+                    basic.setOrgCode(orgCache.get(basic.getDept()));
+                }
+
+                basic.setDept(orgMap.getOrDefault(basic.getDept(), basic.getDept()));
+                basic.setGender("1".equals(basic.getGender()) ? "男" : "女");
+                basic.setPolitical(politicalTranslateMap.getOrDefault(basic.getPolitical(), basic.getPolitical()));
+            }
+        }
+
+        // 查询个人任职信息数据，并收集为userCode -> hrEmpAppointment的格式
+        Map<String, HrEmpAppointment> hrEmpAppointments = hrEmpAppointmentMapper.selectLatestByUserCodes(userCodes)
+                .stream().collect(Collectors.toMap(
+                        HrEmpAppointment::getUserCode,
+                        e -> e,
+                        (a, b) -> a)
+                );
+
+        Set<String> positionSet = hrEmpAppointments.values().stream().map(HrEmpAppointment::getPosition).collect(Collectors.toSet());
+        // 如果positionSet不为空，说明有需要翻译的position，反之没有需要翻译的position。直接不翻译全部
+        if(!positionSet.isEmpty() && positionSet.stream().allMatch(Objects::nonNull)) {
+            LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
+            wrapper.in(PositionInfo::getCode, positionSet);
+            Map<String, String> positionMap = positionInfoServiceImpl.getBaseMapper().selectList(wrapper).stream().collect(Collectors.toMap(
+                    PositionInfo::getCode,
+                    PositionInfo::getName,
+                    (a, b) -> a
+            ));
+
+            hrEmpAppointments.values().forEach(
+                    item -> item.setPositionValue(positionMap.getOrDefault(item.getPosition(), item.getPosition()))
+            );
+        }
+
+        // 查询个人其他任职信息数据，并收集为userCode -> hrEmpOtherAppointment的格式
+        Map<String, HrEmpOtherAppointment> hrEmpOtherAppointments = hrEmpOtherAppointmentMapper.selectLatestByUserCodes(userCodes)
+                .stream().collect(Collectors.toMap(
+                        HrEmpOtherAppointment::getUserCode,
+                        e -> e,
+                        (a, b) -> a)
+                );
+
+        // 查询专业技术职务任职资格
+        Map<String, HrEmpProfessionalQualification> hrEmpProQualifications = hrEmpProfessionalQualificationMapper.selectLatestByUserCodes(userCodes)
+                .stream()
+                .map(pro -> {
+                    pro.setQuaId(proQuaIdTranslateMap.getOrDefault(pro.getQuaId(), pro.getQuaId()));
+                    return pro;
+                })
+                .collect(Collectors.toMap(
+                        HrEmpProfessionalQualification::getUserCode,
+                        e -> e,
+                        (a, b) -> a)
+                );
+
+        // 查询职业技能等级
+        Map<String, HrEmpSkillLevel> hrEmpSkillLevels = hrEmpSkillLevelMapper.selectLatestByUserCodes(userCodes)
+                .stream().collect(Collectors.toMap(
+                        HrEmpSkillLevel::getUserCode,
+                        e -> e,
+                        (a, b) -> a)
+                );
+
+        // 查询职业发展通道
+        Map<String, HrEmpCareerPath> hrEmpCareerPaths = hrEmpCareerPathMapper.selectLatestByUserCodes(userCodes)
+                .stream().collect(Collectors.toMap(
+                        HrEmpCareerPath::getUserCode,
+                        e -> e,
+                        (a, b) -> a)
+                );
+
+        // 查询薪资信息，一个人只会有一条薪资信息
+        LambdaQueryWrapper<HrEmpSalaryInfo> salaryInfoWrapper = new LambdaQueryWrapper<>();
+        salaryInfoWrapper.in(HrEmpSalaryInfo::getUserCode, userCodes);
+        Map<String, HrEmpSalaryInfo> hrEmpSalaryInfos = hrEmpSalaryInfoMapper.selectList(salaryInfoWrapper)
+                .stream().collect(Collectors.toMap(
+                        HrEmpSalaryInfo::getUserCode,
+                        e -> e,
+                        (a, b) -> a)
+                );
+
+        // 查询薪资标准
+        Map<String, HrEmpSalaryStandard> hrEmpSalaryStandards = hrEmpSalaryStandardMapper.selectLatestByUserCodes(userCodes)
+                .stream().collect(Collectors.toMap(
+                        HrEmpSalaryStandard::getUserCode,
+                        e -> e,
+                        (a, b) -> a)
+                );
+        // 查询最高学历
+        Map<String, HrEmpEducation> highestEduMap = hrEmpEducationMapper.selectLatestByUserCodes(userCodes)
+                .stream()
+                .map(edu -> {
+                    edu.setDegree(degreeTranslateMap.getOrDefault(edu.getDegree(), edu.getDegree()));
+                    return edu;
+                })
+                .collect(Collectors.toMap(
+                        HrEmpEducation::getUserCode,
+                        Function.identity(),
+                        (a, b) -> a
+                ));
+
+        // 查询最高全日制学历
+        Map<String, HrEmpEducation> highestFullTimeEduMap = hrEmpEducationMapper.selectLatestByUserCodes(userCodes)
+                .stream()
+                .map(edu -> {
+                    edu.setEducation(educationTranslateMap.getOrDefault(edu.getEducation(), edu.getEducation()));
+                    return edu;
+                })
+                .collect(Collectors.toMap(
+                        HrEmpEducation::getUserCode,
+                        Function.identity(),
+                        (a, b) -> a
+                ));
+
+        // 查询最高非全日制学历
+        Map<String, HrEmpEducation> highestPartTimeEduMap = hrEmpEducationMapper.selectLatestByUserCodes(userCodes)
+                .stream()
+                .map(edu -> {
+                    edu.setEducation(educationTranslateMap.getOrDefault(edu.getEducation(), edu.getEducation()));
+                    return edu;
+                })
+                .collect(Collectors.toMap(
+                        HrEmpEducation::getUserCode,
+                        Function.identity(),
+                        (a, b) -> a
+                ));
+
+        // 组装DTO
+        return hrEmpBasicList.stream().map(basic -> {
+            HrFullDataTranslatedDTO hrFullDataDTO = new HrFullDataTranslatedDTO();
+            hrFullDataDTO.setHrEmpBasic(basic);
+            hrFullDataDTO.setHrEmpAppointment(hrEmpAppointments.get(basic.getUserCode()));
+            hrFullDataDTO.setHrEmpOtherAppointment(hrEmpOtherAppointments.get(basic.getUserCode()));
+            hrFullDataDTO.setHrEmpProQualification(hrEmpProQualifications.get(basic.getUserCode()));
+            hrFullDataDTO.setHrEmpSkillLevel(hrEmpSkillLevels.get(basic.getUserCode()));
+            hrFullDataDTO.setHrEmpCareerPath(hrEmpCareerPaths.get(basic.getUserCode()));
+            hrFullDataDTO.setHrEmpSalaryInfo(hrEmpSalaryInfos.get(basic.getUserCode()));
+            hrFullDataDTO.setHrEmpSalaryStandard(hrEmpSalaryStandards.get(basic.getUserCode()));
+            hrFullDataDTO.setHighestEducation(highestEduMap.get(basic.getUserCode()));
+            hrFullDataDTO.setFullTimeEducation(highestFullTimeEduMap.get(basic.getUserCode()));
+            hrFullDataDTO.setPartTimeEducation(highestPartTimeEduMap.get(basic.getUserCode()));
             return hrFullDataDTO;
         }).collect(Collectors.toList());
     }
