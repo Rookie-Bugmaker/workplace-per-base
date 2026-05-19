@@ -3,6 +3,8 @@ package com.crrc.pojo.dto;
 import com.crrc.entity.*;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class HrFullDataTranslatedDTO {
     HrEmpBasic hrEmpBasic;
@@ -16,4 +18,5 @@ public class HrFullDataTranslatedDTO {
     HrEmpEducation partTimeEducation;
     HrEmpEducation fullTimeEducation;
     HrEmpEducation highestEducation;
+    List<HrEmpCadreAppointmentInfo> cadreAppointmentInfoList;
 }

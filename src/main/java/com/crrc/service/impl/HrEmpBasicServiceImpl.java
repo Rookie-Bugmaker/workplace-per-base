@@ -34,8 +34,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * <p>
@@ -96,10 +98,30 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     private final HrEmpCareerPathMapper hrEmpCareerPathMapper;
     private final HrEmpSalaryInfoMapper hrEmpSalaryInfoMapper;
     private final HrEmpSalaryStandardMapper hrEmpSalaryStandardMapper;
-    private final PositionInfoServiceImpl positionInfoServiceImpl;
+    private final PositionInfoServiceImpl positionInfoService;
+    private final HrEmpCadreAppointmentInfoServiceImpl hrEmpCadreAppointmentInfoService;
 
     @Autowired
-    public HrEmpBasicServiceImpl(HrEmpBasicMapper hrEmpBasicMapper, HrEmpEducationMapper hrEmpEducationMapper, HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService, HrEmpMajorInfoServiceImpl hrEmpMajorInfoService, HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper, HrEmpSkillLevelMapper hrEmpSkillLevelMapper, WkCoreAPi wkCoreApi, CodeInfoServiceImpl codeInfoService, WkDataAPi wkDataApi, @Qualifier("com.crrc.client.SysServerClient") SysServerClient sysServerClient, DictTypeUtils dictTypeUtils, HrEmpAppointmentMapper hrEmpAppointmentMapper, DictUtils dictUtils, HrEmpOtherAppointmentMapper hrEmpOtherAppointmentMapper, HrEmpCareerPathMapper hrEmpCareerPathMapper, HrEmpSalaryInfoMapper hrEmpSalaryInfoMapper, HrEmpSalaryStandardMapper hrEmpSalaryStandardMapper, PositionInfoServiceImpl positionInfoServiceImpl) {
+    public HrEmpBasicServiceImpl(
+            HrEmpBasicMapper hrEmpBasicMapper,
+            HrEmpEducationMapper hrEmpEducationMapper,
+            HrEmpSchoolInfoServiceImpl hrEmpSchoolInfoService,
+            HrEmpMajorInfoServiceImpl hrEmpMajorInfoService,
+            HrEmpProfessionalQualificationMapper hrEmpProfessionalQualificationMapper,
+            HrEmpSkillLevelMapper hrEmpSkillLevelMapper,
+            WkCoreAPi wkCoreApi,
+            CodeInfoServiceImpl codeInfoService,
+            WkDataAPi wkDataApi,
+            @Qualifier("com.crrc.client.SysServerClient") SysServerClient sysServerClient,
+            DictTypeUtils dictTypeUtils,
+            HrEmpAppointmentMapper hrEmpAppointmentMapper,
+            DictUtils dictUtils,
+            HrEmpOtherAppointmentMapper hrEmpOtherAppointmentMapper,
+            HrEmpCareerPathMapper hrEmpCareerPathMapper,
+            HrEmpSalaryInfoMapper hrEmpSalaryInfoMapper,
+            HrEmpSalaryStandardMapper hrEmpSalaryStandardMapper,
+            PositionInfoServiceImpl positionInfoService,
+            HrEmpCadreAppointmentInfoServiceImpl hrEmpCadreAppointmentInfoService) {
         this.hrEmpBasicMapper = hrEmpBasicMapper;
         this.hrEmpEducationMapper = hrEmpEducationMapper;
         this.hrEmpSchoolInfoService = hrEmpSchoolInfoService;
@@ -117,7 +139,8 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         this.hrEmpCareerPathMapper = hrEmpCareerPathMapper;
         this.hrEmpSalaryInfoMapper = hrEmpSalaryInfoMapper;
         this.hrEmpSalaryStandardMapper = hrEmpSalaryStandardMapper;
-        this.positionInfoServiceImpl = positionInfoServiceImpl;
+        this.positionInfoService = positionInfoService;
+        this.hrEmpCadreAppointmentInfoService = hrEmpCadreAppointmentInfoService;
     }
 
     // 模糊分页查询，用于给考勤打卡系统按姓名或档案号模糊查询
@@ -464,7 +487,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
         // 查询职位码值
         List<String> positions = dtoList.stream().map(HrEmpBasicDTO::getPosition).distinct().collect(Collectors.toList());
-        Map<String, String> positionMap = positionInfoServiceImpl.lambdaQuery()
+        Map<String, String> positionMap = positionInfoService.lambdaQuery()
                 .select(PositionInfo::getCode, PositionInfo::getName)
                 .in(PositionInfo::getCode, positions)
                 .list()
@@ -666,7 +689,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         if(!positionSet.isEmpty() && positionSet.stream().allMatch(Objects::nonNull)) {
             LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
             wrapper.in(PositionInfo::getCode, positionSet);
-            Map<String, String> positionMap = positionInfoServiceImpl.getBaseMapper().selectList(wrapper).stream().collect(Collectors.toMap(
+            Map<String, String> positionMap = positionInfoService.getBaseMapper().selectList(wrapper).stream().collect(Collectors.toMap(
                     PositionInfo::getCode,
                     PositionInfo::getName,
                     (a, b) -> a
@@ -743,6 +766,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     }
 
     @Override
+    @TenantIgnore
     public List<HrFullDataTranslatedDTO> getFullDataTranslatedInPlace(List<String> userCodes) {
         // 查询出这些人的基本信息数据
         List<HrEmpBasicDTO> hrEmpBasicList = selectMsgList(userCodes);
@@ -806,7 +830,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         if(!positionSet.isEmpty() && positionSet.stream().allMatch(Objects::nonNull)) {
             LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
             wrapper.in(PositionInfo::getCode, positionSet);
-            Map<String, String> positionMap = positionInfoServiceImpl.getBaseMapper().selectList(wrapper).stream().collect(Collectors.toMap(
+            Map<String, String> positionMap = positionInfoService.getBaseMapper().selectList(wrapper).stream().collect(Collectors.toMap(
                     PositionInfo::getCode,
                     PositionInfo::getName,
                     (a, b) -> a
@@ -910,6 +934,20 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                         (a, b) -> a
                 ));
 
+        Map<String, List<HrEmpCadreAppointmentInfo>> hrEmpCadreAppointmentInfoMap = new ConcurrentHashMap<>();
+
+        hrEmpCadreAppointmentInfoService.lambdaQuery()
+                .in(HrEmpCadreAppointmentInfo::getUserCode, userCodes)
+                .list()
+                .parallelStream()
+                .forEach(info -> {
+                    if(hrEmpCadreAppointmentInfoMap.containsKey(info.getUserCode())) {
+                        hrEmpCadreAppointmentInfoMap.get(info.getUserCode()).add(info);
+                    } else {
+                        hrEmpCadreAppointmentInfoMap.put(info.getUserCode(), new ArrayList<>(Collections.singletonList(info)));
+                    }
+                });
+
         // 组装DTO
         return hrEmpBasicList.stream().map(basic -> {
             HrFullDataTranslatedDTO hrFullDataDTO = new HrFullDataTranslatedDTO();
@@ -924,8 +962,21 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             hrFullDataDTO.setHighestEducation(highestEduMap.get(basic.getUserCode()));
             hrFullDataDTO.setFullTimeEducation(highestFullTimeEduMap.get(basic.getUserCode()));
             hrFullDataDTO.setPartTimeEducation(highestPartTimeEduMap.get(basic.getUserCode()));
+            hrFullDataDTO.setCadreAppointmentInfoList(hrEmpCadreAppointmentInfoMap.get(basic.getUserCode()));
             return hrFullDataDTO;
         }).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<String> filterUserCodeByCondition(List<String> userCodes, String name, String dept) {
+        return listObjs(
+                Wrappers.<HrEmpBasic>lambdaQuery()
+                        .select(HrEmpBasic::getUserCode)
+                        .in(HrEmpBasic::getUserCode, userCodes)
+                        .like(StringUtils.isNotBlank(name), HrEmpBasic::getName, name)
+                        .eq(StringUtils.isNotBlank(dept), HrEmpBasic::getDept, dept),
+                String.class::cast
+        );
     }
 
     public void resolveFields(HrEmpBasicDTO basic) {

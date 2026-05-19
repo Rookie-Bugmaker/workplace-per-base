@@ -819,6 +819,21 @@ public class HrEmpBasicController {
         }
     }
 
+    /**
+     * 该接口用于per-cadre干部名册查询信息，通过userCodes进行name、dept的筛选
+     * @param userCodes 查询的userCode列表
+     * @return 数据
+     */
+    @PostMapping("/filterUserCodeByCondition")
+    public ResponseResult<List<String>> filterUserCodeByCondition(@RequestBody List<String> userCodes, @RequestParam String name, @RequestParam String dept) {
+        try {
+            return new ResponseResult<>(HttpStatus.OK.value(), "OK", hrEmpBasicService.filterUserCodeByCondition(userCodes, name, dept));
+        } catch (Exception e) {
+            log.error("查询出错", e);
+            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "ERROR");
+        }
+    }
+
     @Transactional(rollbackFor = Exception.class)
     @PostMapping("/setCategory7Batch")
     public ResponseResult<Boolean> setCategory7Batch(@RequestBody MultipartFile file) throws IOException {

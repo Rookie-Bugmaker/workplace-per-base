@@ -34,4 +34,13 @@ public interface HrEmpBasicService extends IService<HrEmpBasic> {
      * @return 个人最新一条信息
      */
     List<HrFullDataTranslatedDTO> getFullDataTranslatedInPlace(List<String> userCodes);
+
+    /**
+     * 该方法用于per-cadre干部名册查询信息，通过userCodes进行name、dept的筛选
+     * @param userCodes 需要筛选的userCodes
+     * @param name 姓名（模糊查询条件）
+     * @param dept 部门（查询条件）
+     * @return 过滤后的结果
+     */
+    List<String> filterUserCodeByCondition(List<String> userCodes, String name, String dept);
 }
