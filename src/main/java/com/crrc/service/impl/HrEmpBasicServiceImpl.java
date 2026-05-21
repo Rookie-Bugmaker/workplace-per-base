@@ -37,7 +37,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * <p>
@@ -658,6 +657,8 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
         List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
 
+        Map<String, String> deptTranslateMap = DeptUtils.getDeptTranslateMap();
+
         for(HrEmpBasic basic : hrEmpBasicList) {
             if(StringUtils.isNotBlank(basic.getDept())) {
                 if(!orgCache.containsKey(basic.getDept())) {
@@ -757,26 +758,28 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 .list();
 
         Set<String> posSet = cadreInfos.stream().map(HrEmpCadreAppointmentInfo::getPosition).collect(Collectors.toSet());
+        Map<String, List<HrEmpCadreAppointmentInfo>> cadreInfoMap;
+        if(!posSet.isEmpty()) {
+            Map<String, String> positionMap = positionInfoService.lambdaQuery().in(PositionInfo::getCode, posSet).list().stream().collect(Collectors.toMap(
+                    PositionInfo::getCode,
+                    PositionInfo::getName,
+                    (a, b) -> a
+            ));
 
-        Map<String, String> positionMap = positionInfoService.lambdaQuery().in(PositionInfo::getCode, posSet).list().stream().collect(Collectors.toMap(
-                PositionInfo::getCode,
-                PositionInfo::getName,
-                (a, b) -> a
-        ));
-
-        Map<String, String> deptTranslateMap = DeptUtils.getDeptTranslateMap();
-
-        // 查询cadreInfo信息
-        Map<String, List<HrEmpCadreAppointmentInfo>> cadreInfoMap = cadreInfos
-                .stream()
-                .map(item -> {
-                    item.setPositionValue(positionMap.getOrDefault(item.getPosition(), item.getPosition()));
-                    item.setDeptValue(deptTranslateMap.getOrDefault(item.getDept(), item.getDept()));
-                    return item;
-                })
-                .collect(Collectors.groupingBy(
-                        HrEmpCadreAppointmentInfo::getUserCode
-                ));
+            // 查询cadreInfo信息
+            cadreInfoMap = cadreInfos
+                    .stream()
+                    .map(item -> {
+                        item.setPositionValue(positionMap.getOrDefault(item.getPosition(), item.getPosition()));
+                        item.setDeptValue(deptTranslateMap.getOrDefault(item.getDept(), item.getDept()));
+                        return item;
+                    })
+                    .collect(Collectors.groupingBy(
+                            HrEmpCadreAppointmentInfo::getUserCode
+                    ));
+        } else {
+            cadreInfoMap = Collections.emptyMap();
+        }
 
         // 组装DTO
         return hrEmpBasicList.stream().map(basic -> {

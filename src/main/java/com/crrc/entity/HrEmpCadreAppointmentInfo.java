@@ -47,6 +47,9 @@ public class HrEmpCadreAppointmentInfo extends BaseEntity implements Serializabl
     @Schema(description = "组织")
     private String org;
 
+    @TableField(exist = false)
+    private String orgValue;
+
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"部门"})
     @Schema(description = "部门")
@@ -59,6 +62,9 @@ public class HrEmpCadreAppointmentInfo extends BaseEntity implements Serializabl
     @ExcelProperty(value = {"组织单元"})
     @Schema(description = "组织单元")
     private String orgUnit;
+
+    @TableField(exist = false)
+    private String orgUnitValue;
 
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"职位"})
@@ -80,6 +86,9 @@ public class HrEmpCadreAppointmentInfo extends BaseEntity implements Serializabl
     @ExcelProperty(value = {"试用期(0)/任期(1)"})
     @Schema(description = "试用期(0)/任期(1)")
     private String probationStatus;
+
+    @TableField(exist = false)
+    private String probationStatusValue;
 
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"职种"})

@@ -85,6 +85,12 @@ public class HrEmpAppointmentController {
         }
 
         Set<String> cadreSet = new HashSet<>(Arrays.asList(
+                "001", // 厂
+                "厂",
+                "002", // 厂二
+                "厂二",
+                "003", // 二
+                "二",
                 "004", // 中
                 "005", // 干业
                 "006", // 人业
