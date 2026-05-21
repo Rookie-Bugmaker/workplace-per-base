@@ -2,10 +2,7 @@ package com.crrc.entity;
 
 import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -55,6 +52,9 @@ public class HrEmpCadreAppointmentInfo extends BaseEntity implements Serializabl
     @Schema(description = "部门")
     private String dept;
 
+    @TableField(exist = false)
+    private String deptValue;
+
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"组织单元"})
     @Schema(description = "组织单元")
@@ -64,6 +64,9 @@ public class HrEmpCadreAppointmentInfo extends BaseEntity implements Serializabl
     @ExcelProperty(value = {"职位"})
     @Schema(description = "职位")
     private String position;
+
+    @TableField(exist = false)
+    private String positionValue;
 
     @ExcelProperty(value = {"任期开始时间"})
     @Schema(description = "任期开始时间")
@@ -77,4 +80,14 @@ public class HrEmpCadreAppointmentInfo extends BaseEntity implements Serializabl
     @ExcelProperty(value = {"试用期(0)/任期(1)"})
     @Schema(description = "试用期(0)/任期(1)")
     private String probationStatus;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"职种"})
+    @Schema(description = "职种")
+    private String jobType;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"排序号"})
+    @Schema(description = "排序号")
+    private Integer sortNo;
 }

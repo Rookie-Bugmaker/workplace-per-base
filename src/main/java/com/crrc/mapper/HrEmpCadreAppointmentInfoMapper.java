@@ -1,7 +1,7 @@
 package com.crrc.mapper;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.crrc.entity.HrEmpCadreAppointmentInfo;
+import com.github.yulichang.base.MPJBaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
@@ -13,6 +13,6 @@ import org.apache.ibatis.annotations.Mapper;
  * @since 2026-05-19
  */
 @Mapper
-public interface HrEmpCadreAppointmentInfoMapper extends BaseMapper<HrEmpCadreAppointmentInfo> {
+public interface HrEmpCadreAppointmentInfoMapper extends MPJBaseMapper<HrEmpCadreAppointmentInfo> {
 
 }

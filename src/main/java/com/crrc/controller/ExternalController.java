@@ -15,7 +15,6 @@ import com.crrc.annotation.IgnoreTenant;
 import com.crrc.annotation.TenantIgnore;
 import com.crrc.constants.AuditConstants;
 import com.crrc.entity.*;
-import com.crrc.enums.ExportTaskTypeEnum;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.handler.MultiTenantHandler;
@@ -23,7 +22,6 @@ import com.crrc.mapper.HrEmpSalaryInfoMapper;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.KingDiePersonalOrderDTO;
-import com.crrc.pojo.vo.ExportTaskSubmitVO;
 import com.crrc.service.CategoryRecordService;
 import com.crrc.service.impl.*;
 import com.crrc.utils.MinIOUtils;
@@ -97,6 +95,8 @@ public class ExternalController {
     private WebServiceUtil webServiceUtil;
     @Autowired
     private TemplateGenerateServiceImpl templateGenerateServiceImpl;
+    @Autowired
+    private HrEmpCadreAppointmentInfoServiceImpl hrEmpCadreAppointmentInfoService;
 
     @PostMapping("/receiveKingDieMsg")
     @Operation(summary = "接收金蝶传递人事令信息")
@@ -109,69 +109,6 @@ public class ExternalController {
             try {
                 MultiTenantHandler.tenantId.set("438");
                 // 员工基本信息表 - 按工号更新或新增，先查询，如果没有该档案号数据就新增
-                // 处理人员分类8，如果dto.getHrOrderType()为空说明不需要动人员分类8
-                // TODO 切换到REQUIRE后，这个方法应该不需要了
-                // TODO @Deprecated ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ @Deprecated 切换到REQUIRE后，这个方法就不需要了
-                // TODO @Deprecated ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ @Deprecated 切换到REQUIRE后，这个方法就不需要了
-                // TODO @Deprecated ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ @Deprecated 切换到REQUIRE后，这个方法就不需要了
-                // TODO @Deprecated ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ @Deprecated 切换到REQUIRE后，这个方法就不需要了
-                // TODO @Deprecated ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ @Deprecated 切换到REQUIRE后，这个方法就不需要了
-                // TODO @Deprecated ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ @Deprecated 切换到REQUIRE后，这个方法就不需要了
-//                if(StringUtils.isNotBlank(dto.getHrOrderType())) {
-//                    switch(dto.getHrOrderType()) {
-//                        // 长病
-//                        case HrOrderType.LONG_ILLNESS:
-//                            // 劳
-//                            dto.getHrEmpBasic().setCategory8("003");
-//                            break;
-//                        // 长伤
-//                        case HrOrderType.LONG_INJURY:
-//                            // 伤
-//                            dto.getHrEmpBasic().setCategory8("005");
-//                            break;
-//                        // 借调
-//                        case HrOrderType.LOAN_ASSIGNMENT:
-//                            // 借
-//                            dto.getHrEmpBasic().setCategory8("002");
-//                            break;
-//                        // 外派
-//                        case HrOrderType.EXPATRIATE_ASSIGNMENT:
-//                            // 派
-//                            dto.getHrEmpBasic().setCategory8("004");
-//                            break;
-//                        // 挂职/助勤
-//                        case HrOrderType.SUPPORT_ASSIGNMENT:
-//                            // 助
-//                            dto.getHrEmpBasic().setCategory8("008");
-//                            break;
-//                        // 下岗
-//                        case HrOrderType.OFF_POST:
-//                            // 待
-//                            dto.getHrEmpBasic().setCategory8("001");
-//                            break;
-//                        // 退养
-//                        case HrOrderType.RETIREMENT:
-//                            // 养
-//                            dto.getHrEmpBasic().setCategory8("007");
-//                            break;
-//                        case HrOrderType.LONG_ILLNESS_END:
-//                        case HrOrderType.LONG_INJURY_END:
-//                        case HrOrderType.LOAN_ASSIGNMENT_END:
-//                        case HrOrderType.EXPATRIATE_ASSIGNMENT_END:
-//                        case HrOrderType.SUPPORT_ASSIGNMENT_END:
-//                        case HrOrderType.UP_POST:
-//                            // 现
-//                            dto.getHrEmpBasic().setCategory8("006");
-//                            break;
-//                    }
-//                }
-                // TODO @Deprecated ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ @Deprecated 切换到REQUIRE后，这个方法就不需要了
-                // TODO @Deprecated ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ @Deprecated 切换到REQUIRE后，这个方法就不需要了
-                // TODO @Deprecated ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ @Deprecated 切换到REQUIRE后，这个方法就不需要了
-                // TODO @Deprecated ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ @Deprecated 切换到REQUIRE后，这个方法就不需要了
-                // TODO @Deprecated ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ @Deprecated 切换到REQUIRE后，这个方法就不需要了
-                // TODO @Deprecated ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ @Deprecated 切换到REQUIRE后，这个方法就不需要了
-
                 // 这里会更新人员身份（人员分类4）
                 if (dto.getHrEmpBasic() != null) {
                     HrEmpBasic basic = dto.getHrEmpBasic();
@@ -500,6 +437,22 @@ public class ExternalController {
                             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "新增员工薪资信息失败!");
                         }
                     }
+                }
+
+                if(!ObjectUtils.isEmpty(dto.getHrEmpCadreAppointmentInfos())) {
+                    List<String> userCodes = dto.getHrEmpCadreAppointmentInfos().stream().map(HrEmpCadreAppointmentInfo::getUserCode).collect(Collectors.toList());
+                    if(!ObjectUtils.isEmpty(userCodes)) {
+                        hrEmpCadreAppointmentInfoService
+                                .lambdaUpdate()
+                                .in(HrEmpCadreAppointmentInfo::getUserCode, userCodes)
+                                .remove();
+                    }
+                    dto.getHrEmpCadreAppointmentInfos().forEach(item -> {
+                        if(StringUtils.isBlank(item.getId())) {
+                            item.setId(IdUtil.randomUUID());
+                        }
+                    });
+                    hrEmpCadreAppointmentInfoService.saveOrUpdateBatch(dto.getHrEmpCadreAppointmentInfos());
                 }
                 updateFlag++;
             } catch (Exception e) {

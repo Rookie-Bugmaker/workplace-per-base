@@ -750,6 +750,34 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                         (a, b) -> a)
                 );
 
+        List<HrEmpCadreAppointmentInfo> cadreInfos = hrEmpCadreAppointmentInfoService
+                .lambdaQuery()
+                .in(HrEmpCadreAppointmentInfo::getUserCode, userCodes)
+                .orderByAsc(HrEmpCadreAppointmentInfo::getSortNo)
+                .list();
+
+        Set<String> posSet = cadreInfos.stream().map(HrEmpCadreAppointmentInfo::getPosition).collect(Collectors.toSet());
+
+        Map<String, String> positionMap = positionInfoService.lambdaQuery().in(PositionInfo::getCode, posSet).list().stream().collect(Collectors.toMap(
+                PositionInfo::getCode,
+                PositionInfo::getName,
+                (a, b) -> a
+        ));
+
+        Map<String, String> deptTranslateMap = DeptUtils.getDeptTranslateMap();
+
+        // 查询cadreInfo信息
+        Map<String, List<HrEmpCadreAppointmentInfo>> cadreInfoMap = cadreInfos
+                .stream()
+                .map(item -> {
+                    item.setPositionValue(positionMap.getOrDefault(item.getPosition(), item.getPosition()));
+                    item.setDeptValue(deptTranslateMap.getOrDefault(item.getDept(), item.getDept()));
+                    return item;
+                })
+                .collect(Collectors.groupingBy(
+                        HrEmpCadreAppointmentInfo::getUserCode
+                ));
+
         // 组装DTO
         return hrEmpBasicList.stream().map(basic -> {
             HrFullDataDTO hrFullDataDTO = new HrFullDataDTO();
@@ -761,6 +789,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             hrFullDataDTO.setHrEmpCareerPath(hrEmpCareerPaths.get(basic.getUserCode()));
             hrFullDataDTO.setHrEmpSalaryInfo(hrEmpSalaryInfos.get(basic.getUserCode()));
             hrFullDataDTO.setHrEmpSalaryStandard(hrEmpSalaryStandards.get(basic.getUserCode()));
+            hrFullDataDTO.setCadreAppointmentInfoList(cadreInfoMap.get(basic.getUserCode()));
             return hrFullDataDTO;
         }).collect(Collectors.toList());
     }

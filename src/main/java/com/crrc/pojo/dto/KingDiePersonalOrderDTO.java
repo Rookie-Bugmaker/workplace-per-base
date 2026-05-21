@@ -60,4 +60,7 @@ public class KingDiePersonalOrderDTO {
     @QueryMethod(method = QueryType.EQ)
     @Schema(description = "员工薪资信息表")
     private HrEmpSalaryInfo hrEmpSalaryInfo;
+
+    @Schema(description = "干部（业务经理）任职信息表")
+    private List<HrEmpCadreAppointmentInfo> hrEmpCadreAppointmentInfos;
 }
