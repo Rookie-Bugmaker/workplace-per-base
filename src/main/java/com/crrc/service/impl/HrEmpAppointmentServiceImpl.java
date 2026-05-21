@@ -34,7 +34,8 @@ public class HrEmpAppointmentServiceImpl extends WorkServiceImpl<HrEmpAppointmen
         MPJLambdaWrapper<HrEmpAppointment> wrapper = new MPJLambdaWrapper<HrEmpAppointment>()
                 .selectAll(HrEmpAppointment.class)
                 .eq(HrEmpAppointment::getUserCode, userCode)
-                .orderByAsc(HrEmpAppointment::getStartDate);
+                .last("ORDER BY create_time::DATE ASC NULLS FIRST, sort_no ASC NULLS FIRST, " +
+                        "start_date ASC NULLS FIRST");
         return hrEmpAppointmentMapper.selectList(wrapper);
     }
 

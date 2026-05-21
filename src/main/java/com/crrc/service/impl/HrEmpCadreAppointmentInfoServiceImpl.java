@@ -78,6 +78,11 @@ public class HrEmpCadreAppointmentInfoServiceImpl extends WorkServiceImpl<HrEmpC
             if (StringUtils.isNotBlank(probationStatus)) {
                 entity.setProbationStatusValue("0".equals(probationStatus) ? "试用期" : "任期");
             }
+
+            String isMajorPosition = entity.getIsMajorPosition();
+            if (StringUtils.isNotBlank(isMajorPosition)) {
+                entity.setIsMajorPositionValue("0".equals(isMajorPosition) ? "兼职" : "主职");
+            }
         }
         return list;
     }

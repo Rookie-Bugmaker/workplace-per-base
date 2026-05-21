@@ -99,4 +99,12 @@ public class HrEmpCadreAppointmentInfo extends BaseEntity implements Serializabl
     @ExcelProperty(value = {"排序号"})
     @Schema(description = "排序号")
     private Integer sortNo;
+
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"主职/兼职"})
+    @Schema(description = "主职/兼职")
+    private String isMajorPosition;
+
+    @TableField(exist = false)
+    private String isMajorPositionValue;
 }
