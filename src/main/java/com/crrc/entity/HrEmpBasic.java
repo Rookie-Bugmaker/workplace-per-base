@@ -256,6 +256,8 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     @Schema(description = "图片是否正在更新")
     private String isPicUpdating;
 
+    // 只有中干的有职务，来自干部任免令
+    // 人力业务人员手动输入
     @QueryMethod(method = QueryType.EQ)
     @Schema(description = "职务")
     private String jobTitle;
@@ -263,8 +265,4 @@ public class HrEmpBasic extends BaseEntity implements Serializable {
     @QueryMethod(method = QueryType.EQ)
     @Schema(description = "职位层级")
     private String positionLevel;
-
-    @QueryMethod(method = QueryType.EQ)
-    @Schema(description = "人员身份")
-    private String personnelCategory;
 }

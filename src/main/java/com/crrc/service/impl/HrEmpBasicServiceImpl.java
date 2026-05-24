@@ -954,7 +954,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                 ));
 
         // 查询最高非全日制学历
-        Map<String, HrEmpEducation> highestPartTimeEduMap = hrEmpEducationMapper.selectLatestByUserCodes(userCodes)
+        Map<String, HrEmpEducation> highestPartTimeEduMap = hrEmpEducationMapper.selectLatestPartTimeByUserCodes(userCodes)
                 .stream()
                 .map(edu -> {
                     edu.setEducation(educationTranslateMap.getOrDefault(edu.getEducation(), edu.getEducation()));

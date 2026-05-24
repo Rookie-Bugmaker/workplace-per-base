@@ -61,7 +61,7 @@ public interface HrEmpEducationMapper extends MPJBaseMapper<HrEmpEducation> {
             "        <foreach collection=\"userCodes\" item=\"uc\" open=\"(\" separator=\",\" close=\")\"> " +
             "            #{uc}                     " +
             "        </foreach>                    " +
-            "        AND t.is_full_time == '00020' " +
+            "        AND t.is_full_time = '00020' " +
             "    ) x " +
             "    WHERE x.rn = 1" +
             "</script>"
