@@ -1,15 +1,7 @@
 package com.crrc.pojo.vo;
 
-import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
-import com.alibaba.excel.annotation.ExcelProperty;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
-import com.baomidou.mybatisplus.annotation.TableName;
-import com.crrc.annotation.QueryMethod;
 import com.crrc.annotation.WordTemplateRequire;
 import com.crrc.entity.BaseEntity;
-import com.crrc.enums.QueryType;
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 /**

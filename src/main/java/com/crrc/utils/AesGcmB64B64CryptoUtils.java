@@ -65,7 +65,7 @@ public final class AesGcmB64B64CryptoUtils {
             // 外层 Base64
             return Base64.getEncoder().encodeToString(out);
         } catch (Exception e) {
-            throw new RuntimeException("Encrypt failed", e);
+            throw new IllegalArgumentException("Encrypt failed", e);
         }
     }
 
@@ -112,7 +112,7 @@ public final class AesGcmB64B64CryptoUtils {
             return new String(jsonBytes, StandardCharsets.UTF_8);
         } catch (Exception e) {
             // 包括 AEADBadTagException：tag 校验失败（密钥/IV/AAD/密文被篡改）
-            throw new RuntimeException("Decrypt failed", e);
+            throw new IllegalArgumentException("Decrypt failed", e);
         }
     }
 }

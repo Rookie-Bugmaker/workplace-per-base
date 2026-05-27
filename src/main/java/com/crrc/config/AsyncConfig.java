@@ -1,6 +1,5 @@
 package com.crrc.config;
 
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
@@ -10,7 +9,6 @@ import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
-import java.lang.reflect.Method;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -63,11 +61,6 @@ public class AsyncConfig implements AsyncConfigurer {
      */
     @Override
     public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
-        return new AsyncUncaughtExceptionHandler() {
-            @Override
-            public void handleUncaughtException(@NotNull Throwable ex, @NotNull Method method, @NotNull Object... params) {
-                log.error("异步方法执行异常. method={}, params={}", method.getName(), params, ex);
-            }
-        };
+        return (ex, method, params) -> log.error("异步方法执行异常. method={}, params={}", method.getName(), params, ex);
     }
 }
