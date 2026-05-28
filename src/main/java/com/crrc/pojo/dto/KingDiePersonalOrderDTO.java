@@ -18,6 +18,31 @@ public class KingDiePersonalOrderDTO {
     private String hrOrderType;
 
     @QueryMethod(method = QueryType.EQ)
+    @Schema(description = "银行账号信息")
+    private HrEmpBank hrEmpBank;           // → hrEmpBank
+
+    @Schema(description = "身份证信息")
+    private HrEmpCertificate hrEmpCertificate; // → hrEmpCertificate
+
+    @Schema(description = "联系方式信息")
+    private HrEmpCommunication hrEmpCommunication; // → hrEmpCommunication
+
+    @Schema(description = "教育经历信息")
+    private List<HrEmpEducation> hrEmpEducations;                     // → hrEmpEducation
+
+    @Schema(description = "家庭成员信息")
+    private List<HrEmpFamMember> hrEmpFamMembers;   // → hrEmpFamMember
+
+    @Schema(description = "员工健康信息")
+    private HrEmpHealth hrEmpHealth;               // → hrEmpHealth
+
+    @Schema(description = "户口本信息")
+    private HrEmpHouseHold hrEmpHouseHold;     // → hrEmpHouseHold
+
+    @Schema(description = "外语等级信息")
+    private List<HrEmpForeignLanguage> hrEmpForeignLanguages; // → hrEmpForeignLanguage
+
+    @QueryMethod(method = QueryType.EQ)
     @Schema(description = "任职信息")
     private List<HrEmpAppointment> hrEmpAppointments;
 

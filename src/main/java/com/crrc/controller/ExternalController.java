@@ -21,6 +21,7 @@ import com.crrc.handler.MultiTenantHandler;
 import com.crrc.mapper.HrEmpSalaryInfoMapper;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
+import com.crrc.pojo.dto.HrEmpForeignLanguageDTO;
 import com.crrc.pojo.dto.KingDiePersonalOrderDTO;
 import com.crrc.service.CategoryRecordService;
 import com.crrc.service.impl.*;
@@ -31,6 +32,7 @@ import com.crrc.utils.WebServiceUtil;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -97,6 +99,22 @@ public class ExternalController {
     private TemplateGenerateServiceImpl templateGenerateServiceImpl;
     @Autowired
     private HrEmpCadreAppointmentInfoServiceImpl hrEmpCadreAppointmentInfoService;
+    @Autowired
+    private HrEmpBankServiceImpl hrEmpBankService;
+    @Autowired
+    private HrEmpCertificateServiceImpl hrEmpCertificateService;
+    @Autowired
+    private HrEmpCommunicationServiceImpl hrEmpCommunicationService;
+    @Autowired
+    private HrEmpEducationServiceImpl hrEmpEducationService;
+    @Autowired
+    private HrEmpFamMemberServiceImpl hrEmpFamMemberService;
+    @Autowired
+    private HrEmpHealthServiceImpl hrEmpHealthService;
+    @Autowired
+    private HrEmpHouseholdServiceImpl hrEmpHouseholdService;
+    @Autowired
+    private HrEmpForeignLanguageServiceImpl hrEmpForeignLanguageService;
 
     @PostMapping("/receiveKingDieMsg")
     @Operation(summary = "接收金蝶传递人事令信息")
@@ -454,6 +472,132 @@ public class ExternalController {
                     });
                     hrEmpCadreAppointmentInfoService.saveOrUpdateBatch(dto.getHrEmpCadreAppointmentInfos());
                 }
+
+                // 保存增员令的信息
+                // 银行卡
+                if(!ObjectUtils.isEmpty(dto.getHrEmpBank())) {
+                    if(StringUtils.isBlank(dto.getHrEmpBank().getId())) {
+                        dto.getHrEmpBank().setId(IdUtil.randomUUID());
+                    }
+                    // 银行账户信息全删全插
+                    hrEmpBankService.lambdaUpdate()
+                            .eq(HrEmpBank::getUserCode, dto.getHrEmpBasic().getUserCode())
+                            .remove();
+
+                    hrEmpBankService.saveOrUpdate(dto.getHrEmpBank());
+                }
+
+                // 身份证
+                if(!ObjectUtils.isEmpty(dto.getHrEmpCertificate())) {
+                    // 只有一条，全删全插
+                    if(StringUtils.isBlank(dto.getHrEmpCertificate().getId())) {
+                        dto.getHrEmpCertificate().setId(IdUtil.randomUUID());
+                    }
+                    // 身份证信息只允许一条
+                    hrEmpCertificateService.lambdaUpdate()
+                            .eq(HrEmpCertificate::getUserCode, dto.getHrEmpBasic().getUserCode())
+                            .remove();
+
+                    hrEmpCertificateService.saveOrUpdate(dto.getHrEmpCertificate());
+                }
+
+                // 联系方式
+                if(!ObjectUtils.isEmpty(dto.getHrEmpCommunication())) {
+                    // 只有一条，全删全插
+                    if(StringUtils.isBlank(dto.getHrEmpCommunication().getId())) {
+                        dto.getHrEmpCommunication().setId(IdUtil.randomUUID());
+                    }
+                    // 联系方式只允许一条
+                    hrEmpCommunicationService.lambdaUpdate()
+                            .eq(HrEmpCommunication::getUserCode, dto.getHrEmpBasic().getUserCode())
+                            .remove();
+
+                    hrEmpCommunicationService.saveOrUpdate(dto.getHrEmpCommunication());
+                }
+
+                // 教育经历
+                if(!ObjectUtils.isEmpty(dto.getHrEmpEducations())) {
+                    // 全删全插
+                    dto.getHrEmpEducations().forEach(item -> {
+                        if(StringUtils.isBlank(item.getId())) {
+                            item.setId(IdUtil.randomUUID());
+                        }
+                    });
+
+                    hrEmpEducationService.lambdaUpdate()
+                            .eq(HrEmpEducation::getUserCode, dto.getHrEmpBasic().getUserCode())
+                            .remove();
+
+                    hrEmpEducationService.saveOrUpdateBatch(dto.getHrEmpEducations());
+                }
+
+                // 家庭成员信息
+                if(!ObjectUtils.isEmpty(dto.getHrEmpFamMembers())) {
+                    // 全删全插
+                    dto.getHrEmpFamMembers().forEach(item -> {
+                        if(StringUtils.isBlank(item.getId())) {
+                            item.setId(IdUtil.randomUUID());
+                        }
+                    });
+
+                    hrEmpFamMemberService.lambdaUpdate()
+                            .eq(HrEmpFamMember::getUserCode, dto.getHrEmpBasic().getUserCode())
+                            .remove();
+
+                    hrEmpFamMemberService.saveOrUpdateBatch(dto.getHrEmpFamMembers());
+                }
+
+                // 员工健康
+                if(!ObjectUtils.isEmpty(dto.getHrEmpHealth())) {
+                    // 全删全插
+                    if(StringUtils.isBlank(dto.getHrEmpHealth().getId())) {
+                        dto.getHrEmpHealth().setId(IdUtil.randomUUID());
+                    }
+
+
+                    // 联系方式只允许一条
+                    hrEmpHealthService.lambdaUpdate()
+                        .eq(HrEmpHealth::getUserCode, dto.getHrEmpBasic().getUserCode())
+                        .remove();
+
+                    hrEmpHealthService.saveOrUpdate(dto.getHrEmpHealth());
+                }
+
+                // 户口本信息
+                if(!ObjectUtils.isEmpty(dto.getHrEmpHouseHold())) {
+                    // 全删全插
+
+                    if(StringUtils.isBlank(dto.getHrEmpHouseHold().getId())) {
+                        dto.getHrEmpHouseHold().setId(IdUtil.randomUUID());
+                    }
+
+
+                    // 联系方式只允许一条
+                    hrEmpHouseholdService.lambdaUpdate()
+                            .eq(HrEmpHouseHold::getUserCode, dto.getHrEmpBasic().getUserCode())
+                            .remove();
+
+                    hrEmpHouseholdService.saveOrUpdate(dto.getHrEmpHouseHold());
+                }
+
+                // 外语等级信息
+                if(!ObjectUtils.isEmpty(dto.getHrEmpForeignLanguages())) {
+                    // 全删全插
+                    dto.getHrEmpForeignLanguages().forEach(item -> {
+                        if(StringUtils.isBlank(item.getId())) {
+                            item.setId(IdUtil.randomUUID());
+                        }
+                    });
+
+
+                    // 联系方式只允许一条
+                    hrEmpForeignLanguageService.lambdaUpdate()
+                            .eq(HrEmpForeignLanguage::getUserCode, dto.getHrEmpBasic().getUserCode())
+                            .remove();
+
+                    hrEmpForeignLanguageService.saveOrUpdateBatch(dto.getHrEmpForeignLanguages());
+                }
+
                 updateFlag++;
             } catch (Exception e) {
                 log.error("处理人事令信息异常，工号：{}，异常信息：{}",
