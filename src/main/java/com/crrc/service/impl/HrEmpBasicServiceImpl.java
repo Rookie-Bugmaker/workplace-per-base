@@ -225,6 +225,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
      * @return 用户信息list
      */
     public List<HrEmpBasic> getListByUserCode(List<String> userCodeList) {
+        if(userCodeList == null || userCodeList.isEmpty()) {
+            return Collections.emptyList();
+        }
         // 构建查询条件
         MPJLambdaWrapper<HrEmpBasic> queryWrapper = new MPJLambdaWrapper<>();
         queryWrapper.selectAll(HrEmpBasic.class)

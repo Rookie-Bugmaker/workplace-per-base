@@ -77,7 +77,7 @@ public class ExceptionNotifier {
         Throwable rootCause = ExceptionTraceUtils.getRootCause(ex);
 
         String content = String.format(
-                "per-require %s 出现异常:%n请求方法: %s%n请求路径: %s%n查询参数: %s%n客户端IP: %s%n异常类型: %s%n异常消息: %s%n错误位置: %s%n错误文件: %s%n错误行号: %s%ntraceId: %s",
+                "per-base %s 出现异常:%n请求方法: %s%n请求路径: %s%n查询参数: %s%n客户端IP: %s%n异常类型: %s%n异常消息: %s%n错误位置: %s%n错误文件: %s%n错误行号: %s%ntraceId: %s",
                 "test".equals(env) ? "测试环境" : "生产环境",
                 method,
                 uri,
