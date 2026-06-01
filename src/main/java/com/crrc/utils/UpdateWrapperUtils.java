@@ -1,5 +1,6 @@
 package com.crrc.utils;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 
 import java.util.Arrays;
@@ -20,7 +21,8 @@ public class UpdateWrapperUtils {
                 .filter(field -> {
                     try {
                         field.setAccessible(true);
-                        return field.get(entity) != null && !excludes.contains(field.getName());
+                        TableField annotation = field.getAnnotation(TableField.class);
+                        return field.get(entity) != null && !excludes.contains(field.getName()) && (annotation == null || annotation.exist());
                     } catch (Exception e) {
                         return false;
                     }
