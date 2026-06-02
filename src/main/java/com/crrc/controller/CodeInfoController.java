@@ -2,6 +2,7 @@ package com.crrc.controller;
 
 import cn.hutool.core.util.IdUtil;
 import com.crrc.annotation.AuditLog;
+import com.crrc.annotation.TenantIgnore;
 import com.crrc.api.WkDataAPi;
 import com.crrc.entity.CodeInfo;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
@@ -39,6 +40,7 @@ public class CodeInfoController {
         this.wkDataAPi = wkDataAPi;
     }
 
+    @TenantIgnore
     @GetMapping("/getCodeInfo")
     public ResponseResult<List<CodeInfo>> getCodeInfo(
             @RequestParam String tableName,
