@@ -455,4 +455,109 @@ public class WordTemplateProcessor {
 
         return resultList;
     }
+
+    /**
+     * 构造带文件名的 MultipartFile（现有 buildMultipartFile 文件名写死，这里支持自定义）
+     */
+    public static MultipartFile buildMultipartFile(byte[] bytes, String filename) {
+        return new ByteArrayMultipartFile(
+                bytes,
+                filename,
+                filename,
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        );
+    }
+
+    /**
+     * 多行文本填充：把“占位符所在段落”的内容整体替换为按 \n 换行的多行文本，保留首个 run 的样式，
+     * 并清除该段落的缩进，使所有行（含自动折行）左对齐对齐到单元格左边。
+     * 适用于模板中单元格内仅放一个占位符的场景（如 ${resume}、${rewards}）。
+     * 注意：需在标量 replacePlaceholders 之前调用，此时占位符仍存在。
+     */
+    public static void fillMultiline(XWPFDocument doc, String placeholder, String value) {
+        String safe = (value == null) ? "" : value;
+        for (XWPFParagraph p : collectParagraphs(doc)) {
+            if (!buildParagraphText(p.getRuns()).contains(placeholder)) {
+                continue;
+            }
+            resetParagraphIndent(p);
+            XWPFRun first = prepareSingleRun(p);
+            String[] lines = safe.split("\n", -1);
+            first.setText(lines[0], 0);
+            for (int i = 1; i < lines.length; i++) {
+                first.addBreak();
+                first.setText(lines[i]);
+            }
+        }
+    }
+
+    /**
+     * 照片填充：把“占位符所在单元格”清空并插入图片；image 为空则仅清空占位符。
+     * 默认按身份证照尺寸（约 2.6cm×3.6cm）插入。
+     */
+    public static void fillPhoto(XWPFDocument doc, String placeholder, byte[] image) {
+        for (XWPFParagraph p : collectParagraphs(doc)) {
+            if (!buildParagraphText(p.getRuns()).contains(placeholder)) {
+                continue;
+            }
+            XWPFRun run = prepareSingleRun(p);
+            if (image == null || image.length == 0) {
+                return;
+            }
+            try (ByteArrayInputStream in = new ByteArrayInputStream(image)) {
+                int type = ((image[0] & 0xFF) == 0x89)
+                        ? XWPFDocument.PICTURE_TYPE_PNG : XWPFDocument.PICTURE_TYPE_JPEG;
+                int width = 936000;    // ≈2.6cm（1cm = 360000 EMU）
+                int height = 1296000;  // ≈3.6cm
+                run.addPicture(in, type, "photo", width, height);
+            } catch (Exception e) {
+                log.error("插入照片失败", e);
+            }
+            return;
+        }
+    }
+
+    /** 清除段落缩进(<w:ind>)，使内容左对齐、不再右移 */
+    private static void resetParagraphIndent(XWPFParagraph p) {
+        org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPPr ppr = p.getCTP().getPPr();
+        if (ppr != null && ppr.isSetInd()) {
+            ppr.unsetInd();
+        }
+    }
+
+    /** 清空段落中除首个 run 外的所有 run，并清空首个 run 的文本/换行，返回首个 run */
+    private static XWPFRun prepareSingleRun(XWPFParagraph p) {
+        List<XWPFRun> runs = p.getRuns();
+        for (int i = (runs == null ? 0 : runs.size()) - 1; i >= 1; i--) {
+            p.removeRun(i);
+        }
+        XWPFRun run = (runs != null && !runs.isEmpty()) ? runs.get(0) : p.createRun();
+        org.openxmlformats.schemas.wordprocessingml.x2006.main.CTR ctr = run.getCTR();
+        if (ctr != null) {
+            for (int i = ctr.sizeOfTArray() - 1; i >= 0; i--) {
+                ctr.removeT(i);
+            }
+            for (int i = ctr.sizeOfBrArray() - 1; i >= 0; i--) {
+                ctr.removeBr(i);
+            }
+        }
+        return run;
+    }
+
+    /** 递归收集 body（含表格、嵌套表格）中的所有段落 */
+    private static List<XWPFParagraph> collectParagraphs(IBody body) {
+        List<XWPFParagraph> out = new ArrayList<>();
+        for (IBodyElement el : body.getBodyElements()) {
+            if (el instanceof XWPFParagraph) {
+                out.add((XWPFParagraph) el);
+            } else if (el instanceof XWPFTable) {
+                for (XWPFTableRow row : ((XWPFTable) el).getRows()) {
+                    for (XWPFTableCell cell : row.getTableCells()) {
+                        out.addAll(collectParagraphs(cell));
+                    }
+                }
+            }
+        }
+        return out;
+    }
 }
