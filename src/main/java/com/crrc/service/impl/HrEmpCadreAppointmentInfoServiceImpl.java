@@ -9,6 +9,7 @@ import com.crrc.utils.DeptUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,6 +38,9 @@ public class HrEmpCadreAppointmentInfoServiceImpl extends WorkServiceImpl<HrEmpC
         wrapper.eq(HrEmpCadreAppointmentInfo::getUserCode, userCode);
         List<HrEmpCadreAppointmentInfo> list = this.baseMapper.selectList(wrapper);
         Set<String> positionCodeList = list.stream().map(HrEmpCadreAppointmentInfo::getPosition).collect(Collectors.toSet());
+        if(positionCodeList.isEmpty()) {
+            return Collections.emptyList();
+        }
         Map<String, String> positionMap = positionInfoService.lambdaQuery().in(PositionInfo::getCode, positionCodeList)
                 .list().stream().collect(Collectors.toMap(
                         PositionInfo::getCode,
