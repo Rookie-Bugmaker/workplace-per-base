@@ -40,7 +40,8 @@ public interface HrEmpBasicService extends IService<HrEmpBasic> {
      * @param userCodes 需要筛选的userCodes
      * @param name 姓名（模糊查询条件）
      * @param dept 部门（查询条件）
+     * @param isSteppingBack 是否退二线人员（查询条件）
      * @return 过滤后的结果
      */
-    List<String> filterUserCodeByCondition(List<String> userCodes, String name, String dept);
+    List<String> filterUserCodeByCondition(List<String> userCodes, String name, String dept, String isSteppingBack);
 }
