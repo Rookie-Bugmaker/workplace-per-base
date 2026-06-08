@@ -189,8 +189,8 @@ public class WordTemplateProcessor {
         // run.getText(0) 在 run 有多个 <w:t> 时可能不完整，这里做稳健拼接
         if (run == null || run.getCTR() == null) return null;
         StringBuilder sb = new StringBuilder();
-        List<org.openxmlformats.schemas.wordprocessingml.x2006.main.CTText> tList = run.getCTR().getTList();
-        for (org.openxmlformats.schemas.wordprocessingml.x2006.main.CTText t : tList) {
+        List<CTText> tList = run.getCTR().getTList();
+        for (CTText t : tList) {
             sb.append(t.getStringValue());
         }
         return sb.toString();
@@ -222,8 +222,7 @@ public class WordTemplateProcessor {
     private static void copyRunStyle(XWPFRun src, XWPFRun dest) {
         if (src == null || dest == null) return;
         if (src.getCTR() != null && src.getCTR().isSetRPr()) {
-            org.openxmlformats.schemas.wordprocessingml.x2006.main.CTRPr copy =
-                    (org.openxmlformats.schemas.wordprocessingml.x2006.main.CTRPr) src.getCTR().getRPr().copy();
+            CTRPr copy = (CTRPr) src.getCTR().getRPr().copy();
             dest.getCTR().addNewRPr().set(copy);
         }
     }
@@ -489,6 +488,87 @@ public class WordTemplateProcessor {
                 first.setText(lines[i]);
             }
         }
+    }
+
+    /**
+     * 简历多行填充并自适应：内容越多，字号与行距同步减小，尽量在单元格内展示全部任职信息。
+     * 按“每行约 42 个汉字”折算自动换行估算显示行数，分档设置字号(半磅)与行距(AUTO,240=单倍)。
+     * 注意：需在标量 replacePlaceholders 之前调用。
+     */
+    public static void fillMultilineAutoFit(XWPFDocument doc, String placeholder, String value) {
+        String safe = (value == null) ? "" : value;
+        for (XWPFParagraph p : collectParagraphs(doc)) {
+            if (!buildParagraphText(p.getRuns()).contains(placeholder)) {
+                continue;
+            }
+            resetParagraphIndent(p);
+            int[] tier = pickResumeTier(safe);   // {字号半磅, 行距(240ths)}
+
+            // 行距：AUTO 规则 + 去掉段前段后
+            org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPPr ppr =
+                    p.getCTP().isSetPPr() ? p.getCTP().getPPr() : p.getCTP().addNewPPr();
+            org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSpacing sp =
+                    ppr.isSetSpacing() ? ppr.getSpacing() : ppr.addNewSpacing();
+            sp.setLineRule(org.openxmlformats.schemas.wordprocessingml.x2006.main.STLineSpacingRule.AUTO);
+            sp.setLine(java.math.BigInteger.valueOf(tier[1]));
+            sp.setBefore(java.math.BigInteger.ZERO);
+            sp.setAfter(java.math.BigInteger.ZERO);
+
+            XWPFRun first = prepareSingleRun(p);
+            String[] lines = safe.split("\n", -1);
+            first.setText(lines[0], 0);
+            for (int i = 1; i < lines.length; i++) {
+                first.addBreak();
+                first.setText(lines[i]);
+            }
+
+            // 字号（半磅）：sz 与 szCs 同步（CTRPr 中 sz/szCs 为单元素，使用 isSetSz/getSz/addNewSz）
+            org.openxmlformats.schemas.wordprocessingml.x2006.main.CTRPr rpr =
+                    first.getCTR().isSetRPr() ? first.getCTR().getRPr() : first.getCTR().addNewRPr();
+            org.openxmlformats.schemas.wordprocessingml.x2006.main.CTHpsMeasure sz =
+                    rpr.isSetSz() ? rpr.getSz() : rpr.addNewSz();
+            sz.setVal(java.math.BigInteger.valueOf(tier[0]));
+            org.openxmlformats.schemas.wordprocessingml.x2006.main.CTHpsMeasure szCs =
+                    rpr.isSetSzCs() ? rpr.getSzCs() : rpr.addNewSzCs();
+            szCs.setVal(java.math.BigInteger.valueOf(tier[0]));
+        }
+    }
+
+    /**
+     * 选档：在“能一页放下”的前提下尽量保留较大字号与行距（允许自动换行）。
+     * 从大到小试每一档，估算显示行数(按全角宽度折算，ASCII按半宽)，命中可容纳的最大字号即返回。
+     * 经实测：五号(10.5磅,单倍)在简历单元格约可容纳 22~23 行，CELL_HEIGHT_PT 取保守值留 1 行余量。
+     * 返回 {字号(半磅), 行距(240=单倍)}。
+     */
+    private static int[] pickResumeTier(String value) {
+        String[] lines = (value == null || value.isEmpty()) ? new String[0] : value.split("\n", -1);
+        // 从大到小：字号(半磅) + 行距(240ths)。前两档保持单倍行距，越往后越紧。
+        int[][] tiers = {
+                {21, 240}, {20, 240}, {19, 232}, {18, 228},
+                {16, 222}, {15, 216}, {14, 210}, {13, 204}, {12, 200}
+        };
+        final double BASE_HALF = 21.0;        // 五号 = 10.5磅
+        final double BASE_CHARS = 42.0;       // 五号下每行约 42 个全角
+        final double CELL_HEIGHT_PT = 270.0;  // 简历单元格一页内可用高度(磅)，保守留余量
+        for (int[] t : tiers) {
+            double fontPt = t[0] / 2.0;
+            double charsPerLine = Math.max(10.0, BASE_CHARS * BASE_HALF / t[0]);
+            int visual = 0;
+            for (String raw : lines) {
+                String ln = raw.trim();
+                double w = 0;
+                for (int i = 0; i < ln.length(); i++) {
+                    w += (ln.charAt(i) <= 0x7F) ? 0.5 : 1.0;   // ASCII 半宽
+                }
+                visual += Math.max(1, (int) Math.ceil(w / charsPerLine));
+            }
+            double lineHeightPt = fontPt * 1.15 * (t[1] / 240.0);
+            int capacity = (int) Math.floor(CELL_HEIGHT_PT / lineHeightPt);
+            if (visual <= capacity) {
+                return t;
+            }
+        }
+        return tiers[tiers.length - 1];   // 极端情况用最小档
     }
 
     /**

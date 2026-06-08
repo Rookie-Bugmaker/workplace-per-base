@@ -28,6 +28,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -41,10 +42,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 /**
  * 干部任免审批表生成服务。
  * 入口：传入一个或多个档案号(userCode)，逐个生成 docx，上传文件服务，返回 fileId。
+ * 复用现有模板套打基建（WordTemplateProcessor + 文件服务模板）与各子表的翻译方法(getMsg/selectMsg)。
  */
 @Service
 @Slf4j
@@ -60,15 +64,15 @@ public class CadreAppointmentFormGenerateServiceImpl {
     private static final String DEFAULT_APPOINT_REASON = "工作需要。";
     /** 健康状况默认值（取不到真实值时） */
     private static final String DEFAULT_HEALTH = "健康";
-    /** 现任职务取 jobTitle 的人员分类4*/
+    /** 现任职务取 jobTitle 的人员分类4（与前端判断一致） */
     private static final Set<String> JOB_TITLE_CATEGORY4 =
             new HashSet<>(Arrays.asList("厂", "厂二", "二", "中", "干业", "人业"));
-    /** 家庭成员展示行数*/
+    /** 家庭成员展示行数（与模板预留行数一致） */
     private static final int FAMILY_ROWS = 7;
     /** 奖励导出的年限（近 N 年） */
     private static final int REWARD_RECENT_YEARS = 5;
 
-    // 字典表/类型
+    // 字典表/类型（与 HrEmpBasicServiceImpl 中常量保持一致）
     private static final String EDU_TABLE = "hr_emp_education";
     private static final String EDU_TYPE = "EDU_EDU";
     private static final String DEGREE_TYPE = "EDU_DEGREE";
@@ -110,6 +114,16 @@ public class CadreAppointmentFormGenerateServiceImpl {
     @Autowired
     private WkDataAPi wkDataAPi;
 
+    /** 单人 docx 组装结果：文件名 + 字节（上传与打包共用） */
+    private static class DocxResult {
+        final String fileName;
+        final byte[] bytes;
+        DocxResult(String fileName, byte[] bytes) {
+            this.fileName = fileName;
+            this.bytes = bytes;
+        }
+    }
+
     /**
      * 批量生成。返回每个档案号对应的结果：{userCode, fileId} 或 {userCode, error}。
      */
@@ -141,7 +155,7 @@ public class CadreAppointmentFormGenerateServiceImpl {
         return results;
     }
 
-    private String generateOne(String userCode, String formFiller) throws IOException {
+    private DocxResult assembleDocx(String userCode, String formFiller) throws IOException {
         log.info("[干部任免审批表] 开始生成, userCode={}", userCode);
 
         // 1. 基本信息（含翻译）
@@ -196,12 +210,72 @@ public class CadreAppointmentFormGenerateServiceImpl {
 
         String fileName = "干部任免审批表_"
                 + (StringUtils.isBlank(vo.getName()) ? userCode : vo.getName()) + ".docx";
-        MultipartFile mf = WordTemplateProcessor.buildMultipartFile(bytes, fileName);
+        return new DocxResult(fileName, bytes);
+    }
+
+    /** 生成单人 docx 并上传文件服务，返回 fileId（行为与原方法一致） */
+    private String generateOne(String userCode, String formFiller) throws IOException {
+        DocxResult d = assembleDocx(userCode, formFiller);
+        MultipartFile mf = WordTemplateProcessor.buildMultipartFile(d.bytes, d.fileName);
         try {
             return fileService.upload(mf);
         } catch (Exception e) {
             throw new IOException("上传干部任免审批表失败", e);
         }
+    }
+
+    /**
+     * 批量生成并打包为 zip，直接返回 zip 字节（多选时直接下载，无需逐个用 fileId 下载）。
+     * 单个失败不影响整体：失败项写入“生成失败_档案号.txt”一并打入压缩包。
+     */
+    @TenantIgnore
+    public byte[] generateZipForUserCodes(List<String> userCodes) throws IOException {
+        String oldTenant = MultiTenantHandler.tenantId.get();
+        try {
+            MultiTenantHandler.tenantId.set("ignore");
+            String formFiller = resolveCurrentUserName();
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            Set<String> used = new HashSet<>();
+            // 中文文件名用 UTF-8；若旧版 Windows 解压乱码，可改用 new ZipOutputStream(bos, java.nio.charset.Charset.forName("GBK"))
+            try (ZipOutputStream zip = new ZipOutputStream(bos, StandardCharsets.UTF_8)) {
+                for (String userCode : userCodes) {
+                    try {
+                        DocxResult d = assembleDocx(userCode, formFiller);
+                        zip.putNextEntry(new ZipEntry(uniqueName(used, d.fileName)));
+                        zip.write(d.bytes);
+                        zip.closeEntry();
+                    } catch (Exception e) {
+                        log.error("生成干部任免审批表失败, userCode={}", userCode, e);
+                        zip.putNextEntry(new ZipEntry(uniqueName(used, "生成失败_" + userCode + ".txt")));
+                        zip.write(("生成失败: " + e.getMessage()).getBytes(StandardCharsets.UTF_8));
+                        zip.closeEntry();
+                    }
+                }
+            }
+            return bos.toByteArray();
+        } finally {
+            if (oldTenant != null) {
+                MultiTenantHandler.tenantId.set(oldTenant);
+            } else {
+                MultiTenantHandler.tenantId.remove();
+            }
+        }
+    }
+
+    /** zip 内文件名去重：重名追加 (2)/(3)... */
+    private String uniqueName(Set<String> used, String name) {
+        if (used.add(name)) {
+            return name;
+        }
+        int dot = name.lastIndexOf('.');
+        String base = dot > 0 ? name.substring(0, dot) : name;
+        String ext = dot > 0 ? name.substring(dot) : "";
+        int i = 1;
+        String candidate;
+        do {
+            candidate = base + "(" + (++i) + ")" + ext;
+        } while (!used.add(candidate));
+        return candidate;
     }
 
     private byte[] render(HrEmpCadreAppointmentFormVO vo, Map<String, String> familyMap,
@@ -210,7 +284,7 @@ public class CadreAppointmentFormGenerateServiceImpl {
         try (XWPFDocument doc = new XWPFDocument(fileStream.getStream());
              ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
             // 先处理多行与照片（占位符此时仍在）
-            WordTemplateProcessor.fillMultiline(doc, "${resume}", resume);
+            WordTemplateProcessor.fillMultilineAutoFit(doc, "${resume}", resume);
             WordTemplateProcessor.fillMultiline(doc, "${rewards}", rewardsPenalties);
             WordTemplateProcessor.fillPhoto(doc, "${photo}", photo);
             // 再处理标量 + 家庭成员
