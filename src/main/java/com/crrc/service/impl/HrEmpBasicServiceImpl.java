@@ -1003,12 +1003,14 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     }
 
     @Override
-    public List<String> filterUserCodeByCondition(List<String> userCodes, String name, String dept) {
+    public List<String> filterUserCodeByCondition(List<String> userCodes, String name, String dept, String isSteppingBack) {
+        // 进行筛选，通过姓名模糊查询、部门准确查询，如果是退二线人员，那么筛选职务包含协理两个字的。
         return listObjs(
                 Wrappers.<HrEmpBasic>lambdaQuery()
                         .select(HrEmpBasic::getUserCode)
                         .in(HrEmpBasic::getUserCode, userCodes)
                         .like(StringUtils.isNotBlank(name), HrEmpBasic::getName, name)
+                        .like("1".equals(isSteppingBack), HrEmpBasic::getJobTitle, "协理")
                         .eq(StringUtils.isNotBlank(dept), HrEmpBasic::getDept, dept),
                 String.class::cast
         );

@@ -825,9 +825,9 @@ public class HrEmpBasicController {
      * @return 数据
      */
     @PostMapping("/filterUserCodeByCondition")
-    public ResponseResult<List<String>> filterUserCodeByCondition(@RequestBody List<String> userCodes, @RequestParam String name, @RequestParam String dept) {
+    public ResponseResult<List<String>> filterUserCodeByCondition(@RequestBody List<String> userCodes, @RequestParam String name, @RequestParam String dept, @RequestParam String isSteppingBack) {
         try {
-            return new ResponseResult<>(HttpStatus.OK.value(), "OK", hrEmpBasicService.filterUserCodeByCondition(userCodes, name, dept));
+            return new ResponseResult<>(HttpStatus.OK.value(), "OK", hrEmpBasicService.filterUserCodeByCondition(userCodes, name, dept, isSteppingBack));
         } catch (Exception e) {
             log.error("查询出错", e);
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "ERROR");
