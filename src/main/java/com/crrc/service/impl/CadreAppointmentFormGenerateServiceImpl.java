@@ -60,6 +60,8 @@ public class CadreAppointmentFormGenerateServiceImpl {
 
     /** 呈报单位（固定） */
     private static final String REPORT_UNIT = "中车长春轨道客车股份有限公司党委干部部";
+    /** 公司全称（现任职务前缀） */
+    private static final String COMPANY_NAME = "中车长春轨道客车股份有限公司";
     /** 任免理由默认值 */
     private static final String DEFAULT_APPOINT_REASON = "工作需要。";
     /** 健康状况默认值（取不到真实值时） */
@@ -314,12 +316,18 @@ public class CadreAppointmentFormGenerateServiceImpl {
     }
 
     private String resolveCurrentPosition(HrEmpBasicDTO basic) {
+        String position;
         String category4 = basic.getCategory4();
         if (category4 != null && JOB_TITLE_CATEGORY4.contains(category4.trim())) {
-            return nz(basic.getJobTitle());
+            position = nz(basic.getJobTitle());
+        } else {
+            // resolveFields 已将 position 翻译为名称
+            position = nz(basic.getPosition());
         }
-        // 否则按 getMsg 逻辑：resolveFields 已将 position 翻译为名称
-        return nz(basic.getPosition());
+        // 标准格式：公司全称 + 所属部门 + 职务（resolveFields 已将 dept 置为部门名称）
+        String dept = nz(basic.getDept());
+        log.info("[现任职务] dept={}, position={}", dept, position);
+        return join(COMPANY_NAME, dept, position);
     }
 
     /** 学历学位单元格：全日制(isFullTime=1)/在职(=0) */
