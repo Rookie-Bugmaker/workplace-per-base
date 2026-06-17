@@ -63,7 +63,7 @@ public interface SysServerClient {
      * @return 绑定的用户列表
      */
     @GetMapping("/role/get_role_users_by_roleCode")
-    ResultData<List<SysUserDTO>> findUserByRoleCode(@RequestParam("roleCode") String roleCode);
+    List<SysUserDTO> findUserByRoleCode(@RequestParam("roleCode") String roleCode);
 
     /**
      * 根据租户id和角色编码获取用户信息

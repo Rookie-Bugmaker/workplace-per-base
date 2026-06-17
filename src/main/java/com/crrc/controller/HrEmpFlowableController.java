@@ -323,14 +323,14 @@ public class HrEmpFlowableController {
         // ================== ⭐ 调用新接口 ==================
 
         // 注意!!! wkcoreApi的对应方法无效，请使用该方法通过roleCode查询角色下用户
-        ResultData<List<SysUserDTO>> resultData = sysServerClient.findUserByRoleCode(roleCode);
+        List<SysUserDTO> resultData = sysServerClient.findUserByRoleCode(roleCode);
 
-        if (resultData == null || ObjectUtils.isEmpty(resultData.getResult())) {
+        if (resultData == null || ObjectUtils.isEmpty(resultData)) {
             log.info("角色查询为空:{}", roleCode);
             return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "未查到审批人数据!");
         }
 
-        List<SysUserDTO> result = resultData.getResult();
+        List<SysUserDTO> result = resultData;
 
         return ResponseResult.success(result);
     }
