@@ -20,6 +20,7 @@ import com.crrc.listener.ImportExcelListener;
 import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mapper.PositionInfoMapper;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.vo.ImportResult;
 import com.crrc.service.impl.CodeInfoServiceImpl;
 import com.crrc.service.impl.HrEmpAppointmentServiceImpl;
 import com.crrc.utils.RoleUtils;
@@ -71,6 +72,11 @@ public class HrEmpAppointmentController {
     private HrEmpBasicMapper hrEmpBasicMapper;
     @Autowired
     private PositionInfoMapper positionInfoMapper;
+
+    @PostMapping("/refreshAppointment")
+    public ResponseResult<ImportResult> refreshAppointment(@RequestBody MultipartFile file) {
+        return ResponseResult.success(hrEmpAppointmentService.importLeaveAppointmentChangeType(file));
+    }
 
     @GetMapping("/isCadre")
     @Operation(summary = "检查是否中干")
