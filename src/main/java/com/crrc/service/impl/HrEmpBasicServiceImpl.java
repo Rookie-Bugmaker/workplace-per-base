@@ -1619,6 +1619,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
 
     }
 
+    @TenantIgnore
     public List<HrEmpBasicDTO> selectMsgList(List<String> userCodeList) {
         try {
             // 1. 主表及左连接表查询
@@ -1636,11 +1637,14 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
                     result.setIsAdmin("1");
                 });
             } else {
-                String userName = SecurityFrameworkUtils.getLoginUser().getUser().getJobNo();
-                resultList.forEach(result -> {
-                    result.setIsEditable(result.getUserCode().equals(userName) ? "1" : "0");
-                    result.setIsAdmin("0");
-                });
+                LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
+                if(loginUser != null && loginUser.getUser() != null) {
+                    String userName = loginUser.getUser().getJobNo();
+                    resultList.forEach(result -> {
+                        result.setIsEditable(result.getUserCode().equals(userName) ? "1" : "0");
+                        result.setIsAdmin("0");
+                    });
+                }
             }
 
             resultList.forEach(result -> {

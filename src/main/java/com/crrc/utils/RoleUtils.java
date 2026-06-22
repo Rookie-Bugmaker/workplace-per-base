@@ -63,7 +63,7 @@ public class RoleUtils {
     public static boolean checkAnyMatch(Collection<String> roleCodeSet) {
         try {
             LoginUser currentUser = SecurityFrameworkUtils.getLoginUser();
-            if (currentUser == null) {
+            if (currentUser == null || currentUser.getUser() == null) {
                 log.warn("获取当前登录用户失败!");
                 return false;
             }

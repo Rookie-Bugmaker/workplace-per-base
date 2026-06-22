@@ -32,6 +32,7 @@ import com.crrc.pojo.dto.*;
 import com.crrc.pojo.vo.MapVO;
 import com.crrc.service.impl.*;
 import com.crrc.utils.*;
+import com.crrc.utils.listener.CostCenterImportListener;
 import com.crrc.utils.listener.PoliticalStatusImportListener;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import com.xxl.job.core.handler.annotation.XxlJob;
@@ -1459,6 +1460,18 @@ public class HrEmpBasicController {
         } catch (Exception e) {
             return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
+    }
+
+    @PostMapping("/importCostCenter")
+    @AuditLog(value = "导入员工薪资信息表报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
+    @Operation(summary = "导入员工薪资信息表报表")
+    public ResponseResult<Boolean> importCostCenter(MultipartFile file) throws IOException {
+        EasyExcel.read(file.getInputStream(), HrEmpBasic.class,
+                        new CostCenterImportListener(hrEmpBasicService))
+                .headRowNumber(1)
+                .sheet()
+                .doRead();
+        return new ResponseResult<>(HttpStatus.OK.value(), "导入员工薪资信息表报表成功");
     }
 
 }
