@@ -9,6 +9,7 @@ import com.crrc.pojo.dto.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -38,8 +39,8 @@ public class SysServerClientFallback implements SysServerClient {
     }
 
     @Override
-    public ResultData<List<SysUserDTO>> findUserByRoleCode(String roleCode) {
-        return ResultData.fallback();
+    public List<SysUserDTO> findUserByRoleCode(String roleCode) {
+        return new ArrayList<>();
     }
 
     @Override
