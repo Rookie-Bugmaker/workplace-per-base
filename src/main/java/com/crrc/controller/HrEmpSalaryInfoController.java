@@ -241,17 +241,17 @@ public class HrEmpSalaryInfoController {
         return new ResponseResult<>(HttpStatus.OK.value(), "导入员工薪资信息表报表成功");
     }
 
-    @PostMapping("/importCostCenter")
-    @AuditLog(value = "导入员工薪资信息表报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
-    @Operation(summary = "导入员工薪资信息表报表")
-    public ResponseResult<Boolean> importCostCenter(MultipartFile file) throws IOException {
-        EasyExcel.read(file.getInputStream(), HrEmpSalaryInfo.class,
-                        new CostCenterImportListener(hrEmpSalaryInfoService))
-                .headRowNumber(1)
-                .sheet()
-                .doRead();
-        return new ResponseResult<>(HttpStatus.OK.value(), "导入员工薪资信息表报表成功");
-    }
+//    @PostMapping("/importCostCenter")
+//    @AuditLog(value = "导入员工薪资信息表报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
+//    @Operation(summary = "导入员工薪资信息表报表")
+//    public ResponseResult<Boolean> importCostCenter(MultipartFile file) throws IOException {
+//        EasyExcel.read(file.getInputStream(), HrEmpSalaryInfo.class,
+//                        new CostCenterImportListener(hrEmpSalaryInfoService))
+//                .headRowNumber(1)
+//                .sheet()
+//                .doRead();
+//        return new ResponseResult<>(HttpStatus.OK.value(), "导入员工薪资信息表报表成功");
+//    }
 
     @GetMapping("/getDetails")
     @Operation(summary = "获得员工薪资信息表实体")
