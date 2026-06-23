@@ -75,7 +75,11 @@ public class HrEmpAppointmentController {
 
     @PostMapping("/refreshAppointment")
     public ResponseResult<ImportResult> refreshAppointment(@RequestBody MultipartFile file) {
-        return ResponseResult.success(hrEmpAppointmentService.importLeaveAppointmentChangeType(file));
+        try {
+            return ResponseResult.success(hrEmpAppointmentService.importLeaveAppointmentChangeType(file));
+        } catch (Exception e) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
     }
 
     @GetMapping("/isCadre")
