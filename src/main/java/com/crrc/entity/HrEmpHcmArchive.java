@@ -11,18 +11,17 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.io.Serializable;
-import java.time.LocalDate;
 
 /**
  * 员工历史档案数据实体类
  * 对应数据库表：hr_emp_hcm_archive
  *
- * <p>该实体类用于映射员工历史档案数据表，包含 DA1-DA98 共98个基础字段，
- * 以及 NF、YF、C_TYPE 等额外字段。主键为 userCode（对应 DA2 字段）。</p>
+ * <p>该实体类用于映射员工历史档案数据表，字段命名严格按照 DA1-DA98 列名规范，
+ * 每个字段通过 @TableField 显式指定数据库列名（全小写），确保与数据库列精确对应。</p>
  *
- * <p>数据来源：tempdoc.txt 中的历史数据表</p>
+ * <p>数据来源：TSDA备份库202512.xlsx 中的历史数据表</p>
  *
- * @author AI Generated
+ * @author yukun
  * @since 2026-06-23
  */
 @Accessors(chain = false)
@@ -31,973 +30,827 @@ import java.time.LocalDate;
 @Data
 @NoArgsConstructor
 public class HrEmpHcmArchive extends BaseEntity implements Serializable {
-
-    /**
-     * 员工档案号（DA2字段，主键）
-     * 对应数据库字段：user_code
-     * 数据来源：DA2 列
-     */
-    @TableId(value = "user_code", type = IdType.INPUT)
-    @Schema(description = "员工档案号（DA2）")
-    private String userCode;
-
     /**
      * 逻辑删除标记（0表示未删除，1表示已删除）
-     * 对应数据库字段：deleted
      */
     @TableLogic(value = "0")
     @Schema(description = "逻辑删除标记")
     private Integer deleted;
 
-    /**
-     * 员工姓名（DA4字段）
-     * 对应数据库字段：name
-     * 数据来源：DA4 列
-     */
-    @Schema(description = "员工姓名（DA4）")
-    private String name;
+    // ==================== DA1 - DA98 数据字段 ====================
 
     /**
-     * 部门编码（DA3字段）
-     * 对应数据库字段：dept
-     * 数据来源：DA3 列
+     * DA1 - 档案号
      */
-    @Schema(description = "部门编码（DA3）")
-    private String dept;
-
-    /**
-     * 性别（DA6字段）
-     * 对应数据库字段：gender
-     * 数据来源：DA6 列
-     */
-    @Schema(description = "性别（DA6）")
-    private String gender;
-
-    /**
-     * 民族（DA7字段）
-     * 对应数据库字段：nation
-     * 数据来源：DA7 列
-     */
-    @Schema(description = "民族（DA7）")
-    private String nation;
-
-    /**
-     * 籍贯（DA8字段）
-     * 对应数据库字段：native_place
-     * 数据来源：DA8 列
-     */
-    @Schema(description = "籍贯（DA8）")
-    private String nativePlace;
-
-    /**
-     * 出生日期（DA5字段）
-     * 对应数据库字段：birth_date
-     * 数据来源：DA5 列
-     */
-    @Schema(description = "出生日期（DA5）")
-    private LocalDate birthDate;
-
-    /**
-     * 入职日期（DA16字段）
-     * 对应数据库字段：work_date
-     * 数据来源：DA16 列
-     */
-    @Schema(description = "入职日期（DA16）")
-    private LocalDate workDate;
-
-    /**
-     * 政治面貌（DA28字段）
-     * 对应数据库字段：political
-     * 数据来源：DA28 列
-     */
-    @Schema(description = "政治面貌（DA28）")
-    private String political;
-
-    /**
-     * 学历（DA22字段）
-     * 对应数据库字段：education
-     * 数据来源：DA22 列
-     */
-    @Schema(description = "学历（DA22）")
-    private String education;
-
-    /**
-     * DA1 - 序号
-     * 对应数据库字段：da1
-     * 数据来源：DA1 列
-     */
-    @Schema(description = "DA1 - 序号")
+    @TableId(value = "id", type = IdType.AUTO)
+    @TableField("da1")
+    @Schema(description = "DA1 - 档案号")
     private String da1;
 
     /**
-     * DA9 - 身份证号
-     * 对应数据库字段：da9
-     * 数据来源：DA9 列
+     * DA2 - 所在部门
      */
-    @Schema(description = "DA9 - 身份证号")
+    @TableField("da2")
+    @Schema(description = "DA2 - 所在部门")
+    private String da2;
+
+    /**
+     * DA3 - 姓名
+     */
+    @TableField("da3")
+    @Schema(description = "DA3 - 姓名")
+    private String da3;
+
+    /**
+     * DA4 - 出生日期
+     */
+    @TableField("da4")
+    @Schema(description = "DA4 - 出生日期")
+    private String da4;
+
+    /**
+     * DA5 - 性别
+     */
+    @TableField("da5")
+    @Schema(description = "DA5 - 性别")
+    private String da5;
+
+    /**
+     * DA6 - 民族
+     */
+    @TableField("da6")
+    @Schema(description = "DA6 - 民族")
+    private String da6;
+
+    /**
+     * DA7 - 籍贯
+     */
+    @TableField("da7")
+    @Schema(description = "DA7 - 籍贯")
+    private String da7;
+
+    /**
+     * DA8 - 身份证号
+     */
+    @TableField("da8")
+    @Schema(description = "DA8 - 身份证号")
+    private String da8;
+
+    /**
+     * DA9 - 第一学历
+     */
+    @TableField("da9")
+    @Schema(description = "DA9 - 第一学历")
     private String da9;
 
     /**
-     * DA10 - 学历类型
-     * 对应数据库字段：da10
-     * 数据来源：DA10 列
+     * DA10 - 第一学历入学日期
      */
-    @Schema(description = "DA10")
+    @TableField("da10")
+    @Schema(description = "DA10 - 第一学历入学日期")
     private String da10;
 
     /**
-     * DA11 - 毕业日期
-     * 对应数据库字段：da11
-     * 数据来源：DA11 列
+     * DA11 - 第一学历专业
      */
-    @Schema(description = "DA11")
+    @TableField("da11")
+    @Schema(description = "DA11 - 第一学历专业")
     private String da11;
 
     /**
-     * DA12 - 专业
-     * 对应数据库字段：da12
-     * 数据来源：DA12 列
+     * DA12 - 第一学历毕业院校
      */
-    @Schema(description = "DA12")
+    @TableField("da12")
+    @Schema(description = "DA12 - 第一学历毕业院校")
     private String da12;
 
     /**
-     * DA13 - 毕业院校
-     * 对应数据库字段：da13
-     * 数据来源：DA13 列
+     * DA13 - 第一学历教育类型
      */
-    @Schema(description = "DA13")
+    @TableField("da13")
+    @Schema(description = "DA13 - 第一学历教育类型")
     private String da13;
 
     /**
-     * DA14 - 教育类型
-     * 对应数据库字段：da14
-     * 数据来源：DA14 列
+     * DA14 - 第一学历学位授予日期
      */
-    @Schema(description = "DA14")
+    @TableField("da14")
+    @Schema(description = "DA14 - 第一学历学位授予日期")
     private String da14;
 
     /**
-     * DA15 - 学位授予日期
-     * 对应数据库字段：da15
-     * 数据来源：DA15 列
+     * DA15 - 第一学历学位
      */
-    @Schema(description = "DA15")
+    @TableField("da15")
+    @Schema(description = "DA15 - 第一学历学位")
     private String da15;
 
     /**
-     * DA16 - 学位
-     * 对应数据库字段：da16
-     * 数据来源：DA16 列
+     * DA16 - 第二学历
      */
-    @Schema(description = "DA16")
+    @TableField("da16")
+    @Schema(description = "DA16 - 第二学历")
     private String da16;
 
     /**
-     * DA17 - 第二学历开始日期
-     * 对应数据库字段：da17
-     * 数据来源：DA17 列
+     * DA17 - 第二学历入学日期
      */
-    @Schema(description = "DA17")
+    @TableField("da17")
+    @Schema(description = "DA17 - 第二学历入学日期")
     private String da17;
 
     /**
-     * DA18 - 第二学历
-     * 对应数据库字段：da18
-     * 数据来源：DA18 列
+     * DA18 - 第二学历专业
      */
-    @Schema(description = "DA18")
+    @TableField("da18")
+    @Schema(description = "DA18 - 第二学历专业")
     private String da18;
 
     /**
-     * DA19 - 第二学历专业
-     * 对应数据库字段：da19
-     * 数据来源：DA19 列
+     * DA19 - 第二学历毕业院校
      */
-    @Schema(description = "DA19")
+    @TableField("da19")
+    @Schema(description = "DA19 - 第二学历毕业院校")
     private String da19;
 
     /**
-     * DA20 - 第二学历毕业院校
-     * 对应数据库字段：da20
-     * 数据来源：DA20 列
+     * DA20 - 第二学历教育类型
      */
-    @Schema(description = "DA20")
+    @TableField("da20")
+    @Schema(description = "DA20 - 第二学历教育类型")
     private String da20;
 
     /**
-     * DA21 - 第二学历教育类型
-     * 对应数据库字段：da21
-     * 数据来源：DA21 列
+     * DA21 - 第二学历学位授予日期
      */
-    @Schema(description = "DA21")
+    @TableField("da21")
+    @Schema(description = "DA21 - 第二学历学位授予日期")
     private String da21;
 
     /**
-     * DA22 - 第二学历学位授予日期
-     * 对应数据库字段：da22
-     * 数据来源：DA22 列
+     * DA22 - 第二学历学位
      */
-    @Schema(description = "DA22")
+    @TableField("da22")
+    @Schema(description = "DA22 - 第二学历学位")
     private String da22;
 
     /**
-     * DA23 - 第二学历学位
-     * 对应数据库字段：da23
-     * 数据来源：DA23 列
+     * DA23 - 入职方式
      */
-    @Schema(description = "DA23")
+    @TableField("da23")
+    @Schema(description = "DA23 - 入职方式")
     private String da23;
 
     /**
      * DA24 - 参加工作时间
-     * 对应数据库字段：da24
-     * 数据来源：DA24 列
      */
-    @Schema(description = "DA24")
+    @TableField("da24")
+    @Schema(description = "DA24 - 参加工作时间")
     private String da24;
 
     /**
      * DA25 - 入职日期
-     * 对应数据库字段：da25
-     * 数据来源：DA25 列
      */
-    @Schema(description = "DA25")
+    @TableField("da25")
+    @Schema(description = "DA25 - 入职日期")
     private String da25;
 
     /**
-     * DA26 - 工龄间断时间
-     * 对应数据库字段：da26
-     * 数据来源：DA26 列
+     * DA26 - 年龄
      */
-    @Schema(description = "DA26")
+    @TableField("da26")
+    @Schema(description = "DA26 - 年龄")
     private String da26;
 
     /**
-     * DA27 - 岗位名称
-     * 对应数据库字段：da27
-     * 数据来源：DA27 列
+     * DA27 - 合同年限
      */
-    @Schema(description = "DA27")
+    @TableField("da27")
+    @Schema(description = "DA27 - 合同年限")
     private String da27;
 
     /**
-     * DA28 - 岗位名称2
-     * 对应数据库字段：da28
-     * 数据来源：DA28 列
+     * DA28 - 岗位名称开始日期
      */
-    @Schema(description = "DA28")
+    @TableField("da28")
+    @Schema(description = "DA28 - 岗位名称开始日期")
     private String da28;
 
     /**
-     * DA29 - 职称
-     * 对应数据库字段：da29
-     * 数据来源：DA29 列
+     * DA29 - 岗位名称结束日期
      */
-    @Schema(description = "DA29")
+    @TableField("da29")
+    @Schema(description = "DA29 - 岗位名称结束日期")
     private String da29;
 
     /**
-     * DA30 - 职称评定日期
-     * 对应数据库字段：da30
-     * 数据来源：DA30 列
+     * DA30 - 第一职称
      */
-    @Schema(description = "DA30")
+    @TableField("da30")
+    @Schema(description = "DA30 - 第一职称")
     private String da30;
 
     /**
-     * DA31 - 职称
-     * 对应数据库字段：da31
-     * 数据来源：DA31 列
+     * DA31 - 第一职称评定日期
      */
-    @Schema(description = "DA31")
+    @TableField("da31")
+    @Schema(description = "DA31 - 第一职称评定日期")
     private String da31;
 
     /**
-     * DA32 - 职称评定日期
-     * 对应数据库字段：da32
-     * 数据来源：DA32 列
+     * DA32 - 第二职称
      */
-    @Schema(description = "DA32")
+    @TableField("da32")
+    @Schema(description = "DA32 - 第二职称")
     private String da32;
 
     /**
-     * DA33 - 身份类型
-     * 对应数据库字段：da33
-     * 数据来源：DA33 列
+     * DA33 - 第二职称评定日期
      */
-    @Schema(description = "DA33")
+    @TableField("da33")
+    @Schema(description = "DA33 - 第二职称评定日期")
     private String da33;
 
     /**
-     * DA34 - 人员分类
-     * 对应数据库字段：da34
-     * 数据来源：DA34 列
+     * DA34 - 身份类型
      */
-    @Schema(description = "DA34")
+    @TableField("da34")
+    @Schema(description = "DA34 - 身份类型")
     private String da34;
 
     /**
-     * DA35 - 人员分类2
-     * 对应数据库字段：da35
-     * 数据来源：DA35 列
+     * DA35 - 人员分类
      */
-    @Schema(description = "DA35")
+    @TableField("da35")
+    @Schema(description = "DA35 - 人员分类")
     private String da35;
 
     /**
-     * DA36 - 人员分类3
-     * 对应数据库字段：da36
-     * 数据来源：DA36 列
+     * DA36 - 人员分类2
      */
-    @Schema(description = "DA36")
+    @TableField("da36")
+    @Schema(description = "DA36 - 人员分类2")
     private String da36;
 
     /**
-     * DA37 - 现任职务
-     * 对应数据库字段：da37
-     * 数据来源：DA37 列
+     * DA37 - 在岗状态
      */
-    @Schema(description = "DA37")
+    @TableField("da37")
+    @Schema(description = "DA37 - 在岗状态")
     private String da37;
 
     /**
-     * DA38 - 现任职务开始日期
-     * 对应数据库字段：da38
-     * 数据来源：DA38 列
+     * DA38 - 人员类别
      */
-    @Schema(description = "DA38")
+    @TableField("da38")
+    @Schema(description = "DA38 - 人员类别")
     private String da38;
 
     /**
-     * DA39 - 现任职务结束日期
-     * 对应数据库字段：da39
-     * 数据来源：DA39 列
+     * DA39 - 技能等级
      */
-    @Schema(description = "DA39")
+    @TableField("da39")
+    @Schema(description = "DA39 - 技能等级")
     private String da39;
 
     /**
-     * DA40 - 在岗状态
-     * 对应数据库字段：da40
-     * 数据来源：DA40 列
+     * DA40 - 技能级别
      */
-    @Schema(description = "DA40")
+    @TableField("da40")
+    @Schema(description = "DA40 - 技能级别")
     private String da40;
 
     /**
-     * DA41 - 人员类别
-     * 对应数据库字段：da41
-     * 数据来源：DA41 列
+     * DA41 - 技能等级评定日期
      */
-    @Schema(description = "DA41")
+    @TableField("da41")
+    @Schema(description = "DA41 - 技能等级评定日期")
     private String da41;
 
     /**
-     * DA42 - 技能等级
-     * 对应数据库字段：da42
-     * 数据来源：DA42 列
+     * DA42 - 职称级别
      */
-    @Schema(description = "DA42")
+    @TableField("da42")
+    @Schema(description = "DA42 - 职称级别")
     private String da42;
 
     /**
-     * DA43 - 技能等级评定日期
-     * 对应数据库字段：da43
-     * 数据来源：DA43 列
+     * DA43 - 职称级别评定日期
      */
-    @Schema(description = "DA43")
+    @TableField("da43")
+    @Schema(description = "DA43 - 职称级别评定日期")
     private String da43;
 
     /**
-     * DA44 - 技能等级
-     * 对应数据库字段：da44
-     * 数据来源：DA44 列
+     * DA44 - 职称级别状态
      */
-    @Schema(description = "DA44")
+    @TableField("da44")
+    @Schema(description = "DA44 - 职称级别状态")
     private String da44;
 
     /**
-     * DA45 - 技能等级评定日期
-     * 对应数据库字段：da45
-     * 数据来源：DA45 列
+     * DA45 - 婚姻状况
      */
-    @Schema(description = "DA45")
+    @TableField("da45")
+    @Schema(description = "DA45 - 婚姻状况")
     private String da45;
 
     /**
-     * DA46 - 婚姻状况
-     * 对应数据库字段：da46
-     * 数据来源：DA46 列
+     * DA46 - 结婚日期
      */
-    @Schema(description = "DA46")
+    @TableField("da46")
+    @Schema(description = "DA46 - 结婚日期")
     private String da46;
 
     /**
-     * DA47 - 结婚日期
-     * 对应数据库字段：da47
-     * 数据来源：DA47 列
+     * DA47 - 健康状况
      */
-    @Schema(description = "DA47")
+    @TableField("da47")
+    @Schema(description = "DA47 - 健康状况")
     private String da47;
 
     /**
-     * DA48 - 健康状况
-     * 对应数据库字段：da48
-     * 数据来源：DA48 列
+     * DA48 - 身高
      */
-    @Schema(description = "DA48")
+    @TableField("da48")
+    @Schema(description = "DA48 - 身高")
     private String da48;
 
     /**
-     * DA49 - 身高
-     * 对应数据库字段：da49
-     * 数据来源：DA49 列
+     * DA49 - 体重
      */
-    @Schema(description = "DA49")
+    @TableField("da49")
+    @Schema(description = "DA49 - 体重")
     private String da49;
 
     /**
-     * DA50 - 体重
-     * 对应数据库字段：da50
-     * 数据来源：DA50 列
+     * DA50 - 血型
      */
-    @Schema(description = "DA50")
+    @TableField("da50")
+    @Schema(description = "DA50 - 血型")
     private String da50;
 
     /**
-     * DA51 - 血型
-     * 对应数据库字段：da51
-     * 数据来源：DA51 列
+     * DA51 - 家庭住址
      */
-    @Schema(description = "DA51")
+    @TableField("da51")
+    @Schema(description = "DA51 - 家庭住址")
     private String da51;
 
     /**
-     * DA52 - 家庭住址
-     * 对应数据库字段：da52
-     * 数据来源：DA52 列
+     * DA52 - 政治面貌
      */
-    @Schema(description = "DA52")
+    @TableField("da52")
+    @Schema(description = "DA52 - 政治面貌")
     private String da52;
 
     /**
-     * DA53 - 家庭住址详细
-     * 对应数据库字段：da53
-     * 数据来源：DA53 列
+     * DA53 - 入党日期
      */
-    @Schema(description = "DA53")
+    @TableField("da53")
+    @Schema(description = "DA53 - 入党日期")
     private String da53;
 
     /**
      * DA54 - 户籍类型
-     * 对应数据库字段：da54
-     * 数据来源：DA54 列
      */
-    @Schema(description = "DA54")
+    @TableField("da54")
+    @Schema(description = "DA54 - 户籍类型")
     private String da54;
 
     /**
      * DA55 - 户籍所在地
-     * 对应数据库字段：da55
-     * 数据来源：DA55 列
      */
-    @Schema(description = "DA55")
+    @TableField("da55")
+    @Schema(description = "DA55 - 户籍所在地")
     private String da55;
 
     /**
      * DA56 - 户籍所在地详细
-     * 对应数据库字段：da56
-     * 数据来源：DA56 列
      */
-    @Schema(description = "DA56")
+    @TableField("da56")
+    @Schema(description = "DA56 - 户籍所在地详细")
     private String da56;
 
     /**
      * DA57 - 现居住地
-     * 对应数据库字段：da57
-     * 数据来源：DA57 列
      */
-    @Schema(description = "DA57")
+    @TableField("da57")
+    @Schema(description = "DA57 - 现居住地")
     private String da57;
 
     /**
      * DA58 - 手机号码
-     * 对应数据库字段：da58
-     * 数据来源：DA58 列
      */
-    @Schema(description = "DA58")
+    @TableField("da58")
+    @Schema(description = "DA58 - 手机号码")
     private String da58;
 
     /**
-     * DA59 - 个人邮箱
-     * 对应数据库字段：da59
-     * 数据来源：DA59 列
+     * DA59 - 工资/档次
      */
-    @Schema(description = "DA59")
+    @TableField("da59")
+    @Schema(description = "DA59 - 工资/档次")
     private String da59;
 
     /**
-     * DA60 - 工作邮箱
-     * 对应数据库字段：da60
-     * 数据来源：DA60 列
+     * DA60 - 年龄（档案年龄）
      */
-    @Schema(description = "DA60")
+    @TableField("da60")
+    @Schema(description = "DA60 - 年龄（档案年龄）")
     private String da60;
 
     /**
-     * DA61 - 紧急联系人
-     * 对应数据库字段：da61
-     * 数据来源：DA61 列
+     * DA61 - 婚姻状况（档案）
      */
-    @Schema(description = "DA61")
+    @TableField("da61")
+    @Schema(description = "DA61 - 婚姻状况（档案）")
     private String da61;
 
     /**
-     * DA62 - 紧急联系人电话
-     * 对应数据库字段：da62
-     * 数据来源：DA62 列
+     * DA62 - 健康状况（档案）
      */
-    @Schema(description = "DA62")
+    @TableField("da62")
+    @Schema(description = "DA62 - 健康状况（档案）")
     private String da62;
 
     /**
-     * DA63 - 银行卡号
-     * 对应数据库字段：da63
-     * 数据来源：DA63 列
+     * DA63 - 家庭住址（档案）
      */
-    @Schema(description = "DA63")
+    @TableField("da63")
+    @Schema(description = "DA63 - 家庭住址（档案）")
     private String da63;
 
     /**
-     * DA64 - 开户行
-     * 对应数据库字段：da64
-     * 数据来源：DA64 列
+     * DA64 - 离职状态
      */
-    @Schema(description = "DA64")
+    @TableField("da64")
+    @Schema(description = "DA64 - 离职状态")
     private String da64;
 
     /**
-     * DA65 - 社保账号
-     * 对应数据库字段：da65
-     * 数据来源：DA65 列
+     * DA65 - 离职日期
      */
-    @Schema(description = "DA65")
+    @TableField("da65")
+    @Schema(description = "DA65 - 离职日期")
     private String da65;
 
     /**
-     * DA66 - 公积金账号
-     * 对应数据库字段：da66
-     * 数据来源：DA66 列
+     * DA66 - 合同签订日期
      */
-    @Schema(description = "DA66")
+    @TableField("da66")
+    @Schema(description = "DA66 - 合同签订日期")
     private String da66;
 
     /**
-     * DA67 - 个税账号
-     * 对应数据库字段：da67
-     * 数据来源：DA67 列
+     * DA67 - 合同续订日期
      */
-    @Schema(description = "DA67")
+    @TableField("da67")
+    @Schema(description = "DA67 - 合同续订日期")
     private String da67;
 
     /**
-     * DA68 - 工号
-     * 对应数据库字段：da68
-     * 数据来源：DA68 列
+     * DA68 - 合同终止日期
      */
-    @Schema(description = "DA68")
+    @TableField("da68")
+    @Schema(description = "DA68 - 合同终止日期")
     private String da68;
 
     /**
-     * DA69 - 员工编号
-     * 对应数据库字段：da69
-     * 数据来源：DA69 列
+     * DA69 - 入职日期（档案）
      */
-    @Schema(description = "DA69")
+    @TableField("da69")
+    @Schema(description = "DA69 - 入职日期（档案）")
     private String da69;
 
     /**
-     * DA70 - 入职方式
-     * 对应数据库字段：da70
-     * 数据来源：DA70 列
+     * DA70 - 工号
      */
-    @Schema(description = "DA70")
+    @TableField("da70")
+    @Schema(description = "DA70 - 工号")
     private String da70;
 
     /**
-     * DA71 - 入职来源
-     * 对应数据库字段：da71
-     * 数据来源：DA71 列
+     * DA71 - 员工编号
      */
-    @Schema(description = "DA71")
+    @TableField("da71")
+    @Schema(description = "DA71 - 员工编号")
     private String da71;
 
     /**
-     * DA72 - 转正日期
-     * 对应数据库字段：da72
-     * 数据来源：DA72 列
+     * DA72 - 合同代码
      */
-    @Schema(description = "DA72")
+    @TableField("da72")
+    @Schema(description = "DA72 - 合同代码")
     private String da72;
 
     /**
-     * DA73 - 离职日期
-     * 对应数据库字段：da73
-     * 数据来源：DA73 列
+     * DA73 - 转正日期
      */
-    @Schema(description = "DA73")
+    @TableField("da73")
+    @Schema(description = "DA73 - 转正日期")
     private String da73;
 
     /**
-     * DA74 - 离职原因
-     * 对应数据库字段：da74
-     * 数据来源：DA74 列
+     * DA74 - 紧急联系人
      */
-    @Schema(description = "DA74")
+    @TableField("da74")
+    @Schema(description = "DA74 - 紧急联系人")
     private String da74;
 
     /**
-     * DA75 - 离职类型
-     * 对应数据库字段：da75
-     * 数据来源：DA75 列
+     * DA75 - 紧急联系人电话
      */
-    @Schema(description = "DA75")
+    @TableField("da75")
+    @Schema(description = "DA75 - 紧急联系人电话")
     private String da75;
 
     /**
-     * DA76 - 退休日期
-     * 对应数据库字段：da76
-     * 数据来源：DA76 列
+     * DA76 - 紧急联系人邮箱
      */
-    @Schema(description = "DA76")
+    @TableField("da76")
+    @Schema(description = "DA76 - 紧急联系人邮箱")
     private String da76;
 
     /**
-     * DA77 - 退休类型
-     * 对应数据库字段：da77
-     * 数据来源：DA77 列
+     * DA77 - 紧急联系人姓名
      */
-    @Schema(description = "DA77")
+    @TableField("da77")
+    @Schema(description = "DA77 - 紧急联系人姓名")
     private String da77;
 
     /**
-     * DA78 - 退休原因
-     * 对应数据库字段：da78
-     * 数据来源：DA78 列
+     * DA78 - 现任职务开始日期
      */
-    @Schema(description = "DA78")
+    @TableField("da78")
+    @Schema(description = "DA78 - 现任职务开始日期")
     private String da78;
 
     /**
-     * DA79 - 返聘日期
-     * 对应数据库字段：da79
-     * 数据来源：DA79 列
+     * DA79 - 现任职务结束日期
      */
-    @Schema(description = "DA79")
+    @TableField("da79")
+    @Schema(description = "DA79 - 现任职务结束日期")
     private String da79;
 
     /**
-     * DA80 - 返聘原因
-     * 对应数据库字段：da80
-     * 数据来源：DA80 列
+     * DA80 - 合同开始日期
      */
-    @Schema(description = "DA80")
+    @TableField("da80")
+    @Schema(description = "DA80 - 合同开始日期")
     private String da80;
 
     /**
-     * DA81 - 合同开始日期
-     * 对应数据库字段：da81
-     * 数据来源：DA81 列
+     * DA81 - 合同结束日期
      */
-    @Schema(description = "DA81")
+    @TableField("da81")
+    @Schema(description = "DA81 - 合同结束日期")
     private String da81;
 
     /**
-     * DA82 - 合同结束日期
-     * 对应数据库字段：da82
-     * 数据来源：DA82 列
+     * DA82 - 合同类型
      */
-    @Schema(description = "DA82")
+    @TableField("da82")
+    @Schema(description = "DA82 - 合同类型")
     private String da82;
 
     /**
-     * DA83 - 合同类型
-     * 对应数据库字段：da83
-     * 数据来源：DA83 列
+     * DA83 - 合同次数
      */
-    @Schema(description = "DA83")
+    @TableField("da83")
+    @Schema(description = "DA83 - 合同次数")
     private String da83;
 
     /**
-     * DA84 - 合同次数
-     * 对应数据库字段：da84
-     * 数据来源：DA84 列
+     * DA84 - 试用期开始日期
      */
-    @Schema(description = "DA84")
+    @TableField("da84")
+    @Schema(description = "DA84 - 试用期开始日期")
     private String da84;
 
     /**
-     * DA85 - 试用期开始日期
-     * 对应数据库字段：da85
-     * 数据来源：DA85 列
+     * DA85 - 试用期结束日期
      */
-    @Schema(description = "DA85")
+    @TableField("da85")
+    @Schema(description = "DA85 - 试用期结束日期")
     private String da85;
 
     /**
-     * DA86 - 试用期结束日期
-     * 对应数据库字段：da86
-     * 数据来源：DA86 列
+     * DA86 - 试用期月数
      */
-    @Schema(description = "DA86")
+    @TableField("da86")
+    @Schema(description = "DA86 - 试用期月数")
     private String da86;
 
     /**
-     * DA87 - 试用期月数
-     * 对应数据库字段：da87
-     * 数据来源：DA87 列
+     * DA87 - 是否试用期
      */
-    @Schema(description = "DA87")
+    @TableField("da87")
+    @Schema(description = "DA87 - 是否试用期")
     private String da87;
 
     /**
      * DA88 - 培训开始日期
-     * 对应数据库字段：da88
-     * 数据来源：DA88 列
      */
-    @Schema(description = "DA88")
+    @TableField("da88")
+    @Schema(description = "DA88 - 培训开始日期")
     private String da88;
 
     /**
      * DA89 - 培训结束日期
-     * 对应数据库字段：da89
-     * 数据来源：DA89 列
      */
-    @Schema(description = "DA89")
+    @TableField("da89")
+    @Schema(description = "DA89 - 培训结束日期")
     private String da89;
 
     /**
      * DA90 - 培训内容
-     * 对应数据库字段：da90
-     * 数据来源：DA90 列
      */
-    @Schema(description = "DA90")
+    @TableField("da90")
+    @Schema(description = "DA90 - 培训内容")
     private String da90;
 
     /**
      * DA91 - 培训费用
-     * 对应数据库字段：da91
-     * 数据来源：DA91 列
      */
-    @Schema(description = "DA91")
+    @TableField("da91")
+    @Schema(description = "DA91 - 培训费用")
     private String da91;
 
     /**
      * DA92 - 培训证书
-     * 对应数据库字段：da92
-     * 数据来源：DA92 列
      */
-    @Schema(description = "DA92")
+    @TableField("da92")
+    @Schema(description = "DA92 - 培训证书")
     private String da92;
 
     /**
-     * DA93 - 奖惩日期
-     * 对应数据库字段：da93
-     * 数据来源：DA93 列
+     * DA93 - 入职方式（档案）
      */
-    @Schema(description = "DA93")
+    @TableField("da93")
+    @Schema(description = "DA93 - 入职方式（档案）")
     private String da93;
 
     /**
-     * DA94 - 奖惩类型
-     * 对应数据库字段：da94
-     * 数据来源：DA94 列
+     * DA94 - 入职日期（档案）
      */
-    @Schema(description = "DA94")
+    @TableField("da94")
+    @Schema(description = "DA94 - 入职日期（档案）")
     private String da94;
 
     /**
-     * DA95 - 奖惩原因
-     * 对应数据库字段：da95
-     * 数据来源：DA95 列
+     * DA95 - 入职来源
      */
-    @Schema(description = "DA95")
+    @TableField("da95")
+    @Schema(description = "DA95 - 入职来源")
     private String da95;
 
     /**
-     * DA96 - 奖惩内容
-     * 对应数据库字段：da96
-     * 数据来源：DA96 列
+     * DA96 - 工号（档案）
      */
-    @Schema(description = "DA96")
+    @TableField("da96")
+    @Schema(description = "DA96 - 工号（档案）")
     private String da96;
 
     /**
-     * DA97 - 奖惩金额
-     * 对应数据库字段：da97
-     * 数据来源：DA97 列
+     * DA97 - 部门代码
      */
-    @Schema(description = "DA97")
+    @TableField("da97")
+    @Schema(description = "DA97 - 部门代码")
     private String da97;
 
     /**
-     * DA98 - 备注
-     * 对应数据库字段：da98
-     * 数据来源：DA98 列
+     * DA98 - 状态标识
      */
-    @Schema(description = "DA98")
+    @TableField("da98")
+    @Schema(description = "DA98 - 状态标识")
     private String da98;
+
+    // ==================== 非 DA 字段 ====================
 
     /**
      * NF - 年份
-     * 对应数据库字段：nf
-     * 数据来源：NF 列
      */
+    @TableField("nf")
     @Schema(description = "NF - 年份")
     private String nf;
 
     /**
      * YF - 月份
-     * 对应数据库字段：yf
-     * 数据来源：YF 列
      */
+    @TableField("yf")
     @Schema(description = "YF - 月份")
     private String yf;
 
     /**
      * C_TYPE - 类型
-     * 对应数据库字段：c_type
-     * 数据来源：C_TYPE 列
      */
+    @TableField("c_type")
     @Schema(description = "C_TYPE - 类型")
     private String cType;
 
     /**
      * C_BEGIN_DATE - 开始日期
-     * 对应数据库字段：c_begin_date
-     * 数据来源：C_BEGIN_DATE 列
      */
+    @TableField("c_begin_date")
     @Schema(description = "C_BEGIN_DATE - 开始日期")
-    private LocalDate cBeginDate;
+    private String cBeginDate;
 
     /**
      * C_END_DATE - 结束日期
-     * 对应数据库字段：c_end_date
-     * 数据来源：C_END_DATE 列
      */
+    @TableField("c_end_date")
     @Schema(description = "C_END_DATE - 结束日期")
-    private LocalDate cEndDate;
+    private String cEndDate;
 
     /**
      * C_TYPE_ONE - 类型一
-     * 对应数据库字段：c_type_one
-     * 数据来源：C_TYPE_ONE 列
      */
+    @TableField("c_type_one")
     @Schema(description = "C_TYPE_ONE - 类型一")
     private String cTypeOne;
 
     /**
      * C_TYPE_TWO - 类型二
-     * 对应数据库字段：c_type_two
-     * 数据来源：C_TYPE_TWO 列
      */
+    @TableField("c_type_two")
     @Schema(description = "C_TYPE_TWO - 类型二")
     private String cTypeTwo;
 
     /**
      * C_TYPE_THREE - 类型三
-     * 对应数据库字段：c_type_three
-     * 数据来源：C_TYPE_THREE 列
      */
+    @TableField("c_type_three")
     @Schema(description = "C_TYPE_THREE - 类型三")
     private String cTypeThree;
 
     /**
      * C_GRADE - 等级
-     * 对应数据库字段：c_grade
-     * 数据来源：C_GRADE 列
      */
+    @TableField("c_grade")
     @Schema(description = "C_GRADE - 等级")
     private String cGrade;
 
     /**
      * C_ZXGJ - 最高级别
-     * 对应数据库字段：c_zxgj
-     * 数据来源：C_ZXGJ 列
      */
+    @TableField("c_zxgj")
     @Schema(description = "C_ZXGJ - 最高级别")
     private String cZxgj;
 
     /**
      * TD_BEGIN_DATE - TD开始日期
-     * 对应数据库字段：td_begin_date
-     * 数据来源：TD_BEGIN_DATE 列
      */
+    @TableField("td_begin_date")
     @Schema(description = "TD_BEGIN_DATE - TD开始日期")
-    private LocalDate tdBeginDate;
+    private String tdBeginDate;
 
     /**
      * TD_END_DATE - TD结束日期
-     * 对应数据库字段：td_end_date
-     * 数据来源：TD_END_DATE 列
      */
+    @TableField("td_end_date")
     @Schema(description = "TD_END_DATE - TD结束日期")
-    private LocalDate tdEndDate;
+    private String tdEndDate;
 
     /**
      * DA2_1_IN - DA2_1输入
-     * 对应数据库字段：da2_1_in
-     * 数据来源：DA2_1_IN 列
-     *
-     * <p>注意：该字段数据库列名含有连续数字和下划线（da2_1_in），
-     * 默认驼峰转下划线规则无法正确映射，因此需要显式指定 @TableField。</p>
      */
     @TableField("da2_1_in")
-    @Schema(description = "DA2_1_IN")
+    @Schema(description = "DA2_1_IN - DA2_1输入")
     private String da21In;
 
     /**
      * DA2_IN - DA2输入
-     * 对应数据库字段：da2_in
-     * 数据来源：DA2_IN 列
-     *
-     * <p>注意：该字段数据库列名含有连续数字和下划线（da2_in），
-     * 为确保映射正确性，显式指定 @TableField。</p>
      */
     @TableField("da2_in")
-    @Schema(description = "DA2_IN")
+    @Schema(description = "DA2_IN - DA2输入")
     private String da2In;
 
     /**
      * A26 - A26字段
-     * 对应数据库字段：a26
-     * 数据来源：A26 列
      */
-    @Schema(description = "A26")
+    @TableField("a26")
+    @Schema(description = "A26 - A26字段")
     private String a26;
 
     /**
      * JOB_ONE - 工作一
-     * 对应数据库字段：job_one
-     * 数据来源：JOB_ONE 列
      */
+    @TableField("job_one")
     @Schema(description = "JOB_ONE - 工作一")
     private String jobOne;
 
     /**
      * JOB_TWO - 工作二
-     * 对应数据库字段：job_two
-     * 数据来源：JOB_TWO 列
      */
+    @TableField("job_two")
     @Schema(description = "JOB_TWO - 工作二")
     private String jobTwo;
 
     /**
      * JOB_THREE - 工作三
-     * 对应数据库字段：job_three
-     * 数据来源：JOB_THREE 列
      */
+    @TableField("job_three")
     @Schema(description = "JOB_THREE - 工作三")
     private String jobThree;
 }

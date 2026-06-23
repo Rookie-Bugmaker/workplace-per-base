@@ -19,7 +19,7 @@ import org.apache.ibatis.annotations.Mapper;
  * <p>所有查询操作均通过 ServiceImpl 使用 LambdaQueryWrapper 构建，
  * 不使用 XML 映射文件，符合项目规范。</p>
  *
- * @author AI Generated
+ * @author yukun
  * @since 2026-06-23
  */
 @Mapper

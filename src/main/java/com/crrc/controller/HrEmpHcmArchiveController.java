@@ -34,7 +34,7 @@ import java.util.List;
  *
  * <p>所有接口都进行异常处理和日志记录，返回友好的错误信息。</p>
  *
- * @author AI Generated
+ * @author yukun
  * @since 2026-06-23
  */
 @Slf4j
@@ -59,16 +59,16 @@ public class HrEmpHcmArchiveController {
      *
      * <p>支持的查询条件：
      * <ul>
-     *     <li>userCode - 档案号（模糊查询）</li>
-     *     <li>name - 姓名（模糊查询）</li>
-     *     <li>dept - 部门编码（精确查询）</li>
-     *     <li>gender - 性别（精确查询）</li>
-     *     <li>nation - 民族（精确查询）</li>
-     *     <li>nativePlace - 籍贯（模糊查询）</li>
-     *     <li>birthDate - 出生日期（精确查询）</li>
-     *     <li>workDate - 入职日期（精确查询）</li>
-     *     <li>political - 政治面貌（精确查询）</li>
-     *     <li>education - 学历（精确查询）</li>
+     *     <li>da1 - 档案号（模糊查询）</li>
+     *     <li>da3 - 姓名（模糊查询）</li>
+     *     <li>da2 - 所在部门（模糊查询）</li>
+     *     <li>da5 - 性别（精确查询）</li>
+     *     <li>da6 - 民族（精确查询）</li>
+     *     <li>da7 - 籍贯（模糊查询）</li>
+     *     <li>da4 - 出生日期（精确查询）</li>
+     *     <li>da24 - 参加工作时间（精确查询）</li>
+     *     <li>da52 - 政治面貌（精确查询）</li>
+     *     <li>da9 - 第一学历（精确查询）</li>
      * </ul>
      * </p>
      *
@@ -146,20 +146,20 @@ public class HrEmpHcmArchiveController {
     /**
      * 根据档案号精确查询
      *
-     * <p>通过档案号（DA2，对应 userCode 字段）精确查询单条员工历史档案数据。
+     * <p>通过档案号（DA1，对应 da1 字段）精确查询单条员工历史档案数据。
      * 如果档案号不存在，返回 404 状态码。</p>
      *
-     * @param userCode 员工档案号，必填参数
+     * @param da1 员工档案号，必填参数
      * @return 员工历史档案信息
      */
     @GetMapping("/get")
     @Operation(summary = "根据档案号查询员工历史档案")
     @AuditLog(value = "根据档案号查询员工历史档案", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
-    @Parameter(name = "userCode", description = "员工档案号", required = true, example = "28035")
-    public ResponseResult<HrEmpHcmArchive> getHrEmpHcmArchive(@RequestParam("userCode") String userCode) {
+    @Parameter(name = "da1", description = "员工档案号（DA1）", required = true, example = "28035")
+    public ResponseResult<HrEmpHcmArchive> getHrEmpHcmArchive(@RequestParam("da1") String da1) {
         try {
             // 调用服务层方法执行查询
-            HrEmpHcmArchive result = hrEmpHcmArchiveService.getByUserCode(userCode);
+            HrEmpHcmArchive result = hrEmpHcmArchiveService.getByDa1(da1);
 
             // 判断查询结果
             if (result == null) {

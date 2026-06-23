@@ -14,7 +14,7 @@ import java.util.List;
  *
  * <p>查询方法包括：
  * <ul>
- *     <li>getByUserCode - 根据档案号精确查询单条记录</li>
+ *     <li>getByDa1 - 根据档案号（DA1）精确查询单条记录</li>
  *     <li>queryByCondition - 根据条件查询列表（不分页）</li>
  *     <li>pageByCondition - 根据条件分页查询</li>
  * </ul>
@@ -22,7 +22,7 @@ import java.util.List;
  *
  * <p>所有查询方法都支持动态条件拼装，根据传入实体对象的非空字段自动构建查询条件。</p>
  *
- * @author AI Generated
+ * @author yukun
  * @since 2026-06-23
  */
 public interface HrEmpHcmArchiveService extends IService<HrEmpHcmArchive> {
@@ -30,13 +30,13 @@ public interface HrEmpHcmArchiveService extends IService<HrEmpHcmArchive> {
     /**
      * 根据档案号精确查询
      *
-     * <p>使用档案号（userCode，对应 DA2 字段）进行精确查询，
+     * <p>使用档案号（DA1 字段）进行精确查询，
      * 返回匹配的单条员工历史档案记录。</p>
      *
-     * @param userCode 员工档案号（DA2字段），不能为空
+     * @param da1 员工档案号（DA1字段），不能为空
      * @return 员工历史档案信息，如果不存在返回 null
      */
-    HrEmpHcmArchive getByUserCode(String userCode);
+    HrEmpHcmArchive getByDa1(String da1);
 
     /**
      * 条件查询（不分页）
@@ -44,16 +44,16 @@ public interface HrEmpHcmArchiveService extends IService<HrEmpHcmArchive> {
      * <p>根据传入的实体对象，自动拼装非空字段的查询条件，返回所有匹配的员工历史档案列表。
      * 支持的查询条件包括：
      * <ul>
-     *     <li>userCode - 档案号（模糊查询）</li>
-     *     <li>name - 姓名（模糊查询）</li>
-     *     <li>dept - 部门编码（精确查询）</li>
-     *     <li>gender - 性别（精确查询）</li>
-     *     <li>nation - 民族（精确查询）</li>
-     *     <li>nativePlace - 籍贯（模糊查询）</li>
-     *     <li>birthDate - 出生日期（精确查询）</li>
-     *     <li>workDate - 入职日期（精确查询）</li>
-     *     <li>political - 政治面貌（精确查询）</li>
-     *     <li>education - 学历（精确查询）</li>
+     *     <li>da1 - 档案号（模糊查询）</li>
+     *     <li>da3 - 姓名（模糊查询）</li>
+     *     <li>da2 - 所在部门（模糊查询）</li>
+     *     <li>da5 - 性别（精确查询）</li>
+     *     <li>da6 - 民族（精确查询）</li>
+     *     <li>da7 - 籍贯（模糊查询）</li>
+     *     <li>da4 - 出生日期（精确查询）</li>
+     *     <li>da24 - 参加工作时间（精确查询）</li>
+     *     <li>da52 - 政治面貌（精确查询）</li>
+     *     <li>da9 - 第一学历（精确查询）</li>
      * </ul>
      * </p>
      *

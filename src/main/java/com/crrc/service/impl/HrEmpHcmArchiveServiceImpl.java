@@ -20,7 +20,7 @@ import java.util.List;
  *
  * <p>主要功能包括：
  * <ul>
- *     <li>根据档案号精确查询</li>
+ *     <li>根据档案号（DA1）精确查询</li>
  *     <li>根据条件动态查询（不分页）</li>
  *     <li>根据条件动态分页查询</li>
  * </ul>
@@ -28,7 +28,7 @@ import java.util.List;
  *
  * <p>所有查询方法都进行参数校验，避免无效查询。参数为空时返回空列表或 null，避免异常。</p>
  *
- * @author AI Generated
+ * @author yukun
  * @since 2026-06-23
  */
 @Service
@@ -40,16 +40,16 @@ public class HrEmpHcmArchiveServiceImpl
     /**
      * 根据档案号精确查询
      *
-     * <p>使用 LambdaQueryWrapper 构建等值查询条件，通过档案号（userCode）精确匹配查询单条记录。
+     * <p>使用 LambdaQueryWrapper 构建等值查询条件，通过档案号（da1）精确匹配查询单条记录。
      * 如果档案号为空，记录警告日志并返回 null。</p>
      *
-     * @param userCode 员工档案号（DA2字段），不能为空
+     * @param da1 员工档案号（DA1字段），不能为空
      * @return 员工历史档案信息，如果不存在返回 null
      */
     @Override
-    public HrEmpHcmArchive getByUserCode(String userCode) {
+    public HrEmpHcmArchive getByDa1(String da1) {
         // 参数校验：档案号不能为空，避免无效查询
-        if (StringUtils.isBlank(userCode)) {
+        if (StringUtils.isBlank(da1)) {
             log.warn("档案号为空，无法查询");
             return null;
         }
@@ -57,9 +57,9 @@ public class HrEmpHcmArchiveServiceImpl
         // 构建 LambdaQueryWrapper 查询条件
         LambdaQueryWrapper<HrEmpHcmArchive> wrapper = new LambdaQueryWrapper<>();
 
-        // 使用等值查询匹配档案号（DA2字段对应 userCode）
-        // 等价于 SQL: WHERE user_code = #{userCode}
-        wrapper.eq(HrEmpHcmArchive::getUserCode, userCode);
+        // 使用等值查询匹配档案号（DA1字段对应 da1）
+        // 等价于 SQL: WHERE da1 = #{da1}
+        wrapper.eq(HrEmpHcmArchive::getDa1, da1);
 
         // 执行查询并返回结果
         // selectOne 会在查询到多条记录时抛出异常，确保数据唯一性
@@ -118,16 +118,16 @@ public class HrEmpHcmArchiveServiceImpl
      * <p>根据实体类中非空字段动态拼装 LambdaQueryWrapper 查询条件。
      * 支持的查询条件包括：
      * <ul>
-     *     <li>userCode - 档案号（模糊查询）</li>
-     *     <li>name - 姓名（模糊查询）</li>
-     *     <li>dept - 部门编码（精确查询）</li>
-     *     <li>gender - 性别（精确查询）</li>
-     *     <li>nation - 民族（精确查询）</li>
-     *     <li>nativePlace - 籍贯（模糊查询）</li>
-     *     <li>birthDate - 出生日期（精确查询）</li>
-     *     <li>workDate - 入职日期（精确查询）</li>
-     *     <li>political - 政治面貌（精确查询）</li>
-     *     <li>education - 学历（精确查询）</li>
+     *     <li>da1 - 档案号（模糊查询）</li>
+     *     <li>da3 - 姓名（模糊查询）</li>
+     *     <li>da2 - 所在部门（模糊查询）</li>
+     *     <li>da5 - 性别（精确查询）</li>
+     *     <li>da6 - 民族（精确查询）</li>
+     *     <li>da7 - 籍贯（模糊查询）</li>
+     *     <li>da4 - 出生日期（精确查询）</li>
+     *     <li>da24 - 参加工作时间（精确查询）</li>
+     *     <li>da52 - 政治面貌（精确查询）</li>
+     *     <li>da9 - 第一学历（精确查询）</li>
      * </ul>
      * </p>
      *
@@ -140,57 +140,55 @@ public class HrEmpHcmArchiveServiceImpl
         // 创建空的 LambdaQueryWrapper
         LambdaQueryWrapper<HrEmpHcmArchive> wrapper = new LambdaQueryWrapper<>();
 
-        // 条件1：如果档案号（DA2）不为空，添加档案号模糊查询条件
-        // 使用 like 方法进行模糊匹配，相当于 SQL 的 LIKE '%关键字%'
-        if (StringUtils.isNotBlank(queryEntity.getUserCode())) {
-            wrapper.like(HrEmpHcmArchive::getUserCode, queryEntity.getUserCode());
+        // 条件1：如果档案号（DA1）不为空，添加档案号模糊查询条件
+        if (StringUtils.isNotBlank(queryEntity.getDa1())) {
+            wrapper.like(HrEmpHcmArchive::getDa1, queryEntity.getDa1());
         }
 
-        // 条件2：如果姓名（DA4）不为空，添加姓名模糊查询条件
+        // 条件2：如果姓名（DA3）不为空，添加姓名模糊查询条件
         // 支持中文姓名的模糊匹配
-        if (StringUtils.isNotBlank(queryEntity.getName())) {
-            wrapper.like(HrEmpHcmArchive::getName, queryEntity.getName());
+        if (StringUtils.isNotBlank(queryEntity.getDa3())) {
+            wrapper.like(HrEmpHcmArchive::getDa3, queryEntity.getDa3());
         }
 
-        // 条件3：如果部门编码（DA3）不为空，添加部门精确查询条件
-        // 使用 eq 方法进行精确匹配
-        if (StringUtils.isNotBlank(queryEntity.getDept())) {
-            wrapper.eq(HrEmpHcmArchive::getDept, queryEntity.getDept());
+        // 条件3：如果所在部门（DA2）不为空，添加部门模糊查询条件
+        if (StringUtils.isNotBlank(queryEntity.getDa2())) {
+            wrapper.like(HrEmpHcmArchive::getDa2, queryEntity.getDa2());
         }
 
-        // 条件4：如果性别（DA6）不为空，添加性别精确查询条件
-        if (StringUtils.isNotBlank(queryEntity.getGender())) {
-            wrapper.eq(HrEmpHcmArchive::getGender, queryEntity.getGender());
+        // 条件4：如果性别（DA5）不为空，添加性别精确查询条件
+        if (StringUtils.isNotBlank(queryEntity.getDa5())) {
+            wrapper.eq(HrEmpHcmArchive::getDa5, queryEntity.getDa5());
         }
 
-        // 条件5：如果民族（DA7）不为空，添加民族精确查询条件
-        if (StringUtils.isNotBlank(queryEntity.getNation())) {
-            wrapper.eq(HrEmpHcmArchive::getNation, queryEntity.getNation());
+        // 条件5：如果民族（DA6）不为空，添加民族精确查询条件
+        if (StringUtils.isNotBlank(queryEntity.getDa6())) {
+            wrapper.eq(HrEmpHcmArchive::getDa6, queryEntity.getDa6());
         }
 
-        // 条件6：如果籍贯（DA8）不为空，添加籍贯模糊查询条件
-        if (StringUtils.isNotBlank(queryEntity.getNativePlace())) {
-            wrapper.like(HrEmpHcmArchive::getNativePlace, queryEntity.getNativePlace());
+        // 条件6：如果籍贯（DA7）不为空，添加籍贯模糊查询条件
+        if (StringUtils.isNotBlank(queryEntity.getDa7())) {
+            wrapper.like(HrEmpHcmArchive::getDa7, queryEntity.getDa7());
         }
 
-        // 条件7：如果出生日期（DA5）不为空，添加出生日期精确查询条件
-        if (queryEntity.getBirthDate() != null) {
-            wrapper.eq(HrEmpHcmArchive::getBirthDate, queryEntity.getBirthDate());
+        // 条件7：如果出生日期（DA4）不为空，添加出生日期精确查询条件
+        if (StringUtils.isNotBlank(queryEntity.getDa4())) {
+            wrapper.eq(HrEmpHcmArchive::getDa4, queryEntity.getDa4());
         }
 
-        // 条件8：如果入职日期（DA16）不为空，添加入职日期精确查询条件
-        if (queryEntity.getWorkDate() != null) {
-            wrapper.eq(HrEmpHcmArchive::getWorkDate, queryEntity.getWorkDate());
+        // 条件8：如果参加工作时间（DA24）不为空，添加参加工作时间精确查询条件
+        if (StringUtils.isNotBlank(queryEntity.getDa24())) {
+            wrapper.eq(HrEmpHcmArchive::getDa24, queryEntity.getDa24());
         }
 
-        // 条件9：如果政治面貌（DA28）不为空，添加政治面貌精确查询条件
-        if (StringUtils.isNotBlank(queryEntity.getPolitical())) {
-            wrapper.eq(HrEmpHcmArchive::getPolitical, queryEntity.getPolitical());
+        // 条件9：如果政治面貌（DA52）不为空，添加政治面貌精确查询条件
+        if (StringUtils.isNotBlank(queryEntity.getDa52())) {
+            wrapper.eq(HrEmpHcmArchive::getDa52, queryEntity.getDa52());
         }
 
-        // 条件10：如果学历（DA22）不为空，添加学历精确查询条件
-        if (StringUtils.isNotBlank(queryEntity.getEducation())) {
-            wrapper.eq(HrEmpHcmArchive::getEducation, queryEntity.getEducation());
+        // 条件10：如果第一学历（DA9）不为空，添加第一学历精确查询条件
+        if (StringUtils.isNotBlank(queryEntity.getDa9())) {
+            wrapper.eq(HrEmpHcmArchive::getDa9, queryEntity.getDa9());
         }
 
         // 可以继续添加更多字段的查询条件...
