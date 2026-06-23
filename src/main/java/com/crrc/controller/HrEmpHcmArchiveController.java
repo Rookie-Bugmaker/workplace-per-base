@@ -1,5 +1,8 @@
 package com.crrc.controller;
 
+import com.alibaba.excel.EasyExcelFactory;
+import com.alibaba.excel.support.ExcelTypeEnum;
+import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
@@ -18,6 +21,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
 import java.util.List;
 
 /**
@@ -175,5 +182,32 @@ public class HrEmpHcmArchiveController {
             // 返回错误信息
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "查询异常: " + e.getMessage());
         }
+    }
+
+    @PostMapping("/export")
+    @AuditLog(value = "导出报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
+    @Operation(summary = "导出报表")
+    public void exportHrEmpHcmArchive(@Validated @RequestBody(required = false) HrEmpHcmArchive exportReqVO,
+                                 @RequestParam(required = false, defaultValue = "xlsx") String type,
+                                 HttpServletResponse response) throws IOException {
+        String contentType = "csv".equals(type) ?  "text/csv;charset=UTF-8" :
+                ("xls".equals(type) ? "application/vnd.ms-excel" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setContentType(contentType);
+        response.setCharacterEncoding("utf-8");
+        // 这里URLEncoder.encode可以防止中文乱码
+        String fileName = URLEncoder.encode("报表-" + new SimpleDateFormat("yyyyMMddhhmmss")
+                        .format(System.currentTimeMillis()), "UTF-8")
+                .replace("+", "%20");
+        response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." +type);
+
+        exportReqVO = (exportReqVO == null) ? new HrEmpHcmArchive() : exportReqVO;
+        List<HrEmpHcmArchive> archiveList = hrEmpHcmArchiveService.queryByCondition(exportReqVO);
+        ExcelTypeEnum typeEnum = "csv".equals(type) ?  ExcelTypeEnum.CSV : ("xls".equals(type) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
+        EasyExcelFactory.write(response.getOutputStream(), HrEmpHcmArchive.class)
+                .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
+                .autoCloseStream(true)
+                .excelType(typeEnum)
+                .sheet("报表")
+                .doWrite(archiveList);
     }
 }
