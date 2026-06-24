@@ -40,6 +40,17 @@ public final class PositionManagementConstants {
     /** 职务族停用。 */
     public static final String CATALOG_STATUS_DISABLED = "DISABLED";
 
+
+
+    /** 职类层级。 */
+    public static final String CATALOG_NODE_LEVEL_CATEGORY = "1";
+
+    /** 职群层级。 */
+    public static final String CATALOG_NODE_LEVEL_GROUP = "2";
+
+    /** 职种层级。 */
+    public static final String CATALOG_NODE_LEVEL_TYPE = "3";
+
     /** 职类。 */
     public static final String CATALOG_CATEGORY_JOB_CATEGORY = "JOB_CATEGORY";
 

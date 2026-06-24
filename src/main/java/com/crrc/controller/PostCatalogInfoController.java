@@ -9,8 +9,9 @@ import com.crrc.annotation.AuditLog;
 import com.crrc.entity.PostCatalogInfo;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
-import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.vo.PostCatalogInfoImportResultVO;
+import com.crrc.pojo.vo.PostCatalogInfoImportVO;
 import com.crrc.pojo.vo.PostCatalogInfoTreeVO;
 import com.crrc.service.impl.PostCatalogInfoServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,6 +29,7 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -86,7 +88,7 @@ public class PostCatalogInfoController {
     @AuditLog(value = "创建实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
     @Parameter(name = "createReqVO", description = "需要创建的实体对象", required = true)
     public ResponseResult<Boolean> createPostCatalogInfo(@Valid @RequestBody PostCatalogInfo createReqVO) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "创建实体成功", postCatalogInfoService.save(createReqVO));
+        return new ResponseResult<>(HttpStatus.OK.value(), "创建实体成功", postCatalogInfoService.saveWithValidation(createReqVO));
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -95,7 +97,7 @@ public class PostCatalogInfoController {
     @AuditLog(value = "更新实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
     public ResponseResult<Boolean> updatePostCatalogInfo(@Valid @RequestBody PostCatalogInfo updateReqVO) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "更新实体成功", postCatalogInfoService.saveOrUpdate(updateReqVO));
+        return new ResponseResult<>(HttpStatus.OK.value(), "更新实体成功", postCatalogInfoService.updateWithValidation(updateReqVO));
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -104,7 +106,25 @@ public class PostCatalogInfoController {
     @AuditLog(value = "删除实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_DELETE)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<Boolean> deletePostCatalogInfo(@RequestParam("id") Long id) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "删除实体成功", postCatalogInfoService.removeById(id));
+        return new ResponseResult<>(HttpStatus.OK.value(), "删除/停用实体成功", postCatalogInfoService.removeOrDisableById(id));
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @GetMapping("/disable")
+    @Operation(summary = "停用实体")
+    @AuditLog(value = "停用实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
+    @Parameter(name = "id", description = "主键编号", required = true, example = "1")
+    public ResponseResult<Boolean> disablePostCatalogInfo(@RequestParam("id") Long id) {
+        return new ResponseResult<>(HttpStatus.OK.value(), "停用实体成功", postCatalogInfoService.disableById(id));
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @GetMapping("/enable")
+    @Operation(summary = "启用实体")
+    @AuditLog(value = "启用实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
+    @Parameter(name = "id", description = "主键编号", required = true, example = "1")
+    public ResponseResult<Boolean> enablePostCatalogInfo(@RequestParam("id") Long id) {
+        return new ResponseResult<>(HttpStatus.OK.value(), "启用实体成功", postCatalogInfoService.enableById(id));
     }
 
     @PostMapping("/export")
@@ -117,8 +137,7 @@ public class PostCatalogInfoController {
                 ("xls".equals(type) ? "application/vnd.ms-excel" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setContentType(contentType);
         response.setCharacterEncoding("utf-8");
-        // 这里URLEncoder.encode可以防止中文乱码
-        String fileName = URLEncoder.encode("报表-" + new SimpleDateFormat("yyyyMMddhhmmss")
+        String fileName = URLEncoder.encode("树形职务族报表-" + new SimpleDateFormat("yyyyMMddhhmmss")
                         .format(System.currentTimeMillis()), "UTF-8")
                 .replaceAll("\\+", "%20");
         response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." +type);
@@ -130,19 +149,38 @@ public class PostCatalogInfoController {
                 .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
                 .autoCloseStream(true)
                 .excelType(typeEnum)
-                .sheet("报表")
+                .sheet("树形职务族报表")
                 .doWrite(postCatalogInfoList);
+    }
+
+    @PostMapping("/exportTemplate")
+    @AuditLog(value = "导出树形职务族导入模板", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
+    @Operation(summary = "导出树形职务族导入模板")
+    public void exportTemplate(HttpServletResponse response) throws IOException {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding("utf-8");
+        String fileName = URLEncoder.encode("树形职务族导入模板", "UTF-8").replaceAll("\\+", "%20");
+        response.setHeader("Content-disposition", "attachment;filename=" + fileName + ".xlsx");
+        EasyExcel.write(response.getOutputStream(), PostCatalogInfoImportVO.class)
+                .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
+                .autoCloseStream(true)
+                .excelType(ExcelTypeEnum.XLSX)
+                .sheet("ccar_job_family_tree")
+                .doWrite(Collections.emptyList());
     }
 
     @PostMapping("/import")
     @AuditLog(value = "导入报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
     @Operation(summary = "导入报表")
-    public ResponseResult<Boolean> imports(MultipartFile file) throws IOException {
-        EasyExcel.read(file.getInputStream(), PostCatalogInfo.class,
-                        new ImportExcelListener<PostCatalogInfo, PostCatalogInfoServiceImpl>(postCatalogInfoService))
-                .headRowNumber(1)
-                .sheet()
-                .doRead();
-        return new ResponseResult<>(HttpStatus.OK.value(), "导入报表成功");
+    public ResponseResult<Boolean> imports(MultipartFile file) throws Exception {
+        postCatalogInfoService.importFull(file);
+        return new ResponseResult<>(HttpStatus.OK.value(), "导入报表成功", true);
+    }
+
+    @PostMapping("/importFull")
+    @AuditLog(value = "完整导入树形职务族", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
+    @Operation(summary = "完整导入树形职务族")
+    public ResponseResult<PostCatalogInfoImportResultVO> importFull(MultipartFile file) throws Exception {
+        return new ResponseResult<>(HttpStatus.OK.value(), "完整导入树形职务族成功", postCatalogInfoService.importFull(file));
     }
 }
