@@ -8,6 +8,7 @@ import com.crrc.mapper.HrEmpAppointmentMapper;
 import com.crrc.pojo.vo.ImportResult;
 import com.crrc.service.HrEmpAppointmentService;
 import com.crrc.utils.DeptUtils;
+import com.crrc.utils.MessageUtils;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +34,8 @@ public class HrEmpAppointmentServiceImpl extends WorkServiceImpl<HrEmpAppointmen
     private HrEmpAppointmentMapper hrEmpAppointmentMapper;
     @Autowired
     private CodeInfoServiceImpl codeInfoService;
+    @Autowired
+    private MessageUtils messageUtils;
 
     public List<HrEmpAppointment> selectMsg(String userCode){
         MPJLambdaWrapper<HrEmpAppointment> wrapper = new MPJLambdaWrapper<HrEmpAppointment>()
@@ -87,6 +90,7 @@ public class HrEmpAppointmentServiceImpl extends WorkServiceImpl<HrEmpAppointmen
 
         int successCount = 0;
 
+
         for (int i = 0; i < rows.size(); i++) {
             HrEmpAppointment row = rows.get(i);
 
@@ -117,9 +121,7 @@ public class HrEmpAppointmentServiceImpl extends WorkServiceImpl<HrEmpAppointmen
                     Wrappers.<HrEmpAppointment>lambdaQuery()
                             .eq(HrEmpAppointment::getUserCode, userCode)
                             .in(HrEmpAppointment::getChangeType, LEAVE_CHANGE_TYPES)
-                            .orderByDesc(HrEmpAppointment::getStartDate)
-                            .orderByDesc(HrEmpAppointment::getEndDate)
-                            .last("limit 2")
+                            .last("order by start_date desc nulls last, end_date desc limit 1")
             );
 
             if (existList == null || existList.isEmpty()) {
@@ -131,14 +133,14 @@ public class HrEmpAppointmentServiceImpl extends WorkServiceImpl<HrEmpAppointmen
                 continue;
             }
 
-            if (existList.size() > 1) {
-                errors.add(new ImportResult.RowError(
-                        excelRowIndex,
-                        userCode,
-                        "找到多条离职/退休/死亡任职记录，请先清洗数据后再导入"
-                ));
-                continue;
-            }
+//            if (existList.size() > 1) {
+//                errors.add(new ImportResult.RowError(
+//                        excelRowIndex,
+//                        userCode,
+//                        "找到多条离职/退休/死亡任职记录，请先清洗数据后再导入"
+//                ));
+//                continue;
+//            }
 
             HrEmpAppointment target = existList.get(0);
 
@@ -167,7 +169,8 @@ public class HrEmpAppointmentServiceImpl extends WorkServiceImpl<HrEmpAppointmen
                     .map(e -> "第 " + e.getRowIndex() + " 行，员工：" + e.getUserCode() + "，原因：" + e.getMessage())
                     .collect(Collectors.joining("；"));
 
-            throw new IllegalArgumentException("导入失败，已回滚。错误示例：" + errorMessage);
+            messageUtils.pushPlainMsg(Arrays.asList("013200031524", "013200031192"), errorMessage);
+//            throw new IllegalArgumentException("导入失败，已回滚。错误示例：" + errorMessage);
         }
 
         return result;
