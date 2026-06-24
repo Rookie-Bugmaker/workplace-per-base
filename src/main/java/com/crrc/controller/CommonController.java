@@ -10,6 +10,7 @@ import com.crrc.api.WkDataAPi;
 import com.crrc.client.SysServerClient;
 import com.crrc.common.ResultData;
 import com.crrc.entity.CodeInfo;
+import com.crrc.entity.LoginUser;
 import com.crrc.entity.dto.DeptDTO;
 import com.crrc.entity.dto.ResponseResultDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
@@ -19,16 +20,22 @@ import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.DeptReqDTO;
+import com.crrc.pojo.dto.HrEmpBasicDTO;
 import com.crrc.pojo.dto.QueryDTO;
 import com.crrc.pojo.dto.HrEmpBatchExportRequest;
 import com.crrc.pojo.vo.ExportTaskStatusVO;
 import com.crrc.pojo.vo.ExportTaskSubmitVO;
 import com.crrc.service.HrEmpExportAsyncService;
 import com.crrc.service.HrEmpExportTaskService;
+import com.crrc.service.impl.CodeInfoServiceImpl;
+import com.crrc.service.impl.HrEmpBasicServiceImpl;
 import com.crrc.utils.RoleUtils;
+import com.crrc.utils.SecurityFrameworkUtils;
 import com.crrc.utils.TreeUtils;
+import com.crrc.utils.UserUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
@@ -60,6 +67,10 @@ public class CommonController {
     private HrEmpExportTaskService hrEmpExportTaskService;
     @Autowired
     private HrEmpExportAsyncService hrEmpExportAsyncService;
+    @Autowired
+    private HrEmpBasicServiceImpl hrEmpBasicService;
+    @Autowired
+    private CodeInfoServiceImpl codeInfoService;
 
 //    private final static int IV_LEN = 12;
 //    private final static int TAG_LEN_BIT = 128;
@@ -165,11 +176,116 @@ public class CommonController {
         }
     }
 
+    private String getCurrentUserOrgCode() {
+        // 根据员工获取部门编码
+        LoginUser loginUser = SecurityFrameworkUtils.getLoginUser();
+        if (loginUser == null) {
+            throw new IllegalArgumentException("获取员工登录信息失败");
+        }
+        if (loginUser.getUser() == null || StringUtils.isBlank(loginUser.getUser().getJobNo())) {
+            throw new IllegalArgumentException("获取员工工号失败");
+        }
+        String jobNo = loginUser.getUser().getJobNo();
+        // 如果没有配置，则从basic里查询出员工的部门
+        List<HrEmpBasicDTO> dtoList = hrEmpBasicService.selectMsg(jobNo);
+        if (org.apache.commons.lang3.ObjectUtils.isEmpty(dtoList)) {
+            throw new IllegalArgumentException("获取员工信息失败，员工不存在，userCode:" + jobNo);
+        }
+        return dtoList.get(0).getDept();
+    }
+
+    /**
+     * 根据树型组织数据列表（公司列表），判断公司是否包含orgCode，并返回该公司展平后的列表
+     * @param data 树型组织数据列表
+     * @param orgCode 需要判断的orgCode
+     * @return 包含orgCode的公司展平后的列表
+     */
+    private List<OrganizationTreeDTO> findParentAndFlattenList(List<OrganizationTreeDTO> data, String orgCode) {
+        for(OrganizationTreeDTO root : data) {
+            if (TreeUtils.containsBfs(root, n -> StringUtils.equals(orgCode, n.getOrgCode()), OrganizationTreeDTO::getChildren)) {
+                return TreeUtils.flattenDescendants(root, OrganizationTreeDTO::getChildren, true);
+            }
+        }
+        return Collections.emptyList();
+    }
+
     @PostMapping("/export/hrEmp/batch")
     @AuditLog(value = "人员信息集批量导出", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
     @Operation(summary = "人员信息集批量导出")
     public ResponseResult<ExportTaskSubmitVO> batchExportHrEmpInfo(@RequestBody HrEmpBatchExportRequest request) {
         try {
+            // 如果是人事员，那么进行判断，看看人事员是否在配置的CodeInfo表里
+            if(RoleUtils.checkAnyMatch("hrsc_dept_emp_info_mgr") && RoleUtils.checkNoneMatch("hrsc_emp_inc_info_mgr")) {
+
+
+                String orgCode = getCurrentUserOrgCode();
+
+                // 查找字典数据
+                // 这里code是deptCode，codeValue是userCode，orgCode和deptCode完全一致，都指部门编码，如流程与数字化部 01320103
+                List<CodeInfo> items = codeInfoService.getCodeInfoList("hr_emp_basic", "info_manager");
+
+                // 查找当前人员是否是特殊配置的信息管理人
+                String currentUserCode = SecurityFrameworkUtils.getLoginUser().getUser().getJobNo();
+                Set<String> managerOrgCodes = items.stream().filter(e -> e.getCodeValue().equals(currentUserCode)).map(CodeInfo::getCode).collect(Collectors.toSet());
+
+                List<OrganizationTreeDTO> childrenOrgList = new ArrayList<>();
+                ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
+                List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+
+                // 如果是字典中特殊配置的信息管理人，说明该人员管理的非本部门信息，同时，有可能管理多个部门的信息，那么后面就不需要判断了
+                if(!managerOrgCodes.isEmpty()) {
+                    for (String manageOrgCode : managerOrgCodes) {
+                        // 后面只用到了childrenOrgList中每一项的orgCode字段
+                        for (OrganizationTreeDTO root : data) {
+                            Optional<OrganizationTreeDTO> nodeBfs = TreeUtils.findNodeBfs(root, n -> manageOrgCode.equals(n.getOrgCode()), OrganizationTreeDTO::getChildren);
+                            // 根据orgCode匹配其下级部门，并获得其展平后的List（包含所有部门Code）
+                            nodeBfs.ifPresent(organizationTreeDTO -> childrenOrgList.addAll(TreeUtils.flattenDescendants(organizationTreeDTO, OrganizationTreeDTO::getChildren, true)));
+                        }
+                    }
+                } else {
+                    // 如果字典里没有配置，说明是正常情况，该人员管理自己部门的信息
+                    // 获得当前人员的orgCode，并获得其可查询的Tree结构
+                    // 获取所有的组织数据
+                    if (org.apache.commons.lang3.ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+                        throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
+                    }
+
+                    // 如果是子公司级别管理员
+                    if(RoleUtils.checkAnyMatch("hrsc_sub_emp_info_mgr")) {
+                        // 根据orgCode匹配公司及其下级部门能否有匹配项，如果包含，则获得其展平后的List（包含所有部门Code）
+                        childrenOrgList.addAll(findParentAndFlattenList(data, orgCode));
+                        if (childrenOrgList.isEmpty()) {
+                            throw new IllegalArgumentException("获取公司失败，公司匹配错误，orgCode:" + orgCode);
+                        }
+                    }
+
+                    // 如果是部门级别管理员
+                    if(RoleUtils.checkAnyMatch("hrsc_dept_emp_info_mgr")) {
+                        Optional<OrganizationTreeDTO> nodeBfs = Optional.empty();
+                        for (OrganizationTreeDTO root : data) {
+                            nodeBfs = TreeUtils.findNodeBfs(root, n -> orgCode.equals(n.getOrgCode()), OrganizationTreeDTO::getChildren);
+                            if (nodeBfs.isPresent()) {
+                                break;
+                            }
+                        }
+
+                        // 根据orgCode匹配其下级部门，并获得其展平后的List（包含所有部门Code）
+                        childrenOrgList.addAll(TreeUtils.flattenDescendants(nodeBfs.get(), OrganizationTreeDTO::getChildren, true));
+                    }
+
+                    if (childrenOrgList.isEmpty()) {
+                        throw new IllegalArgumentException("获取公司失败，公司匹配错误，orgCode:" + orgCode);
+                    }
+                }
+
+                request.setRequireDept(childrenOrgList.stream()
+                        .map(OrganizationTreeDTO::getOrgCode)
+                        .collect(Collectors.toSet()));
+
+                // 添加框架中不存在的部门
+                request.getRequireDept().addAll(managerOrgCodes);
+            }
+
             // 1. 将请求参数序列化为JSON
             String requestParamJson = objectMapper.writeValueAsString(request);
 

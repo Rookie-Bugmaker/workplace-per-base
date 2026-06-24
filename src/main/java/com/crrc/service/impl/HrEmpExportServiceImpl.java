@@ -23,10 +23,12 @@ import com.crrc.service.HrEmpExportService;
 import com.crrc.service.impl.translation.HrEmpExportTranslatorRegistry;
 import com.crrc.utils.DeptUtils;
 import com.crrc.utils.HrEmpExportMergeStrategy;
+import com.crrc.utils.RoleUtils;
 import com.crrc.utils.SystemConstants;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -303,6 +305,7 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
      */
     private List<HrEmpBasicExportVO> queryBasicList(HrEmpBatchExportRequest request) {
         MPJLambdaWrapper<HrEmpBasic> wrapper = new MPJLambdaWrapper<>();
+
         wrapper.selectAll(HrEmpBasic.class);
         wrapper.like(StringUtils.isNotBlank(request.getName()), HrEmpBasic::getName, nvl(request.getName()).trim());
         wrapper.like(StringUtils.isNotBlank(request.getUserCode()), HrEmpBasic::getUserCode, nvl(request.getUserCode()).trim());
@@ -323,6 +326,10 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
                     .collect(Collectors.toSet());
 
             wrapper.in(HrEmpBasic::getDept, deptCodes);
+        }
+
+        if (ObjectUtils.isNotEmpty(request.getRequireDept())) {
+            wrapper.in(HrEmpBasic::getDept, request.getRequireDept());
         }
 
         List<HrEmpBasic> basicList = hrEmpBasicMapper.selectList(wrapper);
