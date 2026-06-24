@@ -117,8 +117,6 @@ public class HrEmpAppointmentServiceImpl extends WorkServiceImpl<HrEmpAppointmen
                     Wrappers.<HrEmpAppointment>lambdaQuery()
                             .eq(HrEmpAppointment::getUserCode, userCode)
                             .in(HrEmpAppointment::getChangeType, LEAVE_CHANGE_TYPES)
-                            .orderByDesc(HrEmpAppointment::getStartDate)
-                            .orderByDesc(HrEmpAppointment::getEndDate)
                             .last("order by start_date desc nulls last, end_date desc nulls last limit 1")
             );
 
