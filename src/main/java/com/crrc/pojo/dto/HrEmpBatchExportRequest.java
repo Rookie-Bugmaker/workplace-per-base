@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * 人员信息集批量导出请求DTO
@@ -29,4 +30,7 @@ public class HrEmpBatchExportRequest {
 
     @Schema(description = "要导出的信息集类型列表，为空时默认导出全部")
     private List<String> exportTypes;
+
+    @Schema(description = "导出部门")
+    private Set<String> requireDept;
 }
