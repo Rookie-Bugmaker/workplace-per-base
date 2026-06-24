@@ -10,6 +10,9 @@ public final class PositionManagementConstants {
     /** 职位说明书审批流程 key。 */
     public static final String POSITION_DESCRIPTION_APPROVAL_PROCESS_KEY = "position_description_approval";
 
+    /** 无职位说明书。 */
+    public static final String DESC_STATUS_NONE = "NONE";
+
     /** 说明书草稿。 */
     public static final String DESC_STATUS_DRAFT = "DRAFT";
 
@@ -36,6 +39,17 @@ public final class PositionManagementConstants {
 
     /** 职务族停用。 */
     public static final String CATALOG_STATUS_DISABLED = "DISABLED";
+
+
+
+    /** 职类层级。 */
+    public static final String CATALOG_NODE_LEVEL_CATEGORY = "1";
+
+    /** 职群层级。 */
+    public static final String CATALOG_NODE_LEVEL_GROUP = "2";
+
+    /** 职种层级。 */
+    public static final String CATALOG_NODE_LEVEL_TYPE = "3";
 
     /** 职类。 */
     public static final String CATALOG_CATEGORY_JOB_CATEGORY = "JOB_CATEGORY";
