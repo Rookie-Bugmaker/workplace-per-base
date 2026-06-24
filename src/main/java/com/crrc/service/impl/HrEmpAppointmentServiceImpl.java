@@ -87,6 +87,7 @@ public class HrEmpAppointmentServiceImpl extends WorkServiceImpl<HrEmpAppointmen
 
         int successCount = 0;
 
+
         for (int i = 0; i < rows.size(); i++) {
             HrEmpAppointment row = rows.get(i);
 
