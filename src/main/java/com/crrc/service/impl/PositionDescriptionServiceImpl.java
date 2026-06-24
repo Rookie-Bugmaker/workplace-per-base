@@ -33,9 +33,11 @@ import com.crrc.pojo.vo.PositionDescriptionCoordinationExportVO;
 import com.crrc.pojo.vo.PositionDescriptionDetailVO;
 import com.crrc.pojo.vo.PositionDescriptionExportBundleVO;
 import com.crrc.pojo.vo.PositionDescriptionMainExportVO;
+import com.crrc.pojo.vo.PositionDescriptionTodoVO;
 import com.crrc.pojo.vo.PositionDescriptionResponsibilityExportVO;
 import com.crrc.pojo.vo.PositionDescriptionWorkflowRoleVO;
 import com.crrc.pojo.vo.workflow.ProcessRunningInfoVo;
+import com.crrc.pojo.vo.workflow.TaskVo;
 import com.crrc.service.PositionDescriptionAssessmentService;
 import com.crrc.service.PositionDescriptionAttachmentService;
 import com.crrc.service.PositionDescriptionAuditRecordService;
@@ -63,6 +65,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -407,6 +410,108 @@ public class PositionDescriptionServiceImpl extends WorkServiceImpl<PositionDesc
         return roles;
     }
 
+    @Override
+    public List<PositionDescriptionTodoVO> currentUserTodo() {
+        List<TaskVo> tasks = flowableUtils.currentUserTask();
+        if (CollectionUtils.isEmpty(tasks)) {
+            return Collections.emptyList();
+        }
+        List<PositionDescriptionTodoVO> result = new ArrayList<>();
+        for (TaskVo task : tasks) {
+            Long descriptionId = resolveDescriptionIdFromTask(task);
+            if (descriptionId == null) {
+                continue;
+            }
+            PositionDescription description = this.getById(descriptionId);
+            if (description == null) {
+                continue;
+            }
+            PositionDescriptionTodoVO row = new PositionDescriptionTodoVO();
+            row.setTaskId(task.getId());
+            row.setProcInstId(StringUtils.defaultIfBlank(task.getProcessInstanceId(), description.getProcInstId()));
+            row.setTaskName(task.getName());
+            row.setTaskDefinitionKey(task.getTaskDefinitionKey());
+            row.setTaskCreateTime(task.getCreateTime());
+            row.setBizId(StringUtils.defaultIfBlank(task.getBizId(), task.getBizKey()));
+            row.setBizCode(task.getBizCode());
+            row.setDescriptionId(description.getId());
+            row.setPositionCode(description.getPositionCode());
+            row.setPositionName(description.getPositionName());
+            row.setVersion(description.getVersion());
+            row.setOrgUnit(description.getOrgUnit());
+            row.setJobType(description.getJobType());
+            row.setStatus(description.getStatus());
+            row.setSubmitTime(description.getSubmitTime());
+            boolean approving = PositionManagementConstants.DESC_STATUS_APPROVING.equals(description.getStatus());
+            row.setCanApprove(approving);
+            row.setCanReject(approving);
+            result.add(row);
+        }
+        return result;
+    }
+
+    @Override
+    public void myCreatedPage(Page<PositionDescription> page, PositionDescription queryReqVO) {
+        queryReqVO = queryReqVO == null ? new PositionDescription() : queryReqVO;
+        QueryWrapper<PositionDescription> wrapper = WrapperUtils.buildWrapper(queryReqVO, WrapperUtils.StringMode.LIKE);
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId != null) {
+            wrapper.eq("create_by", currentUserId);
+        }
+        wrapper.last("order by update_time desc nulls last");
+        this.baseMapper.selectPage(page, wrapper);
+    }
+
+    @Override
+    public Map<String, Long> statusStatistics(PositionDescription queryReqVO) {
+        PositionDescription localQuery = queryReqVO == null ? new PositionDescription() : queryReqVO;
+        String originalStatus = localQuery.getStatus();
+        Map<String, Long> result = new LinkedHashMap<>();
+        List<String> statuses = Arrays.asList(
+                PositionManagementConstants.DESC_STATUS_DRAFT,
+                PositionManagementConstants.DESC_STATUS_APPROVING,
+                PositionManagementConstants.DESC_STATUS_REJECTED,
+                PositionManagementConstants.DESC_STATUS_PUBLISHED,
+                PositionManagementConstants.DESC_STATUS_DISABLED,
+                PositionManagementConstants.DESC_STATUS_CANCELED
+        );
+        try {
+            for (String status : statuses) {
+                localQuery.setStatus(status);
+                QueryWrapper<PositionDescription> wrapper = WrapperUtils.buildWrapper(localQuery, WrapperUtils.StringMode.LIKE);
+                result.put(status, Long.valueOf(this.count(wrapper)));
+            }
+        } finally {
+            localQuery.setStatus(originalStatus);
+        }
+        return result;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean cancel(Long id, String reason) {
+        PositionDescription description = requireDescription(id);
+        if (PositionManagementConstants.DESC_STATUS_PUBLISHED.equals(description.getStatus())) {
+            throw new IllegalArgumentException("已发布的职位说明书不能撤销，请使用停用功能");
+        }
+        if (PositionManagementConstants.DESC_STATUS_DISABLED.equals(description.getStatus())) {
+            throw new IllegalArgumentException("已停用的职位说明书不能撤销");
+        }
+        if (PositionManagementConstants.DESC_STATUS_CANCELED.equals(description.getStatus())) {
+            return true;
+        }
+        if (PositionManagementConstants.DESC_STATUS_APPROVING.equals(description.getStatus())
+                && StringUtils.isNotBlank(description.getProcInstId())) {
+            flowableUtils.shutdown(description.getProcInstId());
+        }
+        description.setStatus(PositionManagementConstants.DESC_STATUS_CANCELED);
+        description.setLatestFlag(0);
+        this.updateById(description);
+        saveCancelRecord(description, reason);
+        recalculatePositionDescriptionStatus(description.getPositionCode());
+        return true;
+    }
+
 
     private PositionDescriptionMainExportVO buildMainExportRow(PositionDescription description) {
         PositionDescriptionMainExportVO row = new PositionDescriptionMainExportVO();
@@ -645,6 +750,9 @@ public class PositionDescriptionServiceImpl extends WorkServiceImpl<PositionDesc
         if (PositionManagementConstants.AUDIT_RESULT_REJECT.equals(result)) {
             return "驳回";
         }
+        if (PositionManagementConstants.AUDIT_RESULT_CANCEL.equals(result)) {
+            return "撤销";
+        }
         return result;
     }
 
@@ -669,6 +777,9 @@ public class PositionDescriptionServiceImpl extends WorkServiceImpl<PositionDesc
         }
         if (PositionManagementConstants.DESC_STATUS_DISABLED.equals(status)) {
             return "已停用";
+        }
+        if (PositionManagementConstants.DESC_STATUS_CANCELED.equals(status)) {
+            return "已取消";
         }
         return status;
     }
@@ -1150,6 +1261,80 @@ public class PositionDescriptionServiceImpl extends WorkServiceImpl<PositionDesc
         positionInfoMapper.update(null, new LambdaUpdateWrapper<PositionInfo>()
                 .eq(PositionInfo::getCode, positionCode)
                 .set(PositionInfo::getPositionDescStatus, status));
+    }
+
+
+    private Long resolveDescriptionIdFromTask(TaskVo task) {
+        if (task == null) {
+            return null;
+        }
+        Long id = parseDescriptionId(task.getBizId());
+        if (id != null) {
+            return id;
+        }
+        id = parseDescriptionId(task.getBizKey());
+        if (id != null) {
+            return id;
+        }
+        Object idInVariables = null;
+        if (task.getProcessVariables() != null) {
+            idInVariables = task.getProcessVariables().get("descriptionId");
+        }
+        if (idInVariables == null && task.getCaseVariables() != null) {
+            idInVariables = task.getCaseVariables().get("descriptionId");
+        }
+        if (idInVariables == null) {
+            return null;
+        }
+        try {
+            return Long.valueOf(String.valueOf(idInVariables));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private void saveCancelRecord(PositionDescription description, String reason) {
+        PositionDescriptionAuditRecord record = new PositionDescriptionAuditRecord();
+        record.setDescriptionId(description.getId());
+        record.setProcInstId(description.getProcInstId());
+        record.setNodeName("撤销/取消");
+        record.setAuditorCode(resolveAuditorCode(null));
+        record.setAuditorName(resolveAuditorName(null));
+        record.setAuditResult(PositionManagementConstants.AUDIT_RESULT_CANCEL);
+        record.setAuditOpinion(StringUtils.defaultIfBlank(reason, "用户撤销职位说明书"));
+        record.setAuditTime(LocalDateTime.now());
+        auditRecordService.save(record);
+    }
+
+    private void recalculatePositionDescriptionStatus(String positionCode) {
+        if (StringUtils.isBlank(positionCode)) {
+            return;
+        }
+        Number approvingCount = this.baseMapper.selectCount(new LambdaQueryWrapper<PositionDescription>()
+                .eq(PositionDescription::getPositionCode, positionCode)
+                .eq(PositionDescription::getStatus, PositionManagementConstants.DESC_STATUS_APPROVING));
+        if (approvingCount != null && approvingCount.longValue() > 0) {
+            syncPositionDescriptionStatus(positionCode, PositionManagementConstants.DESC_STATUS_APPROVING);
+            return;
+        }
+        Number publishedCount = this.baseMapper.selectCount(new LambdaQueryWrapper<PositionDescription>()
+                .eq(PositionDescription::getPositionCode, positionCode)
+                .eq(PositionDescription::getStatus, PositionManagementConstants.DESC_STATUS_PUBLISHED)
+                .eq(PositionDescription::getLatestFlag, 1));
+        if (publishedCount != null && publishedCount.longValue() > 0) {
+            syncPositionDescriptionStatus(positionCode, PositionManagementConstants.DESC_STATUS_PUBLISHED);
+            return;
+        }
+        PositionDescription latestEditable = this.baseMapper.selectOne(new LambdaQueryWrapper<PositionDescription>()
+                .eq(PositionDescription::getPositionCode, positionCode)
+                .in(PositionDescription::getStatus, Arrays.asList(PositionManagementConstants.DESC_STATUS_REJECTED, PositionManagementConstants.DESC_STATUS_DRAFT))
+                .orderByDesc(PositionDescription::getUpdateTime)
+                .last("limit 1"));
+        if (latestEditable != null) {
+            syncPositionDescriptionStatus(positionCode, latestEditable.getStatus());
+            return;
+        }
+        syncPositionDescriptionStatus(positionCode, PositionManagementConstants.DESC_STATUS_NONE);
     }
 
     private Long parseDescriptionId(String bizId) {

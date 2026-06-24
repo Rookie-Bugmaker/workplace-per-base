@@ -11,6 +11,7 @@ import com.crrc.pojo.dto.workflow.ApprovalParamDto;
 import com.crrc.pojo.dto.workflow.FormDto;
 import com.crrc.pojo.vo.workflow.ProcessRunningInfoVo;
 import com.crrc.pojo.vo.workflow.SelectedUsersVo;
+import com.crrc.pojo.vo.workflow.TaskVo;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
@@ -59,6 +60,21 @@ public class FlowableUtils {
         long endTime = System.currentTimeMillis();
         log.info("发起流程实例 ，耗时: {}秒", String.format("%.2f", (endTime - startTime) / 1000.0));
         return processInstanceVoResultData.getResult();
+    }
+
+
+    /**
+     * 获取当前登录用户待办任务。
+     */
+    public List<TaskVo> currentUserTask() {
+        long startTime = System.currentTimeMillis();
+        ResultData<List<TaskVo>> taskResult = workFlowClient.currentUserTask();
+        if (Objects.isNull(taskResult) || !Boolean.TRUE.equals(taskResult.getSuccess()) || taskResult.getCode() != 200) {
+            throw exception(new ErrorCode(400, "工作流待办任务查询失败，请联系管理员！"));
+        }
+        long endTime = System.currentTimeMillis();
+        log.info("获取当前用户待办任务，耗时: {}秒", String.format("%.2f", (endTime - startTime) / 1000.0));
+        return taskResult.getResult() == null ? Collections.emptyList() : taskResult.getResult();
     }
 
     /**

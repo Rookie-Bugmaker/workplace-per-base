@@ -43,6 +43,9 @@ public final class PositionManagementConstants {
     /** 审批结果：驳回。 */
     public static final String AUDIT_RESULT_REJECT = "REJECT";
 
+    /** 审批结果：撤销/取消。 */
+    public static final String AUDIT_RESULT_CANCEL = "CANCEL";
+
     /** 无职位说明书。 */
     public static final String DESC_STATUS_NONE = "NONE";
 
@@ -60,6 +63,9 @@ public final class PositionManagementConstants {
 
     /** 说明书已停用。 */
     public static final String DESC_STATUS_DISABLED = "DISABLED";
+
+    /** 说明书已取消。 */
+    public static final String DESC_STATUS_CANCELED = "CANCELED";
 
     /** 职位启用。 */
     public static final String POSITION_STATUS_ENABLED = "ENABLED";

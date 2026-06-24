@@ -19,6 +19,7 @@ import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.pojo.vo.PositionDescriptionDetailVO;
 import com.crrc.pojo.vo.PositionDescriptionExportBundleVO;
 import com.crrc.pojo.vo.PositionDescriptionMainExportVO;
+import com.crrc.pojo.vo.PositionDescriptionTodoVO;
 import com.crrc.pojo.vo.PositionDescriptionWorkflowRoleVO;
 import com.crrc.pojo.vo.workflow.ProcessRunningInfoVo;
 import com.crrc.service.PositionDescriptionService;
@@ -44,6 +45,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 职位说明书管理前端控制器。
@@ -204,6 +206,44 @@ public class PositionDescriptionController {
     @AuditLog(value = "职位说明书审批角色配置查询", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     public ResponseResult<List<PositionDescriptionWorkflowRoleVO>> workflowRoles() {
         return new ResponseResult<>(HttpStatus.OK.value(), "职位说明书审批角色配置查询成功", positionDescriptionService.workflowRoles());
+    }
+
+    @GetMapping("/currentUserTodo")
+    @Operation(summary = "当前用户职位说明书审批待办")
+    @AuditLog(value = "当前用户职位说明书审批待办", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResult<List<PositionDescriptionTodoVO>> currentUserTodo() {
+        return new ResponseResult<>(HttpStatus.OK.value(), "当前用户职位说明书审批待办查询成功", positionDescriptionService.currentUserTodo());
+    }
+
+    @PostMapping("/myPage")
+    @Operation(summary = "我的职位说明书申请分页")
+    @AuditLog(value = "我的职位说明书申请分页", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResult<IPage<PositionDescription>> myPage(@Validated @RequestBody(required = false) PositionDescription pageReqVO,
+                                                             @RequestParam(required = false, defaultValue = "1") int pageNo,
+                                                             @RequestParam(required = false, defaultValue = "10") int pageSize) {
+        Page<PositionDescription> page = new Page<>(pageNo, pageSize);
+        positionDescriptionService.myCreatedPage(page, pageReqVO);
+        return new ResponseResult<>(HttpStatus.OK.value(), "我的职位说明书申请分页查询成功", page);
+    }
+
+    @PostMapping("/statusStats")
+    @Operation(summary = "职位说明书状态统计")
+    @AuditLog(value = "职位说明书状态统计", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    public ResponseResult<Map<String, Long>> statusStats(@Validated @RequestBody(required = false) PositionDescription queryReqVO) {
+        return new ResponseResult<>(HttpStatus.OK.value(), "职位说明书状态统计成功", positionDescriptionService.statusStatistics(queryReqVO));
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @PostMapping("/cancel")
+    @Operation(summary = "取消/撤销职位说明书")
+    @AuditLog(value = "取消/撤销职位说明书", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
+    public ResponseResult<Boolean> cancel(@RequestParam("id") Long id,
+                                          @RequestParam(required = false) String reason) {
+        try {
+            return new ResponseResult<>(HttpStatus.OK.value(), "职位说明书取消成功", positionDescriptionService.cancel(id, reason));
+        } catch (IllegalArgumentException e) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
     }
 
 

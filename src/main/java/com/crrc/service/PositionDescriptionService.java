@@ -9,10 +9,12 @@ import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.pojo.vo.PositionDescriptionDetailVO;
 import com.crrc.pojo.vo.PositionDescriptionExportBundleVO;
 import com.crrc.pojo.vo.PositionDescriptionMainExportVO;
+import com.crrc.pojo.vo.PositionDescriptionTodoVO;
 import com.crrc.pojo.vo.PositionDescriptionWorkflowRoleVO;
 import com.crrc.pojo.vo.workflow.ProcessRunningInfoVo;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 职位说明书 服务类。
@@ -93,4 +95,25 @@ public interface PositionDescriptionService extends IService<PositionDescription
      * 查询职位说明书流程角色配置。
      */
     List<PositionDescriptionWorkflowRoleVO> workflowRoles();
+
+    /**
+     * 当前登录用户职位说明书审批待办。
+     */
+    List<PositionDescriptionTodoVO> currentUserTodo();
+
+    /**
+     * 我的职位说明书申请分页。
+     */
+    void myCreatedPage(Page<PositionDescription> page, PositionDescription queryReqVO);
+
+    /**
+     * 按状态统计职位说明书数量。
+     */
+    Map<String, Long> statusStatistics(PositionDescription queryReqVO);
+
+    /**
+     * 取消/撤销职位说明书。审批中会同步终止 Flowable 流程。
+     */
+    boolean cancel(Long id, String reason);
+
 }
