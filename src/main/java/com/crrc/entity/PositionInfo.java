@@ -113,4 +113,83 @@ public class PositionInfo extends BaseEntity {
     @QueryMethod(method = QueryType.EQ)
     @ExcelProperty(value = {"标准岗级"})
     private String jobGrade;
+
+    /** 版本 */
+    @Schema(description = "版本")
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"版本"})
+    private String version;
+
+    /** 撤销日期 */
+    @Schema(description = "撤销日期")
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"撤销日期"})
+    private LocalDate revocationDate;
+
+    /** 职类 */
+    @Schema(description = "职类")
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"职类"})
+    private String jobCategory;
+
+    /** 职群 */
+    @Schema(description = "职群")
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"职群"})
+    private String jobGroup;
+
+    /** 职层 */
+    @Schema(description = "职层")
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"职层"})
+    private String jobLevel;
+
+    /** 编制人数 */
+    @Schema(description = "编制人数")
+    @ExcelProperty(value = {"编制人数"})
+    private Integer headcountQuota;
+
+    /** 控编模式 */
+    @Schema(description = "控编模式")
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"控编模式"})
+    private String controlMode;
+
+    /** 在岗人数快照 */
+    @Schema(description = "在岗人数")
+    @ExcelProperty(value = {"在岗人数"})
+    private Integer incumbentCount;
+
+    /** 在岗人员快照 */
+    @Schema(description = "在岗人员")
+    @ExcelProperty(value = {"在岗人员"})
+    private String incumbentPersons;
+
+    /** 工作地点 */
+    @Schema(description = "工作地点")
+    @QueryMethod(method = QueryType.LIKE)
+    @ExcelProperty(value = {"工作地点"})
+    private String workPlace;
+
+    /** 工作内容 */
+    @Schema(description = "工作内容")
+    @QueryMethod(method = QueryType.LIKE)
+    @ExcelProperty(value = {"工作内容"})
+    private String workContent;
+
+    /** 职位状态 */
+    @Schema(description = "职位状态")
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"职位状态"})
+    private String positionStatus;
+
+    /** 职位说明书状态快照 */
+    @Schema(description = "职位说明书状态")
+    @QueryMethod(method = QueryType.EQ)
+    @ExcelProperty(value = {"职位说明书状态"})
+    private String positionDescStatus;
+
+    /** 职位编码规则扩展预留字段 */
+    @Schema(description = "职位编码规则扩展预留字段")
+    private String codeRuleExt;
 }
