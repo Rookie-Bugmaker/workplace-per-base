@@ -119,7 +119,7 @@ public class HrEmpAppointmentServiceImpl extends WorkServiceImpl<HrEmpAppointmen
                             .in(HrEmpAppointment::getChangeType, LEAVE_CHANGE_TYPES)
                             .orderByDesc(HrEmpAppointment::getStartDate)
                             .orderByDesc(HrEmpAppointment::getEndDate)
-                            .last("limit 2")
+                            .last("order by start_date desc nulls last, end_date desc nulls last limit 1")
             );
 
             if (existList == null || existList.isEmpty()) {
@@ -131,14 +131,14 @@ public class HrEmpAppointmentServiceImpl extends WorkServiceImpl<HrEmpAppointmen
                 continue;
             }
 
-            if (existList.size() > 1) {
-                errors.add(new ImportResult.RowError(
-                        excelRowIndex,
-                        userCode,
-                        "找到多条离职/退休/死亡任职记录，请先清洗数据后再导入"
-                ));
-                continue;
-            }
+//            if (existList.size() > 1) {
+//                errors.add(new ImportResult.RowError(
+//                        excelRowIndex,
+//                        userCode,
+//                        "找到多条离职/退休/死亡任职记录，请先清洗数据后再导入"
+//                ));
+//                continue;
+//            }
 
             HrEmpAppointment target = existList.get(0);
 

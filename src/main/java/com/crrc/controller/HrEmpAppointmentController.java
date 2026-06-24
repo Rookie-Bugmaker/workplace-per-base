@@ -16,6 +16,7 @@ import com.crrc.entity.PositionInfo;
 import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
+import com.crrc.exception.trace.notifier.ExceptionNotifier;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mapper.PositionInfoMapper;
@@ -38,6 +39,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.io.IOException;
@@ -72,12 +74,15 @@ public class HrEmpAppointmentController {
     private HrEmpBasicMapper hrEmpBasicMapper;
     @Autowired
     private PositionInfoMapper positionInfoMapper;
+    @Autowired
+    private ExceptionNotifier exceptionNotifier;
 
     @PostMapping("/refreshAppointment")
-    public ResponseResult<ImportResult> refreshAppointment(@RequestBody MultipartFile file) {
+    public ResponseResult<ImportResult> refreshAppointment(HttpServletRequest req, @RequestBody MultipartFile file) {
         try {
             return ResponseResult.success(hrEmpAppointmentService.importLeaveAppointmentChangeType(file));
         } catch (Exception e) {
+            exceptionNotifier.notifySafely(req, e);
             return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
     }
