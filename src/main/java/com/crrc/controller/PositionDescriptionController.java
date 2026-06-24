@@ -1,5 +1,10 @@
 package com.crrc.controller;
 
+import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.ExcelWriter;
+import com.alibaba.excel.support.ExcelTypeEnum;
+import com.alibaba.excel.write.metadata.WriteSheet;
+import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
@@ -12,6 +17,8 @@ import com.crrc.pojo.dto.PositionDescriptionAuditDTO;
 import com.crrc.pojo.dto.PositionDescriptionSaveDTO;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.pojo.vo.PositionDescriptionDetailVO;
+import com.crrc.pojo.vo.PositionDescriptionExportBundleVO;
+import com.crrc.pojo.vo.PositionDescriptionMainExportVO;
 import com.crrc.pojo.vo.PositionDescriptionWorkflowRoleVO;
 import com.crrc.pojo.vo.workflow.ProcessRunningInfoVo;
 import com.crrc.service.PositionDescriptionService;
@@ -31,7 +38,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
 import java.util.List;
 
 /**
@@ -64,6 +75,23 @@ public class PositionDescriptionController {
     @AuditLog(value = "职位说明书列表查询", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     public ResponseResult<List<PositionDescription>> query(@Validated @RequestBody(required = false) PositionDescription queryReqVO) {
         return new ResponseResult<>(HttpStatus.OK.value(), "职位说明书列表查询成功", positionDescriptionService.queryList(queryReqVO));
+    }
+
+
+    @PostMapping("/export")
+    @Operation(summary = "导出职位说明书列表")
+    @AuditLog(value = "导出职位说明书列表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
+    public void export(@Validated @RequestBody(required = false) PositionDescription exportReqVO,
+                       @RequestParam(required = false, defaultValue = "xlsx") String type,
+                       HttpServletResponse response) throws IOException {
+        prepareExportResponse(response, "职位说明书列表-", type);
+        List<PositionDescriptionMainExportVO> exportList = positionDescriptionService.exportMainList(exportReqVO);
+        EasyExcel.write(response.getOutputStream(), PositionDescriptionMainExportVO.class)
+                .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
+                .autoCloseStream(true)
+                .excelType(resolveExcelType(type))
+                .sheet("职位说明书列表")
+                .doWrite(exportList);
     }
 
     @GetMapping("/get")
@@ -176,5 +204,79 @@ public class PositionDescriptionController {
     @AuditLog(value = "职位说明书审批角色配置查询", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     public ResponseResult<List<PositionDescriptionWorkflowRoleVO>> workflowRoles() {
         return new ResponseResult<>(HttpStatus.OK.value(), "职位说明书审批角色配置查询成功", positionDescriptionService.workflowRoles());
+    }
+
+
+    @GetMapping("/exportDetail")
+    @Operation(summary = "导出职位说明书明细")
+    @AuditLog(value = "导出职位说明书明细", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
+    public void exportDetail(@RequestParam("id") Long id, HttpServletResponse response) throws IOException {
+        PositionDescriptionExportBundleVO bundle = positionDescriptionService.buildExportBundle(id);
+        prepareXlsxResponse(response, "职位说明书明细-");
+        ExcelWriter excelWriter = null;
+        try {
+            excelWriter = EasyExcel.write(response.getOutputStream())
+                    .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
+                    .autoCloseStream(true)
+                    .excelType(ExcelTypeEnum.XLSX)
+                    .build();
+            writeSheet(excelWriter, 0, "基本信息", com.crrc.pojo.vo.PositionDescriptionMainExportVO.class, bundle.getMainRows());
+            writeSheet(excelWriter, 1, "职位职责", com.crrc.pojo.vo.PositionDescriptionResponsibilityExportVO.class, bundle.getResponsibilityRows());
+            writeSheet(excelWriter, 2, "工作依据", com.crrc.pojo.vo.PositionDescriptionBasisExportVO.class, bundle.getBasisRows());
+            writeSheet(excelWriter, 3, "协调内容", com.crrc.pojo.vo.PositionDescriptionCoordinationExportVO.class, bundle.getCoordinationRows());
+            writeSheet(excelWriter, 4, "工作权限", com.crrc.pojo.vo.PositionDescriptionAuthorityExportVO.class, bundle.getAuthorityRows());
+            writeSheet(excelWriter, 5, "考核方向", com.crrc.pojo.vo.PositionDescriptionAssessmentExportVO.class, bundle.getAssessmentRows());
+            writeSheet(excelWriter, 6, "能力要求", com.crrc.pojo.vo.PositionDescriptionCompetencyExportVO.class, bundle.getCompetencyRows());
+            writeSheet(excelWriter, 7, "附件", com.crrc.pojo.vo.PositionDescriptionAttachmentExportVO.class, bundle.getAttachmentRows());
+            writeSheet(excelWriter, 8, "审批记录", com.crrc.pojo.vo.PositionDescriptionAuditRecordExportVO.class, bundle.getAuditRecordRows());
+        } finally {
+            if (excelWriter != null) {
+                excelWriter.finish();
+            }
+        }
+    }
+
+
+
+    private void prepareExportResponse(HttpServletResponse response, String fileNamePrefix, String type) throws IOException {
+        String safeType = normalizeExportType(type);
+        String contentType = "csv".equals(safeType) ? "text/csv;charset=UTF-8" :
+                ("xls".equals(safeType) ? "application/vnd.ms-excel" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setContentType(contentType);
+        response.setCharacterEncoding("utf-8");
+        String fileName = URLEncoder.encode(fileNamePrefix + new SimpleDateFormat("yyyyMMddHHmmss")
+                        .format(System.currentTimeMillis()), "UTF-8")
+                .replaceAll("\\+", "%20");
+        response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." + safeType);
+    }
+
+    private ExcelTypeEnum resolveExcelType(String type) {
+        String safeType = normalizeExportType(type);
+        return "csv".equals(safeType) ? ExcelTypeEnum.CSV : ("xls".equals(safeType) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
+    }
+
+    private String normalizeExportType(String type) {
+        if ("csv".equalsIgnoreCase(type)) {
+            return "csv";
+        }
+        if ("xls".equalsIgnoreCase(type)) {
+            return "xls";
+        }
+        return "xlsx";
+    }
+
+    private void prepareXlsxResponse(HttpServletResponse response, String fileNamePrefix) throws IOException {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding("utf-8");
+        String fileName = URLEncoder.encode(fileNamePrefix + new SimpleDateFormat("yyyyMMddHHmmss")
+                        .format(System.currentTimeMillis()), "UTF-8")
+                .replaceAll("\\+", "%20");
+        response.setHeader("Content-disposition", "attachment;filename=" + fileName + ".xlsx");
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private void writeSheet(ExcelWriter excelWriter, int sheetNo, String sheetName, Class headClass, List data) {
+        WriteSheet sheet = EasyExcel.writerSheet(sheetNo, sheetName).head(headClass).build();
+        excelWriter.write(data, sheet);
     }
 }

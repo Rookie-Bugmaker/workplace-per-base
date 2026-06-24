@@ -23,7 +23,17 @@ import com.crrc.mapper.PositionInfoMapper;
 import com.crrc.pojo.dto.PositionDescriptionAuditDTO;
 import com.crrc.pojo.dto.PositionDescriptionSaveDTO;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
+import com.crrc.pojo.vo.PositionDescriptionAssessmentExportVO;
+import com.crrc.pojo.vo.PositionDescriptionAttachmentExportVO;
+import com.crrc.pojo.vo.PositionDescriptionAuditRecordExportVO;
+import com.crrc.pojo.vo.PositionDescriptionAuthorityExportVO;
+import com.crrc.pojo.vo.PositionDescriptionBasisExportVO;
+import com.crrc.pojo.vo.PositionDescriptionCompetencyExportVO;
+import com.crrc.pojo.vo.PositionDescriptionCoordinationExportVO;
 import com.crrc.pojo.vo.PositionDescriptionDetailVO;
+import com.crrc.pojo.vo.PositionDescriptionExportBundleVO;
+import com.crrc.pojo.vo.PositionDescriptionMainExportVO;
+import com.crrc.pojo.vo.PositionDescriptionResponsibilityExportVO;
 import com.crrc.pojo.vo.PositionDescriptionWorkflowRoleVO;
 import com.crrc.pojo.vo.workflow.ProcessRunningInfoVo;
 import com.crrc.service.PositionDescriptionAssessmentService;
@@ -45,7 +55,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -61,6 +73,9 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class PositionDescriptionServiceImpl extends WorkServiceImpl<PositionDescriptionMapper, PositionDescription> implements PositionDescriptionService {
+
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Autowired
     private PositionInfoMapper positionInfoMapper;
@@ -345,6 +360,43 @@ public class PositionDescriptionServiceImpl extends WorkServiceImpl<PositionDesc
         return flowableUtils.runningSequenceGraph(description.getProcInstId());
     }
 
+
+
+    @Override
+    public List<PositionDescriptionMainExportVO> exportMainList(PositionDescription queryReqVO) {
+        List<PositionDescription> list = queryList(queryReqVO);
+        List<PositionDescriptionMainExportVO> rows = new ArrayList<>();
+        if (CollectionUtils.isEmpty(list)) {
+            return rows;
+        }
+        for (PositionDescription description : list) {
+            if (description != null) {
+                rows.add(buildMainExportRow(description));
+            }
+        }
+        return rows;
+    }
+
+    @Override
+    public PositionDescriptionExportBundleVO buildExportBundle(Long id) {
+        PositionDescriptionDetailVO detail = getDetail(id);
+        PositionDescriptionExportBundleVO bundle = new PositionDescriptionExportBundleVO();
+        if (detail == null || detail.getDescription() == null) {
+            return bundle;
+        }
+        PositionDescription description = detail.getDescription();
+        bundle.getMainRows().add(buildMainExportRow(description));
+        bundle.getResponsibilityRows().addAll(buildResponsibilityExportRows(description, detail.getResponsibilities()));
+        bundle.getBasisRows().addAll(buildBasisExportRows(description, detail.getBasisList()));
+        bundle.getCoordinationRows().addAll(buildCoordinationExportRows(description, detail.getCoordinationList()));
+        bundle.getAuthorityRows().addAll(buildAuthorityExportRows(description, detail.getAuthorityList()));
+        bundle.getAssessmentRows().addAll(buildAssessmentExportRows(description, detail.getAssessmentList()));
+        bundle.getCompetencyRows().addAll(buildCompetencyExportRows(description, detail.getCompetencyList()));
+        bundle.getAttachmentRows().addAll(buildAttachmentExportRows(description, detail.getAttachments()));
+        bundle.getAuditRecordRows().addAll(buildAuditRecordExportRows(description, detail.getAuditRecords()));
+        return bundle;
+    }
+
     @Override
     public List<PositionDescriptionWorkflowRoleVO> workflowRoles() {
         List<PositionDescriptionWorkflowRoleVO> roles = new ArrayList<>();
@@ -353,6 +405,272 @@ public class PositionDescriptionServiceImpl extends WorkServiceImpl<PositionDesc
         roles.add(new PositionDescriptionWorkflowRoleVO(PositionManagementConstants.NODE_POSITION_QUOTA_MANAGER, "人力资源部岗位定编管理人员审批", PositionManagementConstants.ROLE_POSITION_QUOTA_MANAGER));
         roles.add(new PositionDescriptionWorkflowRoleVO(PositionManagementConstants.NODE_HR_LEADER, "人力资源部分管领导审批", PositionManagementConstants.ROLE_HR_LEADER));
         return roles;
+    }
+
+
+    private PositionDescriptionMainExportVO buildMainExportRow(PositionDescription description) {
+        PositionDescriptionMainExportVO row = new PositionDescriptionMainExportVO();
+        row.setDescriptionId(description.getId());
+        row.setPositionCode(description.getPositionCode());
+        row.setPositionName(description.getPositionName());
+        row.setVersion(description.getVersion());
+        row.setEffectiveDate(formatDate(description.getEffectiveDate()));
+        row.setRevocationDate(formatDate(description.getRevocationDate()));
+        row.setOrgUnit(description.getOrgUnit());
+        row.setJobCategory(description.getJobCategory());
+        row.setJobGroup(description.getJobGroup());
+        row.setJobType(description.getJobType());
+        row.setJobLevel(description.getJobLevel());
+        row.setWorkPlace(description.getWorkPlace());
+        row.setWorkContent(description.getWorkContent());
+        row.setJobGrade(description.getJobGrade());
+        row.setHeadcountQuota(description.getHeadcountQuota());
+        row.setControlMode(description.getControlMode());
+        row.setDirectSuperiorPositionCode(description.getDirectSuperiorPositionCode());
+        row.setDirectSuperiorPositionName(description.getDirectSuperiorPositionName());
+        row.setDirectSubordinatePositionCodes(description.getDirectSubordinatePositionCodes());
+        row.setDirectSubordinatePositionNames(description.getDirectSubordinatePositionNames());
+        row.setPositionPurpose(description.getPositionPurpose());
+        row.setWorkEnvironment(description.getWorkEnvironment());
+        row.setQualification(description.getQualification());
+        row.setRequiredKnowledge(description.getRequiredKnowledge());
+        row.setStatus(descriptionStatusLabel(description.getStatus()));
+        row.setProcInstId(description.getProcInstId());
+        row.setSubmitTime(formatDateTime(description.getSubmitTime()));
+        row.setPublishTime(formatDateTime(description.getPublishTime()));
+        row.setLatestFlag(latestFlagLabel(description.getLatestFlag()));
+        return row;
+    }
+
+    private List<PositionDescriptionResponsibilityExportVO> buildResponsibilityExportRows(PositionDescription description, List<PositionDescriptionResponsibility> list) {
+        List<PositionDescriptionResponsibilityExportVO> rows = new ArrayList<>();
+        if (CollectionUtils.isEmpty(list)) {
+            return rows;
+        }
+        int serialNo = 1;
+        for (PositionDescriptionResponsibility item : list) {
+            if (item == null) {
+                continue;
+            }
+            PositionDescriptionResponsibilityExportVO row = new PositionDescriptionResponsibilityExportVO();
+            fillCommonExportFields(row, description, serialNo++);
+            row.setResponsibilityName(item.getResponsibilityName());
+            row.setResponsibilityDesc(item.getResponsibilityDesc());
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    private List<PositionDescriptionBasisExportVO> buildBasisExportRows(PositionDescription description, List<PositionDescriptionBasis> list) {
+        List<PositionDescriptionBasisExportVO> rows = new ArrayList<>();
+        if (CollectionUtils.isEmpty(list)) {
+            return rows;
+        }
+        int serialNo = 1;
+        for (PositionDescriptionBasis item : list) {
+            if (item == null) {
+                continue;
+            }
+            PositionDescriptionBasisExportVO row = new PositionDescriptionBasisExportVO();
+            row.setSerialNo(serialNo++);
+            row.setPositionCode(description.getPositionCode());
+            row.setPositionName(description.getPositionName());
+            row.setBasisContent(item.getBasisContent());
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    private List<PositionDescriptionCoordinationExportVO> buildCoordinationExportRows(PositionDescription description, List<PositionDescriptionCoordination> list) {
+        List<PositionDescriptionCoordinationExportVO> rows = new ArrayList<>();
+        if (CollectionUtils.isEmpty(list)) {
+            return rows;
+        }
+        int serialNo = 1;
+        for (PositionDescriptionCoordination item : list) {
+            if (item == null) {
+                continue;
+            }
+            PositionDescriptionCoordinationExportVO row = new PositionDescriptionCoordinationExportVO();
+            row.setSerialNo(serialNo++);
+            row.setPositionCode(description.getPositionCode());
+            row.setPositionName(description.getPositionName());
+            row.setCoordinationType(item.getCoordinationType());
+            row.setCoordinationObject(item.getCoordinationObject());
+            row.setCoordinationContent(item.getCoordinationContent());
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    private List<PositionDescriptionAuthorityExportVO> buildAuthorityExportRows(PositionDescription description, List<PositionDescriptionAuthority> list) {
+        List<PositionDescriptionAuthorityExportVO> rows = new ArrayList<>();
+        if (CollectionUtils.isEmpty(list)) {
+            return rows;
+        }
+        int serialNo = 1;
+        for (PositionDescriptionAuthority item : list) {
+            if (item == null) {
+                continue;
+            }
+            PositionDescriptionAuthorityExportVO row = new PositionDescriptionAuthorityExportVO();
+            row.setSerialNo(serialNo++);
+            row.setPositionCode(description.getPositionCode());
+            row.setPositionName(description.getPositionName());
+            row.setAuthorityContent(item.getAuthorityContent());
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    private List<PositionDescriptionAssessmentExportVO> buildAssessmentExportRows(PositionDescription description, List<PositionDescriptionAssessment> list) {
+        List<PositionDescriptionAssessmentExportVO> rows = new ArrayList<>();
+        if (CollectionUtils.isEmpty(list)) {
+            return rows;
+        }
+        int serialNo = 1;
+        for (PositionDescriptionAssessment item : list) {
+            if (item == null) {
+                continue;
+            }
+            PositionDescriptionAssessmentExportVO row = new PositionDescriptionAssessmentExportVO();
+            row.setSerialNo(serialNo++);
+            row.setPositionCode(description.getPositionCode());
+            row.setPositionName(description.getPositionName());
+            row.setAssessmentContent(item.getAssessmentContent());
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    private List<PositionDescriptionCompetencyExportVO> buildCompetencyExportRows(PositionDescription description, List<PositionDescriptionCompetency> list) {
+        List<PositionDescriptionCompetencyExportVO> rows = new ArrayList<>();
+        if (CollectionUtils.isEmpty(list)) {
+            return rows;
+        }
+        int serialNo = 1;
+        for (PositionDescriptionCompetency item : list) {
+            if (item == null) {
+                continue;
+            }
+            PositionDescriptionCompetencyExportVO row = new PositionDescriptionCompetencyExportVO();
+            row.setSerialNo(serialNo++);
+            row.setPositionCode(description.getPositionCode());
+            row.setPositionName(description.getPositionName());
+            row.setCompetencyCategory(item.getCompetencyCategory());
+            row.setCompetencyName(item.getCompetencyName());
+            row.setCompetencyLevel(item.getCompetencyLevel());
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    private List<PositionDescriptionAttachmentExportVO> buildAttachmentExportRows(PositionDescription description, List<PositionDescriptionAttachment> list) {
+        List<PositionDescriptionAttachmentExportVO> rows = new ArrayList<>();
+        if (CollectionUtils.isEmpty(list)) {
+            return rows;
+        }
+        int serialNo = 1;
+        for (PositionDescriptionAttachment item : list) {
+            if (item == null) {
+                continue;
+            }
+            PositionDescriptionAttachmentExportVO row = new PositionDescriptionAttachmentExportVO();
+            row.setSerialNo(serialNo++);
+            row.setPositionCode(description.getPositionCode());
+            row.setPositionName(description.getPositionName());
+            row.setFileId(item.getFileId());
+            row.setFileName(item.getFileName());
+            row.setFileType(item.getFileType());
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    private List<PositionDescriptionAuditRecordExportVO> buildAuditRecordExportRows(PositionDescription description, List<PositionDescriptionAuditRecord> list) {
+        List<PositionDescriptionAuditRecordExportVO> rows = new ArrayList<>();
+        if (CollectionUtils.isEmpty(list)) {
+            return rows;
+        }
+        int serialNo = 1;
+        for (PositionDescriptionAuditRecord item : list) {
+            if (item == null) {
+                continue;
+            }
+            PositionDescriptionAuditRecordExportVO row = new PositionDescriptionAuditRecordExportVO();
+            row.setSerialNo(serialNo++);
+            row.setPositionCode(description.getPositionCode());
+            row.setPositionName(description.getPositionName());
+            row.setNodeKey(item.getNodeKey());
+            row.setNodeName(item.getNodeName());
+            row.setRoleCode(item.getRoleCode());
+            row.setAuditorCode(item.getAuditorCode());
+            row.setAuditorName(item.getAuditorName());
+            row.setAuditResult(auditResultLabel(item.getAuditResult()));
+            row.setAuditOpinion(item.getAuditOpinion());
+            row.setAuditTime(formatDateTime(item.getAuditTime()));
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    private void fillCommonExportFields(PositionDescriptionResponsibilityExportVO row, PositionDescription description, int serialNo) {
+        row.setSerialNo(serialNo);
+        row.setPositionCode(description.getPositionCode());
+        row.setPositionName(description.getPositionName());
+    }
+
+    private String formatDate(LocalDate date) {
+        return date == null ? null : DATE_FORMATTER.format(date);
+    }
+
+    private String formatDateTime(LocalDateTime dateTime) {
+        return dateTime == null ? null : DATE_TIME_FORMATTER.format(dateTime);
+    }
+
+    private String latestFlagLabel(Integer latestFlag) {
+        if (latestFlag == null) {
+            return null;
+        }
+        return latestFlag == 1 ? "是" : "否";
+    }
+
+    private String auditResultLabel(String result) {
+        if (StringUtils.isBlank(result)) {
+            return result;
+        }
+        if (PositionManagementConstants.AUDIT_RESULT_APPROVE.equals(result)) {
+            return "通过";
+        }
+        if (PositionManagementConstants.AUDIT_RESULT_REJECT.equals(result)) {
+            return "驳回";
+        }
+        return result;
+    }
+
+    private String descriptionStatusLabel(String status) {
+        if (StringUtils.isBlank(status)) {
+            return status;
+        }
+        if (PositionManagementConstants.DESC_STATUS_NONE.equals(status)) {
+            return "无说明书";
+        }
+        if (PositionManagementConstants.DESC_STATUS_DRAFT.equals(status)) {
+            return "草稿";
+        }
+        if (PositionManagementConstants.DESC_STATUS_APPROVING.equals(status)) {
+            return "审批中";
+        }
+        if (PositionManagementConstants.DESC_STATUS_REJECTED.equals(status)) {
+            return "已驳回";
+        }
+        if (PositionManagementConstants.DESC_STATUS_PUBLISHED.equals(status)) {
+            return "已发布";
+        }
+        if (PositionManagementConstants.DESC_STATUS_DISABLED.equals(status)) {
+            return "已停用";
+        }
+        return status;
     }
 
     private StartProcessInstanceDTO buildStartProcessInstanceDTO(PositionDescription description) {

@@ -7,6 +7,8 @@ import com.crrc.pojo.dto.PositionDescriptionAuditDTO;
 import com.crrc.pojo.dto.PositionDescriptionSaveDTO;
 import com.crrc.pojo.dto.WorkflowWriteBackParamDTO;
 import com.crrc.pojo.vo.PositionDescriptionDetailVO;
+import com.crrc.pojo.vo.PositionDescriptionExportBundleVO;
+import com.crrc.pojo.vo.PositionDescriptionMainExportVO;
 import com.crrc.pojo.vo.PositionDescriptionWorkflowRoleVO;
 import com.crrc.pojo.vo.workflow.ProcessRunningInfoVo;
 
@@ -76,6 +78,16 @@ public interface PositionDescriptionService extends IService<PositionDescription
      * 获取运行时流程图。
      */
     ProcessRunningInfoVo runningSequenceGraph(Long id);
+
+    /**
+     * 按查询条件导出职位说明书主信息列表。
+     */
+    List<PositionDescriptionMainExportVO> exportMainList(PositionDescription queryReqVO);
+
+    /**
+     * 构建职位说明书多 Sheet 导出数据。
+     */
+    PositionDescriptionExportBundleVO buildExportBundle(Long id);
 
     /**
      * 查询职位说明书流程角色配置。

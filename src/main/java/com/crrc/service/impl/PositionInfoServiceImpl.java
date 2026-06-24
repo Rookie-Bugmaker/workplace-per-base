@@ -9,9 +9,13 @@ import com.crrc.entity.PositionInfo;
 import com.crrc.entity.PostCatalogInfo;
 import com.crrc.mapper.PositionInfoMapper;
 import com.crrc.pojo.dto.PositionInfoCopyRequest;
+import com.crrc.pojo.vo.PositionDescriptionDetailVO;
 import com.crrc.pojo.vo.PositionIncumbentDTO;
+import com.crrc.pojo.vo.PositionInfoBasicExportVO;
+import com.crrc.pojo.vo.PositionInfoDescriptionExportVO;
 import com.crrc.pojo.vo.PositionInfoFullImportVO;
 import com.crrc.pojo.vo.PositionInfoImportResultVO;
+import com.crrc.service.PositionDescriptionService;
 import com.crrc.service.PositionInfoService;
 import com.crrc.utils.DeptUtils;
 import com.crrc.utils.PositionInfoFullImportListener;
@@ -52,6 +56,9 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
 
     @Autowired
     PostCatalogInfoServiceImpl postCatalogInfoService;
+
+    @Autowired
+    private PositionDescriptionService positionDescriptionService;
 
     @Override
     public void resolveField(List<PositionInfo> records) {
@@ -265,6 +272,37 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
         return copies;
     }
 
+
+    @Override
+    public List<PositionInfoBasicExportVO> exportBasic(PositionInfo queryReqVO) {
+        queryReqVO = queryReqVO == null ? new PositionInfo() : queryReqVO;
+        List<PositionInfo> positions = query(queryReqVO);
+        resolveField(positions);
+        List<PositionInfoBasicExportVO> rows = new ArrayList<>();
+        int serialNo = 1;
+        for (PositionInfo position : positions) {
+            rows.add(buildBasicExportRow(position, serialNo++));
+        }
+        return rows;
+    }
+
+    @Override
+    public List<PositionInfoDescriptionExportVO> exportWithDescription(PositionInfo queryReqVO) {
+        queryReqVO = queryReqVO == null ? new PositionInfo() : queryReqVO;
+        List<PositionInfo> positions = query(queryReqVO);
+        resolveField(positions);
+        List<PositionInfoDescriptionExportVO> rows = new ArrayList<>();
+        int serialNo = 1;
+        for (PositionInfo position : positions) {
+            PositionDescriptionDetailVO detail = null;
+            if (position != null && StringUtils.isNotBlank(position.getCode())) {
+                detail = positionDescriptionService.getLatestByPositionCode(position.getCode());
+            }
+            rows.add(buildDescriptionExportRow(position, detail, serialNo++));
+        }
+        return rows;
+    }
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean saveOrUpdateWithValidation(PositionInfo positionInfo) {
@@ -283,6 +321,242 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
         }
         validateCodeUnique(positionInfo.getCode(), positionInfo.getId());
         return saveOrUpdate(positionInfo);
+    }
+
+
+    private PositionInfoBasicExportVO buildBasicExportRow(PositionInfo position, int serialNo) {
+        PositionInfoBasicExportVO row = new PositionInfoBasicExportVO();
+        if (position == null) {
+            row.setSerialNo(serialNo);
+            return row;
+        }
+        row.setSerialNo(serialNo);
+        row.setCode(position.getCode());
+        row.setName(position.getName());
+        row.setVersion(position.getVersion());
+        row.setEffectiveDate(formatDate(position.getEffectiveDate()));
+        row.setRevocationDate(formatDate(position.getRevocationDate()));
+        row.setOrgUnit(position.getOrgUnit());
+        row.setOrgUnitValue(position.getOrgUnitValue());
+        row.setWorkCenter(position.getWorkCenter());
+        row.setJobCategory(position.getJobCategory());
+        row.setJobCategoryValue(position.getJobCategoryValue());
+        row.setJobGroup(position.getJobGroup());
+        row.setJobGroupValue(position.getJobGroupValue());
+        row.setJobType(position.getJobType());
+        row.setJobTypeValue(position.getJobTypeValue());
+        row.setJobLevel(position.getJobLevel());
+        row.setJobGrade(position.getJobGrade());
+        row.setHeadcountQuota(position.getHeadcountQuota());
+        row.setControlMode(position.getControlMode());
+        row.setIncumbentCount(position.getIncumbentCount());
+        row.setIncumbentPersons(position.getIncumbentPersons());
+        row.setDeptCode(position.getDeptCode());
+        row.setDeptName(position.getDeptName());
+        row.setParentPositionCode(position.getParentPositionCode());
+        row.setParentPositionName(position.getParentPositionName());
+        row.setRelatedPost(position.getRelatedPost());
+        row.setWorkPlace(position.getWorkPlace());
+        row.setWorkContent(position.getWorkContent());
+        row.setPositionStatus(positionStatusLabel(position.getPositionStatus()));
+        row.setPositionDescStatus(descriptionStatusLabel(position.getPositionDescStatus()));
+        return row;
+    }
+
+    private PositionInfoDescriptionExportVO buildDescriptionExportRow(PositionInfo position, PositionDescriptionDetailVO detail, int serialNo) {
+        PositionInfoDescriptionExportVO row = new PositionInfoDescriptionExportVO();
+        row.setSerialNo(serialNo);
+        if (position != null) {
+            row.setCode(position.getCode());
+            row.setName(position.getName());
+            row.setVersion(position.getVersion());
+            row.setEffectiveDate(formatDate(position.getEffectiveDate()));
+            row.setRevocationDate(formatDate(position.getRevocationDate()));
+            row.setOrgUnit(position.getOrgUnit());
+            row.setOrgUnitValue(position.getOrgUnitValue());
+            row.setJobCategoryValue(StringUtils.defaultIfBlank(position.getJobCategoryValue(), position.getJobCategory()));
+            row.setJobGroupValue(StringUtils.defaultIfBlank(position.getJobGroupValue(), position.getJobGroup()));
+            row.setJobTypeValue(StringUtils.defaultIfBlank(position.getJobTypeValue(), position.getJobType()));
+            row.setJobLevel(position.getJobLevel());
+            row.setJobGrade(position.getJobGrade());
+            row.setHeadcountQuota(position.getHeadcountQuota());
+            row.setControlMode(position.getControlMode());
+            row.setIncumbentCount(position.getIncumbentCount());
+            row.setIncumbentPersons(position.getIncumbentPersons());
+            row.setWorkPlace(position.getWorkPlace());
+            row.setWorkContent(position.getWorkContent());
+            row.setPositionStatus(positionStatusLabel(position.getPositionStatus()));
+            row.setPositionDescStatus(descriptionStatusLabel(position.getPositionDescStatus()));
+        }
+        if (detail == null || detail.getDescription() == null) {
+            return row;
+        }
+        com.crrc.entity.PositionDescription description = detail.getDescription();
+        row.setDescriptionId(description.getId());
+        row.setDescriptionVersion(description.getVersion());
+        row.setDescriptionStatus(descriptionStatusLabel(description.getStatus()));
+        row.setDescriptionEffectiveDate(formatDate(description.getEffectiveDate()));
+        row.setDescriptionRevocationDate(formatDate(description.getRevocationDate()));
+        row.setDirectSuperiorPositionCode(description.getDirectSuperiorPositionCode());
+        row.setDirectSuperiorPositionName(description.getDirectSuperiorPositionName());
+        row.setDirectSubordinatePositionCodes(description.getDirectSubordinatePositionCodes());
+        row.setDirectSubordinatePositionNames(description.getDirectSubordinatePositionNames());
+        row.setPositionPurpose(description.getPositionPurpose());
+        row.setWorkEnvironment(description.getWorkEnvironment());
+        row.setQualification(description.getQualification());
+        row.setRequiredKnowledge(description.getRequiredKnowledge());
+        row.setResponsibilities(joinResponsibilities(detail.getResponsibilities()));
+        row.setBasisList(joinBasis(detail.getBasisList()));
+        row.setCoordinationList(joinCoordinations(detail.getCoordinationList()));
+        row.setAuthorityList(joinAuthorities(detail.getAuthorityList()));
+        row.setAssessmentList(joinAssessments(detail.getAssessmentList()));
+        row.setCompetencyList(joinCompetencies(detail.getCompetencyList()));
+        row.setAttachmentFileIds(joinAttachmentFileIds(detail.getAttachments()));
+        row.setAttachmentNames(joinAttachmentNames(detail.getAttachments()));
+        return row;
+    }
+
+    private String formatDate(LocalDate date) {
+        return date == null ? null : DATE_FORMATTER_1.format(date);
+    }
+
+    private String joinResponsibilities(List<com.crrc.entity.PositionDescriptionResponsibility> list) {
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
+        return list.stream()
+                .filter(Objects::nonNull)
+                .map(item -> joinParts(item.getResponsibilityName(), item.getResponsibilityDesc()))
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.joining("\n"));
+    }
+
+    private String joinBasis(List<com.crrc.entity.PositionDescriptionBasis> list) {
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
+        return list.stream()
+                .filter(Objects::nonNull)
+                .map(com.crrc.entity.PositionDescriptionBasis::getBasisContent)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.joining("\n"));
+    }
+
+    private String joinCoordinations(List<com.crrc.entity.PositionDescriptionCoordination> list) {
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
+        return list.stream()
+                .filter(Objects::nonNull)
+                .map(item -> joinParts(item.getCoordinationType(), item.getCoordinationObject(), item.getCoordinationContent()))
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.joining("\n"));
+    }
+
+    private String joinAuthorities(List<com.crrc.entity.PositionDescriptionAuthority> list) {
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
+        return list.stream()
+                .filter(Objects::nonNull)
+                .map(com.crrc.entity.PositionDescriptionAuthority::getAuthorityContent)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.joining("\n"));
+    }
+
+    private String joinAssessments(List<com.crrc.entity.PositionDescriptionAssessment> list) {
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
+        return list.stream()
+                .filter(Objects::nonNull)
+                .map(com.crrc.entity.PositionDescriptionAssessment::getAssessmentContent)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.joining("\n"));
+    }
+
+    private String joinCompetencies(List<com.crrc.entity.PositionDescriptionCompetency> list) {
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
+        return list.stream()
+                .filter(Objects::nonNull)
+                .map(item -> joinParts(item.getCompetencyCategory(), item.getCompetencyName(), item.getCompetencyLevel()))
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.joining("\n"));
+    }
+
+    private String joinAttachmentFileIds(List<com.crrc.entity.PositionDescriptionAttachment> list) {
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
+        return list.stream()
+                .filter(Objects::nonNull)
+                .map(com.crrc.entity.PositionDescriptionAttachment::getFileId)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.joining(","));
+    }
+
+    private String joinAttachmentNames(List<com.crrc.entity.PositionDescriptionAttachment> list) {
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
+        return list.stream()
+                .filter(Objects::nonNull)
+                .map(item -> joinParts(item.getFileName(), item.getFileId()))
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.joining("\n"));
+    }
+
+    private String joinParts(String... parts) {
+        if (parts == null || parts.length == 0) {
+            return null;
+        }
+        List<String> values = new ArrayList<>();
+        for (String part : parts) {
+            if (StringUtils.isNotBlank(part)) {
+                values.add(StringUtils.trim(part));
+            }
+        }
+        return values.isEmpty() ? null : String.join(" - ", values);
+    }
+
+    private String positionStatusLabel(String status) {
+        if (StringUtils.isBlank(status)) {
+            return status;
+        }
+        if (PositionManagementConstants.POSITION_STATUS_ENABLED.equals(status)) {
+            return "启用";
+        }
+        if (PositionManagementConstants.POSITION_STATUS_DISABLED.equals(status)) {
+            return "停用";
+        }
+        return status;
+    }
+
+    private String descriptionStatusLabel(String status) {
+        if (StringUtils.isBlank(status)) {
+            return status;
+        }
+        if (PositionManagementConstants.DESC_STATUS_NONE.equals(status)) {
+            return "无说明书";
+        }
+        if (PositionManagementConstants.DESC_STATUS_DRAFT.equals(status)) {
+            return "草稿";
+        }
+        if (PositionManagementConstants.DESC_STATUS_APPROVING.equals(status)) {
+            return "审批中";
+        }
+        if (PositionManagementConstants.DESC_STATUS_REJECTED.equals(status)) {
+            return "已驳回";
+        }
+        if (PositionManagementConstants.DESC_STATUS_PUBLISHED.equals(status)) {
+            return "已发布";
+        }
+        if (PositionManagementConstants.DESC_STATUS_DISABLED.equals(status)) {
+            return "已停用";
+        }
+        return status;
     }
 
     private PositionInfoImportResultVO importFullRows(List<PositionInfoFullImportVO> rows) {

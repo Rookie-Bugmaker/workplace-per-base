@@ -13,6 +13,8 @@ import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.PositionInfoCopyRequest;
+import com.crrc.pojo.vo.PositionInfoBasicExportVO;
+import com.crrc.pojo.vo.PositionInfoDescriptionExportVO;
 import com.crrc.pojo.vo.PositionInfoImportResultVO;
 import com.crrc.service.impl.PositionInfoServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -196,6 +198,47 @@ public class PositionInfoController {
         return new ResponseResult<>(HttpStatus.OK.value(), "刷新职位在岗人员成功", positionInfoService.refreshIncumbents(codeList));
     }
 
+
+    /**
+     * 职位信息基本版导出。
+     */
+    @PostMapping("/exportBasic")
+    @AuditLog(value = "导出职位信息基本版", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
+    @Operation(summary = "导出职位信息基本版")
+    public void exportBasic(@Validated @RequestBody(required = false) PositionInfo exportReqVO,
+                            @RequestParam(required = false, defaultValue = "xlsx") String type,
+                            HttpServletResponse response) throws IOException {
+        prepareExportResponse(response, "职位信息基本版-", type);
+        ExcelTypeEnum typeEnum = resolveExcelType(type);
+        List<PositionInfoBasicExportVO> exportList = positionInfoService.exportBasic(exportReqVO);
+        EasyExcelFactory.write(response.getOutputStream(), PositionInfoBasicExportVO.class)
+                .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
+                .autoCloseStream(true)
+                .excelType(typeEnum)
+                .sheet("职位信息基本版")
+                .doWrite(exportList);
+    }
+
+    /**
+     * 职位信息含职位说明书内容版导出。
+     */
+    @PostMapping("/exportWithDescription")
+    @AuditLog(value = "导出职位信息含说明书版", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
+    @Operation(summary = "导出职位信息含说明书版")
+    public void exportWithDescription(@Validated @RequestBody(required = false) PositionInfo exportReqVO,
+                                      @RequestParam(required = false, defaultValue = "xlsx") String type,
+                                      HttpServletResponse response) throws IOException {
+        prepareExportResponse(response, "职位信息含说明书版-", type);
+        ExcelTypeEnum typeEnum = resolveExcelType(type);
+        List<PositionInfoDescriptionExportVO> exportList = positionInfoService.exportWithDescription(exportReqVO);
+        EasyExcelFactory.write(response.getOutputStream(), PositionInfoDescriptionExportVO.class)
+                .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
+                .autoCloseStream(true)
+                .excelType(typeEnum)
+                .sheet("职位信息含说明书版")
+                .doWrite(exportList);
+    }
+
     /**
      * 获得编码code和标准岗级jobGrade导入模板。
      */
@@ -280,5 +323,33 @@ public class PositionInfoController {
                 .excelType(typeEnum)
                 .sheet("职位信息完整导入模板")
                 .doWrite(exampleList);
+    }
+
+
+    private void prepareExportResponse(HttpServletResponse response, String fileNamePrefix, String type) throws IOException {
+        String safeType = normalizeExportType(type);
+        String contentType = "csv".equals(safeType) ? "text/csv;charset=UTF-8" :
+                ("xls".equals(safeType) ? "application/vnd.ms-excel" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setContentType(contentType);
+        response.setCharacterEncoding("utf-8");
+        String fileName = URLEncoder.encode(fileNamePrefix + new SimpleDateFormat("yyyyMMddHHmmss")
+                        .format(System.currentTimeMillis()), "UTF-8")
+                .replaceAll("\\+", "%20");
+        response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." + safeType);
+    }
+
+    private ExcelTypeEnum resolveExcelType(String type) {
+        String safeType = normalizeExportType(type);
+        return "csv".equals(safeType) ? ExcelTypeEnum.CSV : ("xls".equals(safeType) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
+    }
+
+    private String normalizeExportType(String type) {
+        if ("csv".equalsIgnoreCase(type)) {
+            return "csv";
+        }
+        if ("xls".equalsIgnoreCase(type)) {
+            return "xls";
+        }
+        return "xlsx";
     }
 }

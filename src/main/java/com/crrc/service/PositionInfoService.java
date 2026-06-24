@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.crrc.entity.PositionInfo;
 import com.crrc.pojo.dto.PositionInfoCopyRequest;
+import com.crrc.pojo.vo.PositionInfoBasicExportVO;
+import com.crrc.pojo.vo.PositionInfoDescriptionExportVO;
 import com.crrc.pojo.vo.PositionInfoImportResultVO;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -57,6 +59,17 @@ public interface PositionInfoService extends IService<PositionInfo> {
      * 复制职位到指定组织单元。
      */
     List<PositionInfo> copyToOrgUnit(PositionInfoCopyRequest request);
+
+
+    /**
+     * 按查询条件导出职位信息基本版。
+     */
+    List<PositionInfoBasicExportVO> exportBasic(PositionInfo queryReqVO);
+
+    /**
+     * 按查询条件导出职位信息及当前职位说明书内容。
+     */
+    List<PositionInfoDescriptionExportVO> exportWithDescription(PositionInfo queryReqVO);
 
     /**
      * 保存或更新职位，进行职位编码唯一性和默认字段处理。
