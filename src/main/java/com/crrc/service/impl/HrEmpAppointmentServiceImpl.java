@@ -8,6 +8,7 @@ import com.crrc.mapper.HrEmpAppointmentMapper;
 import com.crrc.pojo.vo.ImportResult;
 import com.crrc.service.HrEmpAppointmentService;
 import com.crrc.utils.DeptUtils;
+import com.crrc.utils.MessageUtils;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +34,8 @@ public class HrEmpAppointmentServiceImpl extends WorkServiceImpl<HrEmpAppointmen
     private HrEmpAppointmentMapper hrEmpAppointmentMapper;
     @Autowired
     private CodeInfoServiceImpl codeInfoService;
+    @Autowired
+    private MessageUtils messageUtils;
 
     public List<HrEmpAppointment> selectMsg(String userCode){
         MPJLambdaWrapper<HrEmpAppointment> wrapper = new MPJLambdaWrapper<HrEmpAppointment>()
@@ -166,7 +169,8 @@ public class HrEmpAppointmentServiceImpl extends WorkServiceImpl<HrEmpAppointmen
                     .map(e -> "第 " + e.getRowIndex() + " 行，员工：" + e.getUserCode() + "，原因：" + e.getMessage())
                     .collect(Collectors.joining("；"));
 
-            throw new IllegalArgumentException("导入失败，已回滚。错误示例：" + errorMessage);
+            messageUtils.pushPlainMsg(Arrays.asList("013200031524", "013200031192"), errorMessage);
+//            throw new IllegalArgumentException("导入失败，已回滚。错误示例：" + errorMessage);
         }
 
         return result;
