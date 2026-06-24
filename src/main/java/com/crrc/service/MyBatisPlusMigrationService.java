@@ -584,79 +584,117 @@ public class MyBatisPlusMigrationService {
             Object lastUserCode = null; // 初始为null
             AtomicLong migratedCount = new AtomicLong(0);
 
+            final String leaveChangeTypes =
+                    "'离职','退休','因病提前退休','实习生','离休','特殊工种提前退休'," +
+                            "'死亡','集团内调出','集团外调出','入站博士后'," +
+                            "'015','016','017','018'";
+
             while (true) {
-                // 分页查询源数据
-                String querySql;
+                boolean firstPage = lastUserCode == null;
+
+                // 按用户编码进行游标分页
+                String pageCondition = firstPage
+                        ? ""
+                        : " AND src.user_code > ? ";
+
+                String querySql = String.format(
+                        "WITH ranked_data AS (" +
+                                "    SELECT src.*, " +
+                                "           ROW_NUMBER() OVER (" +
+                                "               PARTITION BY src.user_code " +
+                                "               ORDER BY " +
+                                // 离职记录优先于所有任职记录
+                                "                   CASE " +
+                                "                       WHEN src.change_type IN (" + leaveChangeTypes + ") " +
+                                "                       THEN 0 " +
+                                "                       ELSE 1 " +
+                                "                   END ASC, " +
+
+                                // 在离职记录之间，或者没有离职记录时的任职记录之间，取最新一条
+                                "                   src.create_time DESC NULLS LAST, " +
+                                "                   src.start_date DESC NULLS LAST, " +
+                                "                   src.end_date DESC NULLS LAST, " +
+
+                                // 防止前三个时间完全相同时结果不稳定
+                                "                   src.id DESC " +
+                                "           ) AS group_rank " +
+                                "    FROM %s src " +
+                                "    WHERE src.deleted = '0' " +
+                                "      AND src.user_code IS NOT NULL " +
+                                pageCondition +
+                                ") " +
+
+                                "SELECT ra.start_date, " +
+                                "       ra.end_date, " +
+                                "       COALESCE(ci2.code_value, ra.change_event) AS change_event, " +
+                                "       COALESCE(ci1.code_value, ra.change_type) AS change_type, " +
+                                "       COALESCE(ci3.code_value, ra.change_reason) AS change_reason, " +
+                                "       ra.personnel_category, " +
+                                "COALESCE(ci4.code_value, ra.duty_status) AS duty_status, " +
+                                "       ra.org, " +
+                                "       ra.dept, " +
+                                "       ra.org_unit, " +
+                                "       COALESCE(pi.\"name\", ra.\"position\") AS \"position\", " +
+                                "       ra.hierarchy_rank, " +
+                                "       ra.position_name, " +
+                                "       ra.position_hierarchy, " +
+                                "       COALESCE(ci5.code_value, ra.position_category) AS position_category, " +
+                                "       ra.salary_group, " +
+                                "       ra.id, " +
+                                "       ra.user_code, " +
+                                "       ra.deleted, " +
+                                "       ra.create_time, " +
+                                "       ra.create_by, " +
+                                "       ra.update_time, " +
+                                "       ra.update_by, " +
+                                "       ra.tenant_id, " +
+                                "       COALESCE(pi.job_type, ra.job_type) AS job_type " +
+
+                                "FROM ranked_data ra " +
+
+                                "LEFT JOIN code_info ci1 " +
+                                "       ON ci1.code = ra.change_type " +
+                                "      AND ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' " +
+
+                                "LEFT JOIN code_info ci2 " +
+                                "       ON ci2.code = ra.change_event " +
+                                "      AND ci2.\"type\" = 'APPOINTMENT_CHANGE_EVENT' " +
+
+                                "LEFT JOIN code_info ci3 " +
+                                "       ON ci3.code = ra.change_reason " +
+                                "      AND ci3.\"type\" = 'APPOINTMENT_CHANGE_REASON' " +
+
+                                "LEFT JOIN code_info ci4 " +
+                                "       ON ci4.code = ra.duty_status " +
+                                "      AND ci4.\"type\" = 'APPOINTMENT_DUTY_STATUS' " +
+
+                                "LEFT JOIN code_info ci5 " +
+                                "       ON ci5.code = ra.position_category " +
+                                "      AND ci5.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' " +
+
+                                "LEFT JOIN position_info pi " +
+                                "       ON pi.code = ra.\"position\" " +
+
+                                // 每个用户最终只保留排序后的第一条
+                                "WHERE ra.group_rank = 1 " +
+                                "ORDER BY ra.user_code " +
+                                "LIMIT ?",
+                        tableName
+                );
+
                 List<Map<String, Object>> batchData;
 
-                if (lastUserCode == null) {
-                    // 第一次查询
-                    querySql = String.format(
-                            "WITH ranked_data AS (" +
-                                    "    SELECT *, " +
-                                    // 先取create_time有值的
-                                    "           ROW_NUMBER() OVER " +
-                                    "(PARTITION BY user_code ORDER BY " +
-                                    "create_time DESC NULLS LAST, start_date DESC NULLS LAST, " +
-                                    "end_date DESC NULLS LAST) " +
-                                    "AS group_rank " +
-                                    "    FROM %s " +
-                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL" +
-                                    ") " +
-                                    "SELECT ra.start_date, ra.end_date, case when ci2.code_value is null then change_event else ci2.code_value end as change_event, " +
-                                    "case when ci1.code_value is null then change_type else ci1.code_value end as change_type, " +
-                                    "case when ci3.code_value is null then change_reason else ci3.code_value end as change_reason, ra.personnel_category, " +
-                                    "case when ci4.code_value is null then duty_status else ci4.code_value end as duty_status, ra.org, ra.dept, ra.org_unit, " +
-                                    "case when pi.\"name\" is null then \"position\" else pi.\"name\" end as \"position\", " +
-                                    "ra.hierarchy_rank, ra.position_name, ra.position_hierarchy, case when ci5.code_value is null then position_category else ci5.code_value end as position_category, ra.salary_group, ra.id, ra.user_code, " +
-                                    "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, CASE WHEN pi.job_type IS NULL THEN ra.job_type ELSE pi.job_type END as job_type " +
-                                    "FROM ranked_data ra LEFT JOIN code_info ci ON ci.code = ra.\"position\" and ci.\"type\" = 'APPOINTMENT_POSITION' " +
-                                    "left join code_info ci1 on ci1.code = ra.change_type and ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' " +
-                                    "left join code_info ci2 on ci2.code = ra.change_event and ci2.\"type\" = 'APPOINTMENT_CHANGE_EVENT' " +
-                                    "left join code_info ci3 on ci3.code = ra.change_reason and ci3.\"type\" = 'APPOINTMENT_CHANGE_REASON' " +
-                                    "left join code_info ci4 on ci4.code = ra.duty_status and ci4.\"type\" = 'APPOINTMENT_DUTY_STATUS' " +
-                                    "left join code_info ci5 on ci5.code = ra.position_category and ci5.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' " +
-                                    "left join position_info pi on pi.code = ra.position " +
-                                    "left join hr_emp_basic heb on heb.user_code = ra.user_code " +
-                                    "WHERE (heb.is_employed = '1' AND group_rank = 1) OR (heb.is_employed = '0' AND change_type IN ('离职','退休','因病提前退休','实习生','离休','特殊工种提前退休','死亡','集团内调出','集团外调出','入站博士后', '015', '016', '017', '018')) " +
-                                    "ORDER BY ra.user_code " +
-                                    "LIMIT ?",
-                            // 不从视图取值
-                            tableName);
-                    batchData = openGaussJdbcTemplate.queryForList(querySql, batchSize);
+                if (firstPage) {
+                    batchData = openGaussJdbcTemplate.queryForList(
+                            querySql,
+                            batchSize
+                    );
                 } else {
-                    // 后续查询
-                    querySql = String.format(
-                            "WITH ranked_data AS (" +
-                                    "    SELECT *, " +
-                                    // 先取create_time有值的
-                                    "           ROW_NUMBER() OVER " +
-                                    "(PARTITION BY user_code ORDER BY CASE WHEN create_time IS NULL THEN 1 ELSE 0 END ASC, create_time DESC, CASE WHEN start_date IS NULL THEN 1 ELSE 0 END ASC, start_date DESC, CASE WHEN end_date IS NULL THEN 1 ELSE 0 END ASC, end_date DESC) " +
-                                    "AS group_rank " +
-                                    "    FROM %s " +
-                                    "    WHERE DELETED = '0' AND user_code IS NOT NULL AND user_code > ?" +
-                                    ") " +
-                                    "SELECT ra.start_date, ra.end_date, case when ci2.code_value is null then change_event else ci2.code_value end as change_event, " +
-                                    "case when ci1.code_value is null then change_type else ci1.code_value end as change_type, " +
-                                    "case when ci3.code_value is null then change_reason else ci3.code_value end as change_reason, ra.personnel_category, " +
-                                    "case when ci4.code_value is null then duty_status else ci4.code_value end as duty_status, ra.org, ra.dept, ra.org_unit, " +
-                                    "case when pi.\"name\" is null then \"position\" else pi.\"name\" end as \"position\", " +
-                                    "ra.hierarchy_rank, ra.position_name, ra.position_hierarchy, case when ci5.code_value is null then position_category else ci5.code_value end as position_category, ra.salary_group, ra.id, ra.user_code, " +
-                                    "ra.deleted, ra.create_time, ra.create_by, ra.update_time, ra.update_by, ra.tenant_id, CASE WHEN pi.job_type IS NULL THEN ra.job_type ELSE pi.job_type END as job_type " +
-                                    "FROM ranked_data ra LEFT JOIN code_info ci ON ci.code = ra.\"position\" and ci.\"type\" = 'APPOINTMENT_POSITION' " +
-                                    "left join code_info ci1 on ci1.code = ra.change_type and ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' " +
-                                    "left join code_info ci2 on ci2.code = ra.change_event and ci2.\"type\" = 'APPOINTMENT_CHANGE_EVENT' " +
-                                    "left join code_info ci3 on ci3.code = ra.change_reason and ci3.\"type\" = 'APPOINTMENT_CHANGE_REASON' " +
-                                    "left join code_info ci4 on ci4.code = ra.duty_status and ci4.\"type\" = 'APPOINTMENT_DUTY_STATUS' " +
-                                    "left join code_info ci5 on ci5.code = ra.position_category and ci5.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' " +
-                                    "left join position_info pi on pi.code = ra.position " +
-                                    "left join hr_emp_basic heb on heb.user_code = ra.user_code " +
-                                    "WHERE (heb.is_employed = '1' AND group_rank = 1) OR (heb.is_employed = '0' AND change_type IN ('离职','退休','因病提前退休','实习生','离休','特殊工种提前退休','死亡','集团内调出','集团外调出','入站博士后', '015', '016', '017', '018')) " +
-                                    "ORDER BY ra.user_code " +
-                                    "LIMIT ?",
-                            // 不从视图取值
-                            tableName);
-                    batchData = openGaussJdbcTemplate.queryForList(querySql, lastUserCode, batchSize);
+                    batchData = openGaussJdbcTemplate.queryForList(
+                            querySql,
+                            lastUserCode,
+                            batchSize
+                    );
                 }
 
                 if (batchData.isEmpty()) {
