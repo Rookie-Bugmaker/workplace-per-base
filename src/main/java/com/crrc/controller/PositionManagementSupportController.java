@@ -85,6 +85,9 @@ public class PositionManagementSupportController {
                 option(PositionManagementConstants.ROLE_HR_LEADER, "人力资源部分管领导", "workflowRole", 5, null),
                 option(PositionManagementConstants.ROLE_POSITION_ADMIN, "职位管理员", "workflowRole", 6, null)
         ));
+        result.put("workflowProcess", Arrays.asList(
+                option(PositionManagementConstants.POSITION_DESCRIPTION_APPROVAL_PROCESS_KEY, "职位说明书审批流程", "workflowProcess", 1, "Flowable templateAlias/processId")
+        ));
         result.put("exportType", Arrays.asList(
                 option("xlsx", "Excel 2007+", "exportType", 1, null),
                 option("xls", "Excel 97-2003", "exportType", 2, null),

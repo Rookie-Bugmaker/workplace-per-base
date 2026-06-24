@@ -10,6 +10,7 @@ public final class PositionManagementConstants {
     /** 职位说明书审批流程 key。 */
     public static final String POSITION_DESCRIPTION_APPROVAL_PROCESS_KEY = "POSITION_DESCRIPTION_APPROVAL";
 
+
     /** 职位说明书流程变量：业务类型。 */
     public static final String FLOW_VAR_TYPE = "type";
 

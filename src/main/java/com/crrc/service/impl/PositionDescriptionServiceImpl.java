@@ -792,6 +792,7 @@ public class PositionDescriptionServiceImpl extends WorkServiceImpl<PositionDesc
 
         Map<String, Object> formData = new HashMap<>();
         formData.put(PositionManagementConstants.FLOW_VAR_TYPE, PositionManagementConstants.FLOW_TYPE_POSITION_DESCRIPTION);
+        formData.put("processKey", PositionManagementConstants.POSITION_DESCRIPTION_APPROVAL_PROCESS_KEY);
         formData.put("descriptionId", description.getId());
         formData.put("positionCode", description.getPositionCode());
         formData.put("positionName", description.getPositionName());
