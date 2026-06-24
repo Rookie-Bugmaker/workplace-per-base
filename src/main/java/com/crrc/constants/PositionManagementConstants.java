@@ -10,6 +10,9 @@ public final class PositionManagementConstants {
     /** 职位说明书审批流程 key。 */
     public static final String POSITION_DESCRIPTION_APPROVAL_PROCESS_KEY = "position_description_approval";
 
+    /** 无职位说明书。 */
+    public static final String DESC_STATUS_NONE = "NONE";
+
     /** 说明书草稿。 */
     public static final String DESC_STATUS_DRAFT = "DRAFT";
 
