@@ -12,13 +12,16 @@ import com.crrc.entity.PositionInfo;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.pojo.ResponseResult;
+import com.crrc.pojo.dto.PositionInfoCopyRequest;
+import com.crrc.pojo.vo.PositionInfoBasicExportVO;
+import com.crrc.pojo.vo.PositionInfoDescriptionExportVO;
+import com.crrc.pojo.vo.PositionInfoImportResultVO;
 import com.crrc.service.impl.PositionInfoServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -44,9 +47,6 @@ public class PositionInfoController {
     @Autowired
     private PositionInfoServiceImpl positionInfoService;
 
-    @Autowired
-    private JdbcTemplate openGaussJdbcTemplate;
-
     @PostMapping("/page")
     @Operation(summary = "获取列表 page")
     @AuditLog(value = "获取列表 page", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
@@ -55,8 +55,8 @@ public class PositionInfoController {
     @Parameter(name = "pageSize", description = "条数", required = false, example = "10")
     @TenantIgnore
     public ResponseResult<IPage<PositionInfo>> pagePositionInfo(@Validated @RequestBody(required = false) PositionInfo pageReqVO,
-                                                  @RequestParam(required = false, defaultValue = "1") int pageNo,
-                                                  @RequestParam(required = false, defaultValue = "10") int pageSize) {
+                                                                @RequestParam(required = false, defaultValue = "1") int pageNo,
+                                                                @RequestParam(required = false, defaultValue = "10") int pageSize) {
         pageReqVO = (pageReqVO == null) ? new PositionInfo() : pageReqVO;
         Page<PositionInfo> page = new Page<>(pageNo, pageSize);
         positionInfoService.queryByOrder(page, pageReqVO);
@@ -71,7 +71,9 @@ public class PositionInfoController {
     @TenantIgnore
     public ResponseResult<List<PositionInfo>> queryPositionInfo(@Validated @RequestBody(required = false) PositionInfo queryReqVO) {
         queryReqVO = (queryReqVO == null) ? new PositionInfo() : queryReqVO;
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取列表成功", positionInfoService.query(queryReqVO));
+        List<PositionInfo> list = positionInfoService.query(queryReqVO);
+        positionInfoService.resolveField(list);
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取列表成功", list);
     }
 
     @PostMapping("/queryList")
@@ -83,7 +85,9 @@ public class PositionInfoController {
         if(codeList != null && !codeList.isEmpty()) {
             wrapper.in(PositionInfo::getCode, codeList);
         }
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取列表成功", positionInfoService.getBaseMapper().selectList(wrapper));
+        List<PositionInfo> list = positionInfoService.getBaseMapper().selectList(wrapper);
+        positionInfoService.resolveField(list);
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取列表成功", list);
     }
 
     @GetMapping("/get")
@@ -91,7 +95,11 @@ public class PositionInfoController {
     @AuditLog(value = "获得实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<PositionInfo> getPositionInfo(@RequestParam("id") Long id) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "获取实体成功", positionInfoService.getById(id));
+        PositionInfo positionInfo = positionInfoService.getById(id);
+        if (positionInfo != null) {
+            positionInfoService.resolveField(Collections.singletonList(positionInfo));
+        }
+        return new ResponseResult<>(HttpStatus.OK.value(), "获取实体成功", positionInfo);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -100,7 +108,11 @@ public class PositionInfoController {
     @AuditLog(value = "创建实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
     @Parameter(name = "createReqVO", description = "需要创建的实体对象", required = true)
     public ResponseResult<Boolean> createPositionInfo(@Valid @RequestBody PositionInfo createReqVO) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "创建实体成功", positionInfoService.save(createReqVO));
+        try {
+            return new ResponseResult<>(HttpStatus.OK.value(), "创建实体成功", positionInfoService.saveOrUpdateWithValidation(createReqVO));
+        } catch (IllegalArgumentException e) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -109,25 +121,11 @@ public class PositionInfoController {
     @AuditLog(value = "更新实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     @Parameter(name = "createReqVO", description = "需要更新的实体对象", required = true)
     public ResponseResult<Boolean> updatePositionInfo(@Valid @RequestBody PositionInfo updateReqVO) {
-        if(updateReqVO.getCode() != null) {
-            updateReqVO.setCode(updateReqVO.getCode().trim());
+        try {
+            return new ResponseResult<>(HttpStatus.OK.value(), "更新职位信息成功", positionInfoService.saveOrUpdateWithValidation(updateReqVO));
+        } catch (IllegalArgumentException e) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
-
-        LambdaQueryWrapper<PositionInfo> wrapper = new LambdaQueryWrapper<>();
-        // 新建职位，需要保证新建的code不能存在
-        wrapper.eq(PositionInfo::getCode, updateReqVO.getCode());
-
-        // 已有职位，需要保证修改后的code不能存在（或没有修改code）
-        if(updateReqVO.getId() != null) {
-            wrapper.ne(PositionInfo::getId, updateReqVO.getId());
-        }
-
-        if(positionInfoService.exists(wrapper)) {
-            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "职位编码不能重复");
-        }
-
-        // 库中无传入职位编码，且为无重复，允许更新
-        return new ResponseResult<>(HttpStatus.OK.value(), "更新职位信息成功", positionInfoService.saveOrUpdate(updateReqVO));
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -136,23 +134,12 @@ public class PositionInfoController {
     @AuditLog(value = "删除实体", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_DELETE)
     @Parameter(name = "id", description = "主键编号", required = true, example = "1")
     public ResponseResult<Boolean> deletePositonInfo(@RequestBody List<Integer> idList) {
-        return new ResponseResult<>(HttpStatus.OK.value(), "删除实体成功", positionInfoService.removeBatchByIds(idList));
+        try {
+            return new ResponseResult<>(HttpStatus.OK.value(), "删除实体成功", positionInfoService.removePositionInfoWithIncumbentCheck(idList));
+        } catch (IllegalArgumentException e) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
     }
-
-//    @PostMapping("/setJobType")
-//    @Transactional(rollbackFor = Exception.class)
-//    public ResponseResult<Boolean> setJobType(@RequestBody MultipartFile file) throws IOException {
-//        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
-//            EasyExcel.read(file.getInputStream(), PositionInfo.class,
-//                            new PositionInfoImportListener(positionInfoService))
-//                    .headRowNumber(1)
-//                    .sheet()
-//                    .doRead();
-//
-//            return new ResponseResult<>(HttpStatus.OK.value(), true);
-//        }
-//        return new ResponseResult<>(HttpStatus.OK.value(), false);
-//    }
 
     /**
      * @param file 导入文件，只输入编码code和标准岗级jobGrade
@@ -171,19 +158,100 @@ public class PositionInfoController {
     }
 
     /**
-     * 获得编码code和标准岗级jobGrade导入模板
+     * 完整职位信息导入，支持新增和按职位编码更新。
+     */
+    @PostMapping("/importFull")
+    @AuditLog(value = "完整导入职位信息", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
+    @Operation(summary = "完整导入职位信息")
+    public ResponseResult<PositionInfoImportResultVO> importFull(MultipartFile file) throws IOException {
+        try {
+            PositionInfoImportResultVO result = positionInfoService.importFull(file);
+            return new ResponseResult<>(HttpStatus.OK.value(), "完整导入职位信息成功", result);
+        } catch (Exception e) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), "完整导入职位信息失败，" + e.getMessage());
+        }
+    }
+
+    /**
+     * 复制职位到指定组织单元。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @PostMapping("/copyToOrgUnit")
+    @AuditLog(value = "复制职位到组织单元", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
+    @Operation(summary = "复制职位到组织单元")
+    public ResponseResult<List<PositionInfo>> copyToOrgUnit(@RequestBody PositionInfoCopyRequest request) {
+        try {
+            return new ResponseResult<>(HttpStatus.OK.value(), "复制职位成功", positionInfoService.copyToOrgUnit(request));
+        } catch (IllegalArgumentException e) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
+    }
+
+    /**
+     * 刷新在岗人数/在岗人员快照。请求体为空时刷新全部职位。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @PostMapping("/refreshIncumbents")
+    @AuditLog(value = "刷新职位在岗人员", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
+    @Operation(summary = "刷新职位在岗人员")
+    public ResponseResult<Integer> refreshIncumbents(@RequestBody(required = false) List<String> codeList) {
+        return new ResponseResult<>(HttpStatus.OK.value(), "刷新职位在岗人员成功", positionInfoService.refreshIncumbents(codeList));
+    }
+
+
+    /**
+     * 职位信息基本版导出。
+     */
+    @PostMapping("/exportBasic")
+    @AuditLog(value = "导出职位信息基本版", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
+    @Operation(summary = "导出职位信息基本版")
+    public void exportBasic(@Validated @RequestBody(required = false) PositionInfo exportReqVO,
+                            @RequestParam(required = false, defaultValue = "xlsx") String type,
+                            HttpServletResponse response) throws IOException {
+        prepareExportResponse(response, "职位信息基本版-", type);
+        ExcelTypeEnum typeEnum = resolveExcelType(type);
+        List<PositionInfoBasicExportVO> exportList = positionInfoService.exportBasic(exportReqVO);
+        EasyExcelFactory.write(response.getOutputStream(), PositionInfoBasicExportVO.class)
+                .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
+                .autoCloseStream(true)
+                .excelType(typeEnum)
+                .sheet("职位信息基本版")
+                .doWrite(exportList);
+    }
+
+    /**
+     * 职位信息含职位说明书内容版导出。
+     */
+    @PostMapping("/exportWithDescription")
+    @AuditLog(value = "导出职位信息含说明书版", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
+    @Operation(summary = "导出职位信息含说明书版")
+    public void exportWithDescription(@Validated @RequestBody(required = false) PositionInfo exportReqVO,
+                                      @RequestParam(required = false, defaultValue = "xlsx") String type,
+                                      HttpServletResponse response) throws IOException {
+        prepareExportResponse(response, "职位信息含说明书版-", type);
+        ExcelTypeEnum typeEnum = resolveExcelType(type);
+        List<PositionInfoDescriptionExportVO> exportList = positionInfoService.exportWithDescription(exportReqVO);
+        EasyExcelFactory.write(response.getOutputStream(), PositionInfoDescriptionExportVO.class)
+                .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
+                .autoCloseStream(true)
+                .excelType(typeEnum)
+                .sheet("职位信息含说明书版")
+                .doWrite(exportList);
+    }
+
+    /**
+     * 获得编码code和标准岗级jobGrade导入模板。
      */
     @PostMapping("/export")
-    @AuditLog(value = "导入报表", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
-    @Operation(summary = "导入报表")
+    @AuditLog(value = "导出标准岗级导入模板", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
+    @Operation(summary = "导出标准岗级导入模板")
     public void imports(@RequestParam(required = false, defaultValue = "xlsx") String type,
                         HttpServletResponse response) throws IOException {
         String contentType = "csv".equals(type) ? "text/csv;charset=UTF-8" :
                 ("xls".equals(type) ? "application/vnd.ms-excel" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setContentType(contentType);
         response.setCharacterEncoding("utf-8");
-        // 这里URLEncoder.encode可以防止中文乱码
-        String fileName = URLEncoder.encode("专利信息表报表-" + new SimpleDateFormat("yyyyMMddhhmmss")
+        String fileName = URLEncoder.encode("职位标准岗级导入模板-" + new SimpleDateFormat("yyyyMMddHHmmss")
                         .format(System.currentTimeMillis()), "UTF-8")
                 .replaceAll("\\+", "%20");
         response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." + type);
@@ -199,9 +267,89 @@ public class PositionInfoController {
                 .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
                 .autoCloseStream(true)
                 .excelType(typeEnum)
-                .sheet("政治面貌导入模板")
+                .sheet("职位标准岗级导入模板")
                 .doWrite(exampleList);
     }
+
+    /**
+     * 完整职位信息导入模板。
+     */
+    @PostMapping("/exportFullTemplate")
+    @AuditLog(value = "导出完整职位信息导入模板", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_EXPORT)
+    @Operation(summary = "导出完整职位信息导入模板")
+    public void exportFullTemplate(@RequestParam(required = false, defaultValue = "xlsx") String type,
+                                   HttpServletResponse response) throws IOException {
+        String contentType = "csv".equals(type) ? "text/csv;charset=UTF-8" :
+                ("xls".equals(type) ? "application/vnd.ms-excel" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setContentType(contentType);
+        response.setCharacterEncoding("utf-8");
+        String fileName = URLEncoder.encode("职位信息完整导入模板-" + new SimpleDateFormat("yyyyMMddHHmmss")
+                        .format(System.currentTimeMillis()), "UTF-8")
+                .replaceAll("\\+", "%20");
+        response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." + type);
+
+        List<List<String>> head = Arrays.asList(
+                Collections.singletonList("职位编码"),
+                Collections.singletonList("职位名称"),
+                Collections.singletonList("版本"),
+                Collections.singletonList("生效日期"),
+                Collections.singletonList("撤销日期"),
+                Collections.singletonList("所属组织单元"),
+                Collections.singletonList("工作中心"),
+                Collections.singletonList("职类"),
+                Collections.singletonList("职群"),
+                Collections.singletonList("职种"),
+                Collections.singletonList("职层"),
+                Collections.singletonList("标准职级"),
+                Collections.singletonList("编制人数"),
+                Collections.singletonList("控编模式"),
+                Collections.singletonList("部门代码"),
+                Collections.singletonList("部门名称"),
+                Collections.singletonList("上级职位编码"),
+                Collections.singletonList("上级职位名称"),
+                Collections.singletonList("关联职务"),
+                Collections.singletonList("工作地点"),
+                Collections.singletonList("工作内容"),
+                Collections.singletonList("职位状态")
+        );
+        List<List<String>> exampleList = Collections.singletonList(Arrays.asList(
+                "013200001", "信息化工程师", "1.0", "2026-01-01", "", "10000001", "", "A", "A-01", "A-01-001", "P3", "40", "1", "编制控制", "10000001", "信息化部", "", "", "", "长春", "负责信息化系统建设与运维", "启用"
+        ));
+        ExcelTypeEnum typeEnum = "csv".equals(type) ? ExcelTypeEnum.CSV : ("xls".equals(type) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
+        EasyExcelFactory.write(response.getOutputStream())
+                .head(head)
+                .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
+                .autoCloseStream(true)
+                .excelType(typeEnum)
+                .sheet("职位信息完整导入模板")
+                .doWrite(exampleList);
+    }
+
+
+    private void prepareExportResponse(HttpServletResponse response, String fileNamePrefix, String type) throws IOException {
+        String safeType = normalizeExportType(type);
+        String contentType = "csv".equals(safeType) ? "text/csv;charset=UTF-8" :
+                ("xls".equals(safeType) ? "application/vnd.ms-excel" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setContentType(contentType);
+        response.setCharacterEncoding("utf-8");
+        String fileName = URLEncoder.encode(fileNamePrefix + new SimpleDateFormat("yyyyMMddHHmmss")
+                        .format(System.currentTimeMillis()), "UTF-8")
+                .replaceAll("\\+", "%20");
+        response.setHeader("Content-disposition", "attachment;filename=" + fileName + "." + safeType);
+    }
+
+    private ExcelTypeEnum resolveExcelType(String type) {
+        String safeType = normalizeExportType(type);
+        return "csv".equals(safeType) ? ExcelTypeEnum.CSV : ("xls".equals(safeType) ? ExcelTypeEnum.XLS : ExcelTypeEnum.XLSX);
+    }
+
+    private String normalizeExportType(String type) {
+        if ("csv".equalsIgnoreCase(type)) {
+            return "csv";
+        }
+        if ("xls".equalsIgnoreCase(type)) {
+            return "xls";
+        }
+        return "xlsx";
+    }
 }
-
-

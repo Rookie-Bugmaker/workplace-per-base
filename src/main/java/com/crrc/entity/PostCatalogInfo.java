@@ -44,4 +44,46 @@ public class PostCatalogInfo extends BaseEntity {
      */
     @Schema(description = "节点编码")
     private String code;
+
+    /**
+     * 类别：JOB_CATEGORY职类，JOB_GROUP职群，JOB_TYPE职种
+     */
+    @Schema(description = "类别")
+    private String category;
+
+    /**
+     * 录入部门
+     */
+    @Schema(description = "录入部门")
+    private String inputDept;
+
+    /**
+     * 修改部门
+     */
+    @Schema(description = "修改部门")
+    private String modifyDept;
+
+    /**
+     * 数据状态：ENABLED启用，DISABLED停用
+     */
+    @Schema(description = "数据状态")
+    private String status;
+
+    /**
+     * 描述
+     */
+    @Schema(description = "描述")
+    private String description;
+
+    /**
+     * 上级职务族编码快照
+     */
+    @Schema(description = "上级职务族编码")
+    private String parentCode;
+
+    /**
+     * 上级职务族名称快照
+     */
+    @Schema(description = "上级职务族名称")
+    private String parentName;
 }
