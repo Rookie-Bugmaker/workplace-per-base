@@ -57,6 +57,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -139,17 +140,34 @@ public class PositionDescriptionServiceImpl extends WorkServiceImpl<PositionDesc
 
         PositionInfo positionInfo = requirePosition(description.getPositionCode());
         PositionDescription existing = null;
+        boolean revisePublished = false;
         if (description.getId() != null) {
             existing = requireDescription(description.getId());
-            if (!isEditable(existing.getStatus())) {
-                throw new IllegalArgumentException("当前职位说明书状态不允许编辑，状态=" + existing.getStatus());
+            if (!StringUtils.equals(existing.getPositionCode(), description.getPositionCode())) {
+                throw new IllegalArgumentException("已存在的职位说明书不允许变更职位编码");
             }
-            description.setStatus(existing.getStatus());
-            description.setProcInstId(existing.getProcInstId());
-            description.setSubmitTime(existing.getSubmitTime());
-            description.setPublishTime(existing.getPublishTime());
-            description.setPublishBy(existing.getPublishBy());
-            description.setLatestFlag(existing.getLatestFlag());
+            if (PositionManagementConstants.DESC_STATUS_PUBLISHED.equals(existing.getStatus())) {
+                checkNoApprovingDescription(existing.getPositionCode());
+                revisePublished = true;
+                description.setId(null);
+                description.setStatus(PositionManagementConstants.DESC_STATUS_DRAFT);
+                description.setVersion(nextVersion(existing.getVersion()));
+                description.setProcInstId(null);
+                description.setSubmitTime(null);
+                description.setPublishTime(null);
+                description.setPublishBy(null);
+                description.setLatestFlag(0);
+            } else {
+                if (!isEditable(existing.getStatus())) {
+                    throw new IllegalArgumentException("当前职位说明书状态不允许编辑，状态=" + existing.getStatus());
+                }
+                description.setStatus(existing.getStatus());
+                description.setProcInstId(existing.getProcInstId());
+                description.setSubmitTime(existing.getSubmitTime());
+                description.setPublishTime(existing.getPublishTime());
+                description.setPublishBy(existing.getPublishBy());
+                description.setLatestFlag(existing.getLatestFlag());
+            }
         } else {
             checkNoApprovingDescription(description.getPositionCode());
             description.setStatus(PositionManagementConstants.DESC_STATUS_DRAFT);
@@ -157,6 +175,9 @@ public class PositionDescriptionServiceImpl extends WorkServiceImpl<PositionDesc
         }
 
         fillMainFieldsFromPosition(description, positionInfo);
+        if (revisePublished) {
+            description.setVersion(nextVersion(existing.getVersion()));
+        }
         validateAttachments(request.getAttachments());
 
         if (description.getId() == null) {
@@ -165,7 +186,7 @@ public class PositionDescriptionServiceImpl extends WorkServiceImpl<PositionDesc
             this.updateById(description);
         }
         replaceChildren(description.getId(), request);
-        syncPositionDescriptionStatus(description.getPositionCode(), description.getStatus());
+        recalculatePositionDescriptionStatus(description.getPositionCode());
         return getDetail(description.getId());
     }
 
@@ -256,7 +277,7 @@ public class PositionDescriptionServiceImpl extends WorkServiceImpl<PositionDesc
         flowableUtils.reject(procInstId, request == null ? null : request.getAuditOpinion());
         description.setStatus(PositionManagementConstants.DESC_STATUS_REJECTED);
         this.updateById(description);
-        syncPositionDescriptionStatus(description.getPositionCode(), PositionManagementConstants.DESC_STATUS_REJECTED);
+        recalculatePositionDescriptionStatus(description.getPositionCode());
         saveAuditRecord(description, request, PositionManagementConstants.AUDIT_RESULT_REJECT);
         return true;
     }
@@ -284,7 +305,7 @@ public class PositionDescriptionServiceImpl extends WorkServiceImpl<PositionDesc
         if (Objects.equals(PositionManagementConstants.FLOW_STATUS_REJECTED, param.getProcessInstanceStatus())) {
             description.setStatus(PositionManagementConstants.DESC_STATUS_REJECTED);
             this.updateById(description);
-            syncPositionDescriptionStatus(description.getPositionCode(), PositionManagementConstants.DESC_STATUS_REJECTED);
+            recalculatePositionDescriptionStatus(description.getPositionCode());
             PositionDescriptionAuditRecord record = new PositionDescriptionAuditRecord();
             record.setDescriptionId(description.getId());
             record.setProcInstId(param.getProcessInstanceId());
@@ -335,22 +356,54 @@ public class PositionDescriptionServiceImpl extends WorkServiceImpl<PositionDesc
         if (PositionManagementConstants.DESC_STATUS_APPROVING.equals(description.getStatus())) {
             throw new IllegalArgumentException("审批中的职位说明书不能停用，请先终止或驳回流程");
         }
+        if (PositionManagementConstants.DESC_STATUS_DISABLED.equals(description.getStatus())) {
+            return true;
+        }
         description.setStatus(PositionManagementConstants.DESC_STATUS_DISABLED);
         description.setLatestFlag(0);
         this.updateById(description);
+        recalculatePositionDescriptionStatus(description.getPositionCode());
+        return true;
+    }
 
-        PositionDescription latestPublished = this.baseMapper.selectOne(new LambdaQueryWrapper<PositionDescription>()
-                .eq(PositionDescription::getPositionCode, description.getPositionCode())
-                .eq(PositionDescription::getStatus, PositionManagementConstants.DESC_STATUS_PUBLISHED)
-                .orderByDesc(PositionDescription::getPublishTime)
-                .last("limit 1"));
-        if (latestPublished != null) {
-            latestPublished.setLatestFlag(1);
-            this.updateById(latestPublished);
-            syncPositionDescriptionStatus(description.getPositionCode(), PositionManagementConstants.DESC_STATUS_PUBLISHED);
-        } else {
-            syncPositionDescriptionStatus(description.getPositionCode(), PositionManagementConstants.DESC_STATUS_NONE);
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean enable(Long id) {
+        PositionDescription description = requireDescription(id);
+        if (PositionManagementConstants.DESC_STATUS_PUBLISHED.equals(description.getStatus())) {
+            return true;
         }
+        if (!PositionManagementConstants.DESC_STATUS_DISABLED.equals(description.getStatus())) {
+            throw new IllegalArgumentException("只有已停用的职位说明书可以重新启用");
+        }
+        this.baseMapper.update(null, new LambdaUpdateWrapper<PositionDescription>()
+                .eq(PositionDescription::getPositionCode, description.getPositionCode())
+                .set(PositionDescription::getLatestFlag, 0));
+        description.setStatus(PositionManagementConstants.DESC_STATUS_PUBLISHED);
+        description.setLatestFlag(1);
+        if (description.getPublishTime() == null) {
+            description.setPublishTime(LocalDateTime.now());
+        }
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId != null) {
+            description.setPublishBy(currentUserId);
+        }
+        this.updateById(description);
+        syncPositionDescriptionStatus(description.getPositionCode(), PositionManagementConstants.DESC_STATUS_PUBLISHED);
+        return true;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean deleteCanceled(Long id) {
+        PositionDescription description = requireDescription(id);
+        if (!PositionManagementConstants.DESC_STATUS_CANCELED.equals(description.getStatus())) {
+            throw new IllegalArgumentException("只有已撤销/已取消的职位说明书允许删除");
+        }
+        String positionCode = description.getPositionCode();
+        removeDescriptionChildren(id);
+        this.removeById(id);
+        recalculatePositionDescriptionStatus(positionCode);
         return true;
     }
 
@@ -949,6 +1002,17 @@ public class PositionDescriptionServiceImpl extends WorkServiceImpl<PositionDesc
         attachmentService.saveBatch(list);
     }
 
+    private void removeDescriptionChildren(Long descriptionId) {
+        responsibilityService.remove(new LambdaQueryWrapper<PositionDescriptionResponsibility>().eq(PositionDescriptionResponsibility::getDescriptionId, descriptionId));
+        basisService.remove(new LambdaQueryWrapper<PositionDescriptionBasis>().eq(PositionDescriptionBasis::getDescriptionId, descriptionId));
+        coordinationService.remove(new LambdaQueryWrapper<PositionDescriptionCoordination>().eq(PositionDescriptionCoordination::getDescriptionId, descriptionId));
+        authorityService.remove(new LambdaQueryWrapper<PositionDescriptionAuthority>().eq(PositionDescriptionAuthority::getDescriptionId, descriptionId));
+        assessmentService.remove(new LambdaQueryWrapper<PositionDescriptionAssessment>().eq(PositionDescriptionAssessment::getDescriptionId, descriptionId));
+        competencyService.remove(new LambdaQueryWrapper<PositionDescriptionCompetency>().eq(PositionDescriptionCompetency::getDescriptionId, descriptionId));
+        attachmentService.remove(new LambdaQueryWrapper<PositionDescriptionAttachment>().eq(PositionDescriptionAttachment::getDescriptionId, descriptionId));
+        auditRecordService.remove(new LambdaQueryWrapper<PositionDescriptionAuditRecord>().eq(PositionDescriptionAuditRecord::getDescriptionId, descriptionId));
+    }
+
     private List<PositionDescriptionResponsibility> queryResponsibilities(Long descriptionId) {
         return responsibilityService.list(new LambdaQueryWrapper<PositionDescriptionResponsibility>()
                 .eq(PositionDescriptionResponsibility::getDescriptionId, descriptionId)
@@ -1177,6 +1241,28 @@ public class PositionDescriptionServiceImpl extends WorkServiceImpl<PositionDesc
             if (attachment != null && StringUtils.isBlank(attachment.getFileId())) {
                 throw new IllegalArgumentException("附件fileId不能为空，文件名=" + attachment.getFileName());
             }
+        }
+    }
+
+    private String nextVersion(String version) {
+        if (StringUtils.isBlank(version)) {
+            return "1.0";
+        }
+        String trimmed = version.trim();
+        try {
+            BigDecimal value = new BigDecimal(trimmed);
+            return value.add(BigDecimal.ONE).setScale(Math.max(value.scale(), 0)).toPlainString();
+        } catch (NumberFormatException ignored) {
+            int end = trimmed.length() - 1;
+            while (end >= 0 && Character.isDigit(trimmed.charAt(end))) {
+                end--;
+            }
+            if (end < trimmed.length() - 1) {
+                String prefix = trimmed.substring(0, end + 1);
+                String number = trimmed.substring(end + 1);
+                return prefix + (Long.parseLong(number) + 1L);
+            }
+            return trimmed + "-1";
         }
     }
 

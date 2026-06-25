@@ -77,6 +77,16 @@ public interface PositionDescriptionService extends IService<PositionDescription
     boolean disable(Long id);
 
     /**
+     * 启用已停用的说明书。
+     */
+    boolean enable(Long id);
+
+    /**
+     * 删除已撤销/取消的说明书。
+     */
+    boolean deleteCanceled(Long id);
+
+    /**
      * 获取运行时流程图。
      */
     ProcessRunningInfoVo runningSequenceGraph(Long id);

@@ -29,7 +29,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -110,7 +109,6 @@ public class PositionDescriptionController {
         return new ResponseResult<>(HttpStatus.OK.value(), "按职位编码查询当前说明书成功", positionDescriptionService.getLatestByPositionCode(positionCode));
     }
 
-    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/saveDraft")
     @Operation(summary = "保存职位说明书草稿")
     @AuditLog(value = "保存职位说明书草稿", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
@@ -122,7 +120,6 @@ public class PositionDescriptionController {
         }
     }
 
-    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/submit")
     @Operation(summary = "提交职位说明书审批")
     @AuditLog(value = "提交职位说明书审批", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
@@ -134,7 +131,6 @@ public class PositionDescriptionController {
         }
     }
 
-    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/approve")
     @Operation(summary = "职位说明书审批通过")
     @AuditLog(value = "职位说明书审批通过", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
@@ -146,7 +142,6 @@ public class PositionDescriptionController {
         }
     }
 
-    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/reject")
     @Operation(summary = "职位说明书审批驳回")
     @AuditLog(value = "职位说明书审批驳回", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
@@ -158,7 +153,6 @@ public class PositionDescriptionController {
         }
     }
 
-    @Transactional(rollbackFor = Exception.class)
     @PutMapping("/approval-callback")
     @Operation(summary = "职位说明书Flowable回调")
     @AuditLog(value = "职位说明书Flowable回调", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
@@ -170,7 +164,6 @@ public class PositionDescriptionController {
         }
     }
 
-    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/publish")
     @Operation(summary = "发布职位说明书")
     @AuditLog(value = "发布职位说明书", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
@@ -182,13 +175,34 @@ public class PositionDescriptionController {
         }
     }
 
-    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/disable")
     @Operation(summary = "停用职位说明书")
     @AuditLog(value = "停用职位说明书", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
     public ResponseResult<Boolean> disable(@RequestParam("id") Long id) {
         try {
             return new ResponseResult<>(HttpStatus.OK.value(), "职位说明书停用成功", positionDescriptionService.disable(id));
+        } catch (IllegalArgumentException e) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
+    }
+
+    @PostMapping("/enable")
+    @Operation(summary = "启用职位说明书")
+    @AuditLog(value = "启用职位说明书", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
+    public ResponseResult<Boolean> enable(@RequestParam("id") Long id) {
+        try {
+            return new ResponseResult<>(HttpStatus.OK.value(), "职位说明书启用成功", positionDescriptionService.enable(id));
+        } catch (IllegalArgumentException e) {
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
+    }
+
+    @PostMapping("/delete")
+    @Operation(summary = "删除已撤销职位说明书")
+    @AuditLog(value = "删除已撤销职位说明书", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_DELETE)
+    public ResponseResult<Boolean> delete(@RequestParam("id") Long id) {
+        try {
+            return new ResponseResult<>(HttpStatus.OK.value(), "职位说明书删除成功", positionDescriptionService.deleteCanceled(id));
         } catch (IllegalArgumentException e) {
             return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
@@ -233,7 +247,6 @@ public class PositionDescriptionController {
         return new ResponseResult<>(HttpStatus.OK.value(), "职位说明书状态统计成功", positionDescriptionService.statusStatistics(queryReqVO));
     }
 
-    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/cancel")
     @Operation(summary = "取消/撤销职位说明书")
     @AuditLog(value = "取消/撤销职位说明书", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_MODIFY)
