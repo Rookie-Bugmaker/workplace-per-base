@@ -13,10 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
 import java.sql.*;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -542,207 +539,421 @@ public class MyBatisPlusMigrationService {
 
     public void migrateAppointmentEntity(Class<?> appointmentClass) {
         String tableName = tableUtil.getTableName(appointmentClass);
-        List<String> columns = tableUtil.getTableColumns(appointmentClass);
         String primaryKey = tableUtil.getPrimaryKey(appointmentClass);
-        columns.add(primaryKey);
 
-        columns.add("JOB_ONE");
-        columns.add("JOB_TWO");
-        columns.add("JOB_THREE");
+        // 避免直接修改tableUtil返回的原始集合
+        List<String> columns = new ArrayList<>(
+                tableUtil.getTableColumns(appointmentClass)
+        );
 
-        Map<String, String> translateMap = postCatalogInfoServiceImpl.query(new PostCatalogInfo()).stream().collect(Collectors.toMap(
-                PostCatalogInfo::getCode,
-                PostCatalogInfo::getName
-        ));
+        addColumnIfAbsent(columns, primaryKey);
+        addColumnIfAbsent(columns, "JOB_ONE");
+        addColumnIfAbsent(columns, "JOB_TWO");
+        addColumnIfAbsent(columns, "JOB_THREE");
 
-        log.info("开始迁移表: " + tableName);
-        log.info("主键列: " + primaryKey);
-        log.info("迁移列: " + String.join(", ", columns));
+        log.info("开始迁移表: {}", tableName);
+        log.info("主键列: {}", primaryKey);
+        log.info("迁移列: {}", String.join(", ", columns));
 
         long startTime = System.currentTimeMillis();
 
         String columnStr = String.join(", ", columns);
-        String placeholders = String.join(", ",
-                java.util.Collections.nCopies(columns.size(), "?"));
+        String placeholders = String.join(
+                ", ",
+                Collections.nCopies(columns.size(), "?")
+        );
 
-        // 查询总数
-        long totalCount = openGaussJdbcTemplate.queryForList(
-                "SELECT COUNT(*) FROM " + tableName + " GROUP BY user_code", Long.class).size();
+        String insertSql = String.format(
+                "INSERT INTO %s (%s) VALUES (%s)",
+                tableName,
+                columnStr,
+                placeholders
+        );
 
-        // Oracle连接
+        /*
+         * 离职类型既包含中文值，也包含数据库中可能存在的编码值。
+         */
+        final String leaveChangeTypes =
+                "'离职','退休','因病提前退休','实习生','离休'," +
+                        "'特殊工种提前退休','死亡','集团内调出','集团外调出'," +
+                        "'入站博士后','015','016','017','018'";
+
+        /*
+         * hr_emp_basic理论上每个user_code应只有一条有效记录。
+         * 为防止存在重复数据，这里按照更新时间、创建时间、ID取最新状态。
+         */
+        final String basicStatusCte =
+                "basic_ranked AS (" +
+                        "    SELECT heb.user_code, " +
+                        "           heb.is_employed, " +
+                        "           ROW_NUMBER() OVER (" +
+                        "               PARTITION BY heb.user_code " +
+                        "               ORDER BY heb.update_time DESC NULLS LAST, " +
+                        "                        heb.create_time DESC NULLS LAST, " +
+                        "                        heb.id DESC" +
+                        "           ) AS basic_rank " +
+                        "    FROM hr_emp_basic heb " +
+                        "    WHERE heb.deleted = 0 " +
+                        "      AND heb.user_code IS NOT NULL" +
+                        "), " +
+                        "basic_status AS (" +
+                        "    SELECT user_code, is_employed " +
+                        "    FROM basic_ranked " +
+                        "    WHERE basic_rank = 1" +
+                        ")";
+
+        /*
+         * 严格按照本次文字要求：
+         *
+         * 1. is_employed = '1'：
+         *    只保留离职信息。
+         *
+         * 2. is_employed不是'1'，包括0或NULL：
+         *    只保留任职信息，即change_type不属于离职类型。
+         *
+         * 注意：该逻辑与建表文件中“1=在职、0=离职”的注释相反。
+         */
+        final String recordSelectionCondition =
+                " AND (" +
+                        "       (" +
+                        "           bs.is_employed = '1' " +
+                        "           AND (" +
+                        "               src.change_type IS NULL " +
+                        "               OR src.change_type NOT IN (" + leaveChangeTypes + ")" +
+                        "           )" +
+                        "       ) " +
+                        "       OR " +
+                        "       (" +
+                        "           bs.is_employed = '0' " +
+                        "           AND src.change_type IN (" + leaveChangeTypes + ")" +
+                        "       )" +
+                        " ) ";
+
+        /*
+         * 总数统计必须和实际迁移条件一致，否则进度可能不准确。
+         */
+        String totalCountSql = String.format(
+                "WITH " + basicStatusCte + " " +
+                        "SELECT COUNT(DISTINCT src.user_code) " +
+                        "FROM %s src " +
+                        "JOIN basic_status bs " +
+                        "  ON bs.user_code = src.user_code " +
+                        "WHERE src.deleted = 0 " +
+                        "  AND src.user_code IS NOT NULL " +
+                        recordSelectionCondition,
+                tableName
+        );
+
+        Long totalCountValue = openGaussJdbcTemplate.queryForObject(
+                totalCountSql,
+                Long.class
+        );
+
+        long totalCount = totalCountValue == null ? 0L : totalCountValue;
+
         try (Connection oracleConn = OracleJdbcUtil.getConnection()) {
-            // 清空目标表
-            try (Statement stmt = oracleConn.createStatement()) {
-                stmt.execute("TRUNCATE TABLE " + tableName);
-            }
+            oracleConn.setAutoCommit(false);
 
-            // 准备插入语句
-            String insertSql = String.format(
-                    "INSERT INTO %s (%s) VALUES (%s)",
-                    tableName, columnStr, placeholders);
+            try {
+                // 清空Oracle目标表
+                try (Statement stmt = oracleConn.createStatement()) {
+                    stmt.execute("TRUNCATE TABLE " + tableName);
+                }
 
-            Object lastUserCode = null; // 初始为null
-            AtomicLong migratedCount = new AtomicLong(0);
+                String lastUserCode = null;
+                long migratedCount = 0L;
 
-            final String leaveChangeTypes =
-                    "'离职','退休','因病提前退休','实习生','离休','特殊工种提前退休'," +
-                            "'死亡','集团内调出','集团外调出','入站博士后'," +
-                            "'015','016','017','018'";
+                try (PreparedStatement pstmt =
+                             oracleConn.prepareStatement(insertSql)) {
 
-            while (true) {
-                boolean firstPage = lastUserCode == null;
+                    while (true) {
+                        boolean firstPage = lastUserCode == null;
 
-                // 按用户编码进行游标分页
-                String pageCondition = firstPage
-                        ? ""
-                        : " AND src.user_code > ? ";
+                        String pageCondition = firstPage
+                                ? ""
+                                : " AND src.user_code > ? ";
 
-                String querySql = String.format(
-                        "WITH ranked_data AS (" +
-                                "    SELECT src.*, " +
-                                "           ROW_NUMBER() OVER (" +
-                                "               PARTITION BY src.user_code " +
-                                "               ORDER BY " +
-                                // 离职记录优先于所有任职记录
-                                "                   CASE " +
-                                "                       WHEN src.change_type IN (" + leaveChangeTypes + ") " +
-                                "                       THEN 0 " +
-                                "                       ELSE 1 " +
-                                "                   END ASC, " +
+                        String querySql = String.format(
+                                "WITH " + basicStatusCte + ", " +
 
-                                // 在离职记录之间，或者没有离职记录时的任职记录之间，取最新一条
-                                "                   src.create_time DESC NULLS LAST, " +
-                                "                   src.start_date DESC NULLS LAST, " +
-                                "                   src.end_date DESC NULLS LAST, " +
+                                        /*
+                                         * 先按照is_employed筛选出指定类型的候选记录。
+                                         */
+                                        "candidate_data AS (" +
+                                        "    SELECT src.* " +
+                                        "    FROM %s src " +
+                                        "    JOIN basic_status bs " +
+                                        "      ON bs.user_code = src.user_code " +
+                                        "    WHERE src.deleted = 0 " +
+                                        "      AND src.user_code IS NOT NULL " +
+                                        pageCondition +
+                                        recordSelectionCondition +
+                                        "), " +
 
-                                // 防止前三个时间完全相同时结果不稳定
-                                "                   src.id DESC " +
-                                "           ) AS group_rank " +
-                                "    FROM %s src " +
-                                "    WHERE src.deleted = '0' " +
-                                "      AND src.user_code IS NOT NULL " +
-                                pageCondition +
-                                ") " +
+                                        /*
+                                         * 候选记录已经被限定为离职或者任职中的一种，
+                                         * 再按时间取该类型的最新一条。
+                                         */
+                                        "ranked_data AS (" +
+                                        "    SELECT cd.*, " +
+                                        "           ROW_NUMBER() OVER (" +
+                                        "               PARTITION BY cd.user_code " +
+                                        "               ORDER BY " +
+                                        "                   cd.create_time DESC NULLS LAST, " +
+                                        "                   cd.start_date DESC NULLS LAST, " +
+                                        "                   cd.end_date DESC NULLS LAST, " +
+                                        "                   cd.id DESC" +
+                                        "           ) AS group_rank " +
+                                        "    FROM candidate_data cd" +
+                                        ") " +
 
-                                "SELECT ra.start_date, " +
-                                "       ra.end_date, " +
-                                "       COALESCE(ci2.code_value, ra.change_event) AS change_event, " +
-                                "       COALESCE(ci1.code_value, ra.change_type) AS change_type, " +
-                                "       COALESCE(ci3.code_value, ra.change_reason) AS change_reason, " +
-                                "       ra.personnel_category, " +
-                                "COALESCE(ci4.code_value, ra.duty_status) AS duty_status, " +
-                                "       ra.org, " +
-                                "       ra.dept, " +
-                                "       ra.org_unit, " +
-                                "       COALESCE(pi.\"name\", ra.\"position\") AS \"position\", " +
-                                "       ra.hierarchy_rank, " +
-                                "       ra.position_name, " +
-                                "       ra.position_hierarchy, " +
-                                "       COALESCE(ci5.code_value, ra.position_category) AS position_category, " +
-                                "       ra.salary_group, " +
-                                "       ra.id, " +
-                                "       ra.user_code, " +
-                                "       ra.deleted, " +
-                                "       ra.create_time, " +
-                                "       ra.create_by, " +
-                                "       ra.update_time, " +
-                                "       ra.update_by, " +
-                                "       ra.tenant_id, " +
-                                "       COALESCE(pi.job_type, ra.job_type) AS job_type " +
+                                        "SELECT ra.start_date, " +
+                                        "       ra.end_date, " +
+                                        "       COALESCE(ci2.code_value, ra.change_event) " +
+                                        "           AS change_event, " +
+                                        "       COALESCE(ci1.code_value, ra.change_type) " +
+                                        "           AS change_type, " +
+                                        "       COALESCE(ci3.code_value, ra.change_reason) " +
+                                        "           AS change_reason, " +
+                                        "       ra.personnel_category, " +
+                                        "       COALESCE(ci4.code_value, ra.duty_status) " +
+                                        "           AS duty_status, " +
+                                        "       ra.org, " +
+                                        "       ra.dept, " +
+                                        "       ra.org_unit, " +
+                                        "       COALESCE(pi.\"name\", ra.\"position\") " +
+                                        "           AS \"position\", " +
+                                        "       ra.hierarchy_rank, " +
+                                        "       ra.position_name, " +
+                                        "       ra.position_hierarchy, " +
+                                        "       COALESCE(ci5.code_value, ra.position_category) " +
+                                        "           AS position_category, " +
+                                        "       ra.salary_group, " +
+                                        "       ra.id, " +
+                                        "       ra.user_code, " +
+                                        "       ra.deleted, " +
+                                        "       ra.create_time, " +
+                                        "       ra.create_by, " +
+                                        "       ra.update_time, " +
+                                        "       ra.update_by, " +
+                                        "       ra.tenant_id, " +
+                                        "       COALESCE(pi.job_type, ra.job_type) " +
+                                        "           AS job_type, " +
+                                        "       ra.sort_no " +
 
-                                "FROM ranked_data ra " +
+                                        "FROM ranked_data ra " +
 
-                                "LEFT JOIN code_info ci1 " +
-                                "       ON ci1.code = ra.change_type " +
-                                "      AND ci1.\"type\" = 'APPOINTMENT_CHANGE_TYPE' " +
+                                        "LEFT JOIN code_info ci1 " +
+                                        "       ON ci1.code = ra.change_type " +
+                                        "      AND ci1.\"type\" = " +
+                                        "          'APPOINTMENT_CHANGE_TYPE' " +
 
-                                "LEFT JOIN code_info ci2 " +
-                                "       ON ci2.code = ra.change_event " +
-                                "      AND ci2.\"type\" = 'APPOINTMENT_CHANGE_EVENT' " +
+                                        "LEFT JOIN code_info ci2 " +
+                                        "       ON ci2.code = ra.change_event " +
+                                        "      AND ci2.\"type\" = " +
+                                        "          'APPOINTMENT_CHANGE_EVENT' " +
 
-                                "LEFT JOIN code_info ci3 " +
-                                "       ON ci3.code = ra.change_reason " +
-                                "      AND ci3.\"type\" = 'APPOINTMENT_CHANGE_REASON' " +
+                                        "LEFT JOIN code_info ci3 " +
+                                        "       ON ci3.code = ra.change_reason " +
+                                        "      AND ci3.\"type\" = " +
+                                        "          'APPOINTMENT_CHANGE_REASON' " +
 
-                                "LEFT JOIN code_info ci4 " +
-                                "       ON ci4.code = ra.duty_status " +
-                                "      AND ci4.\"type\" = 'APPOINTMENT_DUTY_STATUS' " +
+                                        "LEFT JOIN code_info ci4 " +
+                                        "       ON ci4.code = ra.duty_status " +
+                                        "      AND ci4.\"type\" = " +
+                                        "          'APPOINTMENT_DUTY_STATUS' " +
 
-                                "LEFT JOIN code_info ci5 " +
-                                "       ON ci5.code = ra.position_category " +
-                                "      AND ci5.\"type\" = 'APPOINTMENT_POSITION_CATEGORY' " +
+                                        "LEFT JOIN code_info ci5 " +
+                                        "       ON ci5.code = ra.position_category " +
+                                        "      AND ci5.\"type\" = " +
+                                        "          'APPOINTMENT_POSITION_CATEGORY' " +
 
-                                "LEFT JOIN position_info pi " +
-                                "       ON pi.code = ra.\"position\" " +
+                                        "LEFT JOIN position_info pi " +
+                                        "       ON pi.code = ra.\"position\" " +
 
-                                // 每个用户最终只保留排序后的第一条
-                                "WHERE ra.group_rank = 1 " +
-                                "ORDER BY ra.user_code " +
-                                "LIMIT ?",
-                        tableName
+                                        "WHERE ra.group_rank = 1 " +
+                                        "ORDER BY ra.user_code " +
+                                        "LIMIT ?",
+                                tableName
+                        );
+
+                        List<Map<String, Object>> batchData;
+
+                        if (firstPage) {
+                            batchData = openGaussJdbcTemplate.queryForList(
+                                    querySql,
+                                    batchSize
+                            );
+                        } else {
+                            batchData = openGaussJdbcTemplate.queryForList(
+                                    querySql,
+                                    lastUserCode,
+                                    batchSize
+                            );
+                        }
+
+                        // 没有更多数据时结束循环，防止死循环
+                        if (batchData == null || batchData.isEmpty()) {
+                            break;
+                        }
+
+                        pstmt.clearBatch();
+
+                        for (Map<String, Object> row : batchData) {
+                            /*
+                             * 如果JOB_ONE、JOB_TWO、JOB_THREE是派生字段，
+                             * 应在这里执行项目原有的职类职群职种转换逻辑。
+                             *
+                             * 当前查询没有直接返回这三个字段，
+                             * 未填充时将向Oracle写入NULL。
+                             */
+
+                            for (int i = 0; i < columns.size(); i++) {
+                                String column = columns.get(i);
+                                Object value = getValueIgnoreCase(row, column);
+                                pstmt.setObject(i + 1, value);
+                            }
+
+                            pstmt.addBatch();
+                        }
+
+                        pstmt.executeBatch();
+                        oracleConn.commit();
+
+                        // 游标必须取当前批次排序后的最后一个user_code
+                        Map<String, Object> lastRow =
+                                batchData.get(batchData.size() - 1);
+
+                        Object nextUserCodeValue =
+                                getValueIgnoreCase(lastRow, "user_code");
+
+                        if (nextUserCodeValue == null) {
+                            throw new IllegalStateException(
+                                    "分页查询结果中的user_code为空，无法继续分页"
+                            );
+                        }
+
+                        String nextUserCode =
+                                String.valueOf(nextUserCodeValue);
+
+                        // 防止异常数据导致游标没有前进，形成死循环
+                        if (Objects.equals(lastUserCode, nextUserCode)) {
+                            throw new IllegalStateException(
+                                    "分页游标未前进，当前user_code=" +
+                                            nextUserCode
+                            );
+                        }
+
+                        lastUserCode = nextUserCode;
+                        migratedCount += batchData.size();
+
+                        double progress = totalCount == 0
+                                ? 100.0
+                                : Math.min(
+                                100.0,
+                                migratedCount * 100.0 / totalCount
+                        );
+
+                        log.info(
+                                "表 {} 迁移进度: {}/{} ({}%)",
+                                tableName,
+                                migratedCount,
+                                totalCount,
+                                String.format(
+                                        Locale.ROOT,
+                                        "%.2f",
+                                        progress
+                                )
+                        );
+                    }
+                }
+
+                long endTime = System.currentTimeMillis();
+
+                log.info(
+                        "表 {} 迁移完成，共 {} 条记录，耗时 {} 毫秒",
+                        tableName,
+                        migratedCount,
+                        endTime - startTime
                 );
 
-                List<Map<String, Object>> batchData;
-
-                if (firstPage) {
-                    batchData = openGaussJdbcTemplate.queryForList(
-                            querySql,
-                            batchSize
-                    );
-                } else {
-                    batchData = openGaussJdbcTemplate.queryForList(
-                            querySql,
-                            lastUserCode,
-                            batchSize
-                    );
-                }
-
-                if (batchData.isEmpty()) {
-                    break;
-                }
-
-                batchData.forEach(item -> {
-                    if(item.get("job_type") != null && !String.valueOf(item.get("job_type")).equals("ERROR")) {
-                        String jobType = String.valueOf(item.get("job_type"));
-                        String[] split = jobType.split("-");
-                        if(split.length == 3) {
-                            item.put("JOB_ONE", translateMap.getOrDefault(split[0], split[0]));
-                            item.put("JOB_TWO", translateMap.getOrDefault(String.join("-", split[0], split[1]), String.join("-", split[0], split[1])));
-                            item.put("JOB_THREE", translateMap.getOrDefault(jobType, jobType));
-                        } else {
-                            log.error("用户{}的jobType有误，为{}，请检查", item.get("user_code"), jobType);
-                        }
-
-                    }
-                });
-
-                // 批量插入目标表
-                try (PreparedStatement pstmt = oracleConn.prepareStatement(insertSql)) {
-                    for (Map<String, Object> row : batchData) {
-                        for (int i = 0; i < columns.size(); i++) {
-                            pstmt.setObject(i + 1, row.get(columns.get(i)));
-                        }
-
-                        pstmt.addBatch();
-
-                        // 更新最后ID
-                        lastUserCode = row.get("user_code");
-                    }
-                    pstmt.executeBatch();
-                }
-
-                long currentCount = migratedCount.addAndGet(batchData.size());
-                log.info("表 {} 迁移进度: {}/{} ({}%)",
-                        tableName, currentCount, totalCount,
-                        String.format("%.2f", currentCount * 100.0 / totalCount));
+            } catch (SQLException e) {
+                rollbackQuietly(oracleConn, e);
+                throw e;
+            } catch (RuntimeException e) {
+                rollbackQuietly(oracleConn, e);
+                throw e;
             }
-
-            long endTime = System.currentTimeMillis();
-            log.info("表 {} 迁移完成, 共 {} 条记录, 耗时 {} 毫秒",
-                    tableName, migratedCount.get(), (endTime - startTime));
 
         } catch (SQLException e) {
             throw new RuntimeException("Oracle数据库操作失败", e);
+        }
+    }
+
+    /**
+     * 忽略大小写添加列，避免主键或者JOB字段重复。
+     */
+    private void addColumnIfAbsent(
+            List<String> columns,
+            String column
+    ) {
+        if (column == null || column.trim().isEmpty()) {
+            return;
+        }
+
+        boolean exists = columns.stream()
+                .filter(Objects::nonNull)
+                .anyMatch(item ->
+                        item.replace("\"", "")
+                                .equalsIgnoreCase(
+                                        column.replace("\"", "")
+                                )
+                );
+
+        if (!exists) {
+            columns.add(column);
+        }
+    }
+
+    /**
+     * Spring JDBC返回的Map键名可能是大写或者小写；
+     * 同时兼容列名中带双引号的情况。
+     */
+    private Object getValueIgnoreCase(
+            Map<String, Object> row,
+            String column
+    ) {
+        if (row == null || column == null) {
+            return null;
+        }
+
+        String normalizedColumn =
+                column.replace("\"", "").trim();
+
+        for (Map.Entry<String, Object> entry : row.entrySet()) {
+            String key = entry.getKey();
+
+            if (key != null &&
+                    key.replace("\"", "")
+                            .equalsIgnoreCase(normalizedColumn)) {
+                return entry.getValue();
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 回滚失败时将异常附加到原始异常中。
+     */
+    private void rollbackQuietly(
+            Connection connection,
+            Throwable originalException
+    ) {
+        try {
+            connection.rollback();
+        } catch (SQLException rollbackException) {
+            originalException.addSuppressed(rollbackException);
         }
     }
 
