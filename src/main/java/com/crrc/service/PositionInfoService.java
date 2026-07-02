@@ -7,11 +7,14 @@ import com.crrc.pojo.dto.PositionInfoCopyRequest;
 import com.crrc.pojo.vo.PositionInfoBasicExportVO;
 import com.crrc.pojo.vo.PositionInfoDescriptionExportVO;
 import com.crrc.pojo.vo.PositionInfoImportResultVO;
+import com.crrc.pojo.vo.PositionIncumbentDTO;
+import com.crrc.pojo.vo.PositionIncumbentDTO;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author yukun
@@ -56,6 +59,11 @@ public interface PositionInfoService extends IService<PositionInfo> {
     int refreshIncumbents(Collection<String> codes);
 
     /**
+     * 按职位编码查询当前在岗人员，供经商办企重点岗位重算使用。
+     */
+    Map<String, List<PositionIncumbentDTO>> queryIncumbentMap(Collection<String> codes);
+
+    /**
      * 复制职位到指定组织单元。
      */
     List<PositionInfo> copyToOrgUnit(PositionInfoCopyRequest request);
@@ -70,6 +78,11 @@ public interface PositionInfoService extends IService<PositionInfo> {
      * 按查询条件导出职位信息及当前职位说明书内容。
      */
     List<PositionInfoDescriptionExportVO> exportWithDescription(PositionInfo queryReqVO);
+
+    /**
+     * 根据职位编码集合查询当前在岗人员，经商办企重点岗位重算使用。
+     */
+    List<PositionIncumbentDTO> queryActiveIncumbentsByCodes(Collection<String> codes);
 
     /**
      * 保存或更新职位，进行职位编码唯一性和默认字段处理。
