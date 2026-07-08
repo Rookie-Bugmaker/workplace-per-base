@@ -1,6 +1,7 @@
 package com.crrc.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -14,6 +15,7 @@ import com.crrc.entity.dto.mainData.OrganizationDTO;
 import com.crrc.entity.dto.mainData.OrganizationTreeDTO;
 import com.crrc.mapper.*;
 import com.crrc.pojo.dto.*;
+import com.crrc.pojo.vo.CostCenterListVO;
 import com.crrc.service.HrEmpBasicService;
 import com.crrc.utils.*;
 import com.github.yulichang.toolkit.JoinWrappers;
@@ -99,6 +101,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
     private final HrEmpSalaryStandardMapper hrEmpSalaryStandardMapper;
     private final PositionInfoServiceImpl positionInfoService;
     private final HrEmpCadreAppointmentInfoServiceImpl hrEmpCadreAppointmentInfoService;
+    private final CostCenterMapper costCenterMapper;
 
     @Autowired
     public HrEmpBasicServiceImpl(
@@ -120,7 +123,8 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             HrEmpSalaryInfoMapper hrEmpSalaryInfoMapper,
             HrEmpSalaryStandardMapper hrEmpSalaryStandardMapper,
             PositionInfoServiceImpl positionInfoService,
-            HrEmpCadreAppointmentInfoServiceImpl hrEmpCadreAppointmentInfoService) {
+            HrEmpCadreAppointmentInfoServiceImpl hrEmpCadreAppointmentInfoService,
+            CostCenterMapper costCenterMapper) {
         this.hrEmpBasicMapper = hrEmpBasicMapper;
         this.hrEmpEducationMapper = hrEmpEducationMapper;
         this.hrEmpSchoolInfoService = hrEmpSchoolInfoService;
@@ -140,6 +144,7 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         this.hrEmpSalaryStandardMapper = hrEmpSalaryStandardMapper;
         this.positionInfoService = positionInfoService;
         this.hrEmpCadreAppointmentInfoService = hrEmpCadreAppointmentInfoService;
+        this.costCenterMapper = costCenterMapper;
     }
 
     // 模糊分页查询，用于给考勤打卡系统按姓名或档案号模糊查询
@@ -512,6 +517,167 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
         Page<HrEmpBasicDTO> resultPage = new Page<>(empPage.getCurrent(), empPage.getSize(), empPage.getTotal());
         resultPage.setRecords(dtoList);
         return resultPage;
+    }
+
+    /**
+     * 获取员工成本中心列表。
+     * 原 hrEmpSalaryInfo/getDepartmentCode 接口从 hr_emp_salary_info.department_code 取成本中心，
+     * 现成本中心统一从 hr_emp_basic.cost_center 返回，返回 VO 与分页结构保持不变。
+     *
+     * @param page 分页参数
+     * @param dto 查询条件
+     * @return 员工成本中心分页数据
+     */
+    public IPage<CostCenterListVO> listCostCenterData(IPage<CostCenterListVO> page, CostCenterListVO dto) {
+        List<OrganizationTreeDTO> childrenOrgList = new ArrayList<>();
+        Set<String> managerOrgCodes = new HashSet<>();
+
+        if (RoleUtils.checkAnyMatch("hrsc_sub_emp_info_mgr", "hrsc_dept_emp_info_mgr")) {
+            String orgCode = getCurrentUserOrgCode();
+
+            // 查找字典数据，沿用人员信息管理人的数据范围逻辑
+            // 这里 code 是 deptCode，codeValue 是 userCode，orgCode 和 deptCode 完全一致，都指部门编码
+            List<CodeInfo> items = codeInfoService.getCodeInfoList(TABLE_NAME, INFO_MANAGER_TYPE_NAME);
+
+            // 查找当前人员是否是特殊配置的信息管理人
+            String currentUserCode = SecurityFrameworkUtils.getLoginUser().getUser().getJobNo();
+            managerOrgCodes = items.stream()
+                    .filter(e -> e.getCodeValue().equals(currentUserCode))
+                    .map(CodeInfo::getCode)
+                    .collect(Collectors.toSet());
+
+            ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
+            List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
+
+            // 如果是字典中特殊配置的信息管理人，说明该人员管理的非本部门信息，同时，有可能管理多个部门的信息
+            if (!managerOrgCodes.isEmpty()) {
+                for (String manageOrgCode : managerOrgCodes) {
+                    for (OrganizationTreeDTO root : data) {
+                        Optional<OrganizationTreeDTO> nodeBfs = TreeUtils.findNodeBfs(root, n -> manageOrgCode.equals(n.getOrgCode()), OrganizationTreeDTO::getChildren);
+                        nodeBfs.ifPresent(organizationTreeDTO -> childrenOrgList.addAll(TreeUtils.flattenDescendants(organizationTreeDTO, OrganizationTreeDTO::getChildren, true)));
+                    }
+                }
+            } else {
+                // 如果字典里没有配置，说明是正常情况，该人员管理自己部门的信息
+                if (ObjectUtils.isEmpty(listResponseResultDTO.getData())) {
+                    throw new IllegalArgumentException("外部接口错误，获取树形组织信息失败");
+                }
+
+                // 如果是子公司级别管理员
+                if (RoleUtils.checkAnyMatch("hrsc_sub_emp_info_mgr")) {
+                    // 根据 orgCode 匹配公司及其下级部门，如果包含，则获得其展平后的 List（包含所有部门 Code）
+                    childrenOrgList.addAll(findParentAndFlattenList(data, orgCode));
+                    if (childrenOrgList.isEmpty()) {
+                        throw new IllegalArgumentException("获取公司失败，公司匹配错误，orgCode:" + orgCode);
+                    }
+                }
+
+                // 如果是部门级别管理员
+                if (RoleUtils.checkAnyMatch("hrsc_dept_emp_info_mgr")) {
+                    Optional<OrganizationTreeDTO> nodeBfs = Optional.empty();
+                    for (OrganizationTreeDTO root : data) {
+                        nodeBfs = TreeUtils.findNodeBfs(root, n -> orgCode.equals(n.getOrgCode()), OrganizationTreeDTO::getChildren);
+                        if (nodeBfs.isPresent()) {
+                            break;
+                        }
+                    }
+
+                    if (nodeBfs.isPresent()) {
+                        // 根据 orgCode 匹配其下级部门，并获得其展平后的 List（包含所有部门 Code）
+                        childrenOrgList.addAll(TreeUtils.flattenDescendants(nodeBfs.get(), OrganizationTreeDTO::getChildren, true));
+                    }
+                }
+
+                if (childrenOrgList.isEmpty()) {
+                    throw new IllegalArgumentException("获取公司失败，公司匹配错误，orgCode:" + orgCode);
+                }
+            }
+        }
+
+        Set<String> deptSet = childrenOrgList.stream()
+                .map(OrganizationTreeDTO::getOrgCode)
+                .collect(Collectors.toSet());
+        deptSet.addAll(managerOrgCodes);
+
+        LambdaQueryWrapper<HrEmpBasic> basicWrapper = Wrappers.<HrEmpBasic>lambdaQuery()
+                .select(HrEmpBasic::getUserCode, HrEmpBasic::getName, HrEmpBasic::getDept, HrEmpBasic::getCostCenter)
+                .like(StringUtils.isNotBlank(dto.getUserCode()), HrEmpBasic::getUserCode, dto.getUserCode())
+                .like(StringUtils.isNotBlank(dto.getUserName()), HrEmpBasic::getName, dto.getUserName())
+                .eq(StringUtils.isNotBlank(dto.getCostcenterCode()), HrEmpBasic::getCostCenter, dto.getCostcenterCode());
+
+        if (!deptSet.isEmpty()) {
+            basicWrapper.and(wrapper -> wrapper.in(HrEmpBasic::getDept, deptSet));
+        }
+
+        IPage<HrEmpBasic> basicPage = new Page<>(page.getCurrent(), page.getSize());
+        IPage<HrEmpBasic> basicResult = hrEmpBasicMapper.selectPage(basicPage, basicWrapper);
+
+        if (ObjectUtils.isEmpty(basicResult.getRecords())) {
+            Page<CostCenterListVO> empty = new Page<>(basicResult.getCurrent(), basicResult.getSize(), basicResult.getTotal());
+            empty.setRecords(Collections.emptyList());
+            return empty;
+        }
+
+        List<CostCenterListVO> voList = basicResult.getRecords().stream()
+                .map(basic -> {
+                    CostCenterListVO vo = new CostCenterListVO();
+                    vo.setUserCode(basic.getUserCode());
+                    vo.setUserName(basic.getName());
+                    vo.setDept(DeptUtils.getDeptNameByCode(basic.getDept()));
+                    vo.setCostcenterCode(basic.getCostCenter());
+                    return vo;
+                })
+                .collect(Collectors.toList());
+
+        Set<String> costCenterCodes = voList.stream()
+                .map(CostCenterListVO::getCostcenterCode)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.toSet());
+
+        Map<String, String> costCenterNameMap = Collections.emptyMap();
+        if (!costCenterCodes.isEmpty()) {
+            LambdaQueryWrapper<CostCenter> costCenterWrapper = Wrappers.<CostCenter>lambdaQuery()
+                    .select(CostCenter::getCode, CostCenter::getName)
+                    .in(CostCenter::getCode, costCenterCodes);
+            costCenterNameMap = costCenterMapper.selectList(costCenterWrapper).stream()
+                    .collect(Collectors.toMap(
+                            CostCenter::getCode,
+                            CostCenter::getName,
+                            (existing, replacement) -> existing
+                    ));
+        }
+
+        for (CostCenterListVO entity : voList) {
+            entity.setCostcenterName(costCenterNameMap.getOrDefault(entity.getCostcenterCode(), ""));
+        }
+
+        Page<CostCenterListVO> resultPage = new Page<>(basicResult.getCurrent(), basicResult.getSize(), basicResult.getTotal());
+        resultPage.setRecords(voList);
+        return resultPage;
+    }
+
+    /**
+     * 根据档案号保存员工基本信息中的成本中心编码。
+     *
+     * @param reqVO 成本中心保存参数
+     * @return 是否更新成功
+     */
+    public boolean saveCostCenterByUserCode(CostCenterListVO reqVO) {
+        if (reqVO == null || StringUtils.isBlank(reqVO.getUserCode())) {
+            throw new IllegalArgumentException("档案号不能为空");
+        }
+
+        LambdaQueryWrapper<HrEmpBasic> wrapper = Wrappers.<HrEmpBasic>lambdaQuery()
+                .eq(HrEmpBasic::getUserCode, reqVO.getUserCode());
+        HrEmpBasic existingEntity = this.getOne(wrapper, false);
+        if (existingEntity == null) {
+            throw new IllegalArgumentException("该人员不存在，无法修改成本中心");
+        }
+
+        LambdaUpdateWrapper<HrEmpBasic> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(HrEmpBasic::getUserCode, reqVO.getUserCode())
+                .set(HrEmpBasic::getCostCenter, reqVO.getCostcenterCode());
+        return this.update(updateWrapper);
     }
 
     private String getCurrentUserOrgCode() {

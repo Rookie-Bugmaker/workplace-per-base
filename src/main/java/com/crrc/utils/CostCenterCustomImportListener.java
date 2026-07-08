@@ -20,12 +20,12 @@ public class CostCenterCustomImportListener implements ReadListener<CostCenterIm
 
     private final LinkedHashSet<String> buffer = new LinkedHashSet<>();
     private final List<String> errors = new ArrayList<>();
-    private final Long costCenterId;
+    private final String costCenterCode;
     private int rowIndex = 0;
 
-    public CostCenterCustomImportListener(HrEmpBasicServiceImpl hrEmpBasicService, Long costCenterId) {
+    public CostCenterCustomImportListener(HrEmpBasicServiceImpl hrEmpBasicService, String costCenterCode) {
         this.hrEmpBasicService = hrEmpBasicService;
-        this.costCenterId = costCenterId;
+        this.costCenterCode = costCenterCode;
     }
 
     @Override
@@ -67,7 +67,7 @@ public class CostCenterCustomImportListener implements ReadListener<CostCenterIm
 
         for (String userCode : userCodeList) {
             HrEmpBasic hrEmpBasic = hrEmpBasicService.getByUserCode(userCode);
-            hrEmpBasic.setCostCenter(costCenterId.toString());
+            hrEmpBasic.setCostCenter(costCenterCode);
             hrEmpBasicService.updateById(hrEmpBasic);
         }
 
