@@ -812,7 +812,19 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
         }
     }
 
-    private Map<String, List<PositionIncumbentDTO>> queryIncumbentMap(Collection<String> codes) {
+    @Override
+    public List<PositionIncumbentDTO> queryActiveIncumbentsByCodes(Collection<String> codes) {
+        Map<String, List<PositionIncumbentDTO>> incumbentMap = queryIncumbentMap(codes);
+        if (incumbentMap == null || incumbentMap.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<PositionIncumbentDTO> result = new ArrayList<>();
+        incumbentMap.values().forEach(result::addAll);
+        return result;
+    }
+
+    @Override
+    public Map<String, List<PositionIncumbentDTO>> queryIncumbentMap(Collection<String> codes) {
         List<String> normalizedCodes = normalizeCodes(codes);
         if (normalizedCodes.isEmpty()) {
             return Collections.emptyMap();

@@ -16,6 +16,7 @@ import com.crrc.pojo.dto.PositionInfoCopyRequest;
 import com.crrc.pojo.vo.PositionInfoBasicExportVO;
 import com.crrc.pojo.vo.PositionInfoDescriptionExportVO;
 import com.crrc.pojo.vo.PositionInfoImportResultVO;
+import com.crrc.pojo.vo.PositionIncumbentDTO;
 import com.crrc.service.impl.PositionInfoServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -32,9 +33,11 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author yukun
@@ -198,6 +201,21 @@ public class PositionInfoController {
         return new ResponseResult<>(HttpStatus.OK.value(), "刷新职位在岗人员成功", positionInfoService.refreshIncumbents(codeList));
     }
 
+
+
+    /**
+     * 按职位编码批量查询当前在岗人员，供经商办企重点岗位重算使用。
+     */
+    @PostMapping("/incumbentsByCodes")
+    @Operation(summary = "按职位编码批量查询当前在岗人员")
+    @AuditLog(value = "按职位编码批量查询当前在岗人员", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @TenantIgnore
+    public ResponseResult<List<PositionIncumbentDTO>> incumbentsByCodes(@RequestBody(required = false) List<String> codeList) {
+        List<PositionIncumbentDTO> result = new ArrayList<>();
+        positionInfoService.queryIncumbentMap(codeList).values().forEach(result::addAll);
+        result = result.stream().distinct().collect(Collectors.toList());
+        return new ResponseResult<>(HttpStatus.OK.value(), "按职位编码查询当前在岗人员成功", result);
+    }
 
     /**
      * 职位信息基本版导出。

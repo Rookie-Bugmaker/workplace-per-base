@@ -201,8 +201,12 @@ public class CostCenterController {
     @Operation(summary = "导入报表")
     public ResponseResult<Boolean> imports(MultipartFile file, @PathVariable Long costCenterId) throws IOException {
         try {
+            CostCenter costCenter = costCenterService.getById(costCenterId);
+            if (costCenter == null) {
+                return new ResponseResult<>(HttpStatus.BAD_GATEWAY.value(), "成本中心不存在");
+            }
             EasyExcelFactory.read(file.getInputStream(), CostCenterImportVO.class,
-                            new CostCenterCustomImportListener(hrEmpBasicService, costCenterId))
+                            new CostCenterCustomImportListener(hrEmpBasicService, costCenter.getCode()))
                     .headRowNumber(1)
                     .sheet()
                     .doRead();
