@@ -799,6 +799,12 @@ public class MyBatisPlusMigrationService {
 
                         pstmt.clearBatch();
 
+                        Map<String, String> translateMap = postCatalogInfoServiceImpl.query(new PostCatalogInfo()).stream().collect(Collectors.toMap(
+                                PostCatalogInfo::getCode,
+                                PostCatalogInfo::getName
+                        ));
+
+
                         for (Map<String, Object> row : batchData) {
                             /*
                              * 如果JOB_ONE、JOB_TWO、JOB_THREE是派生字段，
@@ -807,6 +813,18 @@ public class MyBatisPlusMigrationService {
                              * 当前查询没有直接返回这三个字段，
                              * 未填充时将向Oracle写入NULL。
                              */
+                            if(row.get("job_type") != null && !String.valueOf(row.get("job_type")).equals("ERROR")) {
+                                String jobType = String.valueOf(row.get("job_type"));
+                                String[] split = jobType.split("-");
+                                if(split.length == 3) {
+                                    row.put("JOB_ONE", translateMap.getOrDefault(split[0], split[0]));
+                                    row.put("JOB_TWO", translateMap.getOrDefault(String.join("-", split[0], split[1]), String.join("-", split[0], split[1])));
+                                    row.put("JOB_THREE", translateMap.getOrDefault(jobType, jobType));
+                                } else {
+                                    log.error("用户{}的jobType有误，为{}，请检查", row.get("user_code"), jobType);
+                                }
+
+                            }
 
                             for (int i = 0; i < columns.size(); i++) {
                                 String column = columns.get(i);
