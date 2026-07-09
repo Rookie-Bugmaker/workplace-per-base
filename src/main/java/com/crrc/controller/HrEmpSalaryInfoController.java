@@ -5,7 +5,6 @@ import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.crrc.annotation.AuditLog;
@@ -15,6 +14,7 @@ import com.crrc.enums.OperateType;
 import com.crrc.listener.ImportExcelListener;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.vo.CostCenterListVO;
+import com.crrc.service.impl.HrEmpBasicServiceImpl;
 import com.crrc.service.impl.HrEmpSalaryInfoServiceImpl;
 import com.crrc.utils.RoleUtils;
 import com.crrc.utils.listener.CostCenterImportListener;
@@ -54,6 +54,9 @@ public class HrEmpSalaryInfoController {
     @Autowired
     private HrEmpSalaryInfoServiceImpl hrEmpSalaryInfoService;
 
+    @Autowired
+    private HrEmpBasicServiceImpl hrEmpBasicService;
+
     @PostMapping("/getDepartmentCode")
     @Operation(summary = "获取员工成本中心")
     @AuditLog(value = "获取员工成本中心", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
@@ -67,7 +70,7 @@ public class HrEmpSalaryInfoController {
         pageReqVO = (pageReqVO == null) ? new CostCenterListVO() : pageReqVO;
         try {
             Page<CostCenterListVO> page = new Page<>(pageNo, pageSize);
-            IPage<CostCenterListVO> result = hrEmpSalaryInfoService.listData(page, pageReqVO);
+            IPage<CostCenterListVO> result = hrEmpBasicService.listCostCenterData(page, pageReqVO);
             return new ResponseResult<>(HttpStatus.OK.value(), "查询成功", result);
         } catch (Exception e) {
             return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "查询异常: " + e.getMessage());
@@ -76,31 +79,15 @@ public class HrEmpSalaryInfoController {
 
     @Transactional(rollbackFor = Exception.class)
     @PostMapping("/saveCostCenterByUserCode")
-    @Operation(summary = "根据档案号保存员工薪资信息中的成本中心实体")
-    @AuditLog(value = "员工薪资信息表实体保存", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
+    @Operation(summary = "根据档案号保存员工基本信息中的成本中心实体")
+    @AuditLog(value = "员工基本信息成本中心保存", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
     @Parameter(name = "reqVO", description = "实体对象", required = true)
     public ResponseResult<Boolean> saveCostCenterByUserCode(@Valid @RequestBody CostCenterListVO reqVO) {
-
-        LambdaQueryWrapper<HrEmpSalaryInfo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(HrEmpSalaryInfo::getUserCode, reqVO.getUserCode());
-        HrEmpSalaryInfo existingEntity = hrEmpSalaryInfoService.getOne(wrapper);
-
-        if (existingEntity != null) {
-            // 如果存在记录，则仅更新departmentCode字段
-            LambdaUpdateWrapper<HrEmpSalaryInfo> updateWrapper = new LambdaUpdateWrapper<>();
-            updateWrapper.eq(HrEmpSalaryInfo::getUserCode, reqVO.getUserCode())
-                    .set(HrEmpSalaryInfo::getDepartmentCode, reqVO.getCostcenterCode());
-            boolean result = hrEmpSalaryInfoService.update(updateWrapper);
+        try {
+            boolean result = hrEmpBasicService.saveCostCenterByUserCode(reqVO);
             return new ResponseResult<>(HttpStatus.OK.value(), "更新员工成本中心成功", result);
-        } else {
-            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), "该人员无薪资信息，不计入本部工资系统，无法修改成本中心");
-//            // 如果不存在记录，则创建新实体并保存
-//            HrEmpSalaryInfo newEntity = new HrEmpSalaryInfo();
-//            newEntity.setId(IdUtil.simpleUUID()); // 生成唯一ID
-//            newEntity.setUserCode(reqVO.getUserCode());
-//            newEntity.setDepartmentCode(reqVO.getCostcenterCode());
-//            boolean result = hrEmpSalaryInfoService.save(newEntity);
-//            return new ResponseResult<>(HttpStatus.OK.value(), "保存员工薪资信息表实体成功", result);
+        } catch (IllegalArgumentException e) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
     }
 

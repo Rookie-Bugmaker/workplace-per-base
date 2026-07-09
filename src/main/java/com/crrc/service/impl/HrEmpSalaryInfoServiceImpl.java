@@ -20,7 +20,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -74,6 +73,7 @@ public class HrEmpSalaryInfoServiceImpl extends WorkServiceImpl<HrEmpSalaryInfoM
         // 注意：这个条件要在基础表分页里保留
         // 下面的权限逻辑只是改了“使用谁的 wrapper”，业务逻辑不变
         List<OrganizationTreeDTO> childrenOrgList = new ArrayList<>();
+        Set<String> managerOrgCodes = new HashSet<>();
 
         if (
                 // 校验是否有	部门人员信息管理  或 	子公司人员信息管理 的角色，有的话进行数据范围校验
@@ -88,7 +88,7 @@ public class HrEmpSalaryInfoServiceImpl extends WorkServiceImpl<HrEmpSalaryInfoM
 
             // 查找当前人员是否是特殊配置的信息管理人
             String currentUserCode = SecurityFrameworkUtils.getLoginUser().getUser().getJobNo();
-            Set<String> managerOrgCodes = items.stream().filter(e -> e.getCodeValue().equals(currentUserCode)).map(CodeInfo::getCode).collect(Collectors.toSet());
+            managerOrgCodes = items.stream().filter(e -> e.getCodeValue().equals(currentUserCode)).map(CodeInfo::getCode).collect(Collectors.toSet());
 
             ResponseResultDTO<List<OrganizationTreeDTO>> listResponseResultDTO = wkDataAPi.treeOrganization();
             List<OrganizationTreeDTO> data = listResponseResultDTO.getData();
@@ -144,6 +144,7 @@ public class HrEmpSalaryInfoServiceImpl extends WorkServiceImpl<HrEmpSalaryInfoM
         Set<String> deptSet = childrenOrgList.stream()
                 .map(OrganizationTreeDTO::getOrgCode)
                 .collect(Collectors.toSet());
+        deptSet.addAll(managerOrgCodes);
 
         // 构建联表查询
         LambdaQueryWrapper<HrEmpBasic> basicWrapper = new LambdaQueryWrapper<>();
@@ -151,7 +152,9 @@ public class HrEmpSalaryInfoServiceImpl extends WorkServiceImpl<HrEmpSalaryInfoM
                 // 档案号模糊查询
                 .like(StringUtils.isNotBlank(dto.getUserCode()), HrEmpBasic::getUserCode, dto.getUserCode())
                 // 姓名模糊查询
-                .like(StringUtils.isNotBlank(dto.getUserName()), HrEmpBasic::getName, dto.getUserName());
+                .like(StringUtils.isNotBlank(dto.getUserName()), HrEmpBasic::getName, dto.getUserName())
+                // 成本中心编码查询，现在成本中心编码来自 hr_emp_basic.cost_center
+                .eq(StringUtils.isNotBlank(dto.getCostcenterCode()), HrEmpBasic::getCostCenter, dto.getCostcenterCode());
 
         // 部门条件单独判断，仅在 deptSet 不为空时拼接
         if (!deptSet.isEmpty()) {
@@ -161,20 +164,6 @@ public class HrEmpSalaryInfoServiceImpl extends WorkServiceImpl<HrEmpSalaryInfoM
         IPage<HrEmpBasic> basicPage = new Page<>(page.getCurrent(), page.getSize());
         IPage<HrEmpBasic> basicResult = hrEmpBasicMapper.selectPage(basicPage, basicWrapper);
 
-        // 根据 basicResult 中的 userCode 查询 hrEmpSalaryInfo 表
-        Set<String> userCodeSet = basicResult.getRecords().stream()
-                .map(HrEmpBasic::getUserCode)
-                .collect(Collectors.toSet());
-
-        LambdaQueryWrapper<HrEmpSalaryInfo> salaryWrapper = new LambdaQueryWrapper<>();
-        salaryWrapper.in(HrEmpSalaryInfo::getUserCode, userCodeSet);
-
-        List<HrEmpSalaryInfo> salaryList = hrEmpSalaryInfoMapper.selectList(salaryWrapper);
-
-        // 构建映射关系
-        Map<String, HrEmpSalaryInfo> salaryMap = salaryList.stream()
-                .collect(Collectors.toMap(HrEmpSalaryInfo::getUserCode, Function.identity(), (existing, replacement) -> existing));
-
         // 组装 VO
         List<CostCenterListVO> voList = basicResult.getRecords().stream()
                 .map(basic -> {
@@ -182,10 +171,7 @@ public class HrEmpSalaryInfoServiceImpl extends WorkServiceImpl<HrEmpSalaryInfoM
                     vo.setUserCode(basic.getUserCode());
                     vo.setUserName(basic.getName());
                     vo.setDept(basic.getDept());
-                    HrEmpSalaryInfo salaryInfo = salaryMap.get(basic.getUserCode());
-                    if (salaryInfo != null) {
-                        vo.setCostcenterCode(salaryInfo.getDepartmentCode());
-                    }
+                    vo.setCostcenterCode(basic.getCostCenter());
                     return vo;
                 })
                 .collect(Collectors.toList());

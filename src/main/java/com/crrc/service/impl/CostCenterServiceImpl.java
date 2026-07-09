@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -64,7 +65,7 @@ public class CostCenterServiceImpl extends WorkServiceImpl<CostCenterMapper, Cos
         vo.forEach(item -> {
             HrEmpBasic hrEmpBasic = new HrEmpBasic();
             hrEmpBasic.setId(item.getEmpBasicId());
-            hrEmpBasic.setCostCenter(item.getCostCenterId());
+            hrEmpBasic.setCostCenter(resolveCostCenterCode(item.getCostCenterId()));
             hrEmpBasicService.updateById(hrEmpBasic);
         });
 
@@ -91,8 +92,13 @@ public class CostCenterServiceImpl extends WorkServiceImpl<CostCenterMapper, Cos
 
     @Transactional(rollbackFor = Exception.class)
     public Boolean removeByIdAndCheck(Long id) {
+        CostCenter costCenter = this.getById(id);
+        if (costCenter == null) {
+            throw new IllegalArgumentException("成本中心不存在");
+        }
+
         HrEmpBasic hrEmpBasic = new HrEmpBasic();
-        hrEmpBasic.setCostCenter(id.toString());
+        hrEmpBasic.setCostCenter(costCenter.getCode());
         List<HrEmpBasic> query = hrEmpBasicService.query(hrEmpBasic);
         if(!ObjectUtils.isEmpty(query)) {
             throw new IllegalArgumentException("该成本中心绑定有用户，无法删除");
@@ -110,5 +116,29 @@ public class CostCenterServiceImpl extends WorkServiceImpl<CostCenterMapper, Cos
 
         hrEmpBasicService.update(updateWrapper);
         return true;
+    }
+
+    /**
+     * 兼容前端仍传 costCenterId 的场景，实际落库到 hr_emp_basic.cost_center 的值统一为成本中心编码。
+     */
+    private String resolveCostCenterCode(String costCenterId) {
+        if (!StringUtils.hasText(costCenterId)) {
+            return costCenterId;
+        }
+
+        CostCenter costCenter = null;
+        try {
+            costCenter = this.getById(Long.valueOf(costCenterId));
+        } catch (NumberFormatException ignored) {
+            // 入参可能已经是成本中心编码，后续按 code 查询
+        }
+
+        if (costCenter == null) {
+            LambdaQueryWrapper<CostCenter> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(CostCenter::getCode, costCenterId);
+            costCenter = costCenterMapper.selectOne(wrapper);
+        }
+
+        return costCenter != null && StringUtils.hasText(costCenter.getCode()) ? costCenter.getCode() : costCenterId;
     }
 }

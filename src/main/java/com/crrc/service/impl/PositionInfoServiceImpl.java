@@ -22,6 +22,8 @@ import com.crrc.utils.PositionInfoFullImportListener;
 import com.crrc.utils.PositionInfoImportListener;
 import com.crrc.utils.WrapperUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -49,7 +51,18 @@ import java.util.stream.Collectors;
 @Service
 public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper, PositionInfo> implements PositionInfoService {
 
+    private static final Logger log = LoggerFactory.getLogger(PositionInfoServiceImpl.class);
     private static final int MAX_IMPORT_ERROR_COUNT = 50;
+    /**
+     * 列表展示时实时补全在岗人员的最大职位数量。
+     * /positionInfo/query 允许外部空条件全量调用，数据量较大时不能再发起超长 IN 查询，
+     * 否则会拖慢外部接口甚至触发数据库 read timeout。
+     */
+    private static final int MAX_REALTIME_INCUMBENT_RESOLVE_COUNT = 500;
+    /**
+     * 显式刷新/删除校验等必须实时查询的场景，按小批量拆分 IN 条件，避免单条 SQL 参数过多。
+     */
+    private static final int INCUMBENT_QUERY_BATCH_SIZE = 300;
     private static final DateTimeFormatter DATE_FORMATTER_1 = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter DATE_FORMATTER_2 = DateTimeFormatter.ofPattern("yyyy/MM/dd");
     private static final DateTimeFormatter DATE_FORMATTER_3 = DateTimeFormatter.ofPattern("yyyyMMdd");
@@ -771,7 +784,24 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
         if (codes.isEmpty()) {
             return;
         }
-        Map<String, List<PositionIncumbentDTO>> incumbentMap = queryIncumbentMap(codes);
+
+        // /positionInfo/query 是历史外部集成接口，空条件时会一次返回上万条职位。
+        // 此时不要实时 JOIN hr_emp_appointment/hr_emp_basic 统计在岗人员，直接保留 position_info 表中的快照字段。
+        // 如需刷新快照，由管理端调用 /positionInfo/refreshIncumbents 显式刷新。
+        if (codes.size() > MAX_REALTIME_INCUMBENT_RESOLVE_COUNT) {
+            log.warn("Skip realtime incumbent resolving, position size {} exceeds threshold {}. Use snapshot fields instead.",
+                    codes.size(), MAX_REALTIME_INCUMBENT_RESOLVE_COUNT);
+            return;
+        }
+
+        Map<String, List<PositionIncumbentDTO>> incumbentMap;
+        try {
+            incumbentMap = queryIncumbentMap(codes);
+        } catch (RuntimeException e) {
+            // 在岗人员只是展示增强字段，不能因为增强查询异常影响职位主数据查询。
+            log.warn("Realtime incumbent resolving failed, fallback to position_info snapshot fields. size={}", codes.size(), e);
+            return;
+        }
         for (PositionInfo position : records) {
             if (position == null || StringUtils.isBlank(position.getCode())) {
                 continue;
@@ -782,13 +812,34 @@ public class PositionInfoServiceImpl extends WorkServiceImpl<PositionInfoMapper,
         }
     }
 
-    private Map<String, List<PositionIncumbentDTO>> queryIncumbentMap(Collection<String> codes) {
+    @Override
+    public List<PositionIncumbentDTO> queryActiveIncumbentsByCodes(Collection<String> codes) {
+        Map<String, List<PositionIncumbentDTO>> incumbentMap = queryIncumbentMap(codes);
+        if (incumbentMap == null || incumbentMap.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<PositionIncumbentDTO> result = new ArrayList<>();
+        incumbentMap.values().forEach(result::addAll);
+        return result;
+    }
+
+    @Override
+    public Map<String, List<PositionIncumbentDTO>> queryIncumbentMap(Collection<String> codes) {
         List<String> normalizedCodes = normalizeCodes(codes);
         if (normalizedCodes.isEmpty()) {
             return Collections.emptyMap();
         }
-        List<PositionIncumbentDTO> incumbents = baseMapper.selectActiveIncumbentsByPositionCodes(normalizedCodes);
-        if (incumbents == null || incumbents.isEmpty()) {
+
+        List<PositionIncumbentDTO> incumbents = new ArrayList<>();
+        for (int start = 0; start < normalizedCodes.size(); start += INCUMBENT_QUERY_BATCH_SIZE) {
+            int end = Math.min(start + INCUMBENT_QUERY_BATCH_SIZE, normalizedCodes.size());
+            List<String> batchCodes = normalizedCodes.subList(start, end);
+            List<PositionIncumbentDTO> batch = baseMapper.selectActiveIncumbentsByPositionCodes(batchCodes);
+            if (batch != null && !batch.isEmpty()) {
+                incumbents.addAll(batch);
+            }
+        }
+        if (incumbents.isEmpty()) {
             return Collections.emptyMap();
         }
         return incumbents.stream()

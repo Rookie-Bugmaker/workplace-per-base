@@ -29,6 +29,7 @@ import com.crrc.mongodb.HrEmpBasicChangeRequest;
 import com.crrc.mongodb.service.MongoDBService;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.*;
+import com.crrc.pojo.vo.CostCenterListVO;
 import com.crrc.pojo.vo.MapVO;
 import com.crrc.service.impl.*;
 import com.crrc.utils.*;
@@ -1472,6 +1473,39 @@ public class HrEmpBasicController {
                 .sheet()
                 .doRead();
         return new ResponseResult<>(HttpStatus.OK.value(), "导入员工薪资信息表报表成功");
+    }
+
+    @PostMapping({"/getCostCenter"})
+    @Operation(summary = "获取员工成本中心")
+    @AuditLog(value = "获取员工成本中心", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_IMPORT)
+    @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象", required = false)
+    @Parameter(name = "pageNo", description = "页码", required = false, example = "1")
+    @Parameter(name = "pageSize", description = "条数", required = false, example = "10")
+    public ResponseResult<IPage> getCostCenter(@Validated @RequestBody(required = false) CostCenterListVO pageReqVO,
+                                               @RequestParam(required = false, defaultValue = "1") int pageNo,
+                                               @RequestParam(required = false, defaultValue = "10") int pageSize) {
+        pageReqVO = (pageReqVO == null) ? new CostCenterListVO() : pageReqVO;
+        try {
+            Page<CostCenterListVO> page = new Page<>(pageNo, pageSize);
+            IPage<CostCenterListVO> result = hrEmpBasicService.listCostCenterData(page, pageReqVO);
+            return new ResponseResult<>(HttpStatus.OK.value(), "查询成功", result);
+        } catch (Exception e) {
+            return new ResponseResult<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "查询异常: " + e.getMessage());
+        }
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @PostMapping("/saveCostCenterByUserCode")
+    @Operation(summary = "根据档案号保存员工基本信息中的成本中心")
+    @AuditLog(value = "员工基本信息成本中心保存", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_ADD)
+    @Parameter(name = "reqVO", description = "实体对象", required = true)
+    public ResponseResult<Boolean> saveCostCenterByUserCode(@Valid @RequestBody CostCenterListVO reqVO) {
+        try {
+            boolean result = hrEmpBasicService.saveCostCenterByUserCode(reqVO);
+            return new ResponseResult<>(HttpStatus.OK.value(), "更新员工成本中心成功", result);
+        } catch (IllegalArgumentException e) {
+            return new ResponseResult<>(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
     }
 
 }
