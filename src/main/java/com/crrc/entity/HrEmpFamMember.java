@@ -89,6 +89,10 @@ public class HrEmpFamMember extends BaseEntity implements Serializable, DiffMark
     @Schema(description = "是否存在正在被修改的状态，0为否，1为是")
     private String isUpdating;
 
+    @QueryMethod(method = QueryType.EQ)
+    @Schema(description = "身份证号")
+    private String certiId;
+
     @Schema(description = "变动字段统计")
     @TableField(exist = false)
     private List<String> markList;

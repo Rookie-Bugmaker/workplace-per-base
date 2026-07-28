@@ -442,7 +442,12 @@ public class HrEmpEducationController {
                     if(StringUtils.isNotBlank(hrEmpEducation.getMajorCode())) {
                         // 大专及以上学历,且学历编码不为空，进行学历回写
                         HrEmpMajorInfo hrEmpMajorInfo = hrEmpMajorInfoService.selectByCode(hrEmpEducation.getMajorCode());
-                        hrEmpEducation.setMajor(hrEmpMajorInfo.getMajor());
+                        // 当传入专业编码不存在时，直接放入手写的专业名称
+                        if(hrEmpMajorInfo != null) {
+                            hrEmpEducation.setMajor(hrEmpMajorInfo.getMajor());
+                        } else {
+                            hrEmpEducation.setMajor(hrEmpEducation.getMajor());
+                        }
                     } else {
                         hrEmpEducation.setMajor("未知专业");
                     }
