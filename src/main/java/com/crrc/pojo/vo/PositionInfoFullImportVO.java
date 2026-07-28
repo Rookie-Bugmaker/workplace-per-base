@@ -3,6 +3,7 @@ package com.crrc.pojo.vo;
 import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
 import lombok.Data;
+import lombok.experimental.Accessors;
 
 /**
  * 职位信息完整导入模板行。
@@ -10,6 +11,7 @@ import lombok.Data;
  */
 @Data
 @ExcelIgnoreUnannotated
+@Accessors(chain = false)
 public class PositionInfoFullImportVO {
     @ExcelProperty(value = "职位编码")
     private String code;
