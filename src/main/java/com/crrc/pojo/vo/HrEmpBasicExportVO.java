@@ -9,13 +9,17 @@ import lombok.NoArgsConstructor;
 
 /**
  * 员工基本信息导出 VO
- * 继承 HrEmpBasic，额外包含证件、户口、通讯、健康等关联字段
+ * 继承 HrEmpBasic，额外包含职位、证件、户口、通讯、健康等关联字段
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 @Schema(description = "员工基本信息导出VO")
 public class HrEmpBasicExportVO extends HrEmpBasic {
+
+    @ExcelProperty(value = {"职位"})
+    @Schema(description = "职位")
+    private String position;
 
     @ExcelProperty(value = {"证件类型"})
     @Schema(description = "证件类型")
