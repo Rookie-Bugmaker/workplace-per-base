@@ -56,6 +56,7 @@ public class HrEmpExportTranslatorRegistry {
         register(HrEmpBasicExportVO.class, "category7", ExportFieldTranslationRule.codeInfo("person_category", "category7"));
         register(HrEmpBasicExportVO.class, "category8", ExportFieldTranslationRule.codeInfo("person_category", "category8"));
         register(HrEmpBasicExportVO.class, "isEmployed", ExportFieldTranslationRule.employedFlag());
+        register(HrEmpBasicExportVO.class, "position", ExportFieldTranslationRule.codeInfo("hr_emp_appointment", "APPOINTMENT_POSITION"));
         register(HrEmpBasicExportVO.class, "certiType", ExportFieldTranslationRule.codeInfo("hr_emp_basic", "BASIC_CERTI_TYPE"));
         register(HrEmpBasicExportVO.class, "houseHoldType", ExportFieldTranslationRule.codeInfo("hr_emp_household", "HOUSRHOLD_TYPE"));
         register(HrEmpBasicExportVO.class, "healthStatus", ExportFieldTranslationRule.codeInfo("hr_emp_health", "BASIC_HEALTH_STATUS"));

@@ -23,20 +23,23 @@ import com.crrc.service.HrEmpExportService;
 import com.crrc.service.impl.translation.HrEmpExportTranslatorRegistry;
 import com.crrc.utils.DeptUtils;
 import com.crrc.utils.HrEmpExportMergeStrategy;
-import com.crrc.utils.RoleUtils;
 import com.crrc.utils.SystemConstants;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -157,15 +160,19 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
             progressUpdater.updateProgress(HrEmpExportTaskServiceImpl.TRANSLATE_END_PROGRESS);
         }
 
-        // 4. 子表数据只查询一次，并缓存
+        // 4. 子表数据只查询一次，并缓存。
+        // 基本信息中的“职位”依赖任职信息；将依赖查询纳入同一查询计划，
+        // 复用已选择导出的任职数据，并统一计入异步任务查询进度。
         Map<HrEmpExportType, List<?>> subDataMap = new EnumMap<>(HrEmpExportType.class);
+        Map<HrEmpExportType, List<String>> subTableQueryPlan = buildSubTableQueryPlan(
+                exportTypes,
+                basicList,
+                userCodes
+        );
 
-        List<HrEmpExportType> subExportTypes = exportTypes.stream()
-                .filter(type -> type != HrEmpExportType.BASIC)
-                .collect(Collectors.toList());
-
-        int batchCountPerSubTable = countUserCodeBatches(userCodes);
-        int totalQueryBatchCount = batchCountPerSubTable * subExportTypes.size();
+        int totalQueryBatchCount = subTableQueryPlan.values().stream()
+                .mapToInt(this::countUserCodeBatches)
+                .sum();
 
         AtomicInteger finishedQueryBatchCount = new AtomicInteger(0);
         AtomicInteger lastQueryProgress = new AtomicInteger(0);
@@ -174,8 +181,9 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
             progressUpdater.updateProgress(HrEmpExportTaskServiceImpl.TRANSLATE_END_PROGRESS);
         }
 
-        for (HrEmpExportType exportType : subExportTypes) {
-            List<?> subData = querySubTable(exportType, userCodes, () -> {
+        for (Map.Entry<HrEmpExportType, List<String>> queryEntry : subTableQueryPlan.entrySet()) {
+            HrEmpExportType exportType = queryEntry.getKey();
+            List<?> subData = querySubTable(exportType, queryEntry.getValue(), () -> {
                 if (progressUpdater == null) {
                     return;
                 }
@@ -197,6 +205,14 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
             });
 
             subDataMap.put(exportType, subData);
+        }
+
+        if (exportTypes.contains(HrEmpExportType.BASIC)) {
+            fillBasicPosition(
+                    basicList,
+                    getCachedSubData(subDataMap, HrEmpExportType.APPOINTMENT),
+                    getCachedSubData(subDataMap, HrEmpExportType.OTHER_APPOINTMENT)
+            );
         }
 
         if (progressUpdater != null) {
@@ -249,6 +265,160 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
         }
 
         return baos.toByteArray();
+    }
+
+    /**
+     * 构建子表查询计划。
+     * <p>
+     * 当导出基本信息时，职位字段依赖任职信息：
+     * 已选择导出任职 Sheet 时直接复用其全量查询；未选择时仅按人员分类查询职位所需的数据。
+     * </p>
+     */
+    private Map<HrEmpExportType, List<String>> buildSubTableQueryPlan(
+            List<HrEmpExportType> exportTypes,
+            List<? extends HrEmpBasic> basicList,
+            List<String> userCodes) {
+
+        Map<HrEmpExportType, List<String>> queryPlan = new LinkedHashMap<>();
+
+        for (HrEmpExportType exportType : exportTypes) {
+            if (exportType != HrEmpExportType.BASIC) {
+                queryPlan.put(exportType, userCodes);
+            }
+        }
+
+        if (!exportTypes.contains(HrEmpExportType.BASIC)) {
+            return queryPlan;
+        }
+
+        List<String> appointmentCodes = basicList.stream()
+                .filter(Objects::nonNull)
+                .filter(basic -> !"002".equals(basic.getCategory8()))
+                .map(HrEmpBasic::getUserCode)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        List<String> otherAppointmentCodes = basicList.stream()
+                .filter(Objects::nonNull)
+                .filter(basic -> "002".equals(basic.getCategory8()))
+                .map(HrEmpBasic::getUserCode)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (!appointmentCodes.isEmpty()) {
+            queryPlan.putIfAbsent(HrEmpExportType.APPOINTMENT, appointmentCodes);
+        }
+        if (!otherAppointmentCodes.isEmpty()) {
+            queryPlan.putIfAbsent(HrEmpExportType.OTHER_APPOINTMENT, otherAppointmentCodes);
+        }
+
+        return queryPlan;
+    }
+
+    /**
+     * 从已缓存的任职数据中抽取每名员工的最新职位并写回基本信息导出 VO。
+     */
+    private void fillBasicPosition(List<HrEmpBasicExportVO> basicList,
+                                   List<HrEmpAppointment> appointmentList,
+                                   List<HrEmpOtherAppointment> otherAppointmentList) {
+        if (basicList == null || basicList.isEmpty()) {
+            return;
+        }
+
+        Set<String> otherAppointmentCodes = basicList.stream()
+                .filter(Objects::nonNull)
+                .filter(basic -> "002".equals(basic.getCategory8()))
+                .map(HrEmpBasic::getUserCode)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Set<String> appointmentCodes = basicList.stream()
+                .filter(Objects::nonNull)
+                .filter(basic -> !"002".equals(basic.getCategory8()))
+                .map(HrEmpBasic::getUserCode)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<String, HrEmpAppointment> latestAppointmentMap = new HashMap<>();
+
+        if (otherAppointmentList != null && !otherAppointmentList.isEmpty()) {
+            Map<String, HrEmpAppointment> latestOtherAppointmentMap = otherAppointmentList.stream()
+                    .filter(Objects::nonNull)
+                    .filter(item -> item.getUserCode() != null)
+                    .filter(item -> otherAppointmentCodes.contains(item.getUserCode()))
+                    .filter(item -> item.getStartDate() != null)
+                    .map(this::convertToHrEmpAppointment)
+                    .collect(Collectors.toMap(
+                            HrEmpAppointment::getUserCode,
+                            Function.identity(),
+                            this::pickLatestAppointment
+                    ));
+            latestAppointmentMap.putAll(latestOtherAppointmentMap);
+        }
+
+        if (appointmentList != null && !appointmentList.isEmpty()) {
+            Map<String, HrEmpAppointment> latestNormalAppointmentMap = appointmentList.stream()
+                    .filter(Objects::nonNull)
+                    .filter(item -> item.getUserCode() != null)
+                    .filter(item -> appointmentCodes.contains(item.getUserCode()))
+                    .filter(item -> item.getStartDate() != null)
+                    .collect(Collectors.toMap(
+                            HrEmpAppointment::getUserCode,
+                            Function.identity(),
+                            this::pickLatestAppointment
+                    ));
+            latestAppointmentMap.putAll(latestNormalAppointmentMap);
+        }
+
+        for (HrEmpBasicExportVO basic : basicList) {
+            HrEmpAppointment appointment = latestAppointmentMap.get(basic.getUserCode());
+            if (appointment != null) {
+                basic.setPosition(appointment.getPosition());
+            }
+        }
+    }
+
+    /**
+     * 获取查询缓存中的指定类型数据。
+     */
+    @SuppressWarnings("unchecked")
+    private <T> List<T> getCachedSubData(Map<HrEmpExportType, List<?>> subDataMap,
+                                         HrEmpExportType exportType) {
+        return (List<T>) subDataMap.getOrDefault(exportType, Collections.emptyList());
+    }
+
+    /**
+     * 将 HrEmpOtherAppointment 转为 HrEmpAppointment。
+     */
+    private HrEmpAppointment convertToHrEmpAppointment(HrEmpOtherAppointment source) {
+        HrEmpAppointment target = new HrEmpAppointment();
+        BeanUtils.copyProperties(source, target);
+        return target;
+    }
+
+    /**
+     * 比较两条任职记录，返回“更新”的那一条。
+     * 规则：先比较 startDate，startDate 相同再比较 createTime。
+     */
+    private HrEmpAppointment pickLatestAppointment(HrEmpAppointment a, HrEmpAppointment b) {
+        if (a == null) {
+            return b;
+        }
+        if (b == null) {
+            return a;
+        }
+
+        int startDateCompare = Comparator.<LocalDate>nullsLast(Comparator.naturalOrder())
+                .compare(a.getStartDate(), b.getStartDate());
+        if (startDateCompare != 0) {
+            return startDateCompare >= 0 ? a : b;
+        }
+
+        int createTimeCompare = Comparator.<LocalDateTime>nullsLast(Comparator.naturalOrder())
+                .compare(a.getCreateTime(), b.getCreateTime());
+        return createTimeCompare >= 0 ? a : b;
     }
 
     private int countUserCodeBatches(Collection<String> userCodes) {
@@ -363,7 +533,7 @@ public class HrEmpExportServiceImpl implements HrEmpExportService {
         List<HrEmpBasicExportVO> voList = new ArrayList<>(basicList.size());
         for (HrEmpBasic basic : basicList) {
             HrEmpBasicExportVO vo = new HrEmpBasicExportVO();
-            org.springframework.beans.BeanUtils.copyProperties(basic, vo);
+            BeanUtils.copyProperties(basic, vo);
 
             String uc = basic.getUserCode();
 
