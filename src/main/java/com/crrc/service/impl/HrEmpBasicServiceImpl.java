@@ -162,6 +162,9 @@ public class HrEmpBasicServiceImpl extends WorkServiceImpl<HrEmpBasicMapper, HrE
             wrapper.like(HrEmpBasic::getName, queryReqVO.getName());
         }
 
+        // 筛选在岗人员
+        wrapper.eq(HrEmpBasic::getIsEmployed, SystemConstants.TRUE_FLAG);
+
         // 执行分页查询
         return baseMapper.selectJoinPage(page, HrEmpBasic.class, wrapper);
     }

@@ -708,7 +708,7 @@ public class ExternalController {
     }
 
     @PostMapping("/pageForPerSelf")
-    @Operation(summary = "获取员工基本信息表列表(支持模糊查询)")
+    @Operation(summary = "获取员工基本信息表列表(支持模糊查询)，仅能查询在职人员")
     @AuditLog(value = "获取员工基本信息表列表(模糊查询)", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @Parameter(name = "pageReqVO", description = "包含查询条件的实体对象")
     @Parameter(name = "pageNo", description = "页码", example = "1")
