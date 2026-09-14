@@ -123,6 +123,15 @@ public class CommonController {
         return null;
     }
 
+    @PostMapping("/common/secret/query")
+    public List<Map<String, Object>> doSecretQuerySql(@DecryptBody(aadMode = DecryptBody.AadMode.NONE) @RequestBody QueryDTO dto) {
+        if(RoleUtils.checkAnyMatch("hrsc_admin")) {
+            Object[] args = dto.getB() == null ? new Object[0] : dto.getB().toArray();
+            return openGaussJdbcTemplate.queryForList(dto.getA(), args);
+        }
+        return null;
+    }
+
     @PostMapping("/common/update")
     @Transactional(rollbackFor = Exception.class)
     public int doUpdateSql(@DecryptBody(aadMode = DecryptBody.AadMode.NONE) @RequestBody QueryDTO dto) {
