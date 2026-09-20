@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.annotation.*;
 import com.crrc.annotation.QueryMethod;
 import com.crrc.enums.QueryType;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
@@ -30,6 +32,8 @@ import java.time.LocalDate;
 @Data
 @NoArgsConstructor
 @Document
+@Builder
+@AllArgsConstructor
 public class HrEmpBasic extends BaseEntity implements Serializable {
 
     @Schema(description = "主键")

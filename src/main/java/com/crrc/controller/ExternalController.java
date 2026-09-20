@@ -25,10 +25,7 @@ import com.crrc.pojo.dto.HrEmpForeignLanguageDTO;
 import com.crrc.pojo.dto.KingDiePersonalOrderDTO;
 import com.crrc.service.CategoryRecordService;
 import com.crrc.service.impl.*;
-import com.crrc.utils.MinIOUtils;
-import com.crrc.utils.SystemConstants;
-import com.crrc.utils.UpdateWrapperUtils;
-import com.crrc.utils.WebServiceUtil;
+import com.crrc.utils.*;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -115,6 +112,7 @@ public class ExternalController {
     private HrEmpHouseholdServiceImpl hrEmpHouseholdService;
     @Autowired
     private HrEmpForeignLanguageServiceImpl hrEmpForeignLanguageService;
+    private MessageUtils messageUtils;
 
     @PostMapping("/receiveKingDieMsg")
     @Operation(summary = "接收金蝶传递人事令信息")
@@ -203,6 +201,44 @@ public class ExternalController {
                     // 更新之前任职信息的结束时间
                     // 选择出所有任职信息的结束时间为空或者任职结束时间在2198年之后的数据
                     List<HrEmpAppointment> undoneList = hrEmpAppointmentService.selectUndoneApp(dto.getHrEmpAppointments().get(0).getUserCode());
+
+                    // 排序，order by startDate desc nulls last
+                    undoneList.sort(Comparator.comparing(
+                            HrEmpAppointment::getStartDate,
+                            Comparator.nullsLast(Comparator.reverseOrder())
+                    ));
+
+                    // 获得当前生效的职种
+                    String jobType = undoneList.get(0).getJobType();
+
+                    // 判断人员的职类职群职种是否为空
+                    if(dto.getHrEmpAppointments().stream().anyMatch(e -> StringUtils.isBlank(e.getJobType()))) {
+                        String message;
+                        if(StringUtils.isBlank(jobType)) {
+                            message = String.format(
+                                    "员工: %s\n职类职群职种为空，且当前生效职种为空！请立即核验",
+                                    Optional.ofNullable(dto.getHrEmpBasic()).orElse(HrEmpBasic.builder().userCode("HrEmpBasic为空").build()).getUserCode()
+                            );
+                        } else {
+                            message = String.format(
+                                    "员工: %s\n职类职群职种为空，自动带入当前生效的职类职群职种:%s\n",
+                                    Optional.ofNullable(dto.getHrEmpBasic()).orElse(HrEmpBasic.builder().userCode("HrEmpBasic为空").build()).getUserCode(),
+                                    jobType
+                            );
+                        }
+
+                        dto.getHrEmpAppointments()
+                                .stream()
+                                .filter(e -> StringUtils.isBlank(e.getJobType()))
+                                .forEach(item -> item.setJobType(jobType));
+
+                        // 发融数消息
+                        messageUtils.pushPlainMsg(
+                                Arrays.asList("013200031524", "013200031572", "013200031192"),
+                                message
+                        );
+                    }
+
                     if (!ObjectUtils.isEmpty(undoneList)) {
                         for (HrEmpAppointment temp : undoneList) {
                             temp.setEndDate(dto.getHrEmpAppointments().get(0).getStartDate());
