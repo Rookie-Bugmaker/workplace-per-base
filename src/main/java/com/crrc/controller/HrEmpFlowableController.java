@@ -1,5 +1,6 @@
 package com.crrc.controller;
 
+import cn.hutool.core.collection.ConcurrentHashSet;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.crrc.annotation.AuditLog;
 import com.crrc.annotation.TenantIgnore;
@@ -85,12 +86,16 @@ public class HrEmpFlowableController {
     }
 
     private PaginationGrid<com.crrc.entity.dto.SysUserDTO> doFindApprovalByRoleIdList(List<Long> roleIdList) {
-        Set<com.crrc.entity.dto.SysUserDTO> userSet = new HashSet<>();
-        roleIdList.forEach(roleId -> {
-            List<com.crrc.entity.dto.SysUserDTO> roleUserListByRoleId = wkCoreAPi.getRoleUserListByRoleId(roleId);
-            userSet.addAll(roleUserListByRoleId);
-        });
-
+        Set<com.crrc.entity.dto.SysUserDTO> userSet = new ConcurrentHashSet<>();
+        log.info("doFindApprovalByRoleIdList params roleIdList: {}", roleIdList);
+        Optional.ofNullable(roleIdList)
+                .orElse(Collections.emptyList())
+                .stream()
+                .filter(java.util.Objects::nonNull)
+                .map(wkCoreAPi::getRoleUserListByRoleId)
+                .peek(e -> log.info("getRoleUserListByRoleId: {}", e))
+                .filter(java.util.Objects::nonNull)
+                .forEach(userSet::addAll);
 
         PaginationGrid<com.crrc.entity.dto.SysUserDTO> result = new PaginationGrid<>();
         result.setRows(new ArrayList<>(userSet));
