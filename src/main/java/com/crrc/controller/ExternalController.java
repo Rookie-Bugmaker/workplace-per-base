@@ -112,6 +112,7 @@ public class ExternalController {
     private HrEmpHouseholdServiceImpl hrEmpHouseholdService;
     @Autowired
     private HrEmpForeignLanguageServiceImpl hrEmpForeignLanguageService;
+    @Autowired
     private MessageUtils messageUtils;
 
     @PostMapping("/receiveKingDieMsg")
