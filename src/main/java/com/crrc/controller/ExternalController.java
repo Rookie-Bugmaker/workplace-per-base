@@ -21,7 +21,6 @@ import com.crrc.handler.MultiTenantHandler;
 import com.crrc.mapper.HrEmpSalaryInfoMapper;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.pojo.dto.HrEmpBasicDTO;
-import com.crrc.pojo.dto.HrEmpForeignLanguageDTO;
 import com.crrc.pojo.dto.KingDiePersonalOrderDTO;
 import com.crrc.service.CategoryRecordService;
 import com.crrc.service.impl.*;
@@ -29,7 +28,6 @@ import com.crrc.utils.*;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -201,16 +199,18 @@ public class ExternalController {
                 if (dto.getHrEmpAppointments() != null && !dto.getHrEmpAppointments().isEmpty()) {
                     // 更新之前任职信息的结束时间
                     // 选择出所有任职信息的结束时间为空或者任职结束时间在2198年之后的数据
+                    String jobType = "ERROR";
                     List<HrEmpAppointment> undoneList = hrEmpAppointmentService.selectUndoneApp(dto.getHrEmpAppointments().get(0).getUserCode());
+                    if(undoneList != null && !undoneList.isEmpty()) {
+                        // 排序，order by startDate desc nulls last
+                        undoneList.sort(Comparator.comparing(
+                                HrEmpAppointment::getStartDate,
+                                Comparator.nullsLast(Comparator.reverseOrder())
+                        ));
 
-                    // 排序，order by startDate desc nulls last
-                    undoneList.sort(Comparator.comparing(
-                            HrEmpAppointment::getStartDate,
-                            Comparator.nullsLast(Comparator.reverseOrder())
-                    ));
-
-                    // 获得当前生效的职种
-                    String jobType = undoneList.get(0).getJobType();
+                        // 获得当前生效的职种
+                        jobType = undoneList.get(0).getJobType();
+                    }
 
                     // 判断人员的职类职群职种是否为空
                     if(dto.getHrEmpAppointments().stream().anyMatch(e -> StringUtils.isBlank(e.getJobType()))) {
@@ -227,11 +227,11 @@ public class ExternalController {
                                     jobType
                             );
                         }
-
+                        String finalJobtype = jobType;
                         dto.getHrEmpAppointments()
                                 .stream()
                                 .filter(e -> StringUtils.isBlank(e.getJobType()))
-                                .forEach(item -> item.setJobType(jobType));
+                                .forEach(item -> item.setJobType(finalJobtype));
 
                         // 发融数消息
                         messageUtils.pushPlainMsg(

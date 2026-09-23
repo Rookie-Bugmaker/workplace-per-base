@@ -290,7 +290,19 @@ public class HrEmpAppointmentServiceImpl extends WorkServiceImpl<HrEmpAppointmen
                 );
         List<HrEmpAppointment> result = hrEmpAppointmentMapper.selectList(wrapper);
         if (result == null || result.isEmpty()) {
-            return null;
+            try {
+                MPJLambdaWrapper<HrEmpAppointment> wrapperUndone = new MPJLambdaWrapper<HrEmpAppointment>()
+                        .eq(HrEmpAppointment::getUserCode, userCode)
+                        .orderByDesc(HrEmpAppointment::getStartDate)
+                        .last("limit 1");
+                List<HrEmpAppointment> hrEmpAppointments = hrEmpAppointmentMapper.selectList(wrapperUndone);
+                if (hrEmpAppointments == null || hrEmpAppointments.isEmpty()) {
+                    return Collections.emptyList();
+                }
+                return hrEmpAppointments;
+            } catch (Exception e) {
+                return Collections.emptyList();
+            }
         } else {
             return result;
         }
