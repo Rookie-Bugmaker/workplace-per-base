@@ -4,6 +4,7 @@ import com.crrc.annotation.TenantIgnore;
 import com.crrc.entity.HrEmpBasic;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.service.impl.HrEmpBasicServiceImpl;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -69,7 +70,9 @@ public class ScreenDataController {
                 .select(HrEmpBasic::getNativePlaceName)
                 .list()
                 .stream()
-                .map(emp ->
+                .filter(
+                        emp -> StringUtils.isNotBlank(emp.getNativePlaceName())
+                ).map(emp ->
                     getRegion(emp.getNativePlaceName())
                 ).collect(Collectors.groupingBy(
                         Function.identity(),
