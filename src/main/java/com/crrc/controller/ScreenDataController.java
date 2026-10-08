@@ -1,5 +1,6 @@
 package com.crrc.controller;
 
+import com.crrc.annotation.TenantIgnore;
 import com.crrc.entity.HrEmpBasic;
 import com.crrc.pojo.ResponseResult;
 import com.crrc.service.impl.HrEmpBasicServiceImpl;
@@ -61,6 +62,7 @@ public class ScreenDataController {
         AREA_COORDS.put("海外", new String[]{"91", "10"});
     }
 
+    @TenantIgnore
     @GetMapping("/gPrsnSrcAddr")
     public ResponseResult<List<Map<String, String>>> getPersonSourceAddress() {
         Map<String, Long> countList = hrEmpBasicService.lambdaQuery()
