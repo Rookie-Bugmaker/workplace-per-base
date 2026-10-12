@@ -115,8 +115,8 @@ public class ExternalController {
     private HrEmpForeignLanguageServiceImpl hrEmpForeignLanguageService;
     @Autowired
     private MessageUtils messageUtils;
-    @Autowired
-    private XmlMapper xmlMapper;
+
+    private XmlMapper xmlMapper = new XmlMapper();
 
     @PostMapping("/receiveKingDieMsg")
     @Operation(summary = "接收金蝶传递人事令信息")
