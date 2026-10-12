@@ -18,14 +18,15 @@ import com.crrc.entity.*;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.handler.MultiTenantHandler;
+import com.crrc.mapper.HrEmpBasicMapper;
 import com.crrc.mapper.HrEmpSalaryInfoMapper;
 import com.crrc.pojo.ResponseResult;
-import com.crrc.pojo.dto.HrEmpBasicDTO;
-import com.crrc.pojo.dto.HrEmpForeignLanguageDTO;
-import com.crrc.pojo.dto.KingDiePersonalOrderDTO;
+import com.crrc.pojo.dto.*;
 import com.crrc.service.CategoryRecordService;
 import com.crrc.service.impl.*;
 import com.crrc.utils.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -114,6 +115,8 @@ public class ExternalController {
     private HrEmpForeignLanguageServiceImpl hrEmpForeignLanguageService;
     @Autowired
     private MessageUtils messageUtils;
+    @Autowired
+    private XmlMapper xmlMapper;
 
     @PostMapping("/receiveKingDieMsg")
     @Operation(summary = "接收金蝶传递人事令信息")
@@ -909,6 +912,45 @@ public class ExternalController {
 
         // 4. 返回XML响应
         return new ResponseEntity<>(xmlBuilder.toString(), headers, HttpStatus.OK);
+    }
+
+    /**
+     * 向科技创新管理数字化平台发送人才等级信息
+     * @return 是否发送成功
+     */
+    @PostMapping("/syncEmpLevelIdToTIMDP")
+    @Operation(summary = "接收总线WebService请求，返回人才等级XML")
+    @AuditLog(value = "接收总线请求返回人员信息", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
+    @TenantIgnore
+    public ResponseResult<String> syncEmpLevelIdToTIMDP() {
+        // 1. 获取有效人员信息
+
+        List<EmployeeLevelIdDTO> empLists = hrEmpBasicService.getBaseMapper().queryEmployeeInfoWithLevelId();
+
+        // 2. 翻译所有部门
+        Map<String, String> deptTranslateMap = DeptUtils.getDeptTranslateMap();
+        for (EmployeeLevelIdDTO emp : empLists) {
+            emp.setDeptName(deptTranslateMap.getOrDefault(emp.getDeptCode(), emp.getDeptCode()));
+        }
+
+        SyncEmpLevelIdRequestDTO syncEmpLevelIdRequestDTO = new SyncEmpLevelIdRequestDTO(empLists);
+
+        // 3. 组装XML报文
+        try {
+            String xmlValue = xmlMapper.writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(syncEmpLevelIdRequestDTO);
+
+            log.info(xmlValue);
+            return ResponseResult.success(xmlValue);
+            // 处理返回结果
+//            String result = webServiceUtil.xmlTransformer(xmlMsg);
+//            JSONObject jsonObject = JSONUtil.parseObj(result);
+        } catch (JsonProcessingException e) {
+            log.error("XML转换失败！");
+            throw new RuntimeException(e);
+        }
+
+        // return ResponseResult.success("发送成功!");
     }
 
     /**
