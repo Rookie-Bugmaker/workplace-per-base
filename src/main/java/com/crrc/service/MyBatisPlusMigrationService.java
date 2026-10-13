@@ -770,6 +770,7 @@ public class MyBatisPlusMigrationService {
 
                                         "LEFT JOIN position_info pi " +
                                         "       ON pi.code = ra.\"position\" " +
+                                        "       AND pi.deleted = 0 " +
 
                                         "WHERE ra.group_rank = 1 " +
                                         "ORDER BY ra.user_code " +
