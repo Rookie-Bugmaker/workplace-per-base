@@ -948,8 +948,12 @@ public class ExternalController {
             // 处理返回结果
             String result = webServiceUtil.sendByWebService(xmlValue, "013200HRC000007");
             log.info(result);
+            XmlResponseDTO xmlResponseDTO = xmlMapper.readValue(result, XmlResponseDTO.class);
+            if(xmlResponseDTO != null && "S".equals(xmlResponseDTO.getMType())) {
+                return ResponseResult.success(result);
+            }
 
-            return ResponseResult.success(result);
+            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), xmlResponseDTO.getMessage());
 //            String result = webServiceUtil.xmlTransformer(xmlMsg);
 //            JSONObject jsonObject = JSONUtil.parseObj(result);
         } catch (JsonProcessingException e) {
