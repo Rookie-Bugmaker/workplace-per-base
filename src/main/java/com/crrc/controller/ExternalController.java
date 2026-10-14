@@ -941,8 +941,12 @@ public class ExternalController {
                     .writeValueAsString(syncEmpLevelIdRequestDTO);
 
             log.info(xmlValue);
-            return ResponseResult.success(xmlValue);
+            // return ResponseResult.success(xmlValue);
             // 处理返回结果
+            String result = webServiceUtil.sendByWebService(xmlValue, "013200HRC000007");
+            log.info(result);
+
+            return ResponseResult.success(result);
 //            String result = webServiceUtil.xmlTransformer(xmlMsg);
 //            JSONObject jsonObject = JSONUtil.parseObj(result);
         } catch (JsonProcessingException e) {
