@@ -15,6 +15,7 @@ import com.crrc.annotation.IgnoreTenant;
 import com.crrc.annotation.TenantIgnore;
 import com.crrc.constants.AuditConstants;
 import com.crrc.entity.*;
+import com.crrc.entity.dict.vo.DictVO;
 import com.crrc.enums.LogType;
 import com.crrc.enums.OperateType;
 import com.crrc.handler.MultiTenantHandler;
@@ -34,14 +35,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.HttpServletResponse;
 import java.math.BigDecimal;
@@ -115,8 +114,8 @@ public class ExternalController {
     private HrEmpForeignLanguageServiceImpl hrEmpForeignLanguageService;
     @Autowired
     private MessageUtils messageUtils;
-
-    private XmlMapper xmlMapper = new XmlMapper();
+    @Autowired
+    private DictUtils dictUtils;
 
     @PostMapping("/receiveKingDieMsg")
     @Operation(summary = "接收金蝶传递人事令信息")
@@ -923,6 +922,16 @@ public class ExternalController {
     @AuditLog(value = "接收总线请求返回人员信息", logType = LogType.TYPE_OPERATE, operateType = OperateType.TYPE_QUERY)
     @TenantIgnore
     public ResponseResult<String> syncEmpLevelIdToTIMDP() {
+        // 初始化必要数据
+        RestTemplate template = new RestTemplate();
+        XmlMapper xmlMapper = new XmlMapper();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("text/xml;charset=UTF-8"));
+        DictVO dictVO = dictUtils.get("sync_level_id_timdp_url");
+        String url = dictVO.getItems().get(0).getItemName();
+        List<String> errors = new ArrayList<>();
+        int batchSize = 100;
+
         // 1. 获取有效人员信息
 
         List<EmployeeLevelIdDTO> empLists = hrEmpBasicService.getBaseMapper().queryEmployeeInfoWithLevelId();
@@ -933,35 +942,69 @@ public class ExternalController {
             emp.setDeptName(deptTranslateMap.getOrDefault(emp.getDeptCode(), emp.getDeptCode()));
         }
 
-        // 测试subList
-        empLists = empLists.subList(0, 5);
+        // 每批100个人
+        for(int i = 0; i < empLists.size(); i += batchSize) {
+            List<EmployeeLevelIdDTO> batch = empLists.subList(i, Math.min(i + batchSize, empLists.size()));
+            SyncEmpLevelIdRequestDTO syncEmpLevelIdRequestDTO = new SyncEmpLevelIdRequestDTO(batch);
 
-        SyncEmpLevelIdRequestDTO syncEmpLevelIdRequestDTO = new SyncEmpLevelIdRequestDTO(empLists);
+            // 3. 组装XML报文
+            try {
+                String xmlValue = xmlMapper.writerWithDefaultPrettyPrinter()
+                        .writeValueAsString(syncEmpLevelIdRequestDTO);
 
-        // 3. 组装XML报文
-        try {
-            String xmlValue = xmlMapper.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(syncEmpLevelIdRequestDTO);
+                log.info(xmlValue);
+                // 构造content
+                String content = buildSoapXml("013200HRC000007", xmlValue);
+                // 构造http请求
+                HttpEntity<String> request = new HttpEntity<>(content, headers);
+                // 发送POST请求
+                String result = template.postForObject(url, request, String.class);
 
-            log.info(xmlValue);
-            // return ResponseResult.success(xmlValue);
-            // 处理返回结果
-            String result = webServiceUtil.sendByWebService(xmlValue, "013200HRC000007");
-            log.info(result);
-            XmlResponseDTO xmlResponseDTO = xmlMapper.readValue(result, XmlResponseDTO.class);
-            if(xmlResponseDTO != null && "S".equals(xmlResponseDTO.getMType())) {
-                return ResponseResult.success(result);
+                // 处理返回结果
+                log.info(result);
+
+                XmlResponseDTO xmlResponseDTO = xmlMapper.readValue(result, XmlResponseDTO.class);
+                if(xmlResponseDTO == null || "E".equals(xmlResponseDTO.getMType())) {
+                    errors.add(xmlResponseDTO.getMessage());
+                }
+
+
+            } catch (JsonProcessingException e) {
+                log.error("XML转换失败！");
+                errors.add(e.getMessage());
             }
-
-            return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), xmlResponseDTO.getMessage());
-//            String result = webServiceUtil.xmlTransformer(xmlMsg);
-//            JSONObject jsonObject = JSONUtil.parseObj(result);
-        } catch (JsonProcessingException e) {
-            log.error("XML转换失败！");
-            throw new RuntimeException(e);
         }
 
-        // return ResponseResult.success("发送成功!");
+        if(errors.isEmpty()) {
+            return ResponseResult.success("发送成功!");
+        }
+
+        return ResponseResult.fail(HttpStatus.BAD_REQUEST.value(), String.join("\n", errors));
+    }
+
+    public static String buildSoapXml(String msgId, String contentXml) {
+        // 防止 CDATA 提前结束
+        String safeContent = contentXml.replace("]]>", "]]]]><![CDATA[>");
+
+        return "<SOAP-ENV:Envelope "
+                + "xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\" "
+                + "xmlns:if=\"http://www.pgxxgc.com/IF_Service\">"
+                + "<SOAP-ENV:Header/>"
+                + "<SOAP-ENV:Body>"
+                + "<if:IFService>"
+                + "<if:sMsgID>" + escapeXml(msgId) + "</if:sMsgID>"
+                + "<if:sContent><![CDATA[" + safeContent + "]]></if:sContent>"
+                + "</if:IFService>"
+                + "</SOAP-ENV:Body>"
+                + "</SOAP-ENV:Envelope>";
+    }
+
+    private static String escapeXml(String value) {
+        return value.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&apos;");
     }
 
     /**
