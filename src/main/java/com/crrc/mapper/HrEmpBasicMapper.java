@@ -36,6 +36,8 @@ public interface HrEmpBasicMapper extends MPJBaseMapper<HrEmpBasic> {
             "        ) as rn\n" +
             "    from\n" +
             "        hr_emp_career_path\n" +
+            "    where is_expired <> '1'\n" +
+            "    and deleted = '0'\n" +
             ") hecp\n" +
             "    on\n" +
             "    heb.user_code = hecp.user_code\n" +

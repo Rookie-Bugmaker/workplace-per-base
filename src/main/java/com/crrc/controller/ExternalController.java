@@ -933,7 +933,6 @@ public class ExternalController {
         int batchSize = 100;
 
         // 1. 获取有效人员信息
-
         List<EmployeeLevelIdDTO> empLists = hrEmpBasicService.getBaseMapper().queryEmployeeInfoWithLevelId();
 
         // 2. 翻译所有部门
