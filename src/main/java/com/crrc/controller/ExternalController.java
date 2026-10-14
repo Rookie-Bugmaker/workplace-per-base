@@ -933,6 +933,9 @@ public class ExternalController {
             emp.setDeptName(deptTranslateMap.getOrDefault(emp.getDeptCode(), emp.getDeptCode()));
         }
 
+        // 测试subList
+        empLists = empLists.subList(0, 5);
+
         SyncEmpLevelIdRequestDTO syncEmpLevelIdRequestDTO = new SyncEmpLevelIdRequestDTO(empLists);
 
         // 3. 组装XML报文
