@@ -12,7 +12,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@JacksonXmlRootElement(localName = "syncEmpLevelIdToTIMDP")
+@JacksonXmlRootElement(localName = "syncEmpLevel")
 public class SyncEmpLevelIdRequestDTO {
 
     @JacksonXmlElementWrapper(localName = "employees")
